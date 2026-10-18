@@ -92,6 +92,7 @@ func (o *OIDC) Handler() http.Handler {
 	mux.HandleFunc("GET /auth/callback", o.callback)
 	mux.HandleFunc("POST /auth/logout", o.logout)
 	mux.HandleFunc("GET /auth/me", o.me)
+	mux.HandleFunc("GET /auth/cli", o.cli)
 	return mux
 }
 
@@ -228,6 +229,17 @@ func (o *OIDC) me(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"user": s.Identity.User, claimGroups: s.Identity.Groups, "csrfToken": s.CSRF, "expiresAt": s.ExpiresAt,
 	})
+}
+
+// cli tells the CLI how to log in with the device flow. It has no secret.
+func (o *OIDC) cli(w http.ResponseWriter, _ *http.Request) {
+	if o.cfg.OIDC.CLIClientID == "" {
+		http.Error(w, "the CLI login is not configured: use a service account token", http.StatusNotFound)
+		return
+	}
+	scopes := append([]string{"offline_access"}, o.cfg.OIDC.Scopes...)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"issuer": o.cfg.OIDC.Issuer, "clientID": o.cfg.OIDC.CLIClientID, "scopes": scopes})
 }
 
 func (o *OIDC) cookie(name, value string, maxAge time.Duration) *http.Cookie {

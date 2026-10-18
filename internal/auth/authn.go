@@ -2,6 +2,8 @@ package auth
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -50,7 +52,8 @@ type bearerAuth struct{ o *OIDC }
 
 func (a bearerAuth) Authenticate(r *http.Request) (*Identity, error) {
 	raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if !ok {
+	if !ok || !a.o.issued(raw) {
+		// A token of another issuer, for example a service account token, is for the next authenticator.
 		return nil, nil
 	}
 	idt, err := a.o.bearer.Verify(r.Context(), raw)
@@ -71,4 +74,20 @@ func (a bearerAuth) Authenticate(r *http.Request) (*Identity, error) {
 		}
 	}
 	return identityFromClaims(claims, &a.o.cfg.OIDC)
+}
+
+// issued tells if the "iss" claim of a JWT names the provider. It does not check the signature: Verify does that.
+func (o *OIDC) issued(raw string) bool {
+	parts := strings.Split(raw, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	var c struct {
+		Issuer string `json:"iss"`
+	}
+	return json.Unmarshal(payload, &c) == nil && c.Issuer == o.cfg.OIDC.Issuer
 }

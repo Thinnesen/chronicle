@@ -6,8 +6,12 @@ metadata:
   name: server-impersonator
 rules:
 - apiGroups: [""]
-  resources: [users, groups]
+  resources: [users, groups, serviceaccounts]
   verbs: [impersonate]
+# TokenReviews check the service account tokens of the CLI and the SDKs.
+- apiGroups: [authentication.k8s.io]
+  resources: [tokenreviews]
+  verbs: [create]
 - apiGroups: [""]
   resources: [namespaces]
   verbs: [list]

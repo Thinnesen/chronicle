@@ -34,8 +34,10 @@ type OIDCConfig struct {
 	// UsernamePrefix and GroupsPrefix are added to the names. The default is "oidc:". They cannot be empty.
 	UsernamePrefix string `json:"usernamePrefix,omitempty"`
 	GroupsPrefix   string `json:"groupsPrefix,omitempty"`
-	// ExtraAudiences are other client IDs whose ID tokens the API accepts as bearer tokens, for example the CLI.
+	// ExtraAudiences are other client IDs whose ID tokens the API accepts as bearer tokens.
 	ExtraAudiences []string `json:"extraAudiences,omitempty"`
+	// CLIClientID is the public client of the CLI for the device flow. Its ID tokens are accepted as bearer tokens.
+	CLIClientID string `json:"cliClientID,omitempty"`
 	// CAFile is a PEM file with the CA of the provider, when it is not in the system roots.
 	CAFile string `json:"caFile,omitempty"`
 	// Entra configures Microsoft Entra ID (Microsoft 365). Then the issuer comes from the tenant.
@@ -108,7 +110,10 @@ func (c *Config) complete() error {
 		o.clientSecret = strings.TrimSpace(string(b))
 	}
 	if len(o.Scopes) == 0 {
-		o.Scopes = []string{"openid", "profile", "email", "groups"}
+		o.Scopes = []string{"openid", "profile", claimEmail, claimGroups}
+	}
+	if o.CLIClientID != "" {
+		o.ExtraAudiences = append(o.ExtraAudiences, o.CLIClientID)
 	}
 	o.UsernameClaim = cmpOr(o.UsernameClaim, claimEmail)
 	o.GroupsClaim = cmpOr(o.GroupsClaim, claimGroups)

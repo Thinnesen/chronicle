@@ -15,6 +15,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -23,9 +24,12 @@ import (
 )
 
 func main() {
-	var listen, authConfig string
+	var listen, authConfig, tokenAudience string
 	flag.StringVar(&listen, "listen", ":8080", "The address of the API. TLS ends at the ingress or the service mesh.")
-	flag.StringVar(&authConfig, "auth-config", "", "The login configuration file. Without it, the API refuses all calls.")
+	flag.StringVar(&authConfig, "auth-config", "",
+		"The login configuration file. Without it, only service account tokens work.")
+	flag.StringVar(&tokenAudience, "token-audience", "chronicle",
+		"The audience of the service account tokens that the API accepts. Empty turns these tokens off.")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -36,6 +40,7 @@ func main() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(chroniclev1alpha1.AddToScheme(scheme))
 
+	restConfig := ctrl.GetConfigOrDie()
 	mux := http.NewServeMux()
 	var authn []auth.Authenticator
 	if authConfig != "" {
@@ -46,10 +51,19 @@ func main() {
 		}
 		mux.Handle("/auth/", login.Handler())
 		authn = []auth.Authenticator{login.SessionAuthenticator(), login.BearerAuthenticator()}
-	} else {
-		log.Info("No login configuration: the API refuses all calls")
 	}
-	api, err := server.NewHandler(server.Options{Config: ctrl.GetConfigOrDie(), Scheme: scheme, Authenticators: authn})
+	if tokenAudience != "" {
+		own, err := client.New(restConfig, client.Options{Scheme: scheme})
+		if err != nil {
+			log.Error(err, "Failed to create the client")
+			os.Exit(1)
+		}
+		authn = append(authn, &auth.TokenReviewAuthenticator{Client: own, Audiences: []string{tokenAudience}})
+	}
+	if len(authn) == 0 {
+		log.Info("No login and no service account tokens: the API refuses all calls")
+	}
+	api, err := server.NewHandler(server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn})
 	if err != nil {
 		log.Error(err, "Failed to create the API")
 		os.Exit(1)

@@ -9,6 +9,8 @@ import (
 type Identity struct {
 	User   string   `json:"user"`
 	Groups []string `json:"groups,omitempty"`
+	// ServiceAccount is true when a TokenReview confirmed the identity as a Kubernetes service account.
+	ServiceAccount bool `json:"-"`
 }
 
 // Authenticator finds the identity of an HTTP request. It returns nil and no error when the request has no credentials of its kind.

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
-	"strings"
 
 	"connectrpc.com/connect"
 	corev1 "k8s.io/api/core/v1"
@@ -73,16 +71,15 @@ func (f *clientFactory) configFor(ctx context.Context) (*rest.Config, error) {
 	if id == nil || id.User == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("log in first"))
 	}
-	// A second check after the claim mapping: the server never impersonates a Kubernetes system name.
-	if isSystem(id.User) || slices.ContainsFunc(id.Groups, isSystem) {
+	// A second check after the claim mapping: the server never impersonates a Kubernetes system name,
+	// except a service account that a TokenReview confirmed.
+	if !id.Impersonable() {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("system names cannot be used"))
 	}
 	cfg := rest.CopyConfig(f.cfg)
 	cfg.Impersonate = rest.ImpersonationConfig{UserName: id.User, Groups: id.Groups}
 	return cfg, nil
 }
-
-func isSystem(name string) bool { return strings.HasPrefix(name, "system:") }
 
 func newMapper(cfg *rest.Config, hc *http.Client) (meta.RESTMapper, error) {
 	m, err := apiutil.NewDynamicRESTMapper(cfg, hc)
