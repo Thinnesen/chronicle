@@ -7,7 +7,6 @@ Each item ends with a green gate run and a commit on `dev`.
 
 ## M1 Engine core
 
-1. #1 Scaffold the project and the tooling baseline
 2. #2 API types: Workflow, WorkflowTemplate, ClusterWorkflowTemplate
 3. #3 Engine: DAG and steps
 4. #4 Engine: parameters, outputs, conditions and fan-out
