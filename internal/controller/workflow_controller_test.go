@@ -167,6 +167,33 @@ templates:
 		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(&pod), &corev1.Pod{}))).To(BeTrue())
 	})
 
+	It("resolves template references once and fails on a missing one", func() {
+		lib := &chroniclev1alpha1.WorkflowTemplate{Name: "lib-" + rand.String(6), Namespace: "default", Spec: chroniclev1alpha1.WorkflowTemplateSpec{
+			Entrypoint: "say",
+			Arguments:  chroniclev1alpha1.Arguments{Parameters: []chroniclev1alpha1.Parameter{{Name: "word", Value: new("hi")}}},
+			Templates: []chroniclev1alpha1.Template{{Name: "say", Container: &chroniclev1alpha1.ContainerTemplate{
+				Image: "alpine", Command: []string{"echo", "{{workflow.parameters.word}}"}}}},
+		}}
+		Expect(k8sClient.Create(ctx, lib)).To(Succeed())
+		DeferCleanup(k8sClient.Delete, ctx, lib)
+
+		key := create("workflowTemplateRef: {name: " + lib.Name + "}\narguments: {parameters: [{name: word, value: hello}]}")
+		wf := reconcileOnce(key)
+		Expect(wf.Status.StoredSpec).NotTo(BeNil())
+		Expect(pods(wf)[0].Spec.Containers[0].Command[3:]).To(Equal([]string{"echo", "hello"}))
+
+		By("changing the template after the start")
+		lib.Spec.Templates[0].Container.Image = "changed"
+		Expect(k8sClient.Update(ctx, lib)).To(Succeed())
+		wf = reconcileOnce(key)
+		Expect(wf.Status.StoredSpec.Templates[0].Container.Image).To(Equal("alpine"))
+
+		key = create("entrypoint: m\ntemplates: [{name: m, dag: {tasks: [{name: a, templateRef: {name: nope, template: x, clusterScope: true}}]}}]")
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowError))
+		Expect(wf.Status.Message).To(ContainSubstring(`ClusterWorkflowTemplate "nope"`))
+	})
+
 	It("runs a container without a command directly", func() {
 		key := create("entrypoint: c\ntemplates:\n- {name: c, container: {image: alpine, args: [x]}}")
 		wf := reconcileOnce(key)

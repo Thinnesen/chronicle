@@ -17,7 +17,9 @@ rules:
 - apiGroups:
   - chronicle.thinnesen.com
   resources:
+  - clusterworkflowtemplates
   - cronworkflows
+  - workflowtemplates
   verbs:
   - get
   - list

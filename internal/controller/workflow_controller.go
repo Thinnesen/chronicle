@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/engine"
+	"github.com/Thinnesen/chronicle/internal/resolve"
 )
 
 // WorkflowReconciler runs Workflows: it runs the engine and applies its actions.
@@ -30,6 +32,7 @@ type WorkflowReconciler struct {
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflowtemplates;clusterworkflowtemplates,verbs=get;list;watch
 
 // Reconcile runs one step of the engine for a Workflow.
 func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -38,14 +41,17 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.Get(ctx, req.NamespacedName, &wf); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if wf.Spec.WorkflowTemplateRef != nil {
-		return r.setError(ctx, &wf, "workflowTemplateRef is not supported yet")
+	spec, err := r.spec(ctx, &wf)
+	if apierrors.IsNotFound(err) || errors.Is(err, resolve.ErrInvalid) {
+		return r.setError(ctx, &wf, err.Error())
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 	pods, err := r.observePods(ctx, &wf)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	spec := &wf.Spec.WorkflowTemplateSpec
 	res := engine.Run(engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
 		Spec: spec, Status: wf.Status, Pods: pods, Now: metav1.Now(),
@@ -76,7 +82,11 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // applyTTL deletes a finished workflow when its TTL is over, or runs again when it will be over.
 func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1.Workflow, result ctrl.Result) (ctrl.Result, error) {
-	when, ok := engine.TTL(&wf.Spec.WorkflowTemplateSpec, wf.Status)
+	spec := &wf.Spec.WorkflowTemplateSpec
+	if wf.Status.StoredSpec != nil {
+		spec = wf.Status.StoredSpec
+	}
+	when, ok := engine.TTL(spec, wf.Status)
 	if !ok {
 		return result, nil
 	}
@@ -91,6 +101,43 @@ func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1
 		return ctrl.Result{}, fmt.Errorf("delete the workflow after its TTL: %w", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+// spec returns the spec to run. It resolves the template references once and keeps the result in the status.
+func (r *WorkflowReconciler) spec(ctx context.Context, wf *chroniclev1alpha1.Workflow) (*chroniclev1alpha1.WorkflowTemplateSpec, error) {
+	if wf.Status.StoredSpec != nil {
+		return wf.Status.StoredSpec, nil
+	}
+	if !resolve.Needed(&wf.Spec) {
+		return &wf.Spec.WorkflowTemplateSpec, nil
+	}
+	s, err := resolve.Workflow(ctx, templateGetter{r.Client, wf.Namespace}, &wf.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("resolve the template references: %w", err)
+	}
+	wf.Status.StoredSpec = s
+	return s, nil
+}
+
+// templateGetter reads WorkflowTemplates in one namespace and ClusterWorkflowTemplates.
+type templateGetter struct {
+	client.Reader
+	namespace string
+}
+
+func (g templateGetter) Get(ctx context.Context, name string, clusterScope bool) (*chroniclev1alpha1.WorkflowTemplateSpec, error) {
+	if clusterScope {
+		var t chroniclev1alpha1.ClusterWorkflowTemplate
+		if err := g.Reader.Get(ctx, client.ObjectKey{Name: name}, &t); err != nil {
+			return nil, fmt.Errorf("read ClusterWorkflowTemplate %q: %w", name, err)
+		}
+		return &t.Spec, nil
+	}
+	var t chroniclev1alpha1.WorkflowTemplate
+	if err := g.Reader.Get(ctx, client.ObjectKey{Namespace: g.namespace, Name: name}, &t); err != nil {
+		return nil, fmt.Errorf("read WorkflowTemplate %q: %w", name, err)
+	}
+	return &t.Spec, nil
 }
 
 // observePods returns the state of the Pods of a workflow by node ID.

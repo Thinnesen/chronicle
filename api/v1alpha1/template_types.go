@@ -226,8 +226,28 @@ type DAGTemplate struct {
 	FailFast *bool `json:"failFast,omitempty"`
 }
 
+// TemplateRef is a template of a WorkflowTemplate or a ClusterWorkflowTemplate.
+type TemplateRef struct {
+	// name of the WorkflowTemplate or the ClusterWorkflowTemplate.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +required
+	Name string `json:"name"`
+
+	// template is the name of the template in it.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	// +required
+	Template string `json:"template"`
+
+	// clusterScope is true for a ClusterWorkflowTemplate.
+	// +optional
+	ClusterScope bool `json:"clusterScope,omitempty"`
+}
+
 // DAGTask is one node of a DAG.
 // +kubebuilder:validation:XValidation:rule="!(has(self.dependencies) && has(self.depends))",message="use dependencies or depends, not both"
+// +kubebuilder:validation:XValidation:rule="has(self.template) != has(self.templateRef)",message="give template or templateRef"
 type DAGTask struct {
 	// name of the task. It is unique in the DAG.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -251,6 +271,7 @@ type DAGTask struct {
 }
 
 // WorkflowStep is one step in a group of parallel steps.
+// +kubebuilder:validation:XValidation:rule="has(self.template) != has(self.templateRef)",message="give template or templateRef"
 type WorkflowStep struct {
 	// name of the step. It is unique in the steps template.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -263,11 +284,14 @@ type WorkflowStep struct {
 
 // Call is a call of a template from a DAG task or a step.
 type Call struct {
-	// template is the name of the template to run.
-	// +kubebuilder:validation:MinLength=1
+	// template is the name of a template of this workflow.
 	// +kubebuilder:validation:MaxLength=128
-	// +required
-	Template string `json:"template"`
+	// +optional
+	Template string `json:"template,omitempty"`
+
+	// templateRef is a template of a WorkflowTemplate in the same namespace or of a ClusterWorkflowTemplate.
+	// +optional
+	TemplateRef *TemplateRef `json:"templateRef,omitempty"`
 
 	// arguments to give to the template.
 	// +optional

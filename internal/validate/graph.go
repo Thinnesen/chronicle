@@ -22,7 +22,7 @@ func (c *checker) checkDAG(dag *v1alpha1.DAGTemplate, path *field.Path, sc scope
 		collectAncestors(task.Name, deps, ancestors)
 		taskScope := sc
 		for a := range ancestors {
-			taskScope = taskScope.with(c.outputNames("tasks."+a, findTask(dag, a).Template)...)
+			taskScope = taskScope.with(c.callOutputs("tasks."+a, findTask(dag, a).Call)...)
 		}
 		hint := func(n string) string {
 			for _, t := range dag.Tasks {
@@ -143,9 +143,17 @@ func (c *checker) checkSteps(groups [][]v1alpha1.WorkflowStep, path *field.Path,
 		}
 		for _, step := range group {
 			seen[step.Name] = true
-			sc = sc.with(c.outputNames("steps."+step.Name, step.Template)...)
+			sc = sc.with(c.callOutputs("steps."+step.Name, step.Call)...)
 		}
 	}
+}
+
+// callOutputs returns the output placeholders of a call. The outputs of a templateRef are not known yet.
+func (c *checker) callOutputs(prefix string, call v1alpha1.Call) []string {
+	if call.TemplateRef != nil {
+		return []string{prefix + ".outputs.*"}
+	}
+	return c.outputNames(prefix, call.Template)
 }
 
 // outputNames returns the placeholder names for the outputs of a node that runs a template.
@@ -170,12 +178,12 @@ func (c *checker) childOutputs(t *v1alpha1.Template) []string {
 	var names []string
 	if t.DAG != nil {
 		for _, task := range t.DAG.Tasks {
-			names = append(names, c.outputNames("tasks."+task.Name, task.Template)...)
+			names = append(names, c.callOutputs("tasks."+task.Name, task.Call)...)
 		}
 	}
 	for _, group := range t.Steps {
 		for _, step := range group {
-			names = append(names, c.outputNames("steps."+step.Name, step.Template)...)
+			names = append(names, c.callOutputs("steps."+step.Name, step.Call)...)
 		}
 	}
 	return names

@@ -69,6 +69,19 @@ func (s scope) with(names ...string) scope {
 	return out
 }
 
+// has tells if a name is in the scope, also through a "prefix.*" name.
+func (s scope) has(name string) bool {
+	if s[name] {
+		return true
+	}
+	for i := strings.LastIndexByte(name, '.'); i > 0; i = strings.LastIndexByte(name[:i], '.') {
+		if s[name[:i]+".*"] {
+			return true
+		}
+	}
+	return false
+}
+
 type checker struct {
 	templates map[string]*v1alpha1.Template
 	globals   scope
@@ -168,7 +181,7 @@ func (c *checker) checkContainer(ct *v1alpha1.ContainerTemplate, path *field.Pat
 func (c *checker) checkCall(call v1alpha1.Call, path *field.Path, sc scope, hint func(string) string) {
 	name, args := call.Template, call.Arguments
 	t, ok := c.templates[name]
-	if !ok {
+	if !ok && call.TemplateRef == nil {
 		c.errs = append(c.errs, field.NotFound(path.Child("template"), name))
 		return
 	}
@@ -180,6 +193,15 @@ func (c *checker) checkCall(call v1alpha1.Call, path *field.Path, sc scope, hint
 		sc = sc.with("item", itemPrefix)
 	}
 	c.checkWhen(call.When, path.Child("when"), sc, hint)
+	if call.TemplateRef != nil {
+		// The referenced template is checked when the controller resolves it.
+		for i, a := range args.Parameters {
+			if a.Value != nil {
+				c.checkText(*a.Value, path.Child("arguments", "parameters").Index(i).Child("value"), sc, hint)
+			}
+		}
+		return
+	}
 	argsPath := path.Child("arguments", "parameters")
 	for i, a := range args.Parameters {
 		ap := argsPath.Index(i)
@@ -217,7 +239,7 @@ func (c *checker) checkEnum(p *v1alpha1.Parameter, path *field.Path) {
 	}
 }
 
-// itemPrefix in a scope permits "{{item.key}}" for any key.
+// itemPrefix in a scope permits "{{item.key}}" for any key. A scope name that ends with ".*" permits any name with its prefix.
 const itemPrefix = "item.*"
 
 func (c *checker) checkWhen(s string, path *field.Path, sc scope, hint func(string) string) {
@@ -244,7 +266,7 @@ func (c *checker) checkText(s string, path *field.Path, sc scope, hint func(stri
 
 func (c *checker) checkNames(s string, names []string, path *field.Path, sc scope, hint func(string) string) {
 	for _, n := range names {
-		if sc[n] || sc[itemPrefix] && strings.HasPrefix(n, "item.") {
+		if sc.has(n) {
 			continue
 		}
 		msg := fmt.Sprintf("unknown placeholder %q", n)

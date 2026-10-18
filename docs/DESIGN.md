@@ -64,6 +64,13 @@ Validation: CEL rules and a validating webhook for the DAG (no cycles, known tem
 - `conditions`, `startedAt`, `finishedAt`, `estimatedDuration`.
 - Large status: when the node map is larger than a limit, the controller keeps a compact status and the full node map in the archive.
 
+### 3.3.1 Template references
+
+- `workflowTemplateRef` runs a WorkflowTemplate (same namespace) or a ClusterWorkflowTemplate. The values that the Workflow sets go on top: entrypoint, arguments (by name), service account, exit handler, deadline, Pod GC and TTL.
+- `templateRef` in a DAG task or a step calls one template of a WorkflowTemplate or a ClusterWorkflowTemplate. The controller copies it, and the templates that it uses, into the spec with the name `<set>--<template>` (`cluster--<set>--<template>` for a cluster template).
+- The controller resolves the references once and keeps the result in `status.storedSpec`. A later template change does not change a run, and the history keeps the exact definition.
+- A missing template or set ends the run with Error. An API error is retried.
+
 ### 3.4 CronWorkflow
 
 `schedules` (one or more cron expressions), `timezone`, `concurrencyPolicy` (Allow, Forbid, Replace), `startingDeadlineSeconds`, `successfulJobsHistoryLimit`, `failedJobsHistoryLimit`, `suspend`, `workflowMetadata`, `workflowSpec` (inline or `workflowTemplateRef`).

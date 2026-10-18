@@ -120,6 +120,11 @@ type WorkflowStatus struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 
+	// storedSpec is the resolved spec of a workflow that uses workflowTemplateRef or templateRef.
+	// The controller resolves the references once, so later template changes do not change the run.
+	// +optional
+	StoredSpec *WorkflowTemplateSpec `json:"storedSpec,omitempty"`
+
 	// nodes is a map of node ID to node status.
 	// +optional
 	Nodes map[string]NodeStatus `json:"nodes,omitempty"`

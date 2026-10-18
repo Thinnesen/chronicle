@@ -553,11 +553,33 @@ spec:
                                 pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
                                 type: string
                               template:
-                                description: template is the name of the template
-                                  to run.
+                                description: template is the name of a template of
+                                  this workflow.
                                 maxLength: 128
-                                minLength: 1
                                 type: string
+                              templateRef:
+                                description: templateRef is a template of a WorkflowTemplate
+                                  in the same namespace or of a ClusterWorkflowTemplate.
+                                properties:
+                                  clusterScope:
+                                    description: clusterScope is true for a ClusterWorkflowTemplate.
+                                    type: boolean
+                                  name:
+                                    description: name of the WorkflowTemplate or the
+                                      ClusterWorkflowTemplate.
+                                    maxLength: 253
+                                    minLength: 1
+                                    type: string
+                                  template:
+                                    description: template is the name of the template
+                                      in it.
+                                    maxLength: 128
+                                    minLength: 1
+                                    type: string
+                                required:
+                                - name
+                                - template
+                                type: object
                               when:
                                 description: when is a condition. When it is false,
                                   the node is Skipped. For example "{{tasks.a.outputs.result}}
@@ -579,11 +601,12 @@ spec:
                                 type: string
                             required:
                             - name
-                            - template
                             type: object
                             x-kubernetes-validations:
                             - message: use dependencies or depends, not both
                               rule: '!(has(self.dependencies) && has(self.depends))'
+                            - message: give template or templateRef
+                              rule: has(self.template) != has(self.templateRef)
                           maxItems: 200
                           minItems: 1
                           type: array
@@ -1197,11 +1220,33 @@ spec:
                               pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
                               type: string
                             template:
-                              description: template is the name of the template to
-                                run.
+                              description: template is the name of a template of this
+                                workflow.
                               maxLength: 128
-                              minLength: 1
                               type: string
+                            templateRef:
+                              description: templateRef is a template of a WorkflowTemplate
+                                in the same namespace or of a ClusterWorkflowTemplate.
+                              properties:
+                                clusterScope:
+                                  description: clusterScope is true for a ClusterWorkflowTemplate.
+                                  type: boolean
+                                name:
+                                  description: name of the WorkflowTemplate or the
+                                    ClusterWorkflowTemplate.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                                template:
+                                  description: template is the name of the template
+                                    in it.
+                                  maxLength: 128
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - template
+                              type: object
                             when:
                               description: when is a condition. When it is false,
                                 the node is Skipped. For example "{{tasks.a.outputs.result}}
@@ -1223,8 +1268,10 @@ spec:
                               type: string
                           required:
                           - name
-                          - template
                           type: object
+                          x-kubernetes-validations:
+                          - message: give template or templateRef
+                            rule: has(self.template) != has(self.templateRef)
                         maxItems: 100
                         minItems: 1
                         type: array
