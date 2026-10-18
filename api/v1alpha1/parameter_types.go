@@ -40,6 +40,11 @@ type ValueFrom struct {
 	// +kubebuilder:validation:MaxLength=4096
 	// +optional
 	Path string `json:"path,omitempty"`
+
+	// jsonPath reads the value from the object of a resource template, for example "{.metadata.name}".
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	JSONPath string `json:"jsonPath,omitempty"`
 }
 
 // Arguments are the values that a caller gives to a workflow or a template.

@@ -7,9 +7,6 @@ Each item ends with a green gate run and a commit on `dev`.
 
 ## M1 Engine core
 
-5. #5 Controller: run container and script templates as Pods
-6. #6 Retries, timeouts, deadlines and exit handlers
-7. #7 Suspend, resume, manual approval, stop and terminate
 8. #8 Resource template
 9. #9 Pod GC and TTL
 

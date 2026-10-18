@@ -124,6 +124,37 @@ templates:
 		Expect(pods(wf)).To(HaveLen(1))
 	})
 
+	It("runs a resource template with the workflow service account", func() {
+		key := create(`
+entrypoint: main
+serviceAccountName: deployer
+arguments: {parameters: [{name: cmname, value: cfg}]}
+templates:
+- name: main
+  outputs: {parameters: [{name: uid, valueFrom: {jsonPath: "{.metadata.uid}"}}]}
+  resource:
+    action: create
+    setOwnerReference: true
+    successCondition: metadata.name == cfg
+    manifest: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: {name: "{{workflow.parameters.cmname}}"}
+`)
+		wf := reconcileOnce(key)
+		pod := pods(wf)[0]
+		Expect(*pod.Spec.AutomountServiceAccountToken).To(BeTrue())
+		Expect(pod.Spec.ServiceAccountName).To(Equal("deployer"))
+		Expect(pod.Spec.InitContainers).To(BeEmpty())
+		main := pod.Spec.Containers[0]
+		Expect(main.Image).To(Equal(testExecutorImage))
+		var spec executor.ResourceSpec
+		Expect(json.Unmarshal([]byte(main.Env[0].Value), &spec)).To(Succeed())
+		Expect(string(spec.Manifest)).To(Equal(`{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"cfg"}}`))
+		Expect(spec.Owner.UID).To(Equal(wf.UID))
+		Expect(spec.Outputs).To(HaveLen(1))
+	})
+
 	It("runs a container without a command directly", func() {
 		key := create("entrypoint: c\ntemplates:\n- {name: c, container: {image: alpine, args: [x]}}")
 		wf := reconcileOnce(key)

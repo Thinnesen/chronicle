@@ -90,6 +90,11 @@ spec:
                           description: valueFrom tells where an output parameter gets
                             its value.
                           properties:
+                            jsonPath:
+                              description: jsonPath reads the value from the object
+                                of a resource template, for example "{.metadata.name}".
+                              maxLength: 1024
+                              type: string
                             path:
                               description: path of a file in the main container. Its
                                 contents become the value.
@@ -124,7 +129,7 @@ spec:
                 description: templates of the workflow.
                 items:
                   description: 'Template is one unit of work. It has exactly one type:
-                    container, script, dag, steps or suspend.'
+                    container, script, dag, steps, suspend or resource.'
                   properties:
                     container:
                       description: container runs one container in a Pod.
@@ -487,6 +492,12 @@ spec:
                                           description: valueFrom tells where an output
                                             parameter gets its value.
                                           properties:
+                                            jsonPath:
+                                              description: jsonPath reads the value
+                                                from the object of a resource template,
+                                                for example "{.metadata.name}".
+                                              maxLength: 1024
+                                              type: string
                                             path:
                                               description: path of a file in the main
                                                 container. Its contents become the
@@ -604,6 +615,11 @@ spec:
                                 description: valueFrom tells where an output parameter
                                   gets its value.
                                 properties:
+                                  jsonPath:
+                                    description: jsonPath reads the value from the
+                                      object of a resource template, for example "{.metadata.name}".
+                                    maxLength: 1024
+                                    type: string
                                   path:
                                     description: path of a file in the main container.
                                       Its contents become the value.
@@ -664,6 +680,11 @@ spec:
                                 description: valueFrom tells where an output parameter
                                   gets its value.
                                 properties:
+                                  jsonPath:
+                                    description: jsonPath reads the value from the
+                                      object of a resource template, for example "{.metadata.name}".
+                                    maxLength: 1024
+                                    type: string
                                   path:
                                     description: path of a file in the main container.
                                       Its contents become the value.
@@ -682,6 +703,46 @@ spec:
                           description: result is the standard output of a container
                             or script node. Only the status sets it.
                           type: string
+                      type: object
+                    resource:
+                      description: |-
+                        resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the
+                        service account of the workflow, so it has only the permissions of that service account.
+                      properties:
+                        action:
+                          description: action is the operation.
+                          enum:
+                          - get
+                          - create
+                          - apply
+                          - patch
+                          - delete
+                          type: string
+                        failureCondition:
+                          description: failureCondition fails the node when the object
+                            matches, for example "status.failed > 3".
+                          maxLength: 1024
+                          type: string
+                        manifest:
+                          description: manifest is the object as YAML. Placeholders
+                            can be in string values only, never in keys.
+                          maxLength: 262144
+                          minLength: 1
+                          type: string
+                        setOwnerReference:
+                          description: setOwnerReference makes the Workflow the owner
+                            of the object, so that the object is deleted with the
+                            Workflow.
+                          type: boolean
+                        successCondition:
+                          description: |-
+                            successCondition ends the node with success when the object matches, for example "status.succeeded > 0".
+                            Conditions are comma-separated "path operator value" terms, and all terms must match.
+                          maxLength: 1024
+                          type: string
+                      required:
+                      - action
+                      - manifest
                       type: object
                     retryStrategy:
                       description: retryStrategy runs the template again when it fails.
@@ -1090,6 +1151,12 @@ spec:
                                         description: valueFrom tells where an output
                                           parameter gets its value.
                                         properties:
+                                          jsonPath:
+                                            description: jsonPath reads the value
+                                              from the object of a resource template,
+                                              for example "{.metadata.name}".
+                                            maxLength: 1024
+                                            type: string
                                           path:
                                             description: path of a file in the main
                                               container. Its contents become the value.
@@ -1166,9 +1233,10 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: a template must have exactly one of container, script,
-                      dag, steps or suspend
+                      dag, steps, suspend or resource
                     rule: '[has(self.container), has(self.script), has(self.dag),
-                      has(self.steps), has(self.suspend)].filter(x, x).size() == 1'
+                      has(self.steps), has(self.suspend), has(self.resource)].filter(x,
+                      x).size() == 1'
                 maxItems: 200
                 type: array
                 x-kubernetes-list-map-keys:

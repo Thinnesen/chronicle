@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/expr"
+	"github.com/Thinnesen/chronicle/internal/manifest"
 )
 
 // runPod creates the Pod of a node or mirrors the observed Pod into the node.
@@ -35,9 +36,15 @@ func (e *engine) applyPod(n *v1alpha1.NodeStatus, pod PodResult) {
 	e.setPhase(n, pod.Phase, pod.Message)
 }
 
-// substituteTemplate returns a copy of a container or script template with the placeholders replaced.
+// substituteTemplate returns a copy of a container, script or resource template with the placeholders replaced.
+// A resource manifest becomes JSON.
 func substituteTemplate(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.Template, error) {
 	out := t.DeepCopy()
+	if out.Resource != nil {
+		m, err := manifest.Substitute(out.Resource.Manifest, resolve)
+		out.Resource.Manifest = m
+		return out, err
+	}
 	ct := out.Container
 	if out.Script != nil {
 		ct = &out.Script.ContainerTemplate

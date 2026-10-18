@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: configmap-writer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmap-writer
+rules:
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [get, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: configmap-writer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: configmap-writer
+subjects:
+- kind: ServiceAccount
+  name: configmap-writer
+---
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: resource
+spec:
+  entrypoint: main
+  serviceAccountName: configmap-writer
+  templates:
+  - name: main
+    steps:
+    - - name: create
+        template: create
+    - - name: denied
+        template: denied
+      - name: show
+        template: show
+        arguments:
+          parameters:
+          - name: uid
+            value: "{{steps.create.outputs.parameters.uid}}"
+  - name: create
+    outputs:
+      parameters:
+      - name: uid
+        valueFrom:
+          jsonPath: "{.metadata.uid}"
+    resource:
+      action: create
+      setOwnerReference: true
+      successCondition: data.state == ready
+      manifest: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: "made-by-{{workflow.name}}"
+        data:
+          state: ready
+  - name: denied
+    resource:
+      action: get
+      failureCondition: metadata.name == a-secret
+      manifest: |
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: a-secret
+  - name: show
+    inputs:
+      parameters:
+      - name: uid
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: [echo, "{{inputs.parameters.uid}}"]

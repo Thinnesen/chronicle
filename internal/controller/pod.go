@@ -37,7 +37,13 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 	if len(wf.Name) <= 63 {
 		labels[LabelWorkflow] = wf.Name
 	}
-	main, wrapped := mainContainerFor(a.Template)
+	var main corev1.Container
+	wrapped, automount := false, spec.ServiceAccountName != ""
+	if a.Template.Resource != nil {
+		main, automount = resourceContainer(wf, a.Template, executorImage), true
+	} else {
+		main, wrapped = mainContainerFor(a.Template)
+	}
 	initContainers := []corev1.Container(nil)
 	volumes := []corev1.Volume(nil)
 	if wrapped {
@@ -55,8 +61,8 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
 			ServiceAccountName: spec.ServiceAccountName,
-			// A Pod gets an API token only when the workflow names a service account.
-			AutomountServiceAccountToken: new(spec.ServiceAccountName != ""),
+			// A Pod gets an API token only for a resource template or when the workflow names a service account.
+			AutomountServiceAccountToken: new(automount),
 			EnableServiceLinks:           new(false),
 			SecurityContext: &corev1.PodSecurityContext{
 				RunAsNonRoot:   new(true),
@@ -107,6 +113,34 @@ func mainContainerFor(t *v1alpha1.Template) (corev1.Container, bool) {
 	c.Command = append(append([]string{execPath, "run", "--"}, command...), ct.Args...)
 	c.VolumeMounts = []corev1.VolumeMount{{Name: execVolume, MountPath: execDir}}
 	return c, true
+}
+
+// resourceContainer runs "chronicle-exec resource" with the service account of the workflow.
+func resourceContainer(wf *v1alpha1.Workflow, t *v1alpha1.Template, executorImage string) corev1.Container {
+	r := t.Resource
+	spec := executor.ResourceSpec{
+		Action: string(r.Action), Manifest: json.RawMessage(r.Manifest), Namespace: wf.Namespace,
+		SuccessCondition: r.SuccessCondition, FailureCondition: r.FailureCondition,
+	}
+	if r.SetOwnerReference {
+		spec.Owner = metav1.NewControllerRef(wf, v1alpha1.GroupVersion.WithKind("Workflow"))
+	}
+	for _, p := range t.Outputs.Parameters {
+		spec.Outputs = append(spec.Outputs, executor.JSONPathOutput{Name: p.Name, JSONPath: p.ValueFrom.JSONPath})
+	}
+	data, _ := json.Marshal(spec)
+	return corev1.Container{
+		Name:                     mainContainer,
+		Image:                    executorImage,
+		Command:                  []string{"/chronicle-exec", "resource"},
+		Env:                      []corev1.EnvVar{{Name: executor.EnvResource, Value: string(data)}},
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		SecurityContext:          restricted(),
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("10m"), corev1.ResourceMemory: resource.MustParse("32Mi")},
+			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")},
+		},
+	}
 }
 
 func outputFiles(t *v1alpha1.Template) string {

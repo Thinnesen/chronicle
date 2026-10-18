@@ -173,6 +173,21 @@ templates:
 			want: []string{"needs a command"},
 		},
 		{
+			name: "placeholder in a manifest key",
+			spec: "entrypoint: r\ntemplates: [{name: r, resource: {action: apply, manifest: \"apiVersion: v1\\nkind: ConfigMap\\nmetadata: {name: x}\\ndata: {'{{workflow.name}}': v}\"}}]",
+			want: []string{"placeholders can be in values only"},
+		},
+		{
+			name: "manifest without a name",
+			spec: "entrypoint: r\ntemplates: [{name: r, resource: {action: apply, manifest: \"apiVersion: v1\\nkind: ConfigMap\"}}]",
+			want: []string{"needs apiVersion, kind and metadata.name"},
+		},
+		{
+			name: "jsonPath on a container",
+			spec: "entrypoint: c\ntemplates: [{name: c, outputs: {parameters: [{name: o, valueFrom: {jsonPath: '{.a}'}}]}, container: {image: x, command: [a]}}]",
+			want: []string{"only a resource template can use it"},
+		},
+		{
 			name: "output path on a dag template",
 			spec: `
 entrypoint: m

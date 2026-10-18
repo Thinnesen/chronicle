@@ -11,6 +11,7 @@ import (
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/expr"
+	"github.com/Thinnesen/chronicle/internal/manifest"
 )
 
 // Spec validates a workflow definition. When forWorkflow is true, each workflow parameter must have a value.
@@ -93,6 +94,8 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 			c.errs = append(c.errs, field.Invalid(path.Child("script", "source"), "{{...}}",
 				"a script source cannot have placeholders: use environment variables"))
 		}
+	case t.Resource != nil:
+		c.checkManifest(t.Resource, path.Child("resource"), sc)
 	case t.DAG != nil:
 		c.checkDAG(t.DAG, path.Child("dag"), sc)
 	case t.Steps != nil:
@@ -105,7 +108,11 @@ func (c *checker) checkOutputs(t *v1alpha1.Template, path *field.Path, sc scope)
 	for i, p := range t.Outputs.Parameters {
 		pp := path.Index(i)
 		hasPath := p.ValueFrom != nil && p.ValueFrom.Path != ""
+		hasJSONPath := p.ValueFrom != nil && p.ValueFrom.JSONPath != ""
 		switch {
+		case hasJSONPath != (t.Resource != nil):
+			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "jsonPath"), "a resource template needs valueFrom.jsonPath, and only a resource template can use it"))
+		case hasJSONPath:
 		case hasPath && !leaf:
 			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "path"), "only a container or script template can read an output file"))
 		case hasPath && t.Container != nil && len(t.Container.Command) == 0:
@@ -115,6 +122,26 @@ func (c *checker) checkOutputs(t *v1alpha1.Template, path *field.Path, sc scope)
 		case p.Value != nil:
 			c.checkText(*p.Value, pp.Child("value"), sc, nil)
 		}
+	}
+}
+
+// checkManifest checks that the manifest is one object and that placeholders are in string values only.
+func (c *checker) checkManifest(r *v1alpha1.ResourceTemplate, path *field.Path, sc scope) {
+	mp := path.Child("manifest")
+	obj, err := manifest.Parse(r.Manifest)
+	if err == nil {
+		err = manifest.Strings(obj, func(s string) error {
+			c.checkText(s, mp, sc, nil)
+			return nil
+		})
+	}
+	if err != nil {
+		c.errs = append(c.errs, field.Invalid(mp, "", err.Error()))
+		return
+	}
+	meta, _ := obj["metadata"].(map[string]any)
+	if obj["apiVersion"] == nil || obj["kind"] == nil || meta["name"] == nil && (r.Action != v1alpha1.ResourceCreate || meta["generateName"] == nil) {
+		c.errs = append(c.errs, field.Invalid(mp, "", "the manifest needs apiVersion, kind and metadata.name (or metadata.generateName for create)"))
 	}
 }
 

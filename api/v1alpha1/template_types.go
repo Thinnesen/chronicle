@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Template is one unit of work. It has exactly one type: container, script, dag, steps or suspend.
-// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps or suspend"
+// Template is one unit of work. It has exactly one type: container, script, dag, steps, suspend or resource.
+// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend or resource"
 type Template struct {
 	// name of the template. It is unique in the workflow.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -48,6 +48,11 @@ type Template struct {
 	// +optional
 	Suspend *SuspendTemplate `json:"suspend,omitempty"`
 
+	// resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the
+	// service account of the workflow, so it has only the permissions of that service account.
+	// +optional
+	Resource *ResourceTemplate `json:"resource,omitempty"`
+
 	// steps runs groups of steps. The groups run one after the other. The steps in a group run in parallel.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
@@ -62,6 +67,47 @@ type SuspendTemplate struct {
 	// duration ends the wait with success, for example "1h". Without a duration, the node waits for an approval.
 	// +optional
 	Duration *metav1.Duration `json:"duration,omitempty"`
+}
+
+// ResourceAction is the operation of a resource template.
+// +kubebuilder:validation:Enum=get;create;apply;patch;delete
+type ResourceAction string
+
+// The resource actions. apply is a server-side apply. patch is a JSON merge patch.
+const (
+	ResourceGet    ResourceAction = "get"
+	ResourceCreate ResourceAction = "create"
+	ResourceApply  ResourceAction = "apply"
+	ResourcePatch  ResourceAction = "patch"
+	ResourceDelete ResourceAction = "delete"
+)
+
+// ResourceTemplate is an operation on a Kubernetes object.
+type ResourceTemplate struct {
+	// action is the operation.
+	// +required
+	Action ResourceAction `json:"action"`
+
+	// manifest is the object as YAML. Placeholders can be in string values only, never in keys.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=262144
+	// +required
+	Manifest string `json:"manifest"`
+
+	// successCondition ends the node with success when the object matches, for example "status.succeeded > 0".
+	// Conditions are comma-separated "path operator value" terms, and all terms must match.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	SuccessCondition string `json:"successCondition,omitempty"`
+
+	// failureCondition fails the node when the object matches, for example "status.failed > 3".
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	FailureCondition string `json:"failureCondition,omitempty"`
+
+	// setOwnerReference makes the Workflow the owner of the object, so that the object is deleted with the Workflow.
+	// +optional
+	SetOwnerReference bool `json:"setOwnerReference,omitempty"`
 }
 
 // RetryPolicy tells which failures start a new attempt.

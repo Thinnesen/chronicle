@@ -101,6 +101,7 @@ The controller applies the actions. This makes the engine testable with table te
 - An init container copies `chronicle-exec` (in the controller image) into an `emptyDir`. The executor wraps the main command, keeps the standard output, reads the output files and writes the outputs as JSON to the termination message. So the workflow Pod needs no Kubernetes API access.
 - The termination message has a limit of 4 KiB. A larger standard output is not a result. Larger output parameters fail the node: use an artifact.
 - A container template without a command runs without the executor. It has no result and no output files.
+- A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects (Argo substitutes text before it parses the YAML).
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
 ## 5. Re-run, retry and history
