@@ -7,6 +7,11 @@ on:
 
 permissions: {}
 
+# Only the newest commit of a branch runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     permissions:
