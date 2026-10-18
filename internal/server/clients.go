@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -40,6 +43,32 @@ func newClientFactory(cfg *rest.Config, scheme *runtime.Scheme) (*clientFactory,
 
 // clientFor returns a client that impersonates the identity of the context.
 func (f *clientFactory) clientFor(ctx context.Context) (client.Client, error) {
+	cfg, err := f.configFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	hc, err := rest.HTTPClientFor(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("create the HTTP client: %w", err)
+	}
+	return client.New(cfg, client.Options{Scheme: f.scheme, Mapper: f.mapper, HTTPClient: hc})
+}
+
+// podLogs opens the log of the main container of a Pod as the caller.
+func (f *clientFactory) podLogs(ctx context.Context, namespace, pod string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+	cfg, err := f.configFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cs, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("create the clientset: %w", err)
+	}
+	return cs.CoreV1().Pods(namespace).GetLogs(pod, opts).Stream(ctx)
+}
+
+// configFor returns a configuration that impersonates the identity of the context.
+func (f *clientFactory) configFor(ctx context.Context) (*rest.Config, error) {
 	id := auth.IdentityFrom(ctx)
 	if id == nil || id.User == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("log in first"))
@@ -50,11 +79,7 @@ func (f *clientFactory) clientFor(ctx context.Context) (client.Client, error) {
 	}
 	cfg := rest.CopyConfig(f.cfg)
 	cfg.Impersonate = rest.ImpersonationConfig{UserName: id.User, Groups: id.Groups}
-	hc, err := rest.HTTPClientFor(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("create the HTTP client: %w", err)
-	}
-	return client.New(cfg, client.Options{Scheme: f.scheme, Mapper: f.mapper, HTTPClient: hc})
+	return cfg, nil
 }
 
 func isSystem(name string) bool { return strings.HasPrefix(name, "system:") }

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package chronicle.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1";
+
+// LogService streams the logs of workflow Pods.
+service LogService {
+  // StreamLogs streams the log lines of one node, or of all Pod nodes of a run. The caller needs "get pods/log".
+  rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
+}
+
+message StreamLogsRequest {
+  string namespace = 1;
+  string workflow = 2;
+  // node is the ID or the name of a node. Empty means all Pod nodes of the run.
+  string node = 3;
+  // follow keeps the stream open and sends new lines.
+  bool follow = 4;
+  // tail_lines sends only the last lines of each Pod. Zero sends all lines.
+  int64 tail_lines = 5;
+}
+
+message StreamLogsResponse {
+  string node_id = 1;
+  string node_name = 2;
+  google.protobuf.Timestamp time = 3;
+  string line = 4;
+}

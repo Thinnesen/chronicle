@@ -1,0 +1,92 @@
+package server
+
+import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+
+	"connectrpc.com/connect"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/Thinnesen/chronicle/api/v1alpha1"
+	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
+	"github.com/Thinnesen/chronicle/internal/auth"
+)
+
+func TestStreamLogs(t *testing.T) {
+	setup(t)
+	ctx := context.Background()
+	wf := &v1alpha1.Workflow{Name: "logs", Namespace: "team-a", Spec: v1alpha1.WorkflowSpec{WorkflowTemplateSpec: v1alpha1.WorkflowTemplateSpec{
+		Entrypoint: "c", Templates: []v1alpha1.Template{{Name: "c", Container: &v1alpha1.ContainerTemplate{Image: "x"}}},
+	}}}
+	if err := admin.Create(ctx, wf); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Delete(ctx, wf) })
+	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"logs":   {ID: "logs", Name: "logs", Type: v1alpha1.NodeDAG},
+		"logs-1": {ID: "logs-1", Name: "logs.a", Type: v1alpha1.NodePod, PodName: "logs-1"},
+		"logs-2": {ID: "logs-2", Name: "logs.b", Type: v1alpha1.NodePod, PodName: "logs-2"},
+	}
+	if err := admin.Status().Update(ctx, wf); err != nil {
+		t.Fatal(err)
+	}
+
+	clients, err := newClientFactory(cfg, scheme)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mu sync.Mutex
+	var tails []int64
+	fake := func(_ context.Context, _, pod string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+		mu.Lock()
+		if opts.TailLines != nil {
+			tails = append(tails, *opts.TailLines)
+		}
+		mu.Unlock()
+		return io.NopCloser(strings.NewReader("2026-01-01T00:00:00.5Z hello from " + pod + "\nno time here\n")), nil
+	}
+	path, h := chroniclev1connect.NewLogServiceHandler(&logService{workflows: &workflowService{clients: clients}, open: fake})
+	mux := http.NewServeMux()
+	mux.Handle(path, authenticate([]auth.Authenticator{headerAuth{}}, h))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	stream := func(user, node string) ([]*chroniclev1.StreamLogsResponse, error) {
+		c := chroniclev1connect.NewLogServiceClient(srv.Client(), srv.URL)
+		req := connect.NewRequest(&chroniclev1.StreamLogsRequest{Namespace: "team-a", Workflow: "logs", Node: node, TailLines: 5})
+		req.Header().Set("X-Test-User", user)
+		s, err := c.StreamLogs(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		var out []*chroniclev1.StreamLogsResponse
+		for s.Receive() {
+			out = append(out, s.Msg())
+		}
+		return out, s.Err()
+	}
+
+	all, err := stream("alice", "")
+	if err != nil || len(all) != 4 {
+		t.Fatalf("all nodes: %v, %d lines", err, len(all))
+	}
+	one, err := stream("alice", "logs.b")
+	if err != nil || len(one) != 2 || one[0].Line != "hello from logs-2" || one[0].Time.AsTime().Nanosecond() != 5e8 || one[1].Time != nil {
+		t.Fatalf("one node: %v, %+v", err, one)
+	}
+	if len(tails) != 3 || tails[0] != 5 {
+		t.Errorf("tail lines = %v", tails)
+	}
+	if _, err := stream("alice", "nope"); code(err) != connect.CodeNotFound {
+		t.Errorf("unknown node: %v", err)
+	}
+	if _, err := stream("bob", ""); code(err) != connect.CodePermissionDenied {
+		t.Errorf("no permission: %v", err)
+	}
+}

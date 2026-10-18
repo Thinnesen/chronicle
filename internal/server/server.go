@@ -34,7 +34,10 @@ func NewHandler(opts Options) (http.Handler, error) {
 	}
 	mux := http.NewServeMux()
 	limit := connect.WithReadMaxBytes(4 << 20)
-	path, h := chroniclev1connect.NewWorkflowServiceHandler(&workflowService{clients: clients}, limit)
+	workflows := &workflowService{clients: clients}
+	path, h := chroniclev1connect.NewWorkflowServiceHandler(workflows, limit)
+	mux.Handle(path, authenticate(opts.Authenticators, h))
+	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewNamespaceServiceHandler(&namespaceService{clients: clients, own: own, cache: map[string]cachedAccess{}}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
