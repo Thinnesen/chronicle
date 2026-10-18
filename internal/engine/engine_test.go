@@ -238,7 +238,7 @@ func TestEnginePodStates(t *testing.T) {
 		t.Fatalf("pending: actions %v, node %+v", r.Actions, r.Status.Nodes[id])
 	}
 
-	// A Running Pod without a start time gets the current time.
+	// A Running Pod has the start time of its node.
 	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeRunning}
 	r = Run(s.in)
 	if n := r.Status.Nodes[id]; n.Phase != v1alpha1.NodeRunning || n.StartedAt == nil {
@@ -269,9 +269,9 @@ func TestEngineOutputsAndTimes(t *testing.T) {
 	r := Run(s.in)
 	id := r.Actions[0].(CreatePod).NodeID
 	s.in.Status = r.Status
-	start, end := at(5), at(9)
+	start, end := at(0), at(9)
 	out := &v1alpha1.Outputs{Parameters: []v1alpha1.Parameter{{Name: "result"}}}
-	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeSucceeded, StartedAt: &start, FinishedAt: &end, Outputs: out}
+	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeSucceeded, FinishedAt: &end, Outputs: out}
 	n := Run(s.in).Status.Nodes[id]
 	if !n.StartedAt.Equal(&start) || !n.FinishedAt.Equal(&end) || n.Outputs != out {
 		t.Fatalf("node = %+v", n)

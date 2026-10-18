@@ -25,12 +25,6 @@ func (e *engine) runPod(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1a
 }
 
 func (e *engine) applyPod(n *v1alpha1.NodeStatus, pod PodResult) {
-	if pod.StartedAt != nil {
-		n.StartedAt = pod.StartedAt
-	}
-	if pod.Phase == v1alpha1.NodeRunning && n.StartedAt == nil {
-		n.StartedAt = &e.in.Now
-	}
 	if isTerminal(pod.Phase) {
 		n.Outputs = pod.Outputs
 		n.FinishedAt = pod.FinishedAt

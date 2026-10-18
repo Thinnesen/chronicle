@@ -134,6 +134,11 @@ func TestSpecTemplates(t *testing.T) {
 			want: []string{`entrypoint: Not found: "nope"`},
 		},
 		{
+			name: "unknown exit handler",
+			spec: "entrypoint: a\nonExit: nope\ntemplates: [{name: a, container: {image: x}}]",
+			want: []string{`onExit: Not found: "nope"`},
+		},
+		{
 			name: "unknown task template",
 			spec: "entrypoint: m\ntemplates: [{name: m, dag: {tasks: [{name: a, template: nope}]}}]",
 			want: []string{`templates[0].dag.tasks[0].template: Not found: "nope"`},

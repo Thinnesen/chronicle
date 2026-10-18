@@ -86,6 +86,11 @@ The controller applies the actions. This makes the engine testable with table te
 - Each node stores its resolved input parameters, for the UI and for retries. The Pod gets the template with all placeholders replaced.
 - Node IDs: the root node has the workflow name. Other nodes have the workflow name and a hash of the node path (`wf.main.a`, `wf[0].step`). The Pod name is the node ID.
 
+- Retries: `retryStrategy` makes a Retry node with one child for each attempt (`a(0)`, `a(1)`). `limit` (required) counts the retries after the first attempt. `retryPolicy`: OnFailure (default), OnError, Always. The wait is `duration * factor^(retry-1)`, at most `maxDuration`.
+- Timers: the engine has no clock. It returns the time until the next timer (backoff, `timeout`, `activeDeadlineSeconds`), and the controller runs it again then.
+- `timeout` fails a node of the template (each attempt of a retry). `activeDeadlineSeconds` fails the workflow. Both stop the running descendants and delete their Pods.
+- `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`. A failed exit handler fails a workflow that succeeded.
+
 ### 4.1 Workflow Pods and outputs
 
 - The controller creates one Pod for each container or script node. The Pod name is the node ID. The Workflow owns the Pod.

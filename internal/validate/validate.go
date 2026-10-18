@@ -20,7 +20,7 @@ func Spec(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool) field.ErrorList
 	for i := range spec.Templates {
 		c.templates[spec.Templates[i].Name] = &spec.Templates[i]
 	}
-	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid"} {
+	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid", "workflow.status"} {
 		c.globals[g] = true
 	}
 	for i, p := range spec.Arguments.Parameters {
@@ -40,6 +40,9 @@ func Spec(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool) field.ErrorList
 					fmt.Sprintf("parameter %q of the entrypoint template", in.Name)))
 			}
 		}
+	}
+	if _, ok := c.templates[spec.OnExit]; spec.OnExit != "" && !ok {
+		c.errs = append(c.errs, field.NotFound(path.Child("onExit"), spec.OnExit))
 	}
 	for i := range spec.Templates {
 		c.checkTemplate(&spec.Templates[i], path.Child("templates").Index(i))
@@ -71,7 +74,14 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 	sc := c.globals
 	for i, p := range t.Inputs.Parameters {
 		sc = sc.with("inputs.parameters." + p.Name)
-		c.checkEnum(&p, path.Child("inputs", "parameters").Index(i))
+		pp := path.Child("inputs", "parameters").Index(i)
+		c.checkEnum(&p, pp)
+		if p.Value != nil {
+			c.checkText(*p.Value, pp.Child("value"), c.globals, nil)
+		}
+		if p.Default != nil {
+			c.checkText(*p.Default, pp.Child("default"), c.globals, nil)
+		}
 	}
 	c.checkOutputs(t, path.Child("outputs", "parameters"), sc.with(c.childOutputs(t)...))
 	switch {

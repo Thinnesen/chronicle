@@ -16,6 +16,7 @@ import (
 func (e *engine) globals() map[string]string {
 	g := map[string]string{
 		"workflow.name": e.in.Name, "workflow.namespace": e.in.Namespace, "workflow.uid": e.in.UID,
+		"workflow.status": e.status,
 	}
 	for _, p := range e.in.Spec.Arguments.Parameters {
 		if v := paramValue(p); v != nil {
@@ -49,22 +50,30 @@ func (e *engine) inputScope(inputs *v1alpha1.Inputs) expr.Resolver {
 }
 
 // resolveInputs gives each input parameter of a template its value: the fixed value, the argument or the default.
-func resolveInputs(t *v1alpha1.Template, args map[string]string) (*v1alpha1.Inputs, error) {
+// A fixed value or a default can use the workflow placeholders. An argument is used as it is.
+func (e *engine) resolveInputs(t *v1alpha1.Template, args map[string]string) (*v1alpha1.Inputs, error) {
 	if len(t.Inputs.Parameters) == 0 {
 		return nil, nil
 	}
 	out := &v1alpha1.Inputs{}
 	for _, in := range t.Inputs.Parameters {
-		v := in.Value
+		v, fromTemplate := in.Value, true
 		if v == nil {
 			if a, ok := args[in.Name]; ok {
-				v = &a
+				v, fromTemplate = &a, false
 			} else {
 				v = in.Default
 			}
 		}
 		if v == nil {
 			return nil, fmt.Errorf("parameter %q has no value", in.Name)
+		}
+		if fromTemplate {
+			s, err := expr.Substitute(*v, e.inputScope(nil))
+			if err != nil {
+				return nil, fmt.Errorf("parameter %q: %w", in.Name, err)
+			}
+			v = &s
 		}
 		if len(in.Enum) > 0 && !slices.Contains(in.Enum, *v) {
 			return nil, fmt.Errorf("parameter %q: value %q is not one of %q", in.Name, *v, in.Enum)

@@ -23,6 +23,16 @@ type WorkflowTemplateSpec struct {
 	// +optional
 	Templates []Template `json:"templates,omitempty"`
 
+	// onExit is the name of a template that runs after the workflow, also when it failed. It can use "{{workflow.status}}".
+	// +kubebuilder:validation:MaxLength=128
+	// +optional
+	OnExit string `json:"onExit,omitempty"`
+
+	// activeDeadlineSeconds fails the workflow when it runs longer. The exit handler still runs.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
+
 	// serviceAccountName is the service account of the workflow Pods.
 	// +kubebuilder:validation:MaxLength=253
 	// +optional

@@ -26,11 +26,7 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 	case corev1.PodFailed, corev1.PodSucceeded:
 		return engine.PodResult{Phase: v1alpha1.NodeError, Message: podMessage(pod)}
 	case corev1.PodRunning:
-		r := engine.PodResult{Phase: v1alpha1.NodeRunning}
-		if main.State.Running != nil {
-			r.StartedAt = &main.State.Running.StartedAt
-		}
-		return r
+		return engine.PodResult{Phase: v1alpha1.NodeRunning}
 	}
 	r := engine.PodResult{Phase: v1alpha1.NodePending}
 	if w := main.State.Waiting; w != nil && w.Reason != "ContainerCreating" {
@@ -49,7 +45,7 @@ func containerStatus(list []corev1.ContainerStatus, name string) corev1.Containe
 }
 
 func terminated(t *corev1.ContainerStateTerminated) engine.PodResult {
-	r := engine.PodResult{Phase: v1alpha1.NodeSucceeded, StartedAt: &t.StartedAt, FinishedAt: &t.FinishedAt}
+	r := engine.PodResult{Phase: v1alpha1.NodeSucceeded, FinishedAt: &t.FinishedAt}
 	var msg executor.Message
 	if json.Unmarshal([]byte(t.Message), &msg) == nil {
 		r.Outputs = outputs(msg)

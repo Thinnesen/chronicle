@@ -1,0 +1,39 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: retry-timeout
+spec:
+  entrypoint: main
+  onExit: report
+  templates:
+  - name: main
+    dag:
+      tasks:
+      - name: flaky
+        template: flaky
+      - name: slow
+        template: slow
+      - name: handled
+        template: report
+        depends: flaky.Failed && slow.Failed
+  - name: flaky
+    retryStrategy:
+      limit: 1
+      backoff:
+        duration: 2s
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: [sh, -c, "exit 1"]
+  - name: slow
+    timeout: 5s
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: [sleep, "600"]
+  - name: report
+    inputs:
+      parameters:
+      - name: status
+        value: "{{workflow.status}}"
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: [echo, "{{inputs.parameters.status}}"]

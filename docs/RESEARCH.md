@@ -34,7 +34,7 @@ What we do:
 ## Retries (Temporal `service/history/workflow/retry.go`)
 
 - Temporal: `maximumAttempts` counts all attempts (the first attempt too). The interval is `initialInterval * backoffCoefficient^(attempt-1)`, capped at `maximumInterval`. An expiration time stops retries. Some error types are not retryable.
-- We use: the Argo field names (`retryStrategy.limit`, `backoff.duration`, `backoff.factor`, `backoff.maxDuration`, `retryPolicy`) for the drop-in goal, with Temporal semantics for the cap and the expiration. (Decide in #6.)
+- We use: the Argo field names (`retryStrategy.limit`, `backoff.duration`, `backoff.factor`, `backoff.maxDuration`, `retryPolicy`) for the drop-in goal, with Temporal semantics for the cap. Decided in #6: `limit` is required, because in Argo an unset limit retries without end. The default factor is 1 (a constant wait).
 
 ## UI (Hatchet, Temporal UI, Dagster, Kestra)
 

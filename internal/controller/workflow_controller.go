@@ -55,8 +55,9 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 	}
+	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
 	if equality.Semantic.DeepEqual(wf.Status, res.Status) {
-		return ctrl.Result{}, nil
+		return result, nil
 	}
 	if res.Status.Phase != wf.Status.Phase {
 		log.Info("Workflow phase changed", "phase", res.Status.Phase)
@@ -69,7 +70,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		return ctrl.Result{}, fmt.Errorf("update the workflow status: %w", err)
 	}
-	return ctrl.Result{}, nil
+	return result, nil
 }
 
 // observePods returns the state of the Pods of a workflow by node ID.
@@ -91,6 +92,11 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		pod := buildPod(wf, spec, a, r.ExecutorImage)
 		if err := r.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("create the Pod of node %s: %w", a.NodeName, err)
+		}
+	case engine.DeletePod:
+		pod := &corev1.Pod{Name: a.PodName, Namespace: wf.Namespace}
+		if err := r.Delete(ctx, pod); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("delete the Pod %s: %w", a.PodName, err)
 		}
 	}
 	return nil

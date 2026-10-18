@@ -14,6 +14,7 @@ import (
 const wfName = "wf"
 
 // sim is a fake cluster. A Pod runs for one step of the engine and then ends with its outcome.
+// The outcome Running keeps the Pod running. Each step is one second.
 type sim struct {
 	t        *testing.T
 	in       Input
@@ -21,6 +22,9 @@ type sim struct {
 	waves    [][]string                    // node names of the Pods created in each step
 	created  map[string]bool
 	pods     map[string]CreatePod // by node name
+	// startStep is the step in which each Pod was created, by node name.
+	startStep map[string]int
+	deleted   []string // deleted Pod names
 	// outputs are the Pod outputs by node name. The default is the result "out-<display name>".
 	outputs map[string]*v1alpha1.Outputs
 }
@@ -32,12 +36,13 @@ func newSim(t *testing.T, spec string, outcomes map[string]v1alpha1.NodePhase) *
 		t.Fatalf("bad test spec: %v", err)
 	}
 	return &sim{
-		t:        t,
-		in:       Input{Name: wfName, Namespace: "ns", UID: "uid", Spec: &s, Pods: map[string]PodResult{}, Now: at(0)},
-		outcomes: outcomes,
-		created:  map[string]bool{},
-		pods:     map[string]CreatePod{},
-		outputs:  map[string]*v1alpha1.Outputs{},
+		t:         t,
+		in:        Input{Name: wfName, Namespace: "ns", UID: "uid", Spec: &s, Pods: map[string]PodResult{}, Now: at(0)},
+		outcomes:  outcomes,
+		created:   map[string]bool{},
+		pods:      map[string]CreatePod{},
+		startStep: map[string]int{},
+		outputs:   map[string]*v1alpha1.Outputs{},
 	}
 }
 
@@ -51,7 +56,8 @@ func (s *sim) step(i int) Result {
 	for id, p := range s.in.Pods {
 		if p.Phase == v1alpha1.NodeRunning {
 			p.Phase = s.outcome(id)
-			p.FinishedAt = &s.in.Now
+			now := s.in.Now
+			p.FinishedAt = &now
 			p.Outputs = s.podOutputs(id)
 			s.in.Pods[id] = p
 		}
@@ -59,14 +65,20 @@ func (s *sim) step(i int) Result {
 	r := Run(s.in)
 	wave := make([]string, 0, len(r.Actions))
 	for _, a := range r.Actions {
+		if d, ok := a.(DeletePod); ok {
+			s.deleted = append(s.deleted, d.PodName)
+			delete(s.in.Pods, d.PodName)
+			continue
+		}
 		cp := a.(CreatePod)
+		s.startStep[cp.NodeName] = i
 		if s.created[cp.NodeID] {
 			s.t.Fatalf("Pod of %s created twice", cp.NodeName)
 		}
 		s.created[cp.NodeID] = true
 		s.pods[cp.NodeName] = cp
 		wave = append(wave, cp.NodeName)
-		s.in.Pods[cp.NodeID] = PodResult{Phase: v1alpha1.NodeRunning, StartedAt: &s.in.Now}
+		s.in.Pods[cp.NodeID] = PodResult{Phase: v1alpha1.NodeRunning}
 	}
 	if len(wave) > 0 {
 		s.waves = append(s.waves, wave)

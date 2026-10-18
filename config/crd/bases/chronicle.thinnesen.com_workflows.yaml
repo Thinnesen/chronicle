@@ -57,6 +57,12 @@ spec:
           spec:
             description: spec defines the desired state of Workflow
             properties:
+              activeDeadlineSeconds:
+                description: activeDeadlineSeconds fails the workflow when it runs
+                  longer. The exit handler still runs.
+                format: int64
+                minimum: 1
+                type: integer
               arguments:
                 description: arguments are the workflow parameters.
                 properties:
@@ -115,6 +121,11 @@ spec:
               entrypoint:
                 description: entrypoint is the name of the template that the workflow
                   starts with.
+                maxLength: 128
+                type: string
+              onExit:
+                description: onExit is the name of a template that runs after the
+                  workflow, also when it failed. It can use "{{workflow.status}}".
                 maxLength: 128
                 type: string
               serviceAccountName:
@@ -685,6 +696,48 @@ spec:
                             or script node. Only the status sets it.
                           type: string
                       type: object
+                    retryStrategy:
+                      description: retryStrategy runs the template again when it fails.
+                      properties:
+                        backoff:
+                          description: backoff is the wait before each retry. Without
+                            a backoff, a retry starts at once.
+                          properties:
+                            duration:
+                              description: duration is the wait before the first retry,
+                                for example "10s".
+                              type: string
+                            factor:
+                              description: factor multiplies the wait for each retry.
+                                The default is 1.
+                              format: int32
+                              maximum: 100
+                              minimum: 1
+                              type: integer
+                            maxDuration:
+                              description: maxDuration is the longest wait.
+                              type: string
+                          required:
+                          - duration
+                          type: object
+                        limit:
+                          description: limit is the number of retries after the first
+                            attempt.
+                          format: int32
+                          maximum: 1000
+                          minimum: 0
+                          type: integer
+                        retryPolicy:
+                          description: retryPolicy tells which failures start a new
+                            attempt. The default is OnFailure.
+                          enum:
+                          - Always
+                          - OnFailure
+                          - OnError
+                          type: string
+                      required:
+                      - limit
+                      type: object
                     script:
                       description: script runs a script in a Pod.
                       properties:
@@ -1106,6 +1159,11 @@ spec:
                       maxItems: 100
                       minItems: 1
                       type: array
+                    timeout:
+                      description: timeout fails a node of this template when it runs
+                        longer, for example "10m". With retries, it applies to each
+                        attempt.
+                      type: string
                   required:
                   - name
                   type: object
@@ -1378,6 +1436,7 @@ spec:
                       - Steps
                       - StepGroup
                       - TaskGroup
+                      - Retry
                       type: string
                   required:
                   - id

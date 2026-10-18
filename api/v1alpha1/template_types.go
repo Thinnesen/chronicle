@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Template is one unit of work. It has exactly one type: container, script, dag or steps.
@@ -21,6 +22,14 @@ type Template struct {
 	// outputs are the parameters that the template produces.
 	// +optional
 	Outputs Outputs `json:"outputs,omitzero"`
+
+	// retryStrategy runs the template again when it fails.
+	// +optional
+	RetryStrategy *RetryStrategy `json:"retryStrategy,omitempty"`
+
+	// timeout fails a node of this template when it runs longer, for example "10m". With retries, it applies to each attempt.
+	// +optional
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
 	// container runs one container in a Pod.
 	// +optional
@@ -41,6 +50,51 @@ type Template struct {
 	// +kubebuilder:validation:items:MaxItems=100
 	// +optional
 	Steps [][]WorkflowStep `json:"steps,omitempty"`
+}
+
+// RetryPolicy tells which failures start a new attempt.
+// +kubebuilder:validation:Enum=Always;OnFailure;OnError
+type RetryPolicy string
+
+// The retry policies. OnFailure retries a non-zero exit code. OnError retries a Pod or controller error.
+const (
+	RetryAlways    RetryPolicy = "Always"
+	RetryOnFailure RetryPolicy = "OnFailure"
+	RetryOnError   RetryPolicy = "OnError"
+)
+
+// RetryStrategy runs a template again when it fails.
+type RetryStrategy struct {
+	// limit is the number of retries after the first attempt.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	// +required
+	Limit int32 `json:"limit"`
+
+	// retryPolicy tells which failures start a new attempt. The default is OnFailure.
+	// +optional
+	RetryPolicy RetryPolicy `json:"retryPolicy,omitempty"`
+
+	// backoff is the wait before each retry. Without a backoff, a retry starts at once.
+	// +optional
+	Backoff *Backoff `json:"backoff,omitempty"`
+}
+
+// Backoff is the wait before a retry: duration * factor^(retry-1), at most maxDuration.
+type Backoff struct {
+	// duration is the wait before the first retry, for example "10s".
+	// +required
+	Duration metav1.Duration `json:"duration"`
+
+	// factor multiplies the wait for each retry. The default is 1.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +optional
+	Factor *int32 `json:"factor,omitempty"`
+
+	// maxDuration is the longest wait.
+	// +optional
+	MaxDuration *metav1.Duration `json:"maxDuration,omitempty"`
 }
 
 // ContainerTemplate is the container of a Pod. The controller sets a restricted security context.

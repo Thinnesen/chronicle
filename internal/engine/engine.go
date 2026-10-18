@@ -4,6 +4,8 @@ package engine
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -32,7 +34,6 @@ type Input struct {
 type PodResult struct {
 	Phase      v1alpha1.NodePhase
 	Message    string
-	StartedAt  *metav1.Time
 	FinishedAt *metav1.Time
 	Outputs    *v1alpha1.Outputs
 }
@@ -41,6 +42,8 @@ type PodResult struct {
 type Result struct {
 	Status  v1alpha1.WorkflowStatus
 	Actions []Action
+	// RequeueAfter is the time until the engine must run again for a timer (backoff, timeout, deadline). Zero means no timer.
+	RequeueAfter time.Duration
 }
 
 // Action is a change that the controller applies to the cluster.
@@ -61,6 +64,13 @@ type CreatePod struct {
 
 func (CreatePod) isAction() {}
 
+// DeletePod asks the controller to delete the Pod of a stopped node.
+type DeletePod struct {
+	PodName string
+}
+
+func (DeletePod) isAction() {}
+
 // Run runs one step of the engine. The same input always gives the same result.
 func Run(in Input) Result {
 	status := *in.Status.DeepCopy()
@@ -78,18 +88,60 @@ func Run(in Input) Result {
 		status.Nodes = map[string]v1alpha1.NodeStatus{}
 	}
 	e := newEngine(&in, status.Nodes)
-	root := e.execute(call{template: in.Spec.Entrypoint, nodeName: in.Name, args: e.workflowArgs()}, 0)
-	switch root.Phase {
-	case v1alpha1.NodeSucceeded, v1alpha1.NodeSkipped, v1alpha1.NodeOmitted:
-		finish(&status, v1alpha1.WorkflowSucceeded, "", in.Now)
-	case v1alpha1.NodeFailed:
-		finish(&status, v1alpha1.WorkflowFailed, root.Message, in.Now)
-	case v1alpha1.NodeError:
-		finish(&status, v1alpha1.WorkflowError, root.Message, in.Now)
-	default:
+	e.startedAt = status.StartedAt.Time
+	phase, msg := e.runWorkflow()
+	if phase == v1alpha1.NodeRunning {
 		status.Phase = v1alpha1.WorkflowRunning
+	} else {
+		finish(&status, workflowPhase(phase), msg, in.Now)
 	}
-	return Result{Status: status, Actions: e.actions}
+	return Result{Status: status, Actions: e.actions, RequeueAfter: e.requeueAfter()}
+}
+
+// runWorkflow runs the entrypoint, the deadline and the exit handler. It returns Running until all are done.
+func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
+	root := e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs()}, 0)
+	if d := e.in.Spec.ActiveDeadlineSeconds; d != nil && !isTerminal(root.Phase) {
+		end := e.startedAt.Add(time.Duration(*d) * time.Second)
+		if e.reached(end) {
+			e.stop(root.ID, "the workflow deadline was exceeded")
+			root = e.nodes[root.ID]
+		}
+	}
+	if !isTerminal(root.Phase) {
+		return v1alpha1.NodeRunning, ""
+	}
+	phase, msg := outcomePhase(root.Phase), root.Message
+	if e.in.Spec.OnExit == "" {
+		return phase, msg
+	}
+	e.status = string(workflowPhase(phase))
+	exit := e.execute(call{template: e.in.Spec.OnExit, nodeName: e.in.Name + ".onExit", args: e.workflowArgs()}, 0)
+	if !isTerminal(exit.Phase) {
+		return v1alpha1.NodeRunning, ""
+	}
+	if p := outcomePhase(exit.Phase); worse(phase, p) != phase {
+		return p, "the exit handler failed: " + exit.Message
+	}
+	return phase, msg
+}
+
+// outcomePhase maps a finished node phase to Succeeded, Failed or Error.
+func outcomePhase(p v1alpha1.NodePhase) v1alpha1.NodePhase {
+	if isFailure(p) {
+		return p
+	}
+	return v1alpha1.NodeSucceeded
+}
+
+func workflowPhase(p v1alpha1.NodePhase) v1alpha1.WorkflowPhase {
+	switch p {
+	case v1alpha1.NodeFailed:
+		return v1alpha1.WorkflowFailed
+	case v1alpha1.NodeError:
+		return v1alpha1.WorkflowError
+	}
+	return v1alpha1.WorkflowSucceeded
 }
 
 func isFinished(p v1alpha1.WorkflowPhase) bool {
@@ -108,6 +160,8 @@ type call struct {
 	nodeName string
 	// args are the resolved argument values.
 	args map[string]string
+	// attempt is true for one attempt of a retry node.
+	attempt bool
 }
 
 type engine struct {
@@ -115,10 +169,16 @@ type engine struct {
 	nodes     map[string]v1alpha1.NodeStatus
 	templates map[string]*v1alpha1.Template
 	actions   []Action
+	// status is "{{workflow.status}}": Running, then the outcome of the entrypoint for the exit handler.
+	status string
+	// wakeAt is the earliest timer, or nil.
+	wakeAt *time.Time
+	// startedAt is the start time of the workflow.
+	startedAt time.Time
 }
 
 func newEngine(in *Input, nodes map[string]v1alpha1.NodeStatus) *engine {
-	e := &engine{in: in, nodes: nodes, templates: map[string]*v1alpha1.Template{}}
+	e := &engine{in: in, nodes: nodes, templates: map[string]*v1alpha1.Template{}, status: string(v1alpha1.WorkflowRunning)}
 	for i := range in.Spec.Templates {
 		e.templates[in.Spec.Templates[i].Name] = &in.Spec.Templates[i]
 	}
@@ -150,6 +210,20 @@ func (e *engine) execute(c call, depth int) v1alpha1.NodeStatus {
 			return n
 		}
 	}
+	if t.RetryStrategy != nil && n.Type == v1alpha1.NodeRetry {
+		return e.runRetry(c, t, n, depth)
+	}
+	n = e.runBody(c, t, n, depth)
+	// The timeout is checked after the body, so that a Pod that finished in time counts.
+	if t.Timeout != nil && !isTerminal(n.Phase) && e.reached(n.StartedAt.Add(t.Timeout.Duration)) {
+		e.stop(n.ID, fmt.Sprintf("the timeout of %s was exceeded", t.Timeout.Duration))
+		n = e.nodes[n.ID]
+	}
+	return n
+}
+
+// runBody runs a node of a DAG, steps, container or script template.
+func (e *engine) runBody(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, depth int) v1alpha1.NodeStatus {
 	switch {
 	case t.DAG != nil:
 		return e.runDAG(c, t, n, depth)
@@ -163,7 +237,11 @@ func (e *engine) execute(c call, depth int) v1alpha1.NodeStatus {
 // startNode creates the node of a call. It returns false when the node failed at once.
 func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.NodeStatus, bool) {
 	n := e.newNode(c, nodeType(t))
-	inputs, err := resolveInputs(t, c.args)
+	if t.RetryStrategy != nil && !c.attempt {
+		n.Type = v1alpha1.NodeRetry
+	}
+	inputs, err := e.resolveInputs(t, c.args)
+	n.StartedAt = &e.in.Now
 	switch {
 	case depth > maxDepth:
 		err = errors.New("the templates are nested too deeply")
@@ -171,7 +249,6 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 		n.Phase = v1alpha1.NodePending
 		n.PodName = n.ID
 	case err == nil:
-		n.StartedAt = &e.in.Now
 		e.setPhase(&n, v1alpha1.NodeRunning, "")
 	}
 	n.Inputs = inputs
