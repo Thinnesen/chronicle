@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="96" viewBox="0 0 400 96" role="img" aria-label="chronicle">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- A small DAG: one start node, two parallel nodes, one join node. -->
+  <path d="M20 48 L44 26 M20 48 L44 70 M44 26 L72 48 M44 70 L72 48" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <circle cx="20" cy="48" r="9" fill="url(#g)"/>
+  <circle cx="44" cy="26" r="9" fill="url(#g)"/>
+  <circle cx="44" cy="70" r="9" fill="url(#g)"/>
+  <circle cx="72" cy="48" r="11" fill="none" stroke="url(#g)" stroke-width="4"/>
+  <circle cx="72" cy="48" r="4" fill="url(#g)"/>
+  <text x="98" y="64" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="50" font-weight="800" letter-spacing="-1.5" fill="#111827">chronicle</text>
+</svg>

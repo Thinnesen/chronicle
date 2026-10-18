@@ -1,0 +1,16 @@
+# Binaries and tools
+bin/
+dist/install.yaml
+cover.out
+*.test
+
+# Kubeconfig might contain secrets
+*.kubeconfig
+
+# UI and SDK build output
+node_modules/
+ui/dist/
+.venv/
+__pycache__/
+target/
+
