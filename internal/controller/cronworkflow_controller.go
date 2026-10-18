@@ -141,7 +141,7 @@ func ownedBy(list []chroniclev1alpha1.Workflow, cw *chroniclev1alpha1.CronWorkfl
 }
 
 func activeRefs(plan schedule.Plan) []corev1.ObjectReference {
-	var refs []corev1.ObjectReference
+	refs := make([]corev1.ObjectReference, 0, len(plan.Active))
 	for _, wf := range plan.Active {
 		refs = append(refs, corev1.ObjectReference{Kind: "Workflow", Namespace: wf.Namespace, Name: wf.Name, UID: wf.UID})
 	}
