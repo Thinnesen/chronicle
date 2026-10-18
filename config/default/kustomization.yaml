@@ -59,6 +59,17 @@ patches:
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.
 # Uncomment the following replacements to add the cert-manager CA injection annotations
 replacements:
+ # The server runs from the same image as the controller.
+ - source:
+     kind: Deployment
+     name: controller-manager
+     fieldPath: spec.template.spec.containers.[name=manager].image
+   targets:
+     - select:
+         kind: Deployment
+         name: server
+       fieldPaths:
+         - spec.template.spec.containers.[name=server].image
 # - source: # Uncomment the following block to enable certificates for metrics
 #     kind: Service
 #     version: v1
