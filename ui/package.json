@@ -24,8 +24,10 @@
     "@tanstack/react-router": "1.170.45",
     "@xyflow/react": "12.12.0",
     "cmdk": "1.1.1",
+    "cronstrue": "3.32.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "2.16.0",

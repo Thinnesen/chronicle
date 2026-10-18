@@ -46,6 +46,22 @@ export function run(phase: string, gate = false) {
   };
 }
 
+export const templateList = [
+  {
+    namespace: "team-a", name: "deploy-api", description: "Builds and deploys the API to an environment.", entrypoint: "main",
+    parameters: [
+      { name: "env", default: "staging", hasDefault: true, enum: ["staging", "prod"], description: "The target environment." },
+      { name: "version", hasDefault: false, enum: [], description: "The image tag, for example 1.4.2." },
+    ],
+  },
+  { namespace: "", name: "base-pipeline", clusterScope: true, entrypoint: "main", parameters: [], managedBy: "Argo CD" },
+];
+
+export const cronList = [
+  { namespace: "team-a", name: "etl-nightly", schedules: ["0 3 * * *"], timezone: "Europe/Berlin", nextScheduledAt: ts(3 * 3600 + 240), lastScheduledAt: ts(-21 * 3600), template: "etl-nightly" },
+  { namespace: "team-a", name: "cleanup", schedules: ["*/15 * * * *"], suspend: true, managedBy: "Flux" },
+];
+
 export interface MockOptions {
   loggedIn?: boolean;
   namespaces?: string[];
@@ -83,6 +99,27 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node)) });
   });
   await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate) }));
+  await page.route("**/chronicle.v1.TemplateService/ListTemplates", (r) => r.fulfill({ json: { templates: templateList } }));
+  await page.route("**/chronicle.v1.TemplateService/GetTemplate", (r) => {
+    const name: string = r.request().postDataJSON()?.name;
+    const t = templateList.find((x) => x.name === name);
+    r.fulfill({ json: { summary: t, template: { apiVersion: "chronicle.thinnesen.com/v1alpha1", kind: "WorkflowTemplate", metadata: { name }, spec: { entrypoint: "main" } } } });
+  });
+  await page.route("**/chronicle.v1.CronService/ListCronWorkflows", (r) => r.fulfill({ json: { cronWorkflows: cronList } }));
+  await page.route("**/chronicle.v1.CronService/GetCronWorkflow", (r) => {
+    const name: string = r.request().postDataJSON()?.name;
+    r.fulfill({ json: { summary: cronList.find((c) => c.name === name), cronWorkflow: { kind: "CronWorkflow", metadata: { name } } } });
+  });
+  await page.route("**/chronicle.v1.WorkflowService/SubmitWorkflow", (r) => {
+    (calls.SubmitWorkflow ??= []).push(r.request().postDataJSON());
+    r.fulfill({ json: { summary: { namespace: "team-a", name: "deploy-api-new01" } } });
+  });
+  for (const rpc of ["SuspendCronWorkflow", "ResumeCronWorkflow"]) {
+    await page.route(`**/chronicle.v1.CronService/${rpc}`, (r) => {
+      (calls[rpc] ??= []).push(r.request().postDataJSON());
+      r.fulfill({ json: {} });
+    });
+  }
   for (const rpc of ["SuspendWorkflow", "ResumeWorkflow", "StopWorkflow", "TerminateWorkflow", "DeleteWorkflow", "ApproveNode"]) {
     await page.route(`**/chronicle.v1.WorkflowService/${rpc}`, (r) => {
       (calls[rpc] ??= []).push(r.request().postDataJSON());

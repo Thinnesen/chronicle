@@ -24,10 +24,32 @@ export function Shell() {
           <UserMenu user={session.user} groups={session.groups ?? []} />
         </div>
       </header>
+      <SectionNav />
       <main className="shell-main">
         <Outlet />
       </main>
     </div>
+  );
+}
+
+// SectionNav switches between the runs, the templates and the cron workflows of the namespace.
+function SectionNav() {
+  const params = useParams({ strict: false }) as { namespace?: string };
+  if (!params.namespace) return null;
+  const namespace = params.namespace;
+  const link = { className: "section-link", activeProps: { "aria-current": "page" as const } };
+  return (
+    <nav className="section-nav" aria-label="Sections">
+      <Link to="/ns/$namespace" params={{ namespace }} activeOptions={{ exact: true }} {...link}>
+        Runs
+      </Link>
+      <Link to="/ns/$namespace/templates" params={{ namespace }} {...link}>
+        Templates
+      </Link>
+      <Link to="/ns/$namespace/cron" params={{ namespace }} {...link}>
+        Cron
+      </Link>
+    </nav>
   );
 }
 

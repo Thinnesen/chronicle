@@ -5,6 +5,7 @@
 
 .crumbs {
   font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
 }
 
 .crumbs a {

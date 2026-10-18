@@ -3,6 +3,7 @@ import "@fontsource/overpass/700.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/lists.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";

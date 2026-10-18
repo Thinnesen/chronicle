@@ -1,0 +1,142 @@
+/* A list of named objects: templates and cron workflows. */
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.item-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.item-list > li:last-child {
+  border-bottom: 0;
+}
+
+.item-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.item-title a {
+  text-decoration: none;
+}
+
+.item-title a:hover {
+  text-decoration: underline;
+}
+
+.item-note {
+  grid-column: 1;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.item-side {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.page-head .page-title {
+  margin: 0;
+}
+
+.two-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: var(--space-4);
+}
+
+.panel h2 {
+  font-size: var(--text-md);
+  margin-bottom: var(--space-3);
+}
+
+@media (max-width: 48rem) {
+  .item-list > li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .item-side {
+    grid-column: 1;
+    grid-row: auto;
+    text-align: left;
+  }
+
+  .two-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lead {
+  margin: 0 0 var(--space-4);
+  max-width: 60ch;
+  color: var(--ink-muted);
+}
+
+.run-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.run-form h2 {
+  margin: 0;
+}
+
+.field select {
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.recent-title {
+  margin-top: var(--space-6);
+}
+
+.recent-runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.recent-runs li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

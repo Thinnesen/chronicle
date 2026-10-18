@@ -6,7 +6,11 @@ import { Shell } from "./components/Shell";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RunPage } from "./pages/RunPage";
+import { CronPage } from "./pages/CronPage";
+import { CronsPage } from "./pages/CronsPage";
 import { RunsPage } from "./pages/RunsPage";
+import { TemplatePage } from "./pages/TemplatePage";
+import { TemplatesPage } from "./pages/TemplatesPage";
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -54,7 +58,23 @@ export const runRoute = createRoute({
   validateSearch: (s: Record<string, unknown>): { node?: string } => ({ node: typeof s.node === "string" ? s.node : undefined }),
 });
 
-const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren([homeRoute, runsRoute, runRoute])]);
+export const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace/templates", component: TemplatesPage });
+
+export const templateRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ns/$namespace/templates/$name",
+  component: TemplatePage,
+  validateSearch: (s: Record<string, unknown>): { cluster?: boolean } => ({ cluster: s.cluster === true || s.cluster === "true" ? true : undefined }),
+});
+
+export const cronsRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace/cron", component: CronsPage });
+
+export const cronRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace/cron/$name", component: CronPage });
+
+const routeTree = rootRoute.addChildren([
+  loginRoute,
+  appRoute.addChildren([homeRoute, runsRoute, runRoute, templatesRoute, templateRoute, cronsRoute, cronRoute]),
+]);
 
 export function newRouter(queryClient: QueryClient) {
   return createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent" });
