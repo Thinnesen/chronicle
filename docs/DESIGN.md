@@ -181,6 +181,18 @@ A `task` template sends a task to a queue. A worker that an SDK runs takes the t
 - Dark and light themes. Keyboard shortcuts. Accessible (WCAG AA).
 - Built with Vite, embedded in the server binary with `go:embed`. Playwright tests.
 
+### 8.1 Visual direction
+
+The UI is a signal-box panel for runs. A run is a train on a track, a node is a station, and a phase is a signal lamp. The run graph carries the identity; everything else stays quiet.
+
+- Palette (light / dark): panel `#E6EAED` / `#171C23`, surface `#F6F7F8` / `#1F2630`, ink `#1B2430` / `#E3E8EE`, track `#5A6576` / `#8C97A7`. Lamps: proceed green `#1C8A57`, caution amber `#B97E00`, danger red `#C4332A`, running blue `#1F6FD6`, idle `#9AA4B2`. Each lamp also has a shape (filled, ring, half, cross), so the phase never depends on color alone (WCAG AA).
+- Type: Overpass (signage, from US highway lettering) for the whole UI, with a tight scale (12, 14, 16, 20, 28). JetBrains Mono only for logs, YAML and IDs that people copy. Fonts are self-hosted (pnpm packages), never from a CDN.
+- Run graph: orthogonal track lines, station dots, lamps that light up live. The Gantt timeline sits under the graph and shares its selection: select a station, and its bar and its logs open.
+- Runs list: a departure board. Dense rows with the start time, the name, a lamp, and a progress track (a line with one dot per node).
+- No card grid, no drop shadows as decoration, no gradient washes. Hierarchy comes from the type scale, spacing and thin rules. Motion only answers an action or shows a live phase change.
+- Copy is short, plain and in sentence case. Empty screens tell the next action (for example "No runs yet. Submit one from a template.").
+- Command palette (Ctrl+K) for navigation and actions. Every action has a keyboard path.
+
 ## 9. Security and supply chain
 
 The project follows these standards:

@@ -47,4 +47,5 @@ What we do:
 - Kestra (Vue): Vue Flow with `dagre` for the topology, Monaco with YAML schema support, ECharts.
 - Temporal UI (Svelte): an event history and a timeline view of a run, `cronstrue`, CodeMirror.
 - Dagster: a Gantt timeline of the steps of a run, next to the logs.
+- Hatchet computes the DAG edges from the task "shape". chronicle has a node tree in the status, so the UI computes the edges from the stored spec (template, then tasks, then node names `<boundary>.<task>`).
 - Ideas for chronicle (M4): a DAG graph and a Gantt timeline of the same run, side by side with the logs. A command palette. Readable cron text and the next runs. A YAML view with schema completion. Study the real pages before M4 starts and record the result here.
