@@ -14,8 +14,8 @@ var transitions = map[v1alpha1.NodePhase][]v1alpha1.NodePhase{
 	"": {v1alpha1.NodePending, v1alpha1.NodeRunning, v1alpha1.NodeSucceeded, v1alpha1.NodeFailed,
 		v1alpha1.NodeError, v1alpha1.NodeSkipped, v1alpha1.NodeOmitted},
 	v1alpha1.NodePending: {v1alpha1.NodeRunning, v1alpha1.NodeSucceeded, v1alpha1.NodeFailed, v1alpha1.NodeError},
-	// A step group is Omitted when all its steps are omitted.
-	v1alpha1.NodeRunning: {v1alpha1.NodeSucceeded, v1alpha1.NodeFailed, v1alpha1.NodeError, v1alpha1.NodeOmitted},
+	// A step group is Omitted when all its steps are omitted. A task group is Skipped when all its items are skipped.
+	v1alpha1.NodeRunning: {v1alpha1.NodeSucceeded, v1alpha1.NodeFailed, v1alpha1.NodeError, v1alpha1.NodeOmitted, v1alpha1.NodeSkipped},
 }
 
 func isTerminal(p v1alpha1.NodePhase) bool {

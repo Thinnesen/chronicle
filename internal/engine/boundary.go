@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/expr"
 )
@@ -12,8 +14,7 @@ import (
 type task struct {
 	name     string
 	nodeName string
-	template string
-	args     v1alpha1.Arguments
+	call     v1alpha1.Call
 	deps     []string
 	depends  expr.Depends
 	// tests are the named results that the depends expression tests for each task, for example "a.Failed".
@@ -26,14 +27,17 @@ type task struct {
 type boundary struct {
 	e        *engine
 	nodeID   string
+	inputs   *v1alpha1.Inputs
+	prefix   string // "tasks" or "steps", for output placeholders
 	tasks    []task // in dependency order
 	byName   map[string]*task
 	failFast bool
 	depth    int
 }
 
-func newBoundary(e *engine, nodeID string, tasks []task, failFast bool, depth int) *boundary {
-	b := &boundary{e: e, nodeID: nodeID, tasks: tasks, byName: map[string]*task{}, failFast: failFast, depth: depth}
+func newBoundary(e *engine, n v1alpha1.NodeStatus, prefix string, tasks []task, failFast bool, depth int) *boundary {
+	b := &boundary{e: e, nodeID: n.ID, inputs: n.Inputs, prefix: prefix, tasks: tasks, byName: map[string]*task{},
+		failFast: failFast, depth: depth}
 	for i := range tasks {
 		b.byName[tasks[i].name] = &b.tasks[i]
 	}
@@ -55,14 +59,14 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 		switch {
 		case ok && isTerminal(n.Phase):
 			continue
-		case ok:
-			b.start(t)
-		case stopped != "" || !b.ready(t):
+		case !ok && (stopped != "" || !b.ready(t)):
 			continue
-		case !t.depends.Eval(b.lookup):
-			b.omit(t, "the depends condition is false")
+		case !ok && !t.depends.Eval(b.lookup):
+			b.finishEarly(t, t.nodeName, v1alpha1.NodeOmitted, "the depends condition is false", b.nodeID)
+		case len(t.call.WithItems) > 0 || t.call.WithParam != "":
+			b.runGroup(t)
 		default:
-			b.start(t)
+			b.runOne(t, t.nodeName, nil, b.nodeID)
 		}
 		if stopped == "" {
 			stopped = b.stopReason()
@@ -71,24 +75,49 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 	return b.outcome(stopped)
 }
 
-func (b *boundary) start(t *task) {
-	n := b.e.execute(call{template: t.template, nodeName: t.nodeName, args: t.args}, b.depth+1)
-	b.link(t, n.ID)
-}
-
-func (b *boundary) omit(t *task, msg string) {
-	n := b.e.newNode(call{template: t.template, nodeName: t.nodeName}, v1alpha1.NodePod)
-	if tmpl := b.e.templates[t.template]; tmpl.DAG != nil {
-		n.Type = v1alpha1.NodeDAG
-	} else if tmpl.Steps != nil {
-		n.Type = v1alpha1.NodeSteps
+// runOne starts or continues one node of a task. item is the fan-out item, or nil.
+func (b *boundary) runOne(t *task, nodeName string, item *apiextensionsv1.JSON, parentID string) {
+	if n, ok := b.e.nodes[b.e.nodeID(nodeName)]; ok {
+		n = b.e.execute(call{template: t.call.Template, nodeName: nodeName}, b.depth+1)
+		b.link(t, parentID, n.ID)
+		return
 	}
-	b.e.setPhase(&n, v1alpha1.NodeOmitted, msg)
-	b.e.save(n)
-	b.link(t, n.ID)
+	resolve := b.scope(item)
+	if t.call.When != "" {
+		w, _ := expr.ParseWhen(t.call.When)
+		run, err := w.Eval(resolve)
+		if err != nil {
+			b.finishEarly(t, nodeName, v1alpha1.NodeError, "when: "+err.Error(), parentID)
+			return
+		}
+		if !run {
+			b.finishEarly(t, nodeName, v1alpha1.NodeSkipped, "the when condition is false", parentID)
+			return
+		}
+	}
+	args, err := resolveArgs(t.call.Arguments, resolve)
+	if err != nil {
+		b.finishEarly(t, nodeName, v1alpha1.NodeError, err.Error(), parentID)
+		return
+	}
+	n := b.e.execute(call{template: t.call.Template, nodeName: nodeName, args: args}, b.depth+1)
+	b.link(t, parentID, n.ID)
 }
 
-func (b *boundary) link(t *task, id string) {
+// finishEarly records a node that never runs: Omitted, Skipped, or Error before the start.
+func (b *boundary) finishEarly(t *task, nodeName string, p v1alpha1.NodePhase, msg, parentID string) {
+	n := b.e.newNode(call{template: t.call.Template, nodeName: nodeName}, nodeType(b.e.templates[t.call.Template]))
+	b.e.setPhase(&n, p, msg)
+	b.e.save(n)
+	b.link(t, parentID, n.ID)
+}
+
+// link adds a node to its parent: the boundary (through the step group) or a task group.
+func (b *boundary) link(t *task, parentID, id string) {
+	if parentID != b.nodeID {
+		b.e.addChild(parentID, id)
+		return
+	}
 	if t.group == "" {
 		b.e.addChild(b.nodeID, id)
 		return
@@ -117,9 +146,13 @@ func (b *boundary) ready(t *task) bool {
 func (b *boundary) lookup(name string, r expr.Result) bool {
 	n, _ := b.node(name)
 	switch r {
-	case expr.ResultSucceeded, expr.ResultAnySucceeded:
+	case expr.ResultAnySucceeded:
+		return b.anyChild(n, v1alpha1.NodeSucceeded)
+	case expr.ResultAllFailed:
+		return b.allChildren(n, v1alpha1.NodeFailed)
+	case expr.ResultSucceeded:
 		return n.Phase == v1alpha1.NodeSucceeded
-	case expr.ResultFailed, expr.ResultAllFailed:
+	case expr.ResultFailed:
 		return n.Phase == v1alpha1.NodeFailed
 	case expr.ResultErrored:
 		return n.Phase == v1alpha1.NodeError
@@ -184,7 +217,7 @@ func (b *boundary) outcome(stopped string) (v1alpha1.NodePhase, string) {
 		return v1alpha1.NodeRunning, ""
 	}
 	for _, t := range unstarted {
-		b.omit(t, stopped)
+		b.finishEarly(t, t.nodeName, v1alpha1.NodeOmitted, stopped, b.nodeID)
 	}
 	phase, msg := v1alpha1.NodeSucceeded, ""
 	memo := map[string]v1alpha1.NodePhase{}

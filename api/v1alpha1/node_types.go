@@ -5,7 +5,7 @@ import (
 )
 
 // NodeType is the type of a node in the workflow graph.
-// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup
+// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup
 type NodeType string
 
 // The node types.
@@ -14,6 +14,8 @@ const (
 	NodeDAG       NodeType = "DAG"
 	NodeSteps     NodeType = "Steps"
 	NodeStepGroup NodeType = "StepGroup"
+	// NodeTaskGroup is a task or step with withItems or withParam. Its children are the items.
+	NodeTaskGroup NodeType = "TaskGroup"
 )
 
 // NodePhase is the phase of a node.
@@ -76,6 +78,10 @@ type NodeStatus struct {
 	// podName is the name of the Pod of a Pod node.
 	// +optional
 	PodName string `json:"podName,omitempty"`
+
+	// inputs are the resolved input parameters of the node.
+	// +optional
+	Inputs *Inputs `json:"inputs,omitempty"`
 
 	// outputs of the node.
 	// +optional

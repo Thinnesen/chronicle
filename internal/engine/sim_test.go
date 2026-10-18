@@ -20,6 +20,9 @@ type sim struct {
 	outcomes map[string]v1alpha1.NodePhase // by node name; the default is Succeeded
 	waves    [][]string                    // node names of the Pods created in each step
 	created  map[string]bool
+	pods     map[string]CreatePod // by node name
+	// outputs are the Pod outputs by node name. The default is the result "out-<display name>".
+	outputs map[string]*v1alpha1.Outputs
 }
 
 func newSim(t *testing.T, spec string, outcomes map[string]v1alpha1.NodePhase) *sim {
@@ -33,6 +36,8 @@ func newSim(t *testing.T, spec string, outcomes map[string]v1alpha1.NodePhase) *
 		in:       Input{Name: wfName, Namespace: "ns", UID: "uid", Spec: &s, Pods: map[string]PodResult{}, Now: at(0)},
 		outcomes: outcomes,
 		created:  map[string]bool{},
+		pods:     map[string]CreatePod{},
+		outputs:  map[string]*v1alpha1.Outputs{},
 	}
 }
 
@@ -47,6 +52,7 @@ func (s *sim) step(i int) Result {
 		if p.Phase == v1alpha1.NodeRunning {
 			p.Phase = s.outcome(id)
 			p.FinishedAt = &s.in.Now
+			p.Outputs = s.podOutputs(id)
 			s.in.Pods[id] = p
 		}
 	}
@@ -58,6 +64,7 @@ func (s *sim) step(i int) Result {
 			s.t.Fatalf("Pod of %s created twice", cp.NodeName)
 		}
 		s.created[cp.NodeID] = true
+		s.pods[cp.NodeName] = cp
 		wave = append(wave, cp.NodeName)
 		s.in.Pods[cp.NodeID] = PodResult{Phase: v1alpha1.NodeRunning, StartedAt: &s.in.Now}
 	}
@@ -76,6 +83,15 @@ func (s *sim) outcome(id string) v1alpha1.NodePhase {
 	return v1alpha1.NodeSucceeded
 }
 
+func (s *sim) podOutputs(id string) *v1alpha1.Outputs {
+	n := s.in.Status.Nodes[id]
+	if o, ok := s.outputs[n.Name]; ok {
+		return o
+	}
+	r := "out-" + n.DisplayName
+	return &v1alpha1.Outputs{Result: &r}
+}
+
 // run steps the engine until the workflow finishes.
 func (s *sim) run() v1alpha1.WorkflowStatus {
 	for i := range 200 {
@@ -83,7 +99,7 @@ func (s *sim) run() v1alpha1.WorkflowStatus {
 			return s.in.Status
 		}
 	}
-	s.t.Fatal("the workflow did not finish")
+	s.t.Fatalf("the workflow did not finish: %v", phases(s.in.Status))
 	return s.in.Status
 }
 

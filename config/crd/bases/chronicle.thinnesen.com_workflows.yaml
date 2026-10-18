@@ -531,6 +531,25 @@ spec:
                                 maxLength: 128
                                 minLength: 1
                                 type: string
+                              when:
+                                description: when is a condition. When it is false,
+                                  the node is Skipped. For example "{{tasks.a.outputs.result}}
+                                  == heads".
+                                maxLength: 4096
+                                type: string
+                              withItems:
+                                description: withItems runs the template once for
+                                  each item. "{{item}}" is the item, "{{item.key}}"
+                                  a field of an object item.
+                                items:
+                                  x-kubernetes-preserve-unknown-fields: true
+                                maxItems: 1000
+                                type: array
+                              withParam:
+                                description: withParam runs the template once for
+                                  each item of a JSON list, for example "{{tasks.a.outputs.result}}".
+                                maxLength: 4096
+                                type: string
                             required:
                             - name
                             - template
@@ -661,6 +680,10 @@ spec:
                           x-kubernetes-list-map-keys:
                           - name
                           x-kubernetes-list-type: map
+                        result:
+                          description: result is the standard output of a container
+                            or script node. Only the status sets it.
+                          type: string
                       type: object
                     script:
                       description: script runs a script in a Pod.
@@ -1054,6 +1077,25 @@ spec:
                               maxLength: 128
                               minLength: 1
                               type: string
+                            when:
+                              description: when is a condition. When it is false,
+                                the node is Skipped. For example "{{tasks.a.outputs.result}}
+                                == heads".
+                              maxLength: 4096
+                              type: string
+                            withItems:
+                              description: withItems runs the template once for each
+                                item. "{{item}}" is the item, "{{item.key}}" a field
+                                of an object item.
+                              items:
+                                x-kubernetes-preserve-unknown-fields: true
+                              maxItems: 1000
+                              type: array
+                            withParam:
+                              description: withParam runs the template once for each
+                                item of a JSON list, for example "{{tasks.a.outputs.result}}".
+                              maxLength: 4096
+                              type: string
                           required:
                           - name
                           - template
@@ -1184,6 +1226,62 @@ spec:
                     id:
                       description: id of the node. It is the key in the nodes map.
                       type: string
+                    inputs:
+                      description: inputs are the resolved input parameters of the
+                        node.
+                      properties:
+                        parameters:
+                          description: parameters that the template accepts.
+                          items:
+                            description: Parameter is a named string value. Inputs,
+                              outputs and arguments use parameters.
+                            properties:
+                              default:
+                                description: default is the value when the caller
+                                  does not give a value.
+                                maxLength: 262144
+                                type: string
+                              description:
+                                description: description of the parameter, for people
+                                  and for the UI.
+                                maxLength: 1024
+                                type: string
+                              enum:
+                                description: enum is the list of permitted values.
+                                items:
+                                  maxLength: 1024
+                                  type: string
+                                maxItems: 256
+                                type: array
+                              name:
+                                description: name of the parameter.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              value:
+                                description: value of the parameter. For an input,
+                                  a value cannot be changed by the caller.
+                                maxLength: 262144
+                                type: string
+                              valueFrom:
+                                description: valueFrom tells where an output parameter
+                                  gets its value.
+                                properties:
+                                  path:
+                                    description: path of a file in the main container.
+                                      Its contents become the value.
+                                    maxLength: 4096
+                                    type: string
+                                type: object
+                            required:
+                            - name
+                            type: object
+                          maxItems: 256
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                      type: object
                     message:
                       description: message tells why the node is in this phase.
                       type: string
@@ -1245,6 +1343,10 @@ spec:
                           x-kubernetes-list-map-keys:
                           - name
                           x-kubernetes-list-type: map
+                        result:
+                          description: result is the standard output of a container
+                            or script node. Only the status sets it.
+                          type: string
                       type: object
                     phase:
                       description: phase of the node.
@@ -1275,6 +1377,7 @@ spec:
                       - DAG
                       - Steps
                       - StepGroup
+                      - TaskGroup
                       type: string
                   required:
                   - id

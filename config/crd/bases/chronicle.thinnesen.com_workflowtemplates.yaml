@@ -517,6 +517,25 @@ spec:
                                 maxLength: 128
                                 minLength: 1
                                 type: string
+                              when:
+                                description: when is a condition. When it is false,
+                                  the node is Skipped. For example "{{tasks.a.outputs.result}}
+                                  == heads".
+                                maxLength: 4096
+                                type: string
+                              withItems:
+                                description: withItems runs the template once for
+                                  each item. "{{item}}" is the item, "{{item.key}}"
+                                  a field of an object item.
+                                items:
+                                  x-kubernetes-preserve-unknown-fields: true
+                                maxItems: 1000
+                                type: array
+                              withParam:
+                                description: withParam runs the template once for
+                                  each item of a JSON list, for example "{{tasks.a.outputs.result}}".
+                                maxLength: 4096
+                                type: string
                             required:
                             - name
                             - template
@@ -647,6 +666,10 @@ spec:
                           x-kubernetes-list-map-keys:
                           - name
                           x-kubernetes-list-type: map
+                        result:
+                          description: result is the standard output of a container
+                            or script node. Only the status sets it.
+                          type: string
                       type: object
                     script:
                       description: script runs a script in a Pod.
@@ -1039,6 +1062,25 @@ spec:
                                 run.
                               maxLength: 128
                               minLength: 1
+                              type: string
+                            when:
+                              description: when is a condition. When it is false,
+                                the node is Skipped. For example "{{tasks.a.outputs.result}}
+                                == heads".
+                              maxLength: 4096
+                              type: string
+                            withItems:
+                              description: withItems runs the template once for each
+                                item. "{{item}}" is the item, "{{item.key}}" a field
+                                of an object item.
+                              items:
+                                x-kubernetes-preserve-unknown-fields: true
+                              maxItems: 1000
+                              type: array
+                            withParam:
+                              description: withParam runs the template once for each
+                                item of a JSON list, for example "{{tasks.a.outputs.result}}".
+                              maxLength: 4096
                               type: string
                           required:
                           - name

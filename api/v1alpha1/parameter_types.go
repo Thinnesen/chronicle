@@ -70,4 +70,8 @@ type Outputs struct {
 	// +kubebuilder:validation:MaxItems=256
 	// +optional
 	Parameters []Parameter `json:"parameters,omitempty"`
+
+	// result is the standard output of a container or script node. Only the status sets it.
+	// +optional
+	Result *string `json:"result,omitempty"`
 }

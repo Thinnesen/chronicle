@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 // Template is one unit of work. It has exactly one type: container, script, dag or steps.
@@ -122,15 +123,7 @@ type DAGTask struct {
 	// +required
 	Name string `json:"name"`
 
-	// template is the name of the template to run.
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=128
-	// +required
-	Template string `json:"template"`
-
-	// arguments to give to the template.
-	// +optional
-	Arguments Arguments `json:"arguments,omitzero"`
+	Call `json:",inline"`
 
 	// dependencies are the names of the tasks that must succeed before this task starts.
 	// +listType=set
@@ -153,6 +146,11 @@ type WorkflowStep struct {
 	// +required
 	Name string `json:"name"`
 
+	Call `json:",inline"`
+}
+
+// Call is a call of a template from a DAG task or a step.
+type Call struct {
 	// template is the name of the template to run.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
@@ -162,4 +160,19 @@ type WorkflowStep struct {
 	// arguments to give to the template.
 	// +optional
 	Arguments Arguments `json:"arguments,omitzero"`
+
+	// when is a condition. When it is false, the node is Skipped. For example "{{tasks.a.outputs.result}} == heads".
+	// +kubebuilder:validation:MaxLength=4096
+	// +optional
+	When string `json:"when,omitempty"`
+
+	// withItems runs the template once for each item. "{{item}}" is the item, "{{item.key}}" a field of an object item.
+	// +kubebuilder:validation:MaxItems=1000
+	// +optional
+	WithItems []apiextensionsv1.JSON `json:"withItems,omitempty"`
+
+	// withParam runs the template once for each item of a JSON list, for example "{{tasks.a.outputs.result}}".
+	// +kubebuilder:validation:MaxLength=4096
+	// +optional
+	WithParam string `json:"withParam,omitempty"`
 }

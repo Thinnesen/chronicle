@@ -252,16 +252,16 @@ templates:
 }
 
 func TestSpecParameters(t *testing.T) {
-	const p = "\n- {name: p, inputs: {parameters: [{name: x}, {name: y, default: a, enum: [a, b]}, {name: z, value: fixed}]}, container: {image: x}}"
+	const p = "\n- {name: p, inputs: {parameters: [{name: x}, {name: w, default: a, enum: [a, b]}, {name: z, value: fixed}]}, container: {image: x}}"
 	call := func(params string) string {
 		return "entrypoint: m\ntemplates:\n- {name: m, dag: {tasks: [{name: t, template: p, arguments: {parameters: " + params + "}}]}}" + p
 	}
 	runCases(t, []specCase{
-		{name: "all given", spec: call("[{name: x, value: '1'}, {name: y, value: b}]")},
+		{name: "all given", spec: call("[{name: x, value: '1'}, {name: w, value: b}]")},
 		{name: "missing required", spec: call("[]"), want: []string{`arguments.parameters: Required value: parameter "x"`}},
 		{name: "unknown argument", spec: call("[{name: x, value: '1'}, {name: q, value: '1'}]"), want: []string{`arguments.parameters[1].name: Not found: "q"`}},
 		{name: "argument without value", spec: call("[{name: x}]"), want: []string{"arguments.parameters[0].value: Required value"}},
-		{name: "value not in enum", spec: call("[{name: x, value: '1'}, {name: y, value: c}]"), want: []string{`arguments.parameters[1].value: Unsupported value: "c"`}},
+		{name: "value not in enum", spec: call("[{name: x, value: '1'}, {name: w, value: c}]"), want: []string{`arguments.parameters[1].value: Unsupported value: "c"`}},
 		{name: "fixed input", spec: call("[{name: x, value: '1'}, {name: z, value: other}]"), want: []string{"arguments.parameters[1].name: Forbidden"}},
 		{
 			name: "unknown input placeholder",
@@ -282,6 +282,30 @@ func TestSpecParameters(t *testing.T) {
 			name: "default not in enum",
 			spec: "entrypoint: c\ntemplates: [{name: c, inputs: {parameters: [{name: e, default: z, enum: [a]}]}, container: {image: x}}]",
 			want: []string{`templates[0].inputs.parameters[0].default: Unsupported value: "z"`},
+		},
+	}, true)
+}
+
+func TestSpecCalls(t *testing.T) {
+	const p = "\n- {name: p, inputs: {parameters: [{name: x}]}, container: {image: x}}"
+	task := func(fields string) string {
+		return "entrypoint: m\ntemplates:\n- {name: m, dag: {tasks: [{name: g, template: p, arguments: {parameters: [{name: x, value: v}]}}, {name: t, template: p, depends: g, " + fields + "}]}}" + p
+	}
+	runCases(t, []specCase{
+		{name: "items", spec: task("withItems: [a, {k: 1}], arguments: {parameters: [{name: x, value: '{{item}} {{item.k}}'}]}")},
+		{name: "param list and when", spec: task("withParam: '{{tasks.g.outputs.result}}', when: '{{item}} != skip && {{tasks.g.outputs.result}} == x', arguments: {parameters: [{name: x, value: '{{item}}'}]}")},
+		{name: "items and param list", spec: task("withItems: [a], withParam: '[]', arguments: {parameters: [{name: x, value: v}]}"), want: []string{"use withItems or withParam, not both"}},
+		{name: "item without fan-out", spec: task("arguments: {parameters: [{name: x, value: '{{item}}'}]}"), want: []string{`unknown placeholder "item"`}},
+		{name: "bad when", spec: task("when: 'a ==', arguments: {parameters: [{name: x, value: v}]}"), want: []string{"templates[0].dag.tasks[1].when: Invalid value"}},
+		{name: "unknown placeholder in when", spec: task("when: '{{nope}} == a', arguments: {parameters: [{name: x, value: v}]}"), want: []string{`unknown placeholder "nope"`}},
+		{
+			name: "DAG outputs use task outputs",
+			spec: "entrypoint: m\ntemplates:\n- {name: m, outputs: {parameters: [{name: o, value: '{{tasks.a.outputs.result}}'}]}, dag: {tasks: [{name: a, template: c}]}}\n- {name: c, container: {image: x}}",
+		},
+		{
+			name: "entrypoint input without an argument",
+			spec: "entrypoint: p\ntemplates:" + p,
+			want: []string{`parameter "x" of the entrypoint template`},
 		},
 	}, true)
 }

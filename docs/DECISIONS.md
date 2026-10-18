@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-18: `when` conditions are parsed before substitution, and values are literal operands. Reason: Argo substitutes values into the expression text, so a parameter value such as `x || true` can change the condition (injection). The Argo converter keeps simple conditions as they are.
+
 - 2026-10-18: DAG outcome follows Argo v4 (leaf tasks and their branches decide), with one change: a failure that a task tests for with its exact result (`a.Failed`, `a.Errored`) is handled. It does not fail the DAG and does not stop it with `failFast`. Reason: in Argo, an omitted leaf such as `depends: "!a.Failed && b"` fails the DAG after a handled failure, which surprises users.
 
 - 2026-10-18: The template container is a small chronicle type without a security context, and a script source cannot have placeholders. Reason: a user who can create a Workflow must not get a privileged Pod, and parameters must never become shell code (threat model, section 6.2). Argo YAML that uses placeholders in a script source must move them to environment variables. The converter will do this.

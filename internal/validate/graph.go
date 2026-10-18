@@ -32,7 +32,7 @@ func (c *checker) checkDAG(dag *v1alpha1.DAGTemplate, path *field.Path, sc scope
 			}
 			return ""
 		}
-		c.checkCall(task.Template, task.Arguments, tasksPath.Index(i), taskScope, hint)
+		c.checkCall(task.Call, tasksPath.Index(i), taskScope, hint)
 	}
 }
 
@@ -139,7 +139,7 @@ func (c *checker) checkSteps(groups [][]v1alpha1.WorkflowStep, path *field.Path,
 			if seen[step.Name] {
 				c.errs = append(c.errs, field.Duplicate(sp.Child("name"), step.Name))
 			}
-			c.checkCall(step.Template, step.Arguments, sp, groupScope, nil)
+			c.checkCall(step.Call, sp, groupScope, nil)
 		}
 		for _, step := range group {
 			seen[step.Name] = true
@@ -160,6 +160,22 @@ func (c *checker) outputNames(prefix, template string) []string {
 	}
 	if t.Container != nil || t.Script != nil {
 		names = append(names, prefix+".outputs.result")
+	}
+	return names
+}
+
+// childOutputs returns the output placeholders of all tasks or steps of a DAG or steps template.
+func (c *checker) childOutputs(t *v1alpha1.Template) []string {
+	var names []string
+	if t.DAG != nil {
+		for _, task := range t.DAG.Tasks {
+			names = append(names, c.outputNames("tasks."+task.Name, task.Template)...)
+		}
+	}
+	for _, group := range t.Steps {
+		for _, step := range group {
+			names = append(names, c.outputNames("steps."+step.Name, step.Template)...)
+		}
 	}
 	return names
 }

@@ -81,6 +81,9 @@ The controller applies the actions. This makes the engine testable with table te
 - One walker for DAG and steps. A step depends on all steps of the previous group. Each run of the engine visits the tasks once in dependency order, so an omission cascades in one pass.
 - A DAG ends when no task runs. Then each leaf task decides: its own phase when it ran, or the worst phase of its dependencies when it was omitted or skipped. A dependency failure that the task tests for (for example `a.Failed` or `!a.Failed`) does not pass down.
 - `failFast` (default true) stops new tasks after a failure that no task tests for. The tasks that did not start become Omitted.
+- `when`: the engine parses the condition first, then puts each placeholder value in as one literal operand. A value can never change the condition (Argo puts values into the text before it parses). Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, parentheses. Two numbers compare as numbers, other values as text. A false condition makes the node Skipped.
+- Fan-out: `withItems` or `withParam` (a JSON list) makes a TaskGroup node with one child for each item (`a(0:x)`). `AnySucceeded` and `AllFailed` test the items. The outputs of a group are JSON lists of the item outputs.
+- Each node stores its resolved input parameters, for the UI and for retries. The Pod gets the template with all placeholders replaced.
 - Node IDs: the root node has the workflow name. Other nodes have the workflow name and a hash of the node path (`wf.main.a`, `wf[0].step`). The Pod name is the node ID.
 
 ## 5. Re-run, retry and history

@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -9,49 +10,67 @@ import (
 	"github.com/Thinnesen/chronicle/internal/expr"
 )
 
-// runBoundary creates or continues a DAG or steps node and walks its tasks.
-func (e *engine) runBoundary(c call, typ v1alpha1.NodeType, tasks []task, failFast bool, depth int) v1alpha1.NodeStatus {
-	id := e.nodeID(c.nodeName)
-	if _, ok := e.nodes[id]; !ok {
-		n := e.newNode(c, typ)
-		n.StartedAt = &e.in.Now
-		e.setPhase(&n, v1alpha1.NodeRunning, "")
-		e.save(n)
+// runBoundary walks the tasks of a DAG or steps node. When the node finishes, it resolves the template outputs.
+func (e *engine) runBoundary(t *v1alpha1.Template, n v1alpha1.NodeStatus, prefix string, tasks []task, failFast bool, depth int) v1alpha1.NodeStatus {
+	b := newBoundary(e, n, prefix, tasks, failFast, depth)
+	phase, msg := b.walk()
+	n = e.nodes[n.ID]
+	if phase == v1alpha1.NodeRunning {
+		return n
 	}
-	phase, msg := newBoundary(e, id, tasks, failFast, depth).walk()
-	n := e.nodes[id]
-	if phase != v1alpha1.NodeRunning {
-		e.setPhase(&n, phase, msg)
+	if phase == v1alpha1.NodeSucceeded {
+		out, err := resolveOutputs(t, b.scope(nil))
+		if err != nil {
+			phase, msg = v1alpha1.NodeError, err.Error()
+		}
+		n.Outputs = out
 	}
+	e.setPhase(&n, phase, msg)
 	return e.save(n)
 }
 
-func (e *engine) runDAG(c call, dag *v1alpha1.DAGTemplate, depth int) v1alpha1.NodeStatus {
-	tasks := make([]task, 0, len(dag.Tasks))
-	for _, t := range dag.Tasks {
-		cond := t.Depends
-		if cond == "" && len(t.Dependencies) > 0 {
-			cond = strings.Join(t.Dependencies, " && ")
-		}
-		tasks = append(tasks, newTask(t.Name, c.nodeName+"."+t.Name, t.Template, t.Arguments, cond, ""))
+// resolveOutputs resolves the output parameters of a DAG or steps template.
+func resolveOutputs(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.Outputs, error) {
+	if len(t.Outputs.Parameters) == 0 {
+		return nil, nil
 	}
-	failFast := dag.FailFast == nil || *dag.FailFast
-	return e.runBoundary(c, v1alpha1.NodeDAG, topoOrder(tasks), failFast, depth)
+	out := &v1alpha1.Outputs{}
+	for _, p := range t.Outputs.Parameters {
+		v, err := expr.Substitute(*p.Value, resolve)
+		if err != nil {
+			return nil, fmt.Errorf("output %q: %w", p.Name, err)
+		}
+		out.Parameters = append(out.Parameters, v1alpha1.Parameter{Name: p.Name, Value: &v})
+	}
+	return out, nil
 }
 
-func (e *engine) runSteps(c call, groups [][]v1alpha1.WorkflowStep, depth int) v1alpha1.NodeStatus {
+func (e *engine) runDAG(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, depth int) v1alpha1.NodeStatus {
+	tasks := make([]task, 0, len(t.DAG.Tasks))
+	for _, dt := range t.DAG.Tasks {
+		cond := dt.Depends
+		if cond == "" && len(dt.Dependencies) > 0 {
+			cond = strings.Join(dt.Dependencies, " && ")
+		}
+		tasks = append(tasks, newTask(dt.Name, c.nodeName+"."+dt.Name, dt.Call, cond, ""))
+	}
+	failFast := t.DAG.FailFast == nil || *t.DAG.FailFast
+	return e.runBoundary(t, n, "tasks", topoOrder(tasks), failFast, depth)
+}
+
+func (e *engine) runSteps(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, depth int) v1alpha1.NodeStatus {
 	var tasks []task
 	var prev []string
-	for i, group := range groups {
+	for i, group := range t.Steps {
 		groupName := c.nodeName + "[" + strconv.Itoa(i) + "]"
 		cond := strings.Join(prev, " && ")
 		prev = prev[:0:0]
 		for _, s := range group {
-			tasks = append(tasks, newTask(s.Name, groupName+"."+s.Name, s.Template, s.Arguments, cond, groupName))
+			tasks = append(tasks, newTask(s.Name, groupName+"."+s.Name, s.Call, cond, groupName))
 			prev = append(prev, s.Name)
 		}
 	}
-	n := e.runBoundary(c, v1alpha1.NodeSteps, tasks, false, depth)
+	n = e.runBoundary(t, n, "steps", tasks, false, depth)
 	e.updateGroups(n)
 	return n
 }
@@ -84,8 +103,8 @@ func (e *engine) updateGroups(steps v1alpha1.NodeStatus) {
 }
 
 // newTask builds a task. The depends expression was checked by the validation.
-func newTask(name, nodeName, template string, args v1alpha1.Arguments, cond, group string) task {
-	t := task{name: name, nodeName: nodeName, template: template, args: args, group: group, tests: map[string][]expr.Result{}}
+func newTask(name, nodeName string, c v1alpha1.Call, cond, group string) task {
+	t := task{name: name, nodeName: nodeName, call: c, group: group, tests: map[string][]expr.Result{}}
 	if cond == "" {
 		return t
 	}

@@ -31,8 +31,15 @@ func Spec(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool) field.ErrorList
 		}
 		c.checkEnum(&p, pp)
 	}
-	if _, ok := c.templates[spec.Entrypoint]; !ok {
+	if t, ok := c.templates[spec.Entrypoint]; !ok {
 		c.errs = append(c.errs, field.NotFound(path.Child("entrypoint"), spec.Entrypoint))
+	} else {
+		for _, in := range t.Inputs.Parameters {
+			if in.Value == nil && in.Default == nil && findParam(spec.Arguments.Parameters, in.Name) == nil {
+				c.errs = append(c.errs, field.Required(path.Child("arguments", "parameters"),
+					fmt.Sprintf("parameter %q of the entrypoint template", in.Name)))
+			}
+		}
 	}
 	for i := range spec.Templates {
 		c.checkTemplate(&spec.Templates[i], path.Child("templates").Index(i))
@@ -66,7 +73,7 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 		sc = sc.with("inputs.parameters." + p.Name)
 		c.checkEnum(&p, path.Child("inputs", "parameters").Index(i))
 	}
-	c.checkOutputs(t, path.Child("outputs", "parameters"), sc)
+	c.checkOutputs(t, path.Child("outputs", "parameters"), sc.with(c.childOutputs(t)...))
 	switch {
 	case t.Container != nil:
 		c.checkContainer(t.Container, path.Child("container"), sc)
@@ -115,12 +122,21 @@ func (c *checker) checkContainer(ct *v1alpha1.ContainerTemplate, path *field.Pat
 
 // checkCall checks a call of a template from a DAG task or a step.
 // hint explains why a placeholder is not in the scope, or returns "".
-func (c *checker) checkCall(name string, args v1alpha1.Arguments, path *field.Path, sc scope, hint func(string) string) {
+func (c *checker) checkCall(call v1alpha1.Call, path *field.Path, sc scope, hint func(string) string) {
+	name, args := call.Template, call.Arguments
 	t, ok := c.templates[name]
 	if !ok {
 		c.errs = append(c.errs, field.NotFound(path.Child("template"), name))
 		return
 	}
+	if len(call.WithItems) > 0 && call.WithParam != "" {
+		c.errs = append(c.errs, field.Forbidden(path.Child("withParam"), "use withItems or withParam, not both"))
+	}
+	c.checkText(call.WithParam, path.Child("withParam"), sc, hint)
+	if len(call.WithItems) > 0 || call.WithParam != "" {
+		sc = sc.with("item", itemPrefix)
+	}
+	c.checkWhen(call.When, path.Child("when"), sc, hint)
 	argsPath := path.Child("arguments", "parameters")
 	for i, a := range args.Parameters {
 		ap := argsPath.Index(i)
@@ -158,6 +174,21 @@ func (c *checker) checkEnum(p *v1alpha1.Parameter, path *field.Path) {
 	}
 }
 
+// itemPrefix in a scope permits "{{item.key}}" for any key.
+const itemPrefix = "item.*"
+
+func (c *checker) checkWhen(s string, path *field.Path, sc scope, hint func(string) string) {
+	if s == "" {
+		return
+	}
+	w, err := expr.ParseWhen(s)
+	if err != nil {
+		c.errs = append(c.errs, field.Invalid(path, s, err.Error()))
+		return
+	}
+	c.checkNames(s, w.Placeholders(), path, sc, hint)
+}
+
 // checkText checks that each placeholder in s is in the scope.
 func (c *checker) checkText(s string, path *field.Path, sc scope, hint func(string) string) {
 	names, err := expr.Placeholders(s)
@@ -165,8 +196,12 @@ func (c *checker) checkText(s string, path *field.Path, sc scope, hint func(stri
 		c.errs = append(c.errs, field.Invalid(path, s, err.Error()))
 		return
 	}
+	c.checkNames(s, names, path, sc, hint)
+}
+
+func (c *checker) checkNames(s string, names []string, path *field.Path, sc scope, hint func(string) string) {
 	for _, n := range names {
-		if sc[n] {
+		if sc[n] || sc[itemPrefix] && strings.HasPrefix(n, "item.") {
 			continue
 		}
 		msg := fmt.Sprintf("unknown placeholder %q", n)
