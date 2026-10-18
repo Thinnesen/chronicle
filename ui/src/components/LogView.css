@@ -1,0 +1,55 @@
+.logview {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.logview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.logview-filter input {
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-2);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.logview-lines {
+  margin: 0;
+  height: 24rem;
+  overflow: auto;
+  padding: var(--space-2) 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.logline {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+}
+
+.logline:hover {
+  background: var(--surface);
+}
+
+.logline-n {
+  padding-right: var(--space-3);
+  text-align: right;
+  color: var(--ink-muted);
+  user-select: none;
+}
+
+.logline-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-right: var(--space-2);
+}

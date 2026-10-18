@@ -86,7 +86,13 @@ export function RunPage() {
       </Suspense>
       <div className="run-lower">
         <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />
-        <NodePanel node={selected ? wf.status?.nodes?.[selected] : undefined} />
+        <NodePanel
+          node={selected ? wf.status?.nodes?.[selected] : undefined}
+          nodes={wf.status?.nodes ?? {}}
+          namespace={namespace}
+          workflow={name}
+          onSelect={select}
+        />
       </div>
     </section>
   );

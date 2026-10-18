@@ -32,7 +32,9 @@ export function run(phase: string) {
           "etl-nightly-8k2pq": { id: "etl-nightly-8k2pq", name: "etl-nightly-8k2pq", type: "DAG", templateName: "main", phase, startedAt: ts(-290), children: ["n1", "n2", "n3", "n4"] },
           n1: node("n1", ".fetch", { displayName: "fetch", type: "Pod", phase: "Succeeded", startedAt: ts(-290), finishedAt: ts(-230), podName: "n1", outputs: { result: "1204 rows" } }),
           n2: node("n2", ".validate", { displayName: "validate", type: "Pod", phase: "Succeeded", startedAt: ts(-228), finishedAt: ts(-200), podName: "n2", inputs: { parameters: [{ name: "rows", value: "1204 rows" }] } }),
-          n3: node("n3", ".train", { displayName: "train", type: "Pod", phase: done ? "Succeeded" : "Running", startedAt: ts(-198), finishedAt: done ? ts(-20) : undefined, podName: "n3" }),
+          n3: node("n3", ".train", { displayName: "train", type: "Retry", phase: done ? "Succeeded" : "Running", startedAt: ts(-198), finishedAt: done ? ts(-20) : undefined, children: ["n3a", "n3b"] }),
+          n3a: node("n3a", ".train(0)", { displayName: "train(0)", type: "Pod", phase: "Failed", message: "OOMKilled (exit code 137)", startedAt: ts(-198), finishedAt: ts(-150), podName: "n3a" }),
+          n3b: node("n3b", ".train(1)", { displayName: "train(1)", type: "Pod", phase: done ? "Succeeded" : "Running", startedAt: ts(-149), finishedAt: done ? ts(-20) : undefined, podName: "n3b" }),
           ...(done ? { n4: node("n4", ".report", { displayName: "report", type: "Pod", phase: "Succeeded", startedAt: ts(-18), finishedAt: ts(-5), podName: "n4" }) } : {}),
         },
       },
@@ -55,6 +57,31 @@ export async function mockAPI(page: Page, opts: { loggedIn?: boolean; namespaces
     const phases: string[] = r.request().postDataJSON()?.phases ?? [];
     r.fulfill({ json: { workflows: runs.filter((w) => phases.length === 0 || phases.includes(w.phase)) } });
   });
+  await page.route("**/chronicle.v1.LogService/StreamLogs", (r) => {
+    // A streaming request is one envelope: 5 bytes of header, then the JSON message.
+    const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
+    r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node)) });
+  });
   await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running") }));
   await page.clock.setFixedTime(now);
+}
+
+function logLines(node: string) {
+  return [
+    { nodeId: node, line: `\u001b[32mstarting ${node}\u001b[0m`, time: ts(-100) },
+    { nodeId: node, line: "loaded 1204 rows" },
+    { nodeId: node, line: "epoch 1/3 loss=0.41" },
+  ];
+}
+
+// envelopes encodes messages as a Connect stream: a flag byte and a 4-byte length before each JSON message.
+function envelopes(messages: object[]): Buffer {
+  const frame = (flag: number, data: object) => {
+    const json = Buffer.from(JSON.stringify(data));
+    const head = Buffer.alloc(5);
+    head.writeUInt8(flag, 0);
+    head.writeUInt32BE(json.length, 1);
+    return Buffer.concat([head, json]);
+  };
+  return Buffer.concat([...messages.map((m) => frame(0, m)), frame(2, {})]);
 }
