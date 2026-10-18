@@ -5,7 +5,7 @@ ARG BASE_IMAGE=golang:1.27.2@sha256:820153096fda4de6ac1b7194d12e416b7dd8f4e9a33d
 # Build the web UI. The pnpm settings block install scripts and new releases.
 FROM node:26.12.0-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS ui
 WORKDIR /ui
-RUN corepack enable
+RUN npm install --global --ignore-scripts pnpm@12.6.0
 COPY ui/package.json ui/pnpm-lock.yaml ui/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY ui/ ./

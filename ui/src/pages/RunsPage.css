@@ -1,3 +1,49 @@
+.board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.search input {
+  font: inherit;
+  font-size: var(--text-sm);
+  width: min(22rem, 100%);
+  padding: var(--space-1) var(--space-3);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.search {
+  flex: 1 1 14rem;
+}
+
+.phase-filter {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.phase-filter button {
+  border: 0;
+  background: none;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.phase-filter button[aria-checked="true"] {
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
 .board {
   width: 100%;
   border-collapse: collapse;

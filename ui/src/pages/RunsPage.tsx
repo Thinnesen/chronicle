@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 import { workflows } from "../api/client";
 import { Lamp } from "../components/Lamp";
@@ -9,20 +9,53 @@ import { runsRoute } from "../router";
 import "./RunsPage.css";
 
 // RunsPage is the departure board of a namespace: the newest runs first, updated every few seconds.
+const phaseFilters = ["Running", "Suspended", "Failed", "Succeeded"];
+
 export function RunsPage() {
   const { namespace } = runsRoute.useParams();
+  const { q, phase } = runsRoute.useSearch();
+  const navigate = useNavigate({ from: runsRoute.fullPath });
+  const phases = phase === "Failed" ? ["Failed", "Error"] : phase ? [phase] : [];
   const { data, error, isPending } = useQuery({
-    queryKey: ["runs", namespace],
-    queryFn: () => workflows.listWorkflows({ namespace, limit: 200 }),
+    queryKey: ["runs", namespace, phase],
+    queryFn: () => workflows.listWorkflows({ namespace, limit: 200, phases }),
     refetchInterval: 5000,
   });
+  const term = (q ?? "").toLowerCase();
+  const shown = data?.workflows.filter((w) => w.name.toLowerCase().includes(term) || w.template.toLowerCase().includes(term));
   return (
     <section>
       <h1 className="page-title">Runs in {namespace}</h1>
+      <div className="board-filters">
+        <label className="search">
+          <span className="visually-hidden">Search runs</span>
+          <input
+            type="search"
+            placeholder="Search by run or template"
+            value={q ?? ""}
+            onChange={(e) => void navigate({ search: (s) => ({ ...s, q: e.target.value || undefined }), replace: true })}
+          />
+        </label>
+        <div className="phase-filter" role="radiogroup" aria-label="Phase">
+          {[undefined, ...phaseFilters].map((p) => (
+            <button
+              key={p ?? "all"}
+              type="button"
+              role="radio"
+              aria-checked={phase === p}
+              onClick={() => void navigate({ search: (s) => ({ ...s, phase: p }), replace: true })}
+            >
+              {p ?? "All"}
+            </button>
+          ))}
+        </div>
+      </div>
       {isPending && <p className="quiet">Loading the runs…</p>}
       {error && <p role="alert">Could not load the runs: {error.message}</p>}
-      {data && data.workflows.length === 0 && <p className="quiet">No runs yet. Submit one with the CLI or from a template.</p>}
-      {data && data.workflows.length > 0 && (
+      {shown && shown.length === 0 && (
+        <p className="quiet">{q || phase ? "No run matches the filter." : "No runs yet. Submit one with the CLI or from a template."}</p>
+      )}
+      {shown && shown.length > 0 && (
         <table className="board">
           <thead>
             <tr>
@@ -34,7 +67,7 @@ export function RunsPage() {
             </tr>
           </thead>
           <tbody>
-            {data.workflows.map((w) => {
+            {shown.map((w) => {
               const started = toDate(w.startedAt) ?? toDate(w.createdAt);
               const end = toDate(w.finishedAt) ?? new Date();
               const phase = w.phase || "Pending";

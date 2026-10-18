@@ -1,0 +1,117 @@
+.run-graph {
+  min-height: 12rem;
+  max-height: 34rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  --xy-background-pattern-dots-color: var(--rule);
+  --xy-edge-stroke: var(--track);
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--panel);
+  --xy-controls-button-color: var(--ink);
+  --xy-controls-button-color-hover: var(--ink);
+  --xy-controls-button-border-color: var(--rule);
+  --xy-controls-box-shadow: none;
+}
+
+@media (max-width: 40rem) {
+  .run-graph .react-flow__controls {
+    display: none;
+  }
+}
+
+.run-graph .react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.run-graph .track path {
+  stroke: var(--track);
+  stroke-width: 2;
+}
+
+.run-graph .track.is-lit path {
+  stroke: var(--lamp-proceed);
+  stroke-width: 3;
+}
+
+.station-node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 184px;
+  height: 48px;
+  padding: 0 var(--space-3);
+  background: var(--panel);
+  border: 2px solid var(--rule);
+  border-radius: 24px;
+  cursor: pointer;
+}
+
+.station-node.is-selected {
+  border-color: var(--focus);
+}
+
+.station-node[data-phase="Failed"],
+.station-node[data-phase="Error"] {
+  border-color: var(--lamp-danger);
+}
+
+.station-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.station-name {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.station-meta {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.junction-node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 128px;
+  height: 28px;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.junction-node.is-selected {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.junction-mark {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  background: var(--track);
+}
+
+.junction-node[data-phase="Succeeded"] .junction-mark {
+  background: var(--lamp-proceed);
+}
+
+.junction-node[data-phase="Failed"] .junction-mark,
+.junction-node[data-phase="Error"] .junction-mark {
+  background: var(--lamp-danger);
+}
+
+.junction-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

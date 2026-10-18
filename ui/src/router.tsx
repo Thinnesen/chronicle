@@ -32,9 +32,27 @@ const appRoute = createRoute({
 
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
 
-export const runsRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace", component: RunsPage });
+export interface RunsSearch {
+  q?: string;
+  phase?: string;
+}
 
-export const runRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace/runs/$name", component: RunPage });
+export const runsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ns/$namespace",
+  component: RunsPage,
+  validateSearch: (s: Record<string, unknown>): RunsSearch => ({
+    q: typeof s.q === "string" && s.q !== "" ? s.q : undefined,
+    phase: typeof s.phase === "string" && s.phase !== "" ? s.phase : undefined,
+  }),
+});
+
+export const runRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ns/$namespace/runs/$name",
+  component: RunPage,
+  validateSearch: (s: Record<string, unknown>): { node?: string } => ({ node: typeof s.node === "string" ? s.node : undefined }),
+});
 
 const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren([homeRoute, runsRoute, runRoute])]);
 
