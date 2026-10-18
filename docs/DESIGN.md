@@ -52,7 +52,10 @@ The spec follows the Argo Workflows concepts, so that the converter is simple:
 - Inputs and outputs: parameters (from a file, from stdout, from a JSON path) and artifacts (S3-compatible store).
 - `podGC`, `ttlStrategy`, `serviceAccountName`, `podSpecPatch` (limited and validated).
 
-Validation: CEL rules and a validating webhook for the DAG (no cycles, known templates, known parameters).
+- The container of a `container` or `script` template is a small chronicle type, not the full Kubernetes container. It has no security context, ports or probes. The controller sets a restricted security context.
+- A `script` source cannot have `{{...}}` placeholders. The script reads its parameters from environment variables.
+
+Validation: CEL rules and a validating webhook for the DAG (no cycles, known templates, known parameters). The CRD schema checks names, unique names and "exactly one template type". The webhook (package `internal/validate`) checks templates, arguments, placeholders and cycles. It skips an update that does not change the spec, so that new rules never block a finalizer change.
 
 ### 3.3 Workflow status
 

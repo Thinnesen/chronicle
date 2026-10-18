@@ -1,0 +1,28 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  labels:
+    app.kubernetes.io/name: chronicle
+    app.kubernetes.io/managed-by: kustomize
+  name: clusterworkflowtemplate-sample
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+    - name: who
+  templates:
+  - name: main
+    steps:
+    - - name: hello
+        template: say
+        arguments:
+          parameters:
+          - name: text
+            value: "hello {{workflow.parameters.who}}"
+  - name: say
+    inputs:
+      parameters:
+      - name: text
+    container:
+      image: busybox:1.37
+      command: [echo, "{{inputs.parameters.text}}"]

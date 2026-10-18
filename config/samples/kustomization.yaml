@@ -1,0 +1,6 @@
+## Append samples of your project ##
+resources:
+- chronicle_v1alpha1_workflow.yaml
+- chronicle_v1alpha1_workflowtemplate.yaml
+- chronicle_v1alpha1_clusterworkflowtemplate.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

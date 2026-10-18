@@ -8,4 +8,38 @@ layout:
 - go.kubebuilder.io/v4
 projectName: chronicle
 repo: github.com/Thinnesen/chronicle
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: thinnesen.com
+  group: chronicle
+  kind: Workflow
+  path: github.com/Thinnesen/chronicle/api/v1alpha1
+  version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: thinnesen.com
+  group: chronicle
+  kind: WorkflowTemplate
+  path: github.com/Thinnesen/chronicle/api/v1alpha1
+  version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+  domain: thinnesen.com
+  group: chronicle
+  kind: ClusterWorkflowTemplate
+  path: github.com/Thinnesen/chronicle/api/v1alpha1
+  version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
 version: "3"

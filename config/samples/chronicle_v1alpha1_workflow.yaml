@@ -1,0 +1,37 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  labels:
+    app.kubernetes.io/name: chronicle
+    app.kubernetes.io/managed-by: kustomize
+  name: workflow-sample
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+    - name: who
+      value: world
+  templates:
+  - name: main
+    dag:
+      tasks:
+      - name: hello
+        template: say
+        arguments:
+          parameters:
+          - name: text
+            value: "hello {{workflow.parameters.who}}"
+      - name: bye
+        template: say
+        depends: hello
+        arguments:
+          parameters:
+          - name: text
+            value: bye
+  - name: say
+    inputs:
+      parameters:
+      - name: text
+    container:
+      image: busybox:1.37
+      command: [echo, "{{inputs.parameters.text}}"]

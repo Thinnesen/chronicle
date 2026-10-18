@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-18: The template container is a small chronicle type without a security context, and a script source cannot have placeholders. Reason: a user who can create a Workflow must not get a privileged Pod, and parameters must never become shell code (threat model, section 6.2). Argo YAML that uses placeholders in a script source must move them to environment variables. The converter will do this.
+
 - 2026-10-18: Microsoft Entra ID (Microsoft 365) is a first-class identity provider, with group overage through Microsoft Graph and team-level access through a Helm value `teams`. Reason: the owner wants an easy M365 login and team-level visibility for platform admins.
 - 2026-10-18: Pure engine package (no I/O, no clock), applied by the controller. Reason: deterministic, table-testable and fuzzable workflow logic.
 - 2026-10-18: Permissions through Kubernetes SubjectAccessReview and impersonation. Reason: one RBAC model for the UI, the CLI, `kubectl` and GitOps. Argo Workflows needs a separate SSO RBAC mapping, which users find hard.

@@ -18,3 +18,17 @@ resources:
 - metrics_auth_role.yaml
 - metrics_auth_role_binding.yaml
 - metrics_reader_role.yaml
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the chronicle itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- clusterworkflowtemplate_admin_role.yaml
+- clusterworkflowtemplate_editor_role.yaml
+- clusterworkflowtemplate_viewer_role.yaml
+- workflowtemplate_admin_role.yaml
+- workflowtemplate_editor_role.yaml
+- workflowtemplate_viewer_role.yaml
+- workflow_admin_role.yaml
+- workflow_editor_role.yaml
+- workflow_viewer_role.yaml
+
