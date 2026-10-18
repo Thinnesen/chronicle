@@ -84,12 +84,23 @@ func main() {
 	}
 }
 
+// newLogin reads the login configuration and discovers the provider. It tries again for 5 minutes,
+// because the provider can start after the server.
 func newLogin(path string) (*auth.OIDC, error) {
 	cfg, err := auth.LoadConfig(path)
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	return auth.NewOIDC(ctx, cfg, auth.NewMemoryStore(cfg.Session.TTL.Duration, cfg.Session.IdleTimeout.Duration))
+	store := auth.NewMemoryStore(cfg.Session.TTL.Duration, cfg.Session.IdleTimeout.Duration)
+	deadline := time.Now().Add(5 * time.Minute)
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		login, err := auth.NewOIDC(ctx, cfg, store)
+		cancel()
+		if err == nil || time.Now().After(deadline) {
+			return login, err
+		}
+		ctrl.Log.WithName("server").Info("The OIDC provider is not ready, trying again", "reason", err.Error())
+		time.Sleep(5 * time.Second)
+	}
 }

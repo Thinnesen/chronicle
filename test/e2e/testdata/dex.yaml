@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dex
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex
+  namespace: dex
+data:
+  config.yaml: |
+    issuer: http://dex.dex.svc.cluster.local:5556/dex
+    storage:
+      type: memory
+    web:
+      http: 0.0.0.0:5556
+    oauth2:
+      skipApprovalScreen: true
+    enablePasswordDB: true
+    staticPasswords:
+    - email: alice@example.com
+      # The password is "password".
+      hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+      username: alice
+      userID: 08a8684b-db88-4b73-90a9-3cd1661f5466
+    staticClients:
+    - id: chronicle
+      name: chronicle
+      secret: e2e-secret
+      redirectURIs:
+      - http://chronicle-server.chronicle-system.svc.cluster.local:8080/auth/callback
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  selector:
+    matchLabels: {app: dex}
+  template:
+    metadata:
+      labels: {app: dex}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+      - name: dex
+        image: ghcr.io/dexidp/dex:v2.46.0@sha256:933fcd3f523338c847b88ef84a7145fb2fcb7b9917f08418612afeaaa2001777
+        command: [dex, serve, /etc/dex/config.yaml]
+        ports:
+        - {name: http, containerPort: 5556}
+        readinessProbe:
+          httpGet: {path: /dex/.well-known/openid-configuration, port: http}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: [ALL]}
+        volumeMounts:
+        - {name: config, mountPath: /etc/dex}
+      volumes:
+      - name: config
+        configMap: {name: dex}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  selector: {app: dex}
+  ports:
+  - {name: http, port: 5556, targetPort: http}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: server-auth
+  namespace: chronicle-system
+data:
+  config.yaml: |
+    insecureCookies: true
+    oidc:
+      issuer: http://dex.dex.svc.cluster.local:5556/dex
+      clientID: chronicle
+      clientSecretFile: /etc/chronicle/auth/client-secret
+      redirectURL: http://chronicle-server.chronicle-system.svc.cluster.local:8080/auth/callback
+      scopes: [openid, profile, email]
+  # A test secret. A real installation keeps it in a Secret.
+  client-secret: e2e-secret

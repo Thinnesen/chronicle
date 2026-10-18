@@ -1,0 +1,22 @@
+# The server acts for users only through impersonation, so it needs no other permission.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: server-impersonator
+rules:
+- apiGroups: [""]
+  resources: [users, groups]
+  verbs: [impersonate]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: server-impersonator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: server-impersonator
+subjects:
+- kind: ServiceAccount
+  name: server
+  namespace: system
