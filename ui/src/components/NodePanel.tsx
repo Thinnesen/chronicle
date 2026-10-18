@@ -1,12 +1,14 @@
 import { useState } from "react";
 
 import { clock, duration } from "../lib/time";
-import { nodeLabel, type NodeStatus, type Parameter } from "../lib/workflow";
+import { nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
+import { ApprovalForm } from "./ApprovalForm";
 import { Lamp } from "./Lamp";
 import { LogView } from "./LogView";
 import "./NodePanel.css";
 
 interface PanelProps {
+  wf: Workflow;
   node?: NodeStatus;
   nodes: Record<string, NodeStatus>;
   namespace: string;
@@ -27,7 +29,7 @@ export function NodePanel(props: PanelProps) {
   return <NodePanelInner key={props.node?.id ?? "none"} {...props} />;
 }
 
-function NodePanelInner({ node, nodes, namespace, workflow, onSelect }: PanelProps) {
+function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: PanelProps) {
   const [tab, setTab] = useState<Tab>(node?.podName ? "logs" : "details");
   if (!node) {
     return (
@@ -49,6 +51,7 @@ function NodePanelInner({ node, nodes, namespace, workflow, onSelect }: PanelPro
         <Lamp phase={phase} size={14} /> {nodeLabel(node)}
       </h2>
       {node.message && <p className="node-message">{node.message}</p>}
+      <ApprovalForm wf={wf} node={node} />
       <div className="tabs" role="tablist" aria-label="Node views">
         {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" id={`tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`view-${t.id}`} onClick={() => setTab(t.id)}>

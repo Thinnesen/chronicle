@@ -6,6 +6,7 @@ import { workflows } from "../api/client";
 import { Lamp } from "../components/Lamp";
 import { NodePanel } from "../components/NodePanel";
 import { ProgressTrack } from "../components/ProgressTrack";
+import { RunActions } from "../components/RunActions";
 import { Timeline } from "../components/Timeline";
 import { clock, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
@@ -45,10 +46,13 @@ export function RunPage() {
         </Link>
       </nav>
       <header className="run-head">
-        <h1>
-          <Lamp phase={phase} size={18} />
-          <span>{s.name}</span>
-        </h1>
+        <div className="run-title">
+          <h1>
+            <Lamp phase={phase} size={18} />
+            <span>{s.name}</span>
+          </h1>
+          <RunActions wf={wf} phase={phase} />
+        </div>
         <dl className="run-facts">
           <div>
             <dt>Phase</dt>
@@ -87,6 +91,7 @@ export function RunPage() {
       <div className="run-lower">
         <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />
         <NodePanel
+          wf={wf}
           node={selected ? wf.status?.nodes?.[selected] : undefined}
           nodes={wf.status?.nodes ?? {}}
           namespace={namespace}

@@ -11,6 +11,14 @@
   color: var(--ink-muted);
 }
 
+.run-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .run-head h1 {
   display: flex;
   align-items: center;

@@ -29,13 +29,15 @@ interface DAGTask {
 
 export interface Template {
   name: string;
+  suspend?: { duration?: string };
+  outputs?: { parameters?: { name: string; default?: string; description?: string }[] };
   dag?: { tasks: DAGTask[] };
   steps?: { name: string }[][];
 }
 
 export interface Workflow {
   metadata: { name: string; namespace: string; creationTimestamp?: string };
-  spec: { templates?: Template[] };
+  spec: { templates?: Template[]; suspend?: boolean; shutdown?: "Stop" | "Terminate"; approvals?: { node: string }[] };
   status?: { phase?: string; nodes?: Record<string, NodeStatus>; storedSpec?: { templates?: Template[] } };
 }
 
@@ -101,4 +103,10 @@ export function taskDependencies(task: DAGTask): string[] {
 // nodeLabel is the short name of a node for the graph.
 export function nodeLabel(n: NodeStatus): string {
   return n.displayName || n.name;
+}
+
+// templateOf returns the template that a node runs.
+export function templateOf(wf: Workflow, n: NodeStatus): Template | undefined {
+  const templates = wf.status?.storedSpec?.templates ?? wf.spec.templates ?? [];
+  return templates.find((t) => t.name === n.templateName);
 }

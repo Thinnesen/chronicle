@@ -13,7 +13,7 @@ export const runs = [
 ];
 
 // run is a DAG run: fetch and validate ran, train runs, report waits.
-export function run(phase: string) {
+export function run(phase: string, gate = false) {
   const done = phase === "Succeeded";
   const node = (id: string, name: string, extra: object) => ({ id, name: `etl-nightly-8k2pq${name}`, ...extra });
   return {
@@ -25,7 +25,8 @@ export function run(phase: string) {
         phase,
         storedSpec: {
           templates: [
-            { name: "main", dag: { tasks: [{ name: "fetch" }, { name: "validate", depends: "fetch" }, { name: "train", dependencies: ["validate"] }, { name: "report", depends: "train.Succeeded" }] } },
+            { name: "main", dag: { tasks: [{ name: "fetch" }, { name: "validate", depends: "fetch" }, { name: "train", dependencies: ["validate"] }, { name: "report", depends: "train.Succeeded" }, { name: "gate", depends: "validate" }] } },
+            { name: "approve", suspend: {}, outputs: { parameters: [{ name: "env", default: "staging", description: "The environment to deploy to." }] } },
           ],
         },
         nodes: {
@@ -35,6 +36,9 @@ export function run(phase: string) {
           n3: node("n3", ".train", { displayName: "train", type: "Retry", phase: done ? "Succeeded" : "Running", startedAt: ts(-198), finishedAt: done ? ts(-20) : undefined, children: ["n3a", "n3b"] }),
           n3a: node("n3a", ".train(0)", { displayName: "train(0)", type: "Pod", phase: "Failed", message: "OOMKilled (exit code 137)", startedAt: ts(-198), finishedAt: ts(-150), podName: "n3a" }),
           n3b: node("n3b", ".train(1)", { displayName: "train(1)", type: "Pod", phase: done ? "Succeeded" : "Running", startedAt: ts(-149), finishedAt: done ? ts(-20) : undefined, podName: "n3b" }),
+          ...(gate
+            ? { n5: node("n5", ".gate", { displayName: "gate", type: "Suspend", templateName: "approve", phase: "Running", startedAt: ts(-10), message: "waiting for an approval" }) }
+            : {}),
           ...(done ? { n4: node("n4", ".report", { displayName: "report", type: "Pod", phase: "Succeeded", startedAt: ts(-18), finishedAt: ts(-5), podName: "n4" }) } : {}),
         },
       },
@@ -42,7 +46,23 @@ export function run(phase: string) {
   };
 }
 
-export async function mockAPI(page: Page, opts: { loggedIn?: boolean; namespaces?: string[]; runPhase?: string } = {}) {
+export interface MockOptions {
+  loggedIn?: boolean;
+  namespaces?: string[];
+  runPhase?: string;
+  // canSubmit is false for a viewer of team-a.
+  canSubmit?: boolean;
+  // deny makes these RPCs answer "permission denied", like the Kubernetes RBAC of the user would.
+  deny?: string[];
+  // gate adds a suspend node that waits for an approval.
+  gate?: boolean;
+}
+
+// calls records the actions that the UI sent, by RPC name.
+export type Calls = Record<string, unknown[]>;
+
+export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls> {
+  const calls: Calls = {};
   const loggedIn = opts.loggedIn ?? true;
   const names = opts.namespaces ?? ["team-a", "team-b"];
   await page.route("**/auth/me", (r) =>
@@ -51,7 +71,7 @@ export async function mockAPI(page: Page, opts: { loggedIn?: boolean; namespaces
       : r.fulfill({ status: 401, body: "log in first" }),
   );
   await page.route("**/chronicle.v1.NamespaceService/ListNamespaces", (r) =>
-    r.fulfill({ json: { namespaces: names.map((name, i) => ({ name, canSubmit: i === 0 })) } }),
+    r.fulfill({ json: { namespaces: names.map((name, i) => ({ name, canSubmit: i === 0 && opts.canSubmit !== false })) } }),
   );
   await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) => {
     const phases: string[] = r.request().postDataJSON()?.phases ?? [];
@@ -62,8 +82,18 @@ export async function mockAPI(page: Page, opts: { loggedIn?: boolean; namespaces
     const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
     r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node)) });
   });
-  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running") }));
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate) }));
+  for (const rpc of ["SuspendWorkflow", "ResumeWorkflow", "StopWorkflow", "TerminateWorkflow", "DeleteWorkflow", "ApproveNode"]) {
+    await page.route(`**/chronicle.v1.WorkflowService/${rpc}`, (r) => {
+      (calls[rpc] ??= []).push(r.request().postDataJSON());
+      if (opts.deny?.includes(rpc)) {
+        return r.fulfill({ status: 403, json: { code: "permission_denied", message: "workflows is forbidden" } });
+      }
+      return r.fulfill({ json: {} });
+    });
+  }
   await page.clock.setFixedTime(now);
+  return calls;
 }
 
 function logLines(node: string) {

@@ -1,0 +1,23 @@
+.toasts {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  z-index: 50;
+  max-width: min(28rem, calc(100vw - 2rem));
+}
+
+.toast {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--ink);
+  color: var(--panel);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  border-left: 4px solid var(--lamp-proceed);
+}
+
+.toast-error {
+  border-left-color: var(--lamp-danger);
+}
