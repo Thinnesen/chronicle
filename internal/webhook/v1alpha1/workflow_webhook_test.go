@@ -41,10 +41,10 @@ var _ = Describe("Workflow validation", func() {
 		},
 		Entry("a template with two types",
 			"entrypoint: c\ntemplates: [{name: c, container: {image: a}, script: {image: a, source: x}}]",
-			"exactly one of container, script, dag or steps"),
+			"exactly one of container, script, dag, steps or suspend"),
 		Entry("a template with no type",
 			"entrypoint: c\ntemplates: [{name: c}]",
-			"exactly one of container, script, dag or steps"),
+			"exactly one of container, script, dag, steps or suspend"),
 		Entry("duplicate template names",
 			"entrypoint: c\ntemplates: ["+container+", "+container+"]",
 			"Duplicate value"),
@@ -121,6 +121,18 @@ templates:
 		wf.Spec.Entrypoint = unknownName
 		err := k8sClient.Update(ctx, wf)
 		Expect(apierrors.IsInvalid(err)).To(BeTrue(), "error: %v", err)
+	})
+
+	It("permits only Stop to Terminate for a shutdown", func() {
+		wf := newWorkflow("entrypoint: c\ntemplates: [" + container + "]")
+		Expect(k8sClient.Create(ctx, wf)).To(Succeed())
+		DeferCleanup(k8sClient.Delete, ctx, wf)
+		wf.Spec.Shutdown = chroniclev1alpha1.ShutdownStop
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+		wf.Spec.Shutdown = ""
+		Expect(k8sClient.Update(ctx, wf)).To(MatchError(ContainSubstring("a shutdown cannot be removed")))
+		wf.Spec.Shutdown = chroniclev1alpha1.ShutdownTerminate
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
 	})
 
 	It("skips the checks when the spec does not change", func() {

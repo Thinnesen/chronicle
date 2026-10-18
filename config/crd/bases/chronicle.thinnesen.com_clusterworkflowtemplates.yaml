@@ -124,7 +124,7 @@ spec:
                 description: templates of the workflow.
                 items:
                   description: 'Template is one unit of work. It has exactly one type:
-                    container, script, dag or steps.'
+                    container, script, dag, steps or suspend.'
                   properties:
                     container:
                       description: container runs one container in a Pod.
@@ -1146,6 +1146,16 @@ spec:
                       maxItems: 100
                       minItems: 1
                       type: array
+                    suspend:
+                      description: |-
+                        suspend waits for an approval in spec.approvals of the Workflow, or for a duration.
+                        The approval can give values to the output parameters. Without a value, an output parameter gets its default.
+                      properties:
+                        duration:
+                          description: duration ends the wait with success, for example
+                            "1h". Without a duration, the node waits for an approval.
+                          type: string
+                      type: object
                     timeout:
                       description: timeout fails a node of this template when it runs
                         longer, for example "10m". With retries, it applies to each
@@ -1156,9 +1166,9 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: a template must have exactly one of container, script,
-                      dag or steps
+                      dag, steps or suspend
                     rule: '[has(self.container), has(self.script), has(self.dag),
-                      has(self.steps)].filter(x, x).size() == 1'
+                      has(self.steps), has(self.suspend)].filter(x, x).size() == 1'
                 maxItems: 200
                 type: array
                 x-kubernetes-list-map-keys:

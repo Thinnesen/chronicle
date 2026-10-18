@@ -26,6 +26,10 @@ type Input struct {
 	Status v1alpha1.WorkflowStatus
 	// Pods are the observed Pods, by node ID.
 	Pods map[string]PodResult
+	// Suspend, Shutdown and Approvals are the run controls from the Workflow spec.
+	Suspend   bool
+	Shutdown  v1alpha1.ShutdownMode
+	Approvals []v1alpha1.Approval
 	// Now is the current time.
 	Now metav1.Time
 }
@@ -90,9 +94,12 @@ func Run(in Input) Result {
 	e := newEngine(&in, status.Nodes)
 	e.startedAt = status.StartedAt.Time
 	phase, msg := e.runWorkflow()
-	if phase == v1alpha1.NodeRunning {
+	switch {
+	case phase == v1alpha1.NodeRunning && in.Suspend:
+		status.Phase = v1alpha1.WorkflowSuspended
+	case phase == v1alpha1.NodeRunning:
 		status.Phase = v1alpha1.WorkflowRunning
-	} else {
+	default:
 		finish(&status, workflowPhase(phase), msg, in.Now)
 	}
 	return Result{Status: status, Actions: e.actions, RequeueAfter: e.requeueAfter()}
@@ -100,11 +107,14 @@ func Run(in Input) Result {
 
 // runWorkflow runs the entrypoint, the deadline and the exit handler. It returns Running until all are done.
 func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
-	root := e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs()}, 0)
-	if d := e.in.Spec.ActiveDeadlineSeconds; d != nil && !isTerminal(root.Phase) {
-		end := e.startedAt.Add(time.Duration(*d) * time.Second)
-		if e.reached(end) {
-			e.stop(root.ID, "the workflow deadline was exceeded")
+	root, ok := e.nodes[e.in.Name]
+	if !ok && e.in.Suspend {
+		return v1alpha1.NodeRunning, ""
+	}
+	root = e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs()}, 0)
+	if !isTerminal(root.Phase) {
+		if reason := e.stopReason(); reason != "" {
+			e.stop(root.ID, reason)
 			root = e.nodes[root.ID]
 		}
 	}
@@ -112,11 +122,16 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 		return v1alpha1.NodeRunning, ""
 	}
 	phase, msg := outcomePhase(root.Phase), root.Message
-	if e.in.Spec.OnExit == "" {
+	exitName := e.in.Name + ".onExit"
+	if e.in.Spec.OnExit == "" || e.in.Shutdown == v1alpha1.ShutdownTerminate {
+		e.stop(e.nodeID(exitName), "the workflow was terminated")
 		return phase, msg
 	}
+	if _, started := e.nodes[e.nodeID(exitName)]; !started && e.in.Suspend {
+		return v1alpha1.NodeRunning, ""
+	}
 	e.status = string(workflowPhase(phase))
-	exit := e.execute(call{template: e.in.Spec.OnExit, nodeName: e.in.Name + ".onExit", args: e.workflowArgs()}, 0)
+	exit := e.execute(call{template: e.in.Spec.OnExit, nodeName: exitName, args: e.workflowArgs()}, 0)
 	if !isTerminal(exit.Phase) {
 		return v1alpha1.NodeRunning, ""
 	}
@@ -124,6 +139,20 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 		return p, "the exit handler failed: " + exit.Message
 	}
 	return phase, msg
+}
+
+// stopReason returns why the entrypoint must stop now, or "".
+func (e *engine) stopReason() string {
+	switch e.in.Shutdown {
+	case v1alpha1.ShutdownStop:
+		return "the workflow was stopped"
+	case v1alpha1.ShutdownTerminate:
+		return "the workflow was terminated"
+	}
+	if d := e.in.Spec.ActiveDeadlineSeconds; d != nil && e.reached(e.startedAt.Add(time.Duration(*d)*time.Second)) {
+		return "the workflow deadline was exceeded"
+	}
+	return ""
 }
 
 // outcomePhase maps a finished node phase to Succeeded, Failed or Error.
@@ -225,6 +254,8 @@ func (e *engine) execute(c call, depth int) v1alpha1.NodeStatus {
 // runBody runs a node of a DAG, steps, container or script template.
 func (e *engine) runBody(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, depth int) v1alpha1.NodeStatus {
 	switch {
+	case t.Suspend != nil:
+		return e.runSuspend(t, n)
 	case t.DAG != nil:
 		return e.runDAG(c, t, n, depth)
 	case t.Steps != nil:
@@ -260,6 +291,8 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 
 func nodeType(t *v1alpha1.Template) v1alpha1.NodeType {
 	switch {
+	case t.Suspend != nil:
+		return v1alpha1.NodeSuspend
 	case t.DAG != nil:
 		return v1alpha1.NodeDAG
 	case t.Steps != nil:

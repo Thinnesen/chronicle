@@ -12,6 +12,67 @@ type WorkflowSpec struct {
 	// workflowTemplateRef refers to a WorkflowTemplate or a ClusterWorkflowTemplate.
 	// +optional
 	WorkflowTemplateRef *WorkflowTemplateRef `json:"workflowTemplateRef,omitempty"`
+
+	// suspend pauses the workflow: no new node starts. Running Pods go on.
+	// +optional
+	Suspend bool `json:"suspend,omitempty"`
+
+	// shutdown stops the workflow. Stop fails the running nodes and runs the exit handler.
+	// Terminate fails the running nodes and does not run the exit handler.
+	// +optional
+	Shutdown ShutdownMode `json:"shutdown,omitempty"`
+
+	// approvals are the decisions for suspend nodes.
+	// +listType=map
+	// +listMapKey=node
+	// +kubebuilder:validation:MaxItems=500
+	// +optional
+	Approvals []Approval `json:"approvals,omitempty"`
+}
+
+// ShutdownMode is a way to stop a workflow.
+// +kubebuilder:validation:Enum=Stop;Terminate
+type ShutdownMode string
+
+// The shutdown modes.
+const (
+	ShutdownStop      ShutdownMode = "Stop"
+	ShutdownTerminate ShutdownMode = "Terminate"
+)
+
+// Decision is the decision of an approval.
+// +kubebuilder:validation:Enum=Approve;Reject
+type Decision string
+
+// The decisions.
+const (
+	DecisionApprove Decision = "Approve"
+	DecisionReject  Decision = "Reject"
+)
+
+// Approval is a decision for a suspend node.
+type Approval struct {
+	// node is the ID or the name of the suspend node.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	// +required
+	Node string `json:"node"`
+
+	// decision: Approve ends the node with success. Reject fails the node.
+	// +required
+	Decision Decision `json:"decision"`
+
+	// parameters give values to the output parameters of the suspend template.
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=64
+	// +optional
+	Parameters []Parameter `json:"parameters,omitempty"`
+
+	// message is a comment for the run history.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 // WorkflowTemplateRef refers to a WorkflowTemplate or a ClusterWorkflowTemplate.
@@ -78,6 +139,7 @@ type WorkflowStatus struct {
 // +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.message`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:validation:XValidation:rule="has(self.spec.workflowTemplateRef) ? !has(self.spec.templates) : (has(self.spec.entrypoint) && has(self.spec.templates))",message="give spec.entrypoint and spec.templates, or spec.workflowTemplateRef without spec.templates"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.spec.shutdown) || (has(self.spec.shutdown) && (self.spec.shutdown == oldSelf.spec.shutdown || self.spec.shutdown == 'Terminate'))",message="a shutdown cannot be removed, and only Stop can change to Terminate"
 
 // Workflow is one run of a workflow definition.
 type Workflow struct {

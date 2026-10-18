@@ -36,6 +36,25 @@ func workflowSpecs() {
 			}
 		})
 
+		phaseOf := func(name string) func(g Gomega) string {
+			return func(g Gomega) string {
+				out, err := utils.Run(exec.Command("kubectl", "get", "workflow", name, "-n", workflowNamespace, "-o", "jsonpath={.status.phase}"))
+				g.Expect(err).NotTo(HaveOccurred())
+				return out
+			}
+		}
+
+		It("waits for an approval and passes its parameters on", func() {
+			_, err := utils.Run(exec.Command("kubectl", "apply", "-n", workflowNamespace, "-f", "test/e2e/testdata/approval.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(phaseOf("approval")).WithTimeout(time.Minute).Should(Equal("Running"))
+			Consistently(phaseOf("approval")).WithTimeout(10 * time.Second).Should(Equal("Running"))
+			_, err = utils.Run(exec.Command("kubectl", "patch", "workflow", "approval", "-n", workflowNamespace, "--type", "merge",
+				"-p", `{"spec":{"approvals":[{"node":"approval[0].gate","decision":"Approve","parameters":[{"name":"env","value":"prod"}]}]}}`))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(phaseOf("approval")).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Equal("Succeeded"))
+		})
+
 		DescribeTable("run to the expected phase",
 			func(file, name, phase, message string) {
 				_, err := utils.Run(exec.Command("kubectl", "apply", "-n", workflowNamespace, "-f", "test/e2e/testdata/"+file))

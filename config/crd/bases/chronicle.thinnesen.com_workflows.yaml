@@ -63,6 +63,88 @@ spec:
                 format: int64
                 minimum: 1
                 type: integer
+              approvals:
+                description: approvals are the decisions for suspend nodes.
+                items:
+                  description: Approval is a decision for a suspend node.
+                  properties:
+                    decision:
+                      description: 'decision: Approve ends the node with success.
+                        Reject fails the node.'
+                      enum:
+                      - Approve
+                      - Reject
+                      type: string
+                    message:
+                      description: message is a comment for the run history.
+                      maxLength: 1024
+                      type: string
+                    node:
+                      description: node is the ID or the name of the suspend node.
+                      maxLength: 1024
+                      minLength: 1
+                      type: string
+                    parameters:
+                      description: parameters give values to the output parameters
+                        of the suspend template.
+                      items:
+                        description: Parameter is a named string value. Inputs, outputs
+                          and arguments use parameters.
+                        properties:
+                          default:
+                            description: default is the value when the caller does
+                              not give a value.
+                            maxLength: 262144
+                            type: string
+                          description:
+                            description: description of the parameter, for people
+                              and for the UI.
+                            maxLength: 1024
+                            type: string
+                          enum:
+                            description: enum is the list of permitted values.
+                            items:
+                              maxLength: 1024
+                              type: string
+                            maxItems: 256
+                            type: array
+                          name:
+                            description: name of the parameter.
+                            maxLength: 128
+                            pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                            type: string
+                          value:
+                            description: value of the parameter. For an input, a value
+                              cannot be changed by the caller.
+                            maxLength: 262144
+                            type: string
+                          valueFrom:
+                            description: valueFrom tells where an output parameter
+                              gets its value.
+                            properties:
+                              path:
+                                description: path of a file in the main container.
+                                  Its contents become the value.
+                                maxLength: 4096
+                                type: string
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      maxItems: 64
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
+                  required:
+                  - decision
+                  - node
+                  type: object
+                maxItems: 500
+                type: array
+                x-kubernetes-list-map-keys:
+                - node
+                x-kubernetes-list-type: map
               arguments:
                 description: arguments are the workflow parameters.
                 properties:
@@ -133,11 +215,23 @@ spec:
                   Pods.
                 maxLength: 253
                 type: string
+              shutdown:
+                description: |-
+                  shutdown stops the workflow. Stop fails the running nodes and runs the exit handler.
+                  Terminate fails the running nodes and does not run the exit handler.
+                enum:
+                - Stop
+                - Terminate
+                type: string
+              suspend:
+                description: 'suspend pauses the workflow: no new node starts. Running
+                  Pods go on.'
+                type: boolean
               templates:
                 description: templates of the workflow.
                 items:
                   description: 'Template is one unit of work. It has exactly one type:
-                    container, script, dag or steps.'
+                    container, script, dag, steps or suspend.'
                   properties:
                     container:
                       description: container runs one container in a Pod.
@@ -1159,6 +1253,16 @@ spec:
                       maxItems: 100
                       minItems: 1
                       type: array
+                    suspend:
+                      description: |-
+                        suspend waits for an approval in spec.approvals of the Workflow, or for a duration.
+                        The approval can give values to the output parameters. Without a value, an output parameter gets its default.
+                      properties:
+                        duration:
+                          description: duration ends the wait with success, for example
+                            "1h". Without a duration, the node waits for an approval.
+                          type: string
+                      type: object
                     timeout:
                       description: timeout fails a node of this template when it runs
                         longer, for example "10m". With retries, it applies to each
@@ -1169,9 +1273,9 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: a template must have exactly one of container, script,
-                      dag or steps
+                      dag, steps or suspend
                     rule: '[has(self.container), has(self.script), has(self.dag),
-                      has(self.steps)].filter(x, x).size() == 1'
+                      has(self.steps), has(self.suspend)].filter(x, x).size() == 1'
                 maxItems: 200
                 type: array
                 x-kubernetes-list-map-keys:
@@ -1437,6 +1541,7 @@ spec:
                       - StepGroup
                       - TaskGroup
                       - Retry
+                      - Suspend
                       type: string
                   required:
                   - id
@@ -1468,6 +1573,9 @@ spec:
             without spec.templates
           rule: 'has(self.spec.workflowTemplateRef) ? !has(self.spec.templates) :
             (has(self.spec.entrypoint) && has(self.spec.templates))'
+        - message: a shutdown cannot be removed, and only Stop can change to Terminate
+          rule: '!has(oldSelf.spec.shutdown) || (has(self.spec.shutdown) && (self.spec.shutdown
+            == oldSelf.spec.shutdown || self.spec.shutdown == ''Terminate''))'
     served: true
     storage: true
     subresources:

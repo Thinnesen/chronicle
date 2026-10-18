@@ -18,7 +18,7 @@ func (e *engine) runRetry(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, d
 		last = e.runAttempt(c, n, len(n.Children)-1, depth)
 	}
 	n = e.nodes[n.ID]
-	if retryable(rs, last.Phase, len(n.Children)) && e.reached(last.FinishedAt.Add(backoff(rs, len(n.Children)))) {
+	if retryable(rs, last.Phase, len(n.Children)) && !e.in.Suspend && e.reached(last.FinishedAt.Add(backoff(rs, len(n.Children)))) {
 		last = e.runAttempt(c, n, len(n.Children), depth)
 	}
 	n = e.nodes[n.ID]

@@ -49,6 +49,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	res := engine.Run(engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
 		Spec: spec, Status: wf.Status, Pods: pods, Now: metav1.Now(),
+		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,
 	})
 	for _, a := range res.Actions {
 		if err := r.apply(ctx, &wf, spec, a); err != nil {

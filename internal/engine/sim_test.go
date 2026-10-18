@@ -83,6 +83,11 @@ func (s *sim) step(i int) Result {
 	if len(wave) > 0 {
 		s.waves = append(s.waves, wave)
 	}
+	for id, n := range r.Status.Nodes {
+		if n.ID != id || n.Type == "" || n.Phase == "" {
+			s.t.Fatalf("bad node %q: %+v", id, n)
+		}
+	}
 	s.in.Status = r.Status
 	return r
 }

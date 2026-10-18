@@ -5,7 +5,7 @@ import (
 )
 
 // NodeType is the type of a node in the workflow graph.
-// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup;Retry
+// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup;Retry;Suspend
 type NodeType string
 
 // The node types.
@@ -18,6 +18,8 @@ const (
 	NodeTaskGroup NodeType = "TaskGroup"
 	// NodeRetry is a template with a retry strategy. Its children are the attempts.
 	NodeRetry NodeType = "Retry"
+	// NodeSuspend waits for an approval or a duration.
+	NodeSuspend NodeType = "Suspend"
 )
 
 // NodePhase is the phase of a node.

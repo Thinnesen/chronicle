@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Template is one unit of work. It has exactly one type: container, script, dag or steps.
-// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag or steps"
+// Template is one unit of work. It has exactly one type: container, script, dag, steps or suspend.
+// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps or suspend"
 type Template struct {
 	// name of the template. It is unique in the workflow.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -43,6 +43,11 @@ type Template struct {
 	// +optional
 	DAG *DAGTemplate `json:"dag,omitempty"`
 
+	// suspend waits for an approval in spec.approvals of the Workflow, or for a duration.
+	// The approval can give values to the output parameters. Without a value, an output parameter gets its default.
+	// +optional
+	Suspend *SuspendTemplate `json:"suspend,omitempty"`
+
 	// steps runs groups of steps. The groups run one after the other. The steps in a group run in parallel.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
@@ -50,6 +55,13 @@ type Template struct {
 	// +kubebuilder:validation:items:MaxItems=100
 	// +optional
 	Steps [][]WorkflowStep `json:"steps,omitempty"`
+}
+
+// SuspendTemplate waits for an approval or for a duration.
+type SuspendTemplate struct {
+	// duration ends the wait with success, for example "1h". Without a duration, the node waits for an approval.
+	// +optional
+	Duration *metav1.Duration `json:"duration,omitempty"`
 }
 
 // RetryPolicy tells which failures start a new attempt.

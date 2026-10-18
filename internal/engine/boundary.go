@@ -59,7 +59,7 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 		switch {
 		case ok && isTerminal(n.Phase):
 			continue
-		case !ok && (stopped != "" || !b.ready(t)):
+		case !ok && (stopped != "" || b.e.in.Suspend || !b.ready(t)):
 			continue
 		case !ok && !t.depends.Eval(b.lookup):
 			b.finishEarly(t, t.nodeName, v1alpha1.NodeOmitted, "the depends condition is false", b.nodeID)

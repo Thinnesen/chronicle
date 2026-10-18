@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-18: Suspend, stop, terminate and approvals are fields of the Workflow spec (`suspend`, `shutdown`, `approvals`). Reason: one mechanism for kubectl, GitOps, the CLI and the UI, with the same RBAC (`update` on Workflows). Argo uses spec fields for suspend and shutdown, but node changes through its own API for resume and approval.
+
 - 2026-10-18: Workflow Pods report outputs through the termination message of the main container, written by `chronicle-exec`. Reason: Argo needs a `WorkflowTaskResult` resource and API access for each Pod. Without API access, a compromised step cannot change any Kubernetes object. The cost is a 4 KiB limit; artifacts carry larger data. Kubernetes image volumes could replace the init container later, when all supported runtimes have them.
 
 - 2026-10-18: `when` conditions are parsed before substitution, and values are literal operands. Reason: Argo substitutes values into the expression text, so a parameter value such as `x || true` can change the condition (injection). The Argo converter keeps simple conditions as they are.
