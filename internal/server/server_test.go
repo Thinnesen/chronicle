@@ -212,6 +212,28 @@ func TestWorkflowService(t *testing.T) {
 	if _, err := alice.DeleteWorkflow(ctx, connect.NewRequest(&chroniclev1.DeleteWorkflowRequest{Namespace: "team-a", Name: "hello"})); err != nil {
 		t.Fatal(err)
 	}
+
+	var events corev1.EventList
+	if err := admin.List(ctx, &events, client.InNamespace("team-a")); err != nil {
+		t.Fatal(err)
+	}
+	reasons := map[string]string{}
+	for _, e := range events.Items {
+		if e.InvolvedObject.Name == "hello" {
+			reasons[e.Reason] = e.Message
+		}
+	}
+	for _, want := range []string{"SubmitWorkflow", "SuspendWorkflow", "ApproveNode", "StopWorkflow", "TerminateWorkflow", "DeleteWorkflow"} {
+		if !strings.Contains(reasons[want], "by alice") {
+			t.Errorf("audit event %s = %q", want, reasons[want])
+		}
+	}
+	if !strings.Contains(reasons["ApproveNode"], `node "hello", approve true`) {
+		t.Errorf("approval event = %q", reasons["ApproveNode"])
+	}
+	if _, ok := reasons["GetWorkflow"]; ok || len(reasons) != 6 {
+		t.Errorf("events = %v (reads and refused calls must not write events)", reasons)
+	}
 }
 
 func TestWorkflowServiceErrors(t *testing.T) {

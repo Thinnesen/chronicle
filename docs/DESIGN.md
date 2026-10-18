@@ -138,7 +138,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Permissions: the server checks each request with a Kubernetes SubjectAccessReview for the user and the user groups (from OIDC claims, with a configurable claim mapping). Writes use impersonation. So the RBAC for the UI is the same RBAC as for `kubectl` and GitOps.
 - Teams: a team is a set of namespaces. A Helm value `teams` creates the RoleBindings for each team: an IdP group gets `chronicle-viewer`, `chronicle-editor` or `chronicle-admin` (ClusterRoles) in the team namespaces. The UI and the API show only the namespaces that the user can list (SelfSubjectRulesReview), so each team sees only its own work.
 - GitOps safety: a resource that a GitOps tool manages (Argo CD or Flux labels and annotations) is read-only in the UI by default. Runs (Workflows) are always allowed.
-- Audit log: each state-changing call writes a structured audit entry and a Kubernetes Event.
+- Audit log: each state-changing call writes a structured audit entry (logger `audit`: action, user, groups, namespace, name, detail, result) and a Kubernetes Event on the Workflow (`kubectl describe` shows who did what). A Connect interceptor audits every RPC that the protobuf API does not mark as free of side effects, so a new RPC cannot skip the audit.
 
 ### 6.1 Microsoft 365 (Entra ID) login
 

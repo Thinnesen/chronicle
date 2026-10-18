@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
@@ -33,7 +34,8 @@ func NewHandler(opts Options) (http.Handler, error) {
 		return nil, fmt.Errorf("create the server client: %w", err)
 	}
 	mux := http.NewServeMux()
-	limit := connect.WithReadMaxBytes(4 << 20)
+	audit := &auditor{log: ctrl.Log.WithName("audit"), events: own}
+	limit := connect.WithHandlerOptions(connect.WithReadMaxBytes(4<<20), connect.WithInterceptors(audit.interceptor()))
 	workflows := &workflowService{clients: clients}
 	path, h := chroniclev1connect.NewWorkflowServiceHandler(workflows, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
