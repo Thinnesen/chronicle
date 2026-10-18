@@ -65,13 +65,14 @@ func (e *engine) nodeID(name string) string {
 	if name == e.in.Name {
 		return name
 	}
-	h := fnv.New32a()
+	// A 64-bit hash keeps collisions negligible also for workflows with very many nodes.
+	h := fnv.New64a()
 	_, _ = h.Write([]byte(name))
 	prefix := e.in.Name
 	if len(prefix) > 40 {
 		prefix = strings.TrimRight(prefix[:40], "-.")
 	}
-	return fmt.Sprintf("%s-%d", prefix, h.Sum32())
+	return fmt.Sprintf("%s-%d", prefix, h.Sum64())
 }
 
 func (e *engine) newNode(c call, typ v1alpha1.NodeType) v1alpha1.NodeStatus {

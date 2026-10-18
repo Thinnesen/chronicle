@@ -11,6 +11,9 @@ import (
 	"github.com/Thinnesen/chronicle/internal/expr"
 )
 
+// maxItems is the largest fan-out. It is also the CRD limit of withItems.
+const maxItems = 1000
+
 // runGroup runs a task with withItems or withParam. The task group node has one child for each item.
 func (b *boundary) runGroup(t *task) {
 	id := b.e.nodeID(t.nodeName)
@@ -50,6 +53,9 @@ func (b *boundary) items(t *task) ([]apiextensionsv1.JSON, error) {
 	var raw []json.RawMessage
 	if err := json.Unmarshal([]byte(s), &raw); err != nil {
 		return nil, fmt.Errorf("withParam is not a JSON list: %w", err)
+	}
+	if len(raw) > maxItems {
+		return nil, fmt.Errorf("withParam has %d items, more than the limit of %d", len(raw), maxItems)
 	}
 	items := make([]apiextensionsv1.JSON, len(raw))
 	for i := range raw {

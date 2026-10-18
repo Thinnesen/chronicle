@@ -102,6 +102,8 @@ The controller applies the actions. This makes the engine testable with table te
 - Timers: the engine has no clock. It returns the time until the next timer (backoff, `timeout`, `activeDeadlineSeconds`), and the controller runs it again then.
 - `timeout` fails a node of the template (each attempt of a retry). `activeDeadlineSeconds` fails the workflow. Both stop the running descendants and delete their Pods.
 - `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`. A failed exit handler fails a workflow that succeeded.
+- The exit handler is protected: `activeDeadlineSeconds` and `shutdown: Stop` stop only the entrypoint, so that cleanup can run. Give the exit template a `timeout`. `shutdown: Terminate` always stops the exit handler too.
+- `withParam` has a limit of 1000 items, like `withItems`.
 
 - Run controls are fields of the Workflow spec, so `kubectl`, GitOps, the CLI and the UI use one mechanism. `suspend: true` pauses the run (no new node starts). `shutdown: Stop` fails the running nodes, deletes their Pods and runs the exit handler. `shutdown: Terminate` does not run the exit handler. A shutdown cannot be removed. Only Stop can change to Terminate.
 - A `suspend` template waits for an entry in `spec.approvals` (node ID or node name, Approve or Reject, optional output parameters) or for its `duration`. The server writes the approver to the audit log (#17).

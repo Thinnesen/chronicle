@@ -94,14 +94,16 @@ func TestEngineRuntimeErrors(t *testing.T) {
 	}{
 		{"withParam is not a list", `{name: t, template: c, depends: gen, withParam: "{{tasks.gen.outputs.result}}"}`, "withParam is not a JSON list"},
 		{"value not in enum", `{name: t, template: p, depends: gen, arguments: {parameters: [{name: x, value: "{{tasks.gen.outputs.result}}"}]}}`, `is not one of`},
+		{"too many items", `{name: t, template: c, depends: gen, withParam: "{{tasks.gen.outputs.parameters.many}}"}`, "more than the limit of 1000"},
 		{"when is not a condition", `{name: t, template: c, depends: gen, when: "{{tasks.gen.outputs.result}}"}`, "is not true or false"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			spec := dagSpec("    - {name: gen, template: c, outputs: {}}\n    - "+tt.task) + p
-			spec = strings.Replace(spec, ", outputs: {}", "", 1)
+			spec := dagSpec("    - {name: gen, template: g}\n    - "+tt.task) + p +
+				"\n- {name: g, outputs: {parameters: [{name: many, valueFrom: {path: /m}}]}, container: {image: x, command: [run]}}"
 			s := newSim(t, spec, nil)
-			s.outputs["wf.gen"] = &v1alpha1.Outputs{Result: new("not-json")}
+			s.outputs["wf.gen"] = &v1alpha1.Outputs{Result: new("not-json"),
+				Parameters: []v1alpha1.Parameter{{Name: "many", Value: new("[" + strings.Repeat("1,", 1000) + "1]")}}}
 			st := s.run()
 			if st.Phase != v1alpha1.WorkflowError || !strings.Contains(nodeByName(st, "wf.t").Message, tt.want) {
 				t.Errorf("phase %s, node t = %+v", st.Phase, nodeByName(st, "wf.t"))

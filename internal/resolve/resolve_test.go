@@ -71,7 +71,7 @@ func TestWorkflow(t *testing.T) {
 	if errs := validate.Spec(out, true); len(errs) > 0 {
 		t.Fatalf("the resolved spec is invalid: %v", errs)
 	}
-	var names []string
+	names := make([]string, 0, len(out.Templates))
 	for _, tmpl := range out.Templates {
 		names = append(names, tmpl.Name)
 	}
