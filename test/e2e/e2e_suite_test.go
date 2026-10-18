@@ -46,6 +46,13 @@ var _ = BeforeSuite(func() {
 	err = utils.LoadImageToKindClusterWithName(managerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
 
+	By("building and loading the mock Entra image")
+	cmd = exec.Command("docker", "build", "-f", "test/mockentra/Dockerfile", "-t", mockEntraImage, ".")
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the mock Entra image")
+	err = utils.LoadImageToKindClusterWithName(mockEntraImage)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the mock Entra image into Kind")
+
 	configureKubectlKubeRC()
 	setupCertManager()
 })

@@ -17,12 +17,7 @@ func TestEntra(t *testing.T) {
 	graphCalls := 0
 	idp.Handle("POST /v1.0/me/getMemberObjects", func(w http.ResponseWriter, r *http.Request) {
 		graphCalls++
-		if r.Header.Get("Authorization") != "Bearer at" {
-			http.Error(w, "no token", http.StatusUnauthorized)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"value":["g-1","g-2"]}`))
+		idp.GraphGroups(w, r)
 	})
 	mux := http.NewServeMux()
 	srv := httptest.NewServer(mux)
@@ -59,7 +54,8 @@ func TestEntra(t *testing.T) {
 
 	// Entra sends a source with a legacy endpoint. The server uses Microsoft Graph instead.
 	overage := map[string]any{"tid": "tenant-1", "oid": "user-2", "_claim_names": map[string]any{"groups": "src1"},
-		"_claim_sources": map[string]any{"src1": map[string]any{"endpoint": "https://graph.windows.net/tenant-1/users/user-2/getMemberObjects"}}}
+		"_claim_sources": map[string]any{"src1": map[string]any{"endpoint": "https://graph.windows.net/tenant-1/users/user-2/getMemberObjects"}},
+		"x-graph-groups": []any{"g-1", "g-2"}}
 	for range 2 {
 		me, _ = login(overage)
 		if groups := me["groups"].([]any); len(groups) != 2 || groups[1] != "entra:group:g-2" {

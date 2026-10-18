@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,6 +37,8 @@ type Provider struct {
 	WrongNonce bool
 	codes      map[string]grant
 	mux        *http.ServeMux
+	// access holds the claims of the user of each access token.
+	access map[string]map[string]any
 }
 
 type grant struct {
@@ -57,7 +60,7 @@ func NewHandler(path string) *Provider {
 	if err != nil {
 		panic(err)
 	}
-	p := &Provider{key: key, codes: map[string]grant{}, Claims: map[string]any{}, mux: http.NewServeMux()}
+	p := &Provider{key: key, codes: map[string]grant{}, Claims: map[string]any{}, mux: http.NewServeMux(), access: map[string]map[string]any{}}
 	p.mux.HandleFunc("GET "+path+"/.well-known/openid-configuration", p.discovery)
 	p.mux.HandleFunc("GET "+path+"/keys", p.keys)
 	p.mux.HandleFunc("GET "+path+"/authorize", p.authorize)
@@ -132,7 +135,33 @@ func (p *Provider) token(w http.ResponseWriter, r *http.Request) {
 	if wrongNonce {
 		claims["nonce"] = "wrong"
 	}
-	writeJSON(w, map[string]any{"access_token": "at", "token_type": "Bearer", "expires_in": 300, "id_token": p.IDToken(claims, g.clientID, time.Hour)})
+	at := rand.Text()
+	p.mu.Lock()
+	p.access[at] = maps.Clone(claims)
+	p.mu.Unlock()
+	maps.DeleteFunc(claims, func(k string, _ any) bool { return strings.HasPrefix(k, "x-") })
+	writeJSON(w, map[string]any{"access_token": at, "token_type": "Bearer", "expires_in": 300, "id_token": p.IDToken(claims, g.clientID, time.Hour)})
+}
+
+// AccessClaims returns the claims of the user of an access token. Claims that start with "x-" are only here,
+// not in the ID token, for example "x-graph-groups" for a mock Microsoft Graph.
+func (p *Provider) AccessClaims(r *http.Request) (map[string]any, bool) {
+	at, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	c, found := p.access[at]
+	return c, ok && found
+}
+
+// GraphGroups is a mock of POST /v1.0/me/getMemberObjects. It returns the claim "x-graph-groups" of the user.
+func (p *Provider) GraphGroups(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.AccessClaims(r)
+	if !ok {
+		http.Error(w, "no valid access token", http.StatusUnauthorized)
+		return
+	}
+	groups, _ := c["x-graph-groups"].([]any)
+	writeJSON(w, map[string]any{"value": groups})
 }
 
 // IDToken returns a signed ID token with the claims, for an audience, that expires after ttl.

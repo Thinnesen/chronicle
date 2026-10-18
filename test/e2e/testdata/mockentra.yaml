@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-entra
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-entra
+  namespace: mock-entra
+data:
+  # ann has her group in the token. bo has more than 200 groups, so the server must ask Microsoft Graph.
+  config.json: |
+    {
+      "tenant": "11111111-2222-3333-4444-555555555555",
+      "host": "http://mock-entra.mock-entra.svc.cluster.local:8080",
+      "users": {
+        "ann": {"tid": "11111111-2222-3333-4444-555555555555", "oid": "ann-oid", "name": "Ann", "groups": ["red-team-id"]},
+        "bo": {"tid": "11111111-2222-3333-4444-555555555555", "oid": "bo-oid", "name": "Bo",
+               "_claim_names": {"groups": "src1"},
+               "_claim_sources": {"src1": {"endpoint": "https://graph.windows.net/x/users/bo-oid/getMemberObjects"}},
+               "x-graph-groups": ["blue-team-id", "some-other-group"]}
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-entra
+  namespace: mock-entra
+spec:
+  selector:
+    matchLabels: {app: mock-entra}
+  template:
+    metadata:
+      labels: {app: mock-entra}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+      - name: mock-entra
+        image: example.com/mock-entra:e2e
+        imagePullPolicy: Never
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /11111111-2222-3333-4444-555555555555/v2.0/.well-known/openid-configuration, port: http}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
+        volumeMounts:
+        - {name: config, mountPath: /etc/mockentra}
+      volumes:
+      - name: config
+        configMap: {name: mock-entra}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-entra
+  namespace: mock-entra
+spec:
+  selector: {app: mock-entra}
+  ports:
+  - {name: http, port: 8080, targetPort: http}
+---
+# Two teams, as the Helm value "teams" makes them: an Entra group sees one namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-red
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-blue
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: red-viewers
+  namespace: team-red
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: chronicle-workflow-viewer-role}
+subjects:
+- {apiGroup: rbac.authorization.k8s.io, kind: Group, name: "entra:group:red-team-id"}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: blue-editors
+  namespace: team-blue
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: chronicle-workflow-editor-role}
+subjects:
+- {apiGroup: rbac.authorization.k8s.io, kind: Group, name: "entra:group:blue-team-id"}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: server-auth
+  namespace: chronicle-system
+data:
+  config.yaml: |
+    insecureCookies: true
+    oidc:
+      clientID: chronicle
+      clientSecretFile: /etc/chronicle/auth/client-secret
+      redirectURL: http://chronicle-server.chronicle-system.svc.cluster.local:8080/auth/callback
+      entra:
+        tenantID: 11111111-2222-3333-4444-555555555555
+        authority: http://mock-entra.mock-entra.svc.cluster.local:8080
+        graphURL: http://mock-entra.mock-entra.svc.cluster.local:8080
+  client-secret: e2e-secret
