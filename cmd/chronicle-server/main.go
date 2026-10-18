@@ -43,6 +43,11 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	mux := http.NewServeMux()
 	var authn []auth.Authenticator
+	if _, err := os.Stat(authConfig); authConfig != "" && errors.Is(err, os.ErrNotExist) {
+		// The ConfigMap of the login is optional. Without it, only service account tokens work.
+		log.Info("The login configuration file does not exist: the OIDC login is off", "file", authConfig)
+		authConfig = ""
+	}
 	if authConfig != "" {
 		login, err := newLogin(authConfig)
 		if err != nil {

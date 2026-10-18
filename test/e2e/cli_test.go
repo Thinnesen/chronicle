@@ -1,0 +1,74 @@
+//go:build e2e
+
+package e2e
+
+import (
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/Thinnesen/chronicle/test/utils"
+)
+
+const cliNS = "chronicle-e2e-cli"
+
+// cliSpecs runs the chronicle CLI with a service account token. The Manager suite calls it.
+func cliSpecs() {
+	Context("CLI", Ordered, func() {
+		var cli, config string
+
+		BeforeAll(func() {
+			cli = filepath.Join(GinkgoT().TempDir(), "chronicle")
+			config = filepath.Join(GinkgoT().TempDir(), "config.json")
+			for _, args := range [][]string{
+				{"go", "build", "-o", cli, "./cmd/chronicle"},
+				{"kubectl", "create", "ns", cliNS},
+				{"kubectl", "create", "serviceaccount", "ci", "-n", cliNS},
+				{"kubectl", "create", "rolebinding", "ci-edit", "-n", cliNS, "--clusterrole=chronicle-workflow-editor-role", "--serviceaccount=" + cliNS + ":ci"},
+				{"kubectl", "create", "role", "logs", "-n", cliNS, "--verb=get", "--resource=pods,pods/log"},
+				{"kubectl", "create", "rolebinding", "ci-logs", "-n", cliNS, "--role=logs", "--serviceaccount=" + cliNS + ":ci"},
+			} {
+				_, err := utils.Run(exec.Command(args[0], args[1:]...))
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		AfterAll(func() {
+			_, _ = utils.Run(exec.Command("kubectl", "delete", "ns", cliNS, "--wait=false"))
+		})
+
+		chronicle := func(args ...string) (string, error) {
+			return utils.Run(exec.Command(cli, append([]string{"--config", config}, args...)...))
+		}
+
+		It("logs in with a service account token and runs a workflow", func() {
+			_, err := utils.Run(exec.Command("kubectl", "rollout", "status", "-n", "chronicle-system", "deploy/chronicle-server", "--timeout=3m"))
+			Expect(err).NotTo(HaveOccurred())
+			token, err := utils.Run(exec.Command("kubectl", "create", "token", "ci", "-n", cliNS, "--audience=chronicle"))
+			Expect(err).NotTo(HaveOccurred())
+			server := "http://" + portForward("chronicle-system", "chronicle-server", 8080)
+
+			login := exec.Command(cli, "--config", config, "login", "--server", server, "-n", cliNS, "--token-file", "-")
+			login.Stdin = strings.NewReader(token)
+			_, err = utils.Run(login)
+			Expect(err).NotTo(HaveOccurred())
+
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/dag-succeeds.yaml", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("dag-succeeds Succeeded"))
+
+			Eventually(func() (string, error) { return chronicle("logs", "dag-succeeds") }).
+				WithTimeout(30 * time.Second).Should(ContainSubstring("hello world"))
+			out, err = chronicle("get", "dag-succeeds")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(ContainSubstring("✔ check"))
+			out, err = chronicle("list")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(MatchRegexp(`dag-succeeds\s+Succeeded`))
+		})
+	})
+}
