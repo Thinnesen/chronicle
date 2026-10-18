@@ -7,23 +7,12 @@ Each item ends with a green gate run and a commit on `dev`.
 
 ## M1 Engine core
 
-8. #8 Resource template
-9. #9 Pod GC and TTL
 
 ## M2 Scheduling and templates
 
-10. #10 CronWorkflow
-11. #11 Workflow template references and cluster templates
 
 ## M3 Server, login and CLI
 
-12. #12 Protobuf API and Connect-RPC server
-13. #13 OIDC login for the UI
-14. #14 Permissions through Kubernetes RBAC
-15. #42 Microsoft 365 (Entra ID) login and team-level access
-16. #15 chronicle CLI
-17. #16 Log streaming
-18. #17 Audit log
 
 ## M4 Web UI
 

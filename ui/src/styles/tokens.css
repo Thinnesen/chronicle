@@ -1,0 +1,67 @@
+/* Design tokens of the signal-box panel. See docs/DESIGN.md section 8.1. */
+:root {
+  --panel: #e6eaed;
+  --surface: #f6f7f8;
+  --ink: #1b2430;
+  --ink-muted: #4a5564;
+  --track: #5a6576;
+  --rule: #c9d0d7;
+  --lamp-proceed: #1c8a57;
+  --lamp-caution: #b97e00;
+  --lamp-danger: #c4332a;
+  --lamp-running: #1f6fd6;
+  --lamp-idle: #9aa4b2;
+  --focus: #1f6fd6;
+
+  --font-ui: "Overpass", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --radius: 3px;
+  --duration: 150ms;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --panel: #171c23;
+    --surface: #1f2630;
+    --ink: #e3e8ee;
+    --ink-muted: #a9b3c0;
+    --track: #8c97a7;
+    --rule: #333d4a;
+    --lamp-proceed: #3fb67d;
+    --lamp-caution: #e0a52a;
+    --lamp-danger: #ef6a5f;
+    --lamp-running: #5b9cf0;
+    --lamp-idle: #6f7a89;
+    --focus: #5b9cf0;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --panel: #171c23;
+  --surface: #1f2630;
+  --ink: #e3e8ee;
+  --ink-muted: #a9b3c0;
+  --track: #8c97a7;
+  --rule: #333d4a;
+  --lamp-proceed: #3fb67d;
+  --lamp-caution: #e0a52a;
+  --lamp-danger: #ef6a5f;
+  --lamp-running: #5b9cf0;
+  --lamp-idle: #6f7a89;
+  --focus: #5b9cf0;
+  color-scheme: dark;
+}

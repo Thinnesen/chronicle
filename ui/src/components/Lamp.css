@@ -1,0 +1,41 @@
+.lamp {
+  flex: none;
+  vertical-align: -1px;
+}
+
+.lamp-proceed {
+  fill: var(--lamp-proceed);
+}
+
+.lamp-caution {
+  fill: var(--lamp-caution);
+}
+
+.lamp-running .lamp-ring {
+  fill: none;
+  stroke: var(--lamp-running);
+  stroke-width: 3;
+}
+
+.lamp-running {
+  animation: lamp-pulse 1.6s ease-in-out infinite;
+}
+
+.lamp-idle .lamp-ring {
+  fill: none;
+  stroke: var(--lamp-idle);
+  stroke-width: 2;
+  stroke-dasharray: 2 2;
+}
+
+.lamp-danger .lamp-cross {
+  stroke: var(--lamp-danger);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+@keyframes lamp-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

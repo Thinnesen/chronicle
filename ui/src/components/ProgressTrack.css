@@ -1,0 +1,52 @@
+.track-stations {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(var(--track), var(--track)) center / 100% 2px no-repeat;
+  gap: 6px;
+}
+
+.station {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--track);
+  background: var(--surface);
+}
+
+.station-done {
+  background: var(--lamp-proceed);
+  border-color: var(--lamp-proceed);
+}
+
+.station-failed {
+  background: var(--lamp-danger);
+  border-color: var(--lamp-danger);
+}
+
+.track-line {
+  display: inline-block;
+  width: 8rem;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.track-fill {
+  display: block;
+  height: 100%;
+  background: var(--lamp-proceed);
+}
+
+.track-fill-failed {
+  background: var(--lamp-danger);
+}
+
+.track-empty {
+  display: inline-block;
+  width: 3rem;
+  height: 2px;
+  background: var(--rule);
+  vertical-align: middle;
+}

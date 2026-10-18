@@ -1,0 +1,7 @@
+# Supply chain settings of pnpm.
+# Install only versions that are at least one day old.
+minimumReleaseAge: 1440
+# No dependency runs an install script.
+onlyBuiltDependencies: []
+strictPeerDependencies: true
+savePrefix: ""

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/auth"
 	"github.com/Thinnesen/chronicle/internal/server"
+	"github.com/Thinnesen/chronicle/ui"
 )
 
 func main() {
@@ -73,7 +75,14 @@ func main() {
 		log.Error(err, "Failed to create the API")
 		os.Exit(1)
 	}
-	mux.Handle("/", api)
+	web := server.UIHandler(ui.Files())
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/chronicle.v1.") {
+			api.ServeHTTP(w, r)
+			return
+		}
+		web.ServeHTTP(w, r)
+	}))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 
 	protocols := new(http.Protocols)

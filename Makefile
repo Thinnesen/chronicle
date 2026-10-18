@@ -57,6 +57,14 @@ proto: buf protoc-gen-go protoc-gen-connect-go ## Lint the protobuf API and gene
 	"$(BUF)" format -w proto
 	"$(BUF)" generate
 
+.PHONY: ui-proto
+ui-proto: buf ## Generate the TypeScript API client of the UI in ui/src/gen.
+	"$(BUF)" generate --template buf.gen.ui.yaml
+
+.PHONY: ui
+ui: ## Build the web UI into ui/dist. Then build the server with -tags ui.
+	cd ui && pnpm install --frozen-lockfile && pnpm build
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...

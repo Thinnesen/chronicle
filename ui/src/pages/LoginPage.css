@@ -1,0 +1,40 @@
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.login-panel {
+  width: min(24rem, 100%);
+}
+
+.login-track {
+  width: 100%;
+  height: auto;
+  margin-bottom: var(--space-6);
+}
+
+.login h1 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.02em;
+}
+
+.login p {
+  color: var(--ink-muted);
+  margin: var(--space-2) 0 var(--space-6);
+}
+
+.login-button {
+  display: inline-block;
+  padding: var(--space-2) var(--space-6);
+  background: var(--ink);
+  color: var(--panel);
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.login-button:hover {
+  background: var(--track);
+}

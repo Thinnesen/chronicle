@@ -12,3 +12,15 @@
 # Re-include Go module files
 !go.mod
 !go.sum
+
+# Re-include the UI sources for the UI build stage
+!ui/package.json
+!ui/pnpm-lock.yaml
+!ui/pnpm-workspace.yaml
+!ui/index.html
+!ui/tsconfig.json
+!ui/vite.config.ts
+!ui/public/**
+!ui/src/**
+ui/src/**/*.test.ts
+ui/src/**/*.test.tsx

@@ -1,0 +1,129 @@
+.board {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.board th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.board td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+
+.board tbody tr:hover {
+  background: var(--panel);
+}
+
+.board-time {
+  width: 9rem;
+}
+
+.board-duration {
+  width: 7rem;
+}
+
+.board-time,
+.board-duration {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.board-run {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.board-run a {
+  text-decoration: none;
+}
+
+.board-run a:hover {
+  text-decoration: underline;
+}
+
+.board-template {
+  display: block;
+  margin-left: calc(12px + var(--space-2));
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+}
+
+.board-message {
+  color: var(--ink-muted);
+  max-width: 28rem;
+}
+
+/* On a phone, each run is a two-line row: the lamp and the name, then the time and the track. */
+@media (max-width: 48rem) {
+  .board thead {
+    display: none;
+  }
+
+  .board,
+  .board tbody {
+    display: block;
+  }
+
+  .board tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .board td {
+    display: block;
+    padding: 0;
+    border: 0;
+    width: auto;
+  }
+
+  .board td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .board-run {
+    display: flex;
+    min-width: 0;
+  }
+
+  .board-run a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .board-time {
+    color: var(--ink-muted);
+  }
+
+  .board td.board-duration,
+  .board-template {
+    display: none;
+  }
+
+  .board td.board-message {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .board td.board-message:empty {
+    display: none;
+  }
+}

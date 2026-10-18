@@ -23,3 +23,12 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+  - package-ecosystem: npm
+    directory: /ui
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      ui:
+        patterns: ["*"]
