@@ -86,6 +86,15 @@ The controller applies the actions. This makes the engine testable with table te
 - Each node stores its resolved input parameters, for the UI and for retries. The Pod gets the template with all placeholders replaced.
 - Node IDs: the root node has the workflow name. Other nodes have the workflow name and a hash of the node path (`wf.main.a`, `wf[0].step`). The Pod name is the node ID.
 
+### 4.1 Workflow Pods and outputs
+
+- The controller creates one Pod for each container or script node. The Pod name is the node ID. The Workflow owns the Pod.
+- Pods meet the "restricted" Pod security standard: user 65532, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. A Pod gets a service account token only when the workflow names a service account.
+- An init container copies `chronicle-exec` (in the controller image) into an `emptyDir`. The executor wraps the main command, keeps the standard output, reads the output files and writes the outputs as JSON to the termination message. So the workflow Pod needs no Kubernetes API access.
+- The termination message has a limit of 4 KiB. A larger standard output is not a result. Larger output parameters fail the node: use an artifact.
+- A container template without a command runs without the executor. It has no result and no output files.
+- The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
+
 ## 5. Re-run, retry and history
 
 - Retry: start the failed nodes again. Keep the succeeded nodes and their outputs.

@@ -65,6 +65,10 @@ spec:
           - --health-probe-bind-address=:8081
         image: controller:latest
         name: manager
+        env:
+        # The executor binary is in the controller image. The kustomization copies the image here.
+        - name: CHRONICLE_EXECUTOR_IMAGE
+          value: controller:latest
         ports:
         - containerPort: 8081
           name: health

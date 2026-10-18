@@ -35,6 +35,9 @@ func (e *engine) applyPod(n *v1alpha1.NodeStatus, pod PodResult) {
 		n.Outputs = pod.Outputs
 		n.FinishedAt = pod.FinishedAt
 	}
+	if pod.Phase == n.Phase && !isTerminal(n.Phase) {
+		n.Message = pod.Message
+	}
 	e.setPhase(n, pod.Phase, pod.Message)
 }
 

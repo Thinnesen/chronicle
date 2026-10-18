@@ -163,6 +163,11 @@ templates:
 			want: []string{"templates[0].outputs.parameters[0]: Required value"},
 		},
 		{
+			name: "output file without a command",
+			spec: "entrypoint: c\ntemplates: [{name: c, outputs: {parameters: [{name: o, valueFrom: {path: /x}}]}, container: {image: x}}]",
+			want: []string{"needs a command"},
+		},
+		{
 			name: "output path on a dag template",
 			spec: `
 entrypoint: m
@@ -287,7 +292,7 @@ func TestSpecParameters(t *testing.T) {
 }
 
 func TestSpecCalls(t *testing.T) {
-	const p = "\n- {name: p, inputs: {parameters: [{name: x}]}, container: {image: x}}"
+	const p = "\n- {name: p, inputs: {parameters: [{name: x}]}, container: {image: x, command: [echo]}}"
 	task := func(fields string) string {
 		return "entrypoint: m\ntemplates:\n- {name: m, dag: {tasks: [{name: g, template: p, arguments: {parameters: [{name: x, value: v}]}}, {name: t, template: p, depends: g, " + fields + "}]}}" + p
 	}
@@ -300,7 +305,7 @@ func TestSpecCalls(t *testing.T) {
 		{name: "unknown placeholder in when", spec: task("when: '{{nope}} == a', arguments: {parameters: [{name: x, value: v}]}"), want: []string{`unknown placeholder "nope"`}},
 		{
 			name: "DAG outputs use task outputs",
-			spec: "entrypoint: m\ntemplates:\n- {name: m, outputs: {parameters: [{name: o, value: '{{tasks.a.outputs.result}}'}]}, dag: {tasks: [{name: a, template: c}]}}\n- {name: c, container: {image: x}}",
+			spec: "entrypoint: m\ntemplates:\n- {name: m, outputs: {parameters: [{name: o, value: '{{tasks.a.outputs.result}}'}]}, dag: {tasks: [{name: a, template: c}]}}\n- {name: c, container: {image: x, command: [echo]}}",
 		},
 		{
 			name: "entrypoint input without an argument",

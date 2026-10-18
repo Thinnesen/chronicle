@@ -24,7 +24,7 @@ templates:
 - name: echo
   inputs: {parameters: [{name: msg}, {name: color, default: blue}]}
   outputs: {parameters: [{name: p, valueFrom: {path: /tmp/p}}]}
-  container: {image: "alpine:{{inputs.parameters.color}}", args: ["{{inputs.parameters.msg}}"], env: [{name: WF, value: "{{workflow.name}}"}]}
+  container: {image: "alpine:{{inputs.parameters.color}}", command: [echo], args: ["{{inputs.parameters.msg}}"], env: [{name: WF, value: "{{workflow.name}}"}]}
 `, nil)
 	s.outputs["wf.a"] = &v1alpha1.Outputs{Result: new("A-OUT")}
 	s.outputs["wf.b"] = &v1alpha1.Outputs{Parameters: []v1alpha1.Parameter{{Name: "p", Value: new("pb")}}}
@@ -59,7 +59,7 @@ func TestEngineFanOut(t *testing.T) {
     - {name: allfail, template: c, depends: lit.AllFailed}
     - {name: none, template: c, depends: gen, withParam: "[]"}
     - {name: agg, template: p, depends: each && none, arguments: {parameters: [{name: x, value: "{{tasks.each.outputs.result}}"}]}}`)+`
-- {name: p, inputs: {parameters: [{name: x}]}, container: {image: alpine, args: ["{{inputs.parameters.x}}"]}}`,
+- {name: p, inputs: {parameters: [{name: x}]}, container: {image: alpine, command: [run], args: ["{{inputs.parameters.x}}"]}}`,
 		map[string]v1alpha1.NodePhase{`wf.lit(1:{"k":"b"})`: failed})
 	s.outputs["wf.gen"] = &v1alpha1.Outputs{Result: new(`["x", "y", "z"]`)}
 	st := s.run()

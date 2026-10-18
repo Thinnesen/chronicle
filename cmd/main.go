@@ -9,10 +9,15 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -70,6 +75,9 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
+	var executorImage string
+	flag.StringVar(&executorImage, "executor-image", os.Getenv("CHRONICLE_EXECUTOR_IMAGE"),
+		"The image with the chronicle-exec binary for workflow Pods. The default is $CHRONICLE_EXECUTOR_IMAGE.")
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -150,6 +158,10 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "7cc4d9f8.thinnesen.com",
+		// Cache only the Pods of workflows, not all Pods of the cluster.
+		Cache: cache.Options{ByObject: map[client.Object]cache.ByObject{
+			&corev1.Pod{}: {Label: workflowPodSelector()},
+		}},
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -167,9 +179,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if executorImage == "" {
+		setupLog.Error(nil, "Set --executor-image or CHRONICLE_EXECUTOR_IMAGE")
+		os.Exit(1)
+	}
 	if err := (&controller.WorkflowReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		ExecutorImage: executorImage,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "workflow")
 		os.Exit(1)
@@ -211,4 +228,13 @@ func main() {
 		setupLog.Error(err, "Failed to run manager")
 		os.Exit(1)
 	}
+}
+
+// workflowPodSelector selects the Pods that have the workflow UID label.
+func workflowPodSelector() labels.Selector {
+	req, err := labels.NewRequirement(controller.LabelWorkflowUID, selection.Exists, nil)
+	if err != nil {
+		panic(err)
+	}
+	return labels.NewSelector().Add(*req)
 }

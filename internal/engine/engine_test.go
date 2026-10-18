@@ -15,7 +15,7 @@ const (
 	omitted   = v1alpha1.NodeOmitted
 )
 
-const pod = "\n- {name: c, container: {image: alpine}}"
+const pod = "\n- {name: c, container: {image: alpine, command: [run]}}"
 
 func dagSpec(tasks string) string {
 	return "entrypoint: main\ntemplates:\n- name: main\n  dag:\n    tasks:\n" + tasks + pod

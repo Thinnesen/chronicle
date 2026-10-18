@@ -5,12 +5,20 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
   - chronicle.thinnesen.com
   resources:
   - workflows
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch

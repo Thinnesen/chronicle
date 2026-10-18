@@ -23,7 +23,7 @@ What we do:
 - Use: one engine for DAG and steps (steps as DAG tasks with synthetic dependencies). One pass in dependency order. Cascading omission. A phase transition table with tests. Node IDs from a hash of the node path, so the engine stays deterministic.
 - Use: the same `depends` vocabulary, without Daemoned (chronicle has no daemon templates). A bare task name means Succeeded or Skipped.
 - Change: Argo turns the expression into hex identifiers and evaluates it with `expr-lang`. chronicle has a small hand-written parser for `depends` (only `&&`, `||`, `!`, parentheses and task results). The validation and the engine use the same parser. This removes a dependency and a class of evaluation surprises.
-- Change: the Pod reports its outputs through the container termination message, not through an API resource. Then the workflow Pod needs no Kubernetes API access. The limit is 4 KiB per container. Large outputs go to the artifact store. (Decide in #5.)
+- Change: the Pod reports its outputs through the container termination message, not through an API resource. Then the workflow Pod needs no Kubernetes API access. The limit is 4 KiB per container. Large outputs go to the artifact store. Decided in #5: see `docs/DESIGN.md` section 4.1. Argo v4 also has an "init-less" layout that mounts the executor through a Kubernetes image volume.
 
 ## Validation (Argo `workflow/validate`)
 

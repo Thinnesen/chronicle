@@ -158,7 +158,8 @@ func (c *checker) outputNames(prefix, template string) []string {
 	for _, p := range t.Outputs.Parameters {
 		names = append(names, prefix+".outputs.parameters."+p.Name)
 	}
-	if t.Container != nil || t.Script != nil {
+	// Only the executor can capture the standard output. It runs when the template has a command.
+	if t.Container != nil && len(t.Container.Command) > 0 || t.Script != nil {
 		names = append(names, prefix+".outputs.result")
 	}
 	return names

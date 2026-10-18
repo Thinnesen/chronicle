@@ -98,6 +98,8 @@ func (c *checker) checkOutputs(t *v1alpha1.Template, path *field.Path, sc scope)
 		switch {
 		case hasPath && !leaf:
 			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "path"), "only a container or script template can read an output file"))
+		case hasPath && t.Container != nil && len(t.Container.Command) == 0:
+			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "path"), "a container template needs a command to read an output file"))
 		case !hasPath && p.Value == nil:
 			c.errs = append(c.errs, field.Required(pp, "an output parameter needs valueFrom.path or a value"))
 		case p.Value != nil:
