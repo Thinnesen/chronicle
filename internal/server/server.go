@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
 	"github.com/Thinnesen/chronicle/internal/auth"
@@ -27,8 +28,15 @@ func NewHandler(opts Options) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create the client factory: %w", err)
 	}
+	own, err := client.New(opts.Config, client.Options{Scheme: opts.Scheme, Mapper: clients.mapper})
+	if err != nil {
+		return nil, fmt.Errorf("create the server client: %w", err)
+	}
 	mux := http.NewServeMux()
-	path, h := chroniclev1connect.NewWorkflowServiceHandler(&workflowService{clients: clients}, connect.WithReadMaxBytes(4<<20))
+	limit := connect.WithReadMaxBytes(4 << 20)
+	path, h := chroniclev1connect.NewWorkflowServiceHandler(&workflowService{clients: clients}, limit)
+	mux.Handle(path, authenticate(opts.Authenticators, h))
+	path, h = chroniclev1connect.NewNamespaceServiceHandler(&namespaceService{clients: clients, own: own, cache: map[string]cachedAccess{}}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	return mux, nil
 }

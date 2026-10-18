@@ -312,3 +312,32 @@ func TestPaginate(t *testing.T) {
 		t.Fatalf("past the end %v", page)
 	}
 }
+
+func TestListNamespaces(t *testing.T) {
+	srv := setup(t)
+	ctx := context.Background()
+	list := func(user, group string) []*chroniclev1.NamespaceAccess {
+		c := chroniclev1connect.NewNamespaceServiceClient(srv.Client(), srv.URL, connect.WithInterceptors(connect.UnaryInterceptorFunc(
+			func(next connect.UnaryFunc) connect.UnaryFunc {
+				return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+					req.Header().Set("X-Test-User", user)
+					req.Header().Set("X-Test-Group", group)
+					return next(ctx, req)
+				}
+			})))
+		resp, err := c.ListNamespaces(ctx, connect.NewRequest(&chroniclev1.ListNamespacesRequest{}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp.Msg.Namespaces
+	}
+	if got := list("alice", ""); len(got) != 1 || got[0].Name != "team-a" || !got[0].CanSubmit {
+		t.Errorf("alice sees %v", got)
+	}
+	if got := list("carol", "oidc:viewers"); len(got) != 1 || got[0].CanSubmit {
+		t.Errorf("a viewer sees %v", got)
+	}
+	if got := list("bob", ""); len(got) != 0 {
+		t.Errorf("bob sees %v", got)
+	}
+}

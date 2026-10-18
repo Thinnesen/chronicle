@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// The standard claims for the user name and the groups.
+const (
+	claimEmail  = "email"
+	claimGroups = "groups"
+)
+
 // identityFromClaims maps ID token claims to a Kubernetes identity. It adds the prefixes and
 // rejects an unverified email as the user name.
 func identityFromClaims(claims map[string]any, o *OIDCConfig) (*Identity, error) {
@@ -13,7 +19,7 @@ func identityFromClaims(claims map[string]any, o *OIDCConfig) (*Identity, error)
 	if user == "" {
 		return nil, fmt.Errorf("the ID token has no %q claim", o.UsernameClaim)
 	}
-	if o.UsernameClaim == "email" {
+	if o.UsernameClaim == claimEmail {
 		if verified, ok := claims["email_verified"].(bool); ok && !verified {
 			return nil, errors.New("the email address is not verified")
 		}

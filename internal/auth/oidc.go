@@ -38,6 +38,7 @@ type OIDC struct {
 
 	mu      sync.Mutex
 	pending map[string]pendingLogin
+	groups  groupCache
 }
 
 type pendingLogin struct {
@@ -192,6 +193,11 @@ func (o *OIDC) exchange(ctx context.Context, code string, p pendingLogin) (*Iden
 	if err := idt.Claims(&claims); err != nil {
 		return nil, fmt.Errorf("read the claims: %w", err)
 	}
+	if o.cfg.OIDC.Entra != nil {
+		if err := o.checkEntra(ctx, claims, tok.AccessToken); err != nil {
+			return nil, err
+		}
+	}
 	return identityFromClaims(claims, &o.cfg.OIDC)
 }
 
@@ -220,7 +226,7 @@ func (o *OIDC) me(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"user": s.Identity.User, "groups": s.Identity.Groups, "csrfToken": s.CSRF, "expiresAt": s.ExpiresAt,
+		"user": s.Identity.User, claimGroups: s.Identity.Groups, "csrfToken": s.CSRF, "expiresAt": s.ExpiresAt,
 	})
 }
 

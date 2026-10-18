@@ -23,14 +23,14 @@ type env struct {
 // newEnv starts a provider and a server with the login handler and an API that echoes the identity.
 func newEnv(t *testing.T, insecure bool) *env {
 	t.Helper()
-	idp := oidctest.New()
+	idp := oidctest.New("")
 	t.Cleanup(idp.Close)
 	idp.Claims = map[string]any{"email": "alice@example.com", "email_verified": true, "groups": []any{"team-a", "admins"}}
 	e := &env{idp: idp}
 	mux := http.NewServeMux()
 	e.srv = httptest.NewServer(mux)
 	t.Cleanup(e.srv.Close)
-	cfg := &Config{InsecureCookies: insecure, OIDC: OIDCConfig{Issuer: idp.URL, ClientID: "chronicle", RedirectURL: e.srv.URL + "/auth/callback",
+	cfg := &Config{InsecureCookies: insecure, OIDC: OIDCConfig{Issuer: idp.Issuer, ClientID: "chronicle", RedirectURL: e.srv.URL + "/auth/callback",
 		ExtraAudiences: []string{"chronicle-cli"}}}
 	if err := cfg.complete(); err != nil {
 		t.Fatal(err)

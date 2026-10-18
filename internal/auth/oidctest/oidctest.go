@@ -7,6 +7,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"html"
 	"maps"
 	"net/http"
 	"net/http/httptest"
@@ -22,12 +24,18 @@ type Provider struct {
 	*httptest.Server
 	key *rsa.PrivateKey
 
+	// Issuer is the issuer URL: the server URL and the path of New.
+	Issuer string
+
 	mu sync.Mutex
 	// Claims are the claims of the next login.
 	Claims map[string]any
+	// Users are claims by user name. When it is not empty, the authorize endpoint shows a form to pick a user.
+	Users map[string]map[string]any
 	// WrongNonce makes the next ID tokens carry a wrong nonce.
 	WrongNonce bool
 	codes      map[string]grant
+	mux        *http.ServeMux
 }
 
 type grant struct {
@@ -35,31 +43,41 @@ type grant struct {
 	claims                     map[string]any
 }
 
-// New starts a provider. Close it after the test.
-func New() *Provider {
+// New starts a provider with the issuer at the server URL and the path, for example "/tenant/v2.0". Close it after the test.
+func New(path string) *Provider {
+	p := NewHandler(path)
+	p.Server = httptest.NewServer(p.mux)
+	p.Issuer = p.URL + path
+	return p
+}
+
+// NewHandler returns a provider without a server. Set Issuer, then serve Mux.
+func NewHandler(path string) *Provider {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		panic(err)
 	}
-	p := &Provider{key: key, codes: map[string]grant{}, Claims: map[string]any{}}
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /.well-known/openid-configuration", p.discovery)
-	mux.HandleFunc("GET /keys", p.keys)
-	mux.HandleFunc("GET /authorize", p.authorize)
-	mux.HandleFunc("POST /token", p.token)
-	p.Server = httptest.NewServer(mux)
+	p := &Provider{key: key, codes: map[string]grant{}, Claims: map[string]any{}, mux: http.NewServeMux()}
+	p.mux.HandleFunc("GET "+path+"/.well-known/openid-configuration", p.discovery)
+	p.mux.HandleFunc("GET "+path+"/keys", p.keys)
+	p.mux.HandleFunc("GET "+path+"/authorize", p.authorize)
+	p.mux.HandleFunc("POST "+path+"/authorize", p.authorize)
+	p.mux.HandleFunc("POST "+path+"/token", p.token)
 	return p
 }
 
+// Mux is the HTTP handler of the provider.
+func (p *Provider) Mux() *http.ServeMux { return p.mux }
+
 // Handle adds a handler to the provider, for example a mock Graph API.
 func (p *Provider) Handle(pattern string, h http.HandlerFunc) {
-	p.Config.Handler.(*http.ServeMux).HandleFunc(pattern, h)
+	p.mux.HandleFunc(pattern, h)
 }
 
 func (p *Provider) discovery(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, map[string]any{
-		"issuer": p.URL, "authorization_endpoint": p.URL + "/authorize", "token_endpoint": p.URL + "/token",
-		"jwks_uri": p.URL + "/keys", "id_token_signing_alg_values_supported": []string{"RS256"},
+		"issuer": p.Issuer, "authorization_endpoint": p.Issuer + "/authorize", "token_endpoint": p.Issuer + "/token",
+		"jwks_uri": p.Issuer + "/keys", "id_token_signing_alg_values_supported": []string{"RS256"},
 		"response_types_supported": []string{"code"}, "subject_types_supported": []string{"public"},
 	})
 }
@@ -74,9 +92,20 @@ func (p *Provider) authorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "PKCE with S256 is required", http.StatusBadRequest)
 		return
 	}
-	code := rand.Text()
 	p.mu.Lock()
-	p.codes[code] = grant{nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), clientID: q.Get("client_id"), claims: maps.Clone(p.Claims)}
+	claims := maps.Clone(p.Claims)
+	if len(p.Users) > 0 {
+		user, ok := p.Users[r.FormValue("user")]
+		if r.Method == http.MethodGet || !ok {
+			p.mu.Unlock()
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprintf(w, `<form method="post" action="%s"><input name="user"></form>`, html.EscapeString(r.URL.String()))
+			return
+		}
+		claims = maps.Clone(user)
+	}
+	code := rand.Text()
+	p.codes[code] = grant{nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), clientID: q.Get("client_id"), claims: claims}
 	p.mu.Unlock()
 	back, _ := url.Parse(q.Get("redirect_uri"))
 	v := back.Query()
@@ -110,7 +139,7 @@ func (p *Provider) token(w http.ResponseWriter, r *http.Request) {
 func (p *Provider) IDToken(claims map[string]any, audience string, ttl time.Duration) string {
 	c := maps.Clone(claims)
 	now := time.Now()
-	c["iss"], c["aud"], c["iat"], c["exp"] = p.URL, audience, now.Unix(), now.Add(ttl).Unix()
+	c["iss"], c["aud"], c["iat"], c["exp"] = p.Issuer, audience, now.Unix(), now.Add(ttl).Unix()
 	if _, ok := c["sub"]; !ok {
 		c["sub"] = "subject-1"
 	}

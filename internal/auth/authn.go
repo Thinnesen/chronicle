@@ -65,5 +65,10 @@ func (a bearerAuth) Authenticate(r *http.Request) (*Identity, error) {
 	if err := idt.Claims(&claims); err != nil {
 		return nil, fmt.Errorf("read the claims: %w", err)
 	}
+	if a.o.cfg.OIDC.Entra != nil {
+		if err := a.o.checkEntra(r.Context(), claims, ""); err != nil {
+			return nil, err
+		}
+	}
 	return identityFromClaims(claims, &a.o.cfg.OIDC)
 }

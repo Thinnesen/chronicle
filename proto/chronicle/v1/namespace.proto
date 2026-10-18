@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package chronicle.v1;
+
+option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1";
+
+// NamespaceService tells which namespaces the caller can use.
+service NamespaceService {
+  // ListNamespaces returns the namespaces where the caller can list Workflows. Each team sees only its own work.
+  rpc ListNamespaces(ListNamespacesRequest) returns (ListNamespacesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message ListNamespacesRequest {}
+
+message ListNamespacesResponse {
+  repeated NamespaceAccess namespaces = 1;
+}
+
+// NamespaceAccess is a namespace and what the caller can do in it.
+message NamespaceAccess {
+  string name = 1;
+  // can_submit is true when the caller can create Workflows in the namespace.
+  bool can_submit = 2;
+}

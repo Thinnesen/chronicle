@@ -1,4 +1,5 @@
-# The server acts for users only through impersonation, so it needs no other permission.
+# The server acts for users only through impersonation. Its own permission is to list namespace names,
+# which it filters with access reviews as the user.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -7,6 +8,9 @@ rules:
 - apiGroups: [""]
   resources: [users, groups]
   verbs: [impersonate]
+- apiGroups: [""]
+  resources: [namespaces]
+  verbs: [list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

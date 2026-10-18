@@ -38,8 +38,22 @@ type OIDCConfig struct {
 	ExtraAudiences []string `json:"extraAudiences,omitempty"`
 	// CAFile is a PEM file with the CA of the provider, when it is not in the system roots.
 	CAFile string `json:"caFile,omitempty"`
+	// Entra configures Microsoft Entra ID (Microsoft 365). Then the issuer comes from the tenant.
+	Entra *EntraConfig `json:"entra,omitempty"`
 
 	clientSecret string
+}
+
+// EntraConfig configures Microsoft Entra ID.
+type EntraConfig struct {
+	// TenantID is the only tenant that can log in.
+	TenantID string `json:"tenantID"`
+	// GroupsFrom is "groups" (security group object IDs, the default) or "roles" (app roles).
+	GroupsFrom string `json:"groupsFrom,omitempty"`
+	// Authority is the login host. The default is https://login.microsoftonline.com. Tests change it.
+	Authority string `json:"authority,omitempty"`
+	// GraphURL is the Microsoft Graph API. The default is https://graph.microsoft.com. Tests change it.
+	GraphURL string `json:"graphURL,omitempty"`
 }
 
 // SessionConfig configures the server-side sessions.
@@ -78,6 +92,11 @@ func LoadConfig(path string) (*Config, error) {
 
 func (c *Config) complete() error {
 	o := &c.OIDC
+	if e := o.Entra; e != nil {
+		if err := completeEntra(o, e); err != nil {
+			return err
+		}
+	}
 	if o.Issuer == "" || o.ClientID == "" || o.RedirectURL == "" {
 		return errors.New("oidc.issuer, oidc.clientID and oidc.redirectURL are required")
 	}
@@ -91,8 +110,8 @@ func (c *Config) complete() error {
 	if len(o.Scopes) == 0 {
 		o.Scopes = []string{"openid", "profile", "email", "groups"}
 	}
-	o.UsernameClaim = cmpOr(o.UsernameClaim, "email")
-	o.GroupsClaim = cmpOr(o.GroupsClaim, "groups")
+	o.UsernameClaim = cmpOr(o.UsernameClaim, claimEmail)
+	o.GroupsClaim = cmpOr(o.GroupsClaim, claimGroups)
 	o.UsernamePrefix = cmpOr(o.UsernamePrefix, "oidc:")
 	o.GroupsPrefix = cmpOr(o.GroupsPrefix, "oidc:")
 	if strings.HasPrefix(o.UsernamePrefix, "system:") || strings.HasPrefix(o.GroupsPrefix, "system:") {
@@ -103,6 +122,32 @@ func (c *Config) complete() error {
 	}
 	if c.Session.IdleTimeout.Duration == 0 {
 		c.Session.IdleTimeout.Duration = time.Hour
+	}
+	return nil
+}
+
+// completeEntra sets the Entra defaults: the tenant issuer, the oid user name and the entra prefixes.
+func completeEntra(o *OIDCConfig, e *EntraConfig) error {
+	if e.TenantID == "" || e.TenantID == "common" || e.TenantID == "organizations" {
+		return errors.New("oidc.entra.tenantID must be the ID of one tenant")
+	}
+	e.Authority = strings.TrimSuffix(cmpOr(e.Authority, "https://login.microsoftonline.com"), "/")
+	e.GraphURL = strings.TrimSuffix(cmpOr(e.GraphURL, "https://graph.microsoft.com"), "/")
+	e.GroupsFrom = cmpOr(e.GroupsFrom, claimGroups)
+	if e.GroupsFrom != claimGroups && e.GroupsFrom != "roles" {
+		return errors.New(`oidc.entra.groupsFrom must be "groups" or "roles"`)
+	}
+	o.Issuer = e.Authority + "/" + e.TenantID + "/v2.0"
+	o.UsernameClaim = cmpOr(o.UsernameClaim, "oid")
+	o.GroupsClaim = cmpOr(o.GroupsClaim, e.GroupsFrom)
+	o.UsernamePrefix = cmpOr(o.UsernamePrefix, "entra:")
+	if e.GroupsFrom == "roles" {
+		o.GroupsPrefix = cmpOr(o.GroupsPrefix, "entra:role:")
+	}
+	o.GroupsPrefix = cmpOr(o.GroupsPrefix, "entra:group:")
+	if len(o.Scopes) == 0 {
+		// User.Read gives an access token for Microsoft Graph, which the group overage needs.
+		o.Scopes = []string{"openid", "profile", "email", "User.Read"}
 	}
 	return nil
 }
