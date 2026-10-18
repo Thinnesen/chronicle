@@ -5,6 +5,7 @@ resources:
 - bases/chronicle.thinnesen.com_workflows.yaml
 - bases/chronicle.thinnesen.com_workflowtemplates.yaml
 - bases/chronicle.thinnesen.com_clusterworkflowtemplates.yaml
+- bases/chronicle.thinnesen.com_cronworkflows.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

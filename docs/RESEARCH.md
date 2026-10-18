@@ -36,6 +36,11 @@ What we do:
 - Temporal: `maximumAttempts` counts all attempts (the first attempt too). The interval is `initialInterval * backoffCoefficient^(attempt-1)`, capped at `maximumInterval`. An expiration time stops retries. Some error types are not retryable.
 - We use: the Argo field names (`retryStrategy.limit`, `backoff.duration`, `backoff.factor`, `backoff.maxDuration`, `retryPolicy`) for the drop-in goal, with Temporal semantics for the cap. Decided in #6: `limit` is required, because in Argo an unset limit retries without end. The default factor is 1 (a constant wait).
 
+## CronWorkflow (Argo `workflow/cron`, Kubernetes CronJob)
+
+- Argo keeps a `robfig/cron` scheduler in memory and runs a job at each time. The Kubernetes CronJob controller reconciles, finds the missed times and requeues.
+- We use the CronJob way (restart-safe, deterministic run names) and `robfig/cron/v3` only to parse and to compute the next time. Kubernetes uses the same module.
+
 ## UI (Hatchet, Temporal UI, Dagster, Kestra)
 
 - Hatchet (React): TanStack Router, Query and Table, Radix primitives, Tailwind, `reactflow` with `dagre` for the DAG, `cmdk` for a command palette, `cronstrue` for readable cron text, Monaco for YAML.

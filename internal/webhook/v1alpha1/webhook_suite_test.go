@@ -102,6 +102,9 @@ var _ = BeforeSuite(func() {
 	err = SetupClusterWorkflowTemplateWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = SetupCronWorkflowWebhookWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:webhook
 
 	go func() {

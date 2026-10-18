@@ -66,7 +66,12 @@ Validation: CEL rules and a validating webhook for the DAG (no cycles, known tem
 
 ### 3.4 CronWorkflow
 
-`schedules` (one or more cron expressions), `timezone`, `concurrencyPolicy` (Allow, Forbid, Replace), `startingDeadlineSeconds`, `successfulJobsHistoryLimit`, `failedJobsHistoryLimit`, `suspend`, `workflowSpec` or `workflowTemplateRef`.
+`schedules` (one or more cron expressions), `timezone`, `concurrencyPolicy` (Allow, Forbid, Replace), `startingDeadlineSeconds`, `successfulJobsHistoryLimit`, `failedJobsHistoryLimit`, `suspend`, `workflowMetadata`, `workflowSpec` (inline or `workflowTemplateRef`).
+
+- The controller reconciles and requeues at the next schedule time, like the Kubernetes CronJob. Argo runs an in-memory cron scheduler. A run has the name `<cron>-<unix time>`, so a second create of the same run fails and a restart loses no run.
+- After a long outage, only the latest missed time runs. The search for missed times stops after 1000 times.
+- Replace sets `shutdown: Terminate` on the active runs, so their history stays.
+- The pure package `internal/schedule` decides; the controller applies the plan.
 
 ## 4. Engine (package `internal/engine`, pure Go)
 

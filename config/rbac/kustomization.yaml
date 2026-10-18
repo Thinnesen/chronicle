@@ -22,6 +22,9 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the chronicle itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- cronworkflow_admin_role.yaml
+- cronworkflow_editor_role.yaml
+- cronworkflow_viewer_role.yaml
 - clusterworkflowtemplate_admin_role.yaml
 - clusterworkflowtemplate_editor_role.yaml
 - clusterworkflowtemplate_viewer_role.yaml

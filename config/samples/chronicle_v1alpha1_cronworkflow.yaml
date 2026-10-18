@@ -1,0 +1,18 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: CronWorkflow
+metadata:
+  labels:
+    app.kubernetes.io/name: chronicle
+    app.kubernetes.io/managed-by: kustomize
+  name: cronworkflow-sample
+spec:
+  schedules: ["0 3 * * *"]
+  timezone: Europe/Berlin
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: main
+    templates:
+    - name: main
+      container:
+        image: busybox:1.37
+        command: [echo, "nightly run of {{workflow.name}}"]

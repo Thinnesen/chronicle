@@ -17,8 +17,26 @@ rules:
 - apiGroups:
   - chronicle.thinnesen.com
   resources:
+  - cronworkflows
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - chronicle.thinnesen.com
+  resources:
+  - cronworkflows/status
+  - workflows/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - chronicle.thinnesen.com
+  resources:
   - workflows
   verbs:
+  - create
   - delete
   - get
   - list
@@ -30,12 +48,4 @@ rules:
   resources:
   - workflows/finalizers
   verbs:
-  - update
-- apiGroups:
-  - chronicle.thinnesen.com
-  resources:
-  - workflows/status
-  verbs:
-  - get
-  - patch
   - update

@@ -30,6 +30,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-chronicle-thinnesen-com-v1alpha1-cronworkflow
+  failurePolicy: Fail
+  name: vcronworkflow-v1alpha1.kb.io
+  rules:
+  - apiGroups:
+    - chronicle.thinnesen.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cronworkflows
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-chronicle-thinnesen-com-v1alpha1-workflow
   failurePolicy: Fail
   name: vworkflow-v1alpha1.kb.io

@@ -14,9 +14,13 @@ import (
 	"github.com/Thinnesen/chronicle/internal/manifest"
 )
 
-// Spec validates a workflow definition. When forWorkflow is true, each workflow parameter must have a value.
+// Spec validates a workflow definition at the path "spec". When forWorkflow is true, each workflow parameter must have a value.
 func Spec(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool) field.ErrorList {
-	path := field.NewPath("spec")
+	return SpecAt(spec, forWorkflow, field.NewPath("spec"))
+}
+
+// SpecAt validates a workflow definition at a path, for example "spec.workflowSpec" in a CronWorkflow.
+func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.Path) field.ErrorList {
 	c := &checker{templates: map[string]*v1alpha1.Template{}, globals: scope{}}
 	for i := range spec.Templates {
 		c.templates[spec.Templates[i].Name] = &spec.Templates[i]
