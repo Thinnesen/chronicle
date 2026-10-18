@@ -129,7 +129,10 @@ The controller applies the actions. This makes the engine testable with table te
 
 ## 6. Server, login and permissions
 
-- API: Connect-RPC from protobuf (`proto/`). gRPC for SDKs, HTTP/JSON for the UI and curl. `buf` generates the code (pinned).
+- API: Connect-RPC from protobuf (`proto/`). gRPC for SDKs, HTTP/JSON for the UI and curl. `buf` generates the code (pinned) into `gen/`, and CI checks that it is current.
+- API messages carry a Workflow as a JSON object (`google.protobuf.Struct`) and use typed summaries for lists. The CRD types stay the one definition of a workflow. The SDKs generate their workflow types from the CRD schema; the API clients come from the protobuf files.
+- Every API call needs an authenticated identity. The server calls Kubernetes with impersonation of that identity for all user actions, reads too. There is no unauthenticated mode and no fallback to the permissions of the server.
+- The server can impersonate users and groups. So an identity provider must never give a user a Kubernetes system name: the claim mapping always adds a prefix (`oidc:`, `entra:`) to user and group names, and the server rejects names that start with `system:`.
 - Login (UI): OIDC authorization code flow with PKCE (any OIDC provider: Dex, Keycloak, Okta, Google, GitHub through Dex). Session cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, short life, server-side session store. CSRF protection for state-changing calls.
 - Login (CLI and SDK): OIDC device flow, or a Kubernetes service account token (TokenReview).
 - Permissions: the server checks each request with a Kubernetes SubjectAccessReview for the user and the user groups (from OIDC claims, with a configurable claim mapping). Writes use impersonation. So the RBAC for the UI is the same RBAC as for `kubectl` and GitOps.

@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+// The chronicle API. The server checks each call with the Kubernetes RBAC of the caller.
+package chronicle.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1";
+
+// WorkflowService lists, gets, submits and controls workflow runs.
+service WorkflowService {
+  // ListWorkflows returns the runs in a namespace, newest first.
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // GetWorkflow returns one run with its full object.
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // SubmitWorkflow creates a run from a Workflow object or from a template.
+  rpc SubmitWorkflow(SubmitWorkflowRequest) returns (SubmitWorkflowResponse);
+  // SuspendWorkflow pauses a run: no new node starts.
+  rpc SuspendWorkflow(SuspendWorkflowRequest) returns (SuspendWorkflowResponse);
+  // ResumeWorkflow continues a paused run.
+  rpc ResumeWorkflow(ResumeWorkflowRequest) returns (ResumeWorkflowResponse);
+  // StopWorkflow fails the running nodes and runs the exit handler.
+  rpc StopWorkflow(StopWorkflowRequest) returns (StopWorkflowResponse);
+  // TerminateWorkflow fails the running nodes without the exit handler.
+  rpc TerminateWorkflow(TerminateWorkflowRequest) returns (TerminateWorkflowResponse);
+  // ApproveNode approves or rejects a suspend node.
+  rpc ApproveNode(ApproveNodeRequest) returns (ApproveNodeResponse);
+  // DeleteWorkflow deletes a run and its Pods.
+  rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse);
+}
+
+// WorkflowSummary is the short form of a run, for lists.
+message WorkflowSummary {
+  string namespace = 1;
+  string name = 2;
+  string uid = 3;
+  // phase is Pending, Running, Succeeded, Failed, Error or Suspended. It is empty before the first reconcile.
+  string phase = 4;
+  string message = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp finished_at = 8;
+  map<string, string> labels = 9;
+  // template is the name of the referenced WorkflowTemplate or ClusterWorkflowTemplate, if any.
+  string template = 10;
+  // nodes_done and nodes_total count the Pod, suspend and resource nodes, for a progress bar.
+  int32 nodes_done = 11;
+  int32 nodes_total = 12;
+}
+
+message ListWorkflowsRequest {
+  string namespace = 1;
+  // label_selector is a Kubernetes label selector, for example "team=a".
+  string label_selector = 2;
+  // phases keeps only runs in these phases. Empty keeps all.
+  repeated string phases = 3;
+  // limit is the page size. The default and the maximum are 500.
+  int32 limit = 4;
+  // page_token is the next_page_token of the previous page.
+  string page_token = 5;
+}
+
+message ListWorkflowsResponse {
+  repeated WorkflowSummary workflows = 1;
+  string next_page_token = 2;
+}
+
+message GetWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message GetWorkflowResponse {
+  WorkflowSummary summary = 1;
+  // workflow is the full Workflow object as JSON (apiVersion, kind, metadata, spec, status).
+  google.protobuf.Struct workflow = 2;
+}
+
+message SubmitWorkflowRequest {
+  string namespace = 1;
+  oneof source {
+    // workflow is a Workflow object as JSON. The namespace field of the request wins.
+    google.protobuf.Struct workflow = 2;
+    // template starts a run of a WorkflowTemplate or a ClusterWorkflowTemplate.
+    TemplateSource template = 3;
+  }
+  // parameters set workflow parameters by name.
+  map<string, string> parameters = 4;
+  // labels are added to the run.
+  map<string, string> labels = 5;
+}
+
+// TemplateSource names a WorkflowTemplate or a ClusterWorkflowTemplate.
+message TemplateSource {
+  string name = 1;
+  bool cluster_scope = 2;
+  // generate_name is the prefix of the run name. The default is the template name and a dash.
+  string generate_name = 3;
+}
+
+message SubmitWorkflowResponse {
+  WorkflowSummary summary = 1;
+}
+
+message SuspendWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message SuspendWorkflowResponse {
+  WorkflowSummary summary = 1;
+}
+
+message ResumeWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message ResumeWorkflowResponse {
+  WorkflowSummary summary = 1;
+}
+
+message StopWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message StopWorkflowResponse {
+  WorkflowSummary summary = 1;
+}
+
+message TerminateWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message TerminateWorkflowResponse {
+  WorkflowSummary summary = 1;
+}
+
+message ApproveNodeRequest {
+  string namespace = 1;
+  string name = 2;
+  // node is the ID or the name of the suspend node.
+  string node = 3;
+  // approve is true to approve and false to reject.
+  bool approve = 4;
+  // parameters give values to the output parameters of the suspend template.
+  map<string, string> parameters = 5;
+  string message = 6;
+}
+
+message ApproveNodeResponse {
+  WorkflowSummary summary = 1;
+}
+
+message DeleteWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message DeleteWorkflowResponse {}

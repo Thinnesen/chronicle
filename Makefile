@@ -51,6 +51,12 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	"$(CONTROLLER_GEN)" object paths="./..."
 
+.PHONY: proto
+proto: buf protoc-gen-go protoc-gen-connect-go ## Lint the protobuf API and generate the Go code in gen/.
+	"$(BUF)" lint proto
+	"$(BUF)" format -w proto
+	"$(BUF)" generate
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -204,6 +210,8 @@ GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 BUF ?= $(LOCALBIN)/buf
 ACTIONLINT ?= $(LOCALBIN)/actionlint
 HELM ?= $(LOCALBIN)/helm
+PROTOC_GEN_GO ?= $(LOCALBIN)/protoc-gen-go
+PROTOC_GEN_CONNECT_GO ?= $(LOCALBIN)/protoc-gen-connect-go
 
 ## Tool Versions
 # Go tools install with "go install" at a pinned version. GOSUMDB checks their hashes.
@@ -214,6 +222,9 @@ GOVULNCHECK_VERSION ?= v1.9.0
 KIND_VERSION ?= v0.33.0
 BUF_VERSION ?= v1.74.0
 ACTIONLINT_VERSION ?= v1.7.12
+# The code generators use the versions of the runtime modules in go.mod.
+PROTOC_GEN_GO_VERSION ?= $(call gomodver,google.golang.org/protobuf)
+PROTOC_GEN_CONNECT_GO_VERSION ?= $(call gomodver,connectrpc.com/connect)
 KUBECTL_VERSION ?= v1.37.1
 KUBECTL_SHA256_amd64 = 65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8
 KUBECTL_SHA256_arm64 = ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3286c8c7
@@ -284,6 +295,16 @@ $(BUF): $(LOCALBIN)
 actionlint: $(ACTIONLINT) ## Download actionlint locally if necessary.
 $(ACTIONLINT): $(LOCALBIN)
 	$(call go-install-tool,$(ACTIONLINT),github.com/rhysd/actionlint/cmd/actionlint,$(ACTIONLINT_VERSION))
+
+.PHONY: protoc-gen-go
+protoc-gen-go: $(PROTOC_GEN_GO) ## Download protoc-gen-go locally if necessary.
+$(PROTOC_GEN_GO): $(LOCALBIN)
+	$(call go-install-tool,$(PROTOC_GEN_GO),google.golang.org/protobuf/cmd/protoc-gen-go,$(PROTOC_GEN_GO_VERSION))
+
+.PHONY: protoc-gen-connect-go
+protoc-gen-connect-go: $(PROTOC_GEN_CONNECT_GO) ## Download protoc-gen-connect-go locally if necessary.
+$(PROTOC_GEN_CONNECT_GO): $(LOCALBIN)
+	$(call go-install-tool,$(PROTOC_GEN_CONNECT_GO),connectrpc.com/connect/cmd/protoc-gen-connect-go,$(PROTOC_GEN_CONNECT_GO_VERSION))
 
 .PHONY: kubectl
 kubectl: $(KUBECTL) ## Download kubectl locally if necessary.

@@ -2,6 +2,9 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-18: The API carries Workflows as JSON objects (`google.protobuf.Struct`), not as protobuf copies of the CRD types. SDK workflow types come from the CRD schema. Reason: one definition of a workflow (the Go types and the CRD). Section 2 said "SDKs generated from the protobuf API"; now only the API clients are.
+- 2026-10-18: The server impersonates the caller for every Kubernetes call, reads included, and has no unauthenticated mode. Reason: the threat model (no server-side privilege for user actions). The cost is one API client per request.
+
 - 2026-10-18: Resource templates run in a Pod with the workflow service account, not in the controller and not with impersonation. Reason: the controller then needs no `impersonate` permission, and a step can do only what its service account can do. Manifests are parsed before substitution, so parameters cannot inject YAML.
 
 - 2026-10-18: Suspend, stop, terminate and approvals are fields of the Workflow spec (`suspend`, `shutdown`, `approvals`). Reason: one mechanism for kubectl, GitOps, the CLI and the UI, with the same RBAC (`update` on Workflows). Argo uses spec fields for suspend and shutdown, but node changes through its own API for resume and approval.
