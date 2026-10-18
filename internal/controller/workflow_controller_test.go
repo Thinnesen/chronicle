@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -30,7 +31,7 @@ var _ = Describe("Workflow Controller", func() {
 		wf := &chroniclev1alpha1.Workflow{Name: "wf-" + rand.String(6), Namespace: "default"}
 		Expect(yaml.UnmarshalStrict([]byte(spec), &wf.Spec)).To(Succeed())
 		Expect(k8sClient.Create(ctx, wf)).To(Succeed())
-		DeferCleanup(k8sClient.Delete, ctx, wf)
+		DeferCleanup(func() error { return client.IgnoreNotFound(k8sClient.Delete(ctx, wf)) })
 		return types.NamespacedName{Name: wf.Name, Namespace: wf.Namespace}
 	}
 
@@ -153,6 +154,17 @@ templates:
 		Expect(string(spec.Manifest)).To(Equal(`{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"cfg"}}`))
 		Expect(spec.Owner.UID).To(Equal(wf.UID))
 		Expect(spec.Outputs).To(HaveLen(1))
+	})
+
+	It("deletes a finished workflow after its TTL", func() {
+		key := create("entrypoint: c\nttlStrategy: {secondsAfterCompletion: 0}\npodGC: {strategy: OnPodCompletion}\ntemplates:\n- {name: c, container: {image: alpine, command: ['true']}}")
+		wf := reconcileOnce(key)
+		pod := pods(wf)[0]
+		finish(&pod, 0, executor.Message{})
+		_, err := r().Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, key, &chroniclev1alpha1.Workflow{}))).To(BeTrue())
+		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(&pod), &corev1.Pod{}))).To(BeTrue())
 	})
 
 	It("runs a container without a command directly", func() {

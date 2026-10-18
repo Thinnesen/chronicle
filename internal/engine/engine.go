@@ -78,31 +78,37 @@ func (DeletePod) isAction() {}
 // Run runs one step of the engine. The same input always gives the same result.
 func Run(in Input) Result {
 	status := *in.Status.DeepCopy()
-	if isFinished(status.Phase) {
-		return Result{Status: status}
-	}
-	if status.StartedAt == nil {
-		status.StartedAt = &in.Now
-	}
-	if errs := validate.Spec(in.Spec, true); len(errs) > 0 {
-		finish(&status, v1alpha1.WorkflowError, "invalid spec: "+errs.ToAggregate().Error(), in.Now)
-		return Result{Status: status}
-	}
 	if status.Nodes == nil {
 		status.Nodes = map[string]v1alpha1.NodeStatus{}
 	}
 	e := newEngine(&in, status.Nodes)
+	if !isFinished(status.Phase) {
+		e.step(&status)
+	}
+	e.actions = append(e.actions, e.gc(&status)...)
+	return Result{Status: status, Actions: e.actions, RequeueAfter: e.requeueAfter()}
+}
+
+// step runs the workflow once and sets its phase.
+func (e *engine) step(status *v1alpha1.WorkflowStatus) {
+	now := e.in.Now
+	if status.StartedAt == nil {
+		status.StartedAt = &now
+	}
+	if errs := validate.Spec(e.in.Spec, true); len(errs) > 0 {
+		finish(status, v1alpha1.WorkflowError, "invalid spec: "+errs.ToAggregate().Error(), now)
+		return
+	}
 	e.startedAt = status.StartedAt.Time
 	phase, msg := e.runWorkflow()
 	switch {
-	case phase == v1alpha1.NodeRunning && in.Suspend:
+	case phase == v1alpha1.NodeRunning && e.in.Suspend:
 		status.Phase = v1alpha1.WorkflowSuspended
 	case phase == v1alpha1.NodeRunning:
 		status.Phase = v1alpha1.WorkflowRunning
 	default:
-		finish(&status, workflowPhase(phase), msg, in.Now)
+		finish(status, workflowPhase(phase), msg, now)
 	}
-	return Result{Status: status, Actions: e.actions, RequeueAfter: e.requeueAfter()}
 }
 
 // runWorkflow runs the entrypoint, the deadline and the exit handler. It returns Running until all are done.

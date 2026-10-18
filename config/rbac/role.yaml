@@ -19,6 +19,7 @@ rules:
   resources:
   - workflows
   verbs:
+  - delete
   - get
   - list
   - patch

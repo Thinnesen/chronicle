@@ -102,6 +102,7 @@ The controller applies the actions. This makes the engine testable with table te
 - The termination message has a limit of 4 KiB. A larger standard output is not a result. Larger output parameters fail the node: use an artifact.
 - A container template without a command runs without the executor. It has no result and no output files.
 - A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects (Argo substitutes text before it parses the YAML).
+- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on (#25).
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
 ## 5. Re-run, retry and history

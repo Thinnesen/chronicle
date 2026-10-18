@@ -26,7 +26,7 @@ type WorkflowReconciler struct {
 	ExecutorImage string
 }
 
-// +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;delete
@@ -58,7 +58,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
 	if equality.Semantic.DeepEqual(wf.Status, res.Status) {
-		return result, nil
+		return r.applyTTL(ctx, &wf, result)
 	}
 	if res.Status.Phase != wf.Status.Phase {
 		log.Info("Workflow phase changed", "phase", res.Status.Phase)
@@ -71,7 +71,26 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		return ctrl.Result{}, fmt.Errorf("update the workflow status: %w", err)
 	}
-	return result, nil
+	return r.applyTTL(ctx, &wf, result)
+}
+
+// applyTTL deletes a finished workflow when its TTL is over, or runs again when it will be over.
+func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1.Workflow, result ctrl.Result) (ctrl.Result, error) {
+	when, ok := engine.TTL(&wf.Spec.WorkflowTemplateSpec, wf.Status)
+	if !ok {
+		return result, nil
+	}
+	if wait := time.Until(when); wait > 0 {
+		if result.RequeueAfter == 0 || wait < result.RequeueAfter {
+			result.RequeueAfter = wait
+		}
+		return result, nil
+	}
+	logf.FromContext(ctx).Info("Deleting the workflow after its TTL")
+	if err := r.Delete(ctx, wf, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+		return ctrl.Result{}, fmt.Errorf("delete the workflow after its TTL: %w", err)
+	}
+	return ctrl.Result{}, nil
 }
 
 // observePods returns the state of the Pods of a workflow by node ID.

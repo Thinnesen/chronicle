@@ -33,10 +33,59 @@ type WorkflowTemplateSpec struct {
 	// +optional
 	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 
+	// podGC deletes the Pods of finished nodes. Without it, the Pods stay until the Workflow is deleted.
+	// +optional
+	PodGC *PodGC `json:"podGC,omitempty"`
+
+	// ttlStrategy deletes the Workflow some time after it finished.
+	// +optional
+	TTLStrategy *TTLStrategy `json:"ttlStrategy,omitempty"`
+
 	// serviceAccountName is the service account of the workflow Pods.
 	// +kubebuilder:validation:MaxLength=253
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+}
+
+// PodGCStrategy tells when to delete Pods.
+// +kubebuilder:validation:Enum=OnPodCompletion;OnPodSuccess;OnWorkflowCompletion;OnWorkflowSuccess
+type PodGCStrategy string
+
+// The Pod GC strategies.
+const (
+	PodGCOnPodCompletion      PodGCStrategy = "OnPodCompletion"
+	PodGCOnPodSuccess         PodGCStrategy = "OnPodSuccess"
+	PodGCOnWorkflowCompletion PodGCStrategy = "OnWorkflowCompletion"
+	PodGCOnWorkflowSuccess    PodGCStrategy = "OnWorkflowSuccess"
+)
+
+// PodGC deletes the Pods of finished nodes.
+type PodGC struct {
+	// strategy tells when to delete Pods.
+	// +required
+	Strategy PodGCStrategy `json:"strategy"`
+
+	// deleteDelayDuration is the wait before a Pod is deleted, for example "10m".
+	// +optional
+	DeleteDelayDuration *metav1.Duration `json:"deleteDelayDuration,omitempty"`
+}
+
+// TTLStrategy deletes a finished Workflow. The most specific field wins.
+type TTLStrategy struct {
+	// secondsAfterCompletion applies to all finished workflows.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	SecondsAfterCompletion *int32 `json:"secondsAfterCompletion,omitempty"`
+
+	// secondsAfterSuccess applies to workflows that succeeded.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	SecondsAfterSuccess *int32 `json:"secondsAfterSuccess,omitempty"`
+
+	// secondsAfterFailure applies to workflows that failed or had an error.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	SecondsAfterFailure *int32 `json:"secondsAfterFailure,omitempty"`
 }
 
 // +kubebuilder:object:root=true

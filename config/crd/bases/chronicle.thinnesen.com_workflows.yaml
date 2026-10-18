@@ -220,6 +220,25 @@ spec:
                   workflow, also when it failed. It can use "{{workflow.status}}".
                 maxLength: 128
                 type: string
+              podGC:
+                description: podGC deletes the Pods of finished nodes. Without it,
+                  the Pods stay until the Workflow is deleted.
+                properties:
+                  deleteDelayDuration:
+                    description: deleteDelayDuration is the wait before a Pod is deleted,
+                      for example "10m".
+                    type: string
+                  strategy:
+                    description: strategy tells when to delete Pods.
+                    enum:
+                    - OnPodCompletion
+                    - OnPodSuccess
+                    - OnWorkflowCompletion
+                    - OnWorkflowSuccess
+                    type: string
+                required:
+                - strategy
+                type: object
               serviceAccountName:
                 description: serviceAccountName is the service account of the workflow
                   Pods.
@@ -1354,6 +1373,26 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
+              ttlStrategy:
+                description: ttlStrategy deletes the Workflow some time after it finished.
+                properties:
+                  secondsAfterCompletion:
+                    description: secondsAfterCompletion applies to all finished workflows.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  secondsAfterFailure:
+                    description: secondsAfterFailure applies to workflows that failed
+                      or had an error.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  secondsAfterSuccess:
+                    description: secondsAfterSuccess applies to workflows that succeeded.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
               workflowTemplateRef:
                 description: workflowTemplateRef refers to a WorkflowTemplate or a
                   ClusterWorkflowTemplate.
