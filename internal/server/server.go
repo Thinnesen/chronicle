@@ -41,6 +41,10 @@ func NewHandler(opts Options) (http.Handler, error) {
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
+	path, h = chroniclev1connect.NewTemplateServiceHandler(&templateService{clients: clients}, limit)
+	mux.Handle(path, authenticate(opts.Authenticators, h))
+	path, h = chroniclev1connect.NewCronServiceHandler(&cronService{clients: clients}, limit)
+	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewNamespaceServiceHandler(&namespaceService{clients: clients, own: own, cache: map[string]cachedAccess{}}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	return mux, nil

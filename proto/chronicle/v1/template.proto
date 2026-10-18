@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package chronicle.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1";
+
+// TemplateService lists and reads WorkflowTemplates and ClusterWorkflowTemplates.
+service TemplateService {
+  // ListTemplates returns the WorkflowTemplates of a namespace and the ClusterWorkflowTemplates that the caller can read.
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // GetTemplate returns one template with its full object.
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// CronService lists, reads, suspends and resumes CronWorkflows.
+service CronService {
+  rpc ListCronWorkflows(ListCronWorkflowsRequest) returns (ListCronWorkflowsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc GetCronWorkflow(GetCronWorkflowRequest) returns (GetCronWorkflowResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // SuspendCronWorkflow stops new runs. It is refused for a CronWorkflow that a GitOps tool manages.
+  rpc SuspendCronWorkflow(SuspendCronWorkflowRequest) returns (SuspendCronWorkflowResponse);
+  // ResumeCronWorkflow starts new runs again. It is refused for a CronWorkflow that a GitOps tool manages.
+  rpc ResumeCronWorkflow(ResumeCronWorkflowRequest) returns (ResumeCronWorkflowResponse);
+}
+
+// TemplateParameter is a workflow parameter of a template, for a run form.
+message TemplateParameter {
+  string name = 1;
+  string default = 2;
+  bool has_default = 3;
+  repeated string enum = 4;
+  string description = 5;
+}
+
+message TemplateSummary {
+  string namespace = 1;
+  string name = 2;
+  bool cluster_scope = 3;
+  // description is the annotation chronicle.thinnesen.com/description.
+  string description = 4;
+  string entrypoint = 5;
+  repeated TemplateParameter parameters = 6;
+  // managed_by is "Argo CD" or "Flux" when a GitOps tool manages the object, else empty.
+  string managed_by = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ListTemplatesRequest {
+  string namespace = 1;
+}
+
+message ListTemplatesResponse {
+  repeated TemplateSummary templates = 1;
+}
+
+message GetTemplateRequest {
+  string namespace = 1;
+  string name = 2;
+  bool cluster_scope = 3;
+}
+
+message GetTemplateResponse {
+  TemplateSummary summary = 1;
+  google.protobuf.Struct template = 2;
+}
+
+message CronSummary {
+  string namespace = 1;
+  string name = 2;
+  repeated string schedules = 3;
+  string timezone = 4;
+  bool suspend = 5;
+  string concurrency_policy = 6;
+  google.protobuf.Timestamp last_scheduled_at = 7;
+  google.protobuf.Timestamp next_scheduled_at = 8;
+  int32 active = 9;
+  // template is the referenced WorkflowTemplate, if any.
+  string template = 10;
+  string managed_by = 11;
+  string description = 12;
+}
+
+message ListCronWorkflowsRequest {
+  string namespace = 1;
+}
+
+message ListCronWorkflowsResponse {
+  repeated CronSummary cron_workflows = 1;
+}
+
+message GetCronWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message GetCronWorkflowResponse {
+  CronSummary summary = 1;
+  google.protobuf.Struct cron_workflow = 2;
+}
+
+message SuspendCronWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message SuspendCronWorkflowResponse {
+  CronSummary summary = 1;
+}
+
+message ResumeCronWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message ResumeCronWorkflowResponse {
+  CronSummary summary = 1;
+}
