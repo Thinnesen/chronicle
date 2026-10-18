@@ -3,39 +3,16 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
 	"connectrpc.com/connect"
+
+	"github.com/Thinnesen/chronicle/internal/auth"
 )
 
-// Identity is an authenticated caller, mapped to a Kubernetes user and groups.
-type Identity struct {
-	User   string
-	Groups []string
-}
-
-// Authenticator finds the identity of an HTTP request. It returns nil and no error when the request has no credentials.
-type Authenticator interface {
-	Authenticate(r *http.Request) (*Identity, error)
-}
-
-type identityKey struct{}
-
-// WithIdentity returns a context with the identity.
-func WithIdentity(ctx context.Context, id *Identity) context.Context {
-	return context.WithValue(ctx, identityKey{}, id)
-}
-
-// IdentityFrom returns the identity of the context, or nil.
-func IdentityFrom(ctx context.Context) *Identity {
-	id, _ := ctx.Value(identityKey{}).(*Identity)
-	return id
-}
-
 // authenticate wraps a handler. It puts the identity of each request in the context, or answers 401.
-func authenticate(authn []Authenticator, next http.Handler) http.Handler {
+func authenticate(authn []auth.Authenticator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, a := range authn {
 			id, err := a.Authenticate(r)
@@ -44,7 +21,7 @@ func authenticate(authn []Authenticator, next http.Handler) http.Handler {
 				return
 			}
 			if id != nil {
-				next.ServeHTTP(w, r.WithContext(WithIdentity(r.Context(), id)))
+				next.ServeHTTP(w, r.WithContext(auth.WithIdentity(r.Context(), id)))
 				return
 			}
 		}

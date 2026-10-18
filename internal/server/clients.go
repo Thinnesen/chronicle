@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"connectrpc.com/connect"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -12,6 +14,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	"github.com/Thinnesen/chronicle/internal/auth"
 )
 
 // clientFactory makes Kubernetes clients that impersonate the caller.
@@ -36,9 +40,13 @@ func newClientFactory(cfg *rest.Config, scheme *runtime.Scheme) (*clientFactory,
 
 // clientFor returns a client that impersonates the identity of the context.
 func (f *clientFactory) clientFor(ctx context.Context) (client.Client, error) {
-	id := IdentityFrom(ctx)
+	id := auth.IdentityFrom(ctx)
 	if id == nil || id.User == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("log in first"))
+	}
+	// A second check after the claim mapping: the server never impersonates a Kubernetes system name.
+	if isSystem(id.User) || slices.ContainsFunc(id.Groups, isSystem) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("system names cannot be used"))
 	}
 	cfg := rest.CopyConfig(f.cfg)
 	cfg.Impersonate = rest.ImpersonationConfig{UserName: id.User, Groups: id.Groups}
@@ -48,6 +56,8 @@ func (f *clientFactory) clientFor(ctx context.Context) (client.Client, error) {
 	}
 	return client.New(cfg, client.Options{Scheme: f.scheme, Mapper: f.mapper, HTTPClient: hc})
 }
+
+func isSystem(name string) bool { return strings.HasPrefix(name, "system:") }
 
 func newMapper(cfg *rest.Config, hc *http.Client) (meta.RESTMapper, error) {
 	m, err := apiutil.NewDynamicRESTMapper(cfg, hc)

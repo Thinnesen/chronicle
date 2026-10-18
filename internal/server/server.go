@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
+	"github.com/Thinnesen/chronicle/internal/auth"
 )
 
 // Options configure the server.
@@ -17,7 +18,7 @@ type Options struct {
 	Config *rest.Config
 	Scheme *runtime.Scheme
 	// Authenticators find the identity of a request, in order.
-	Authenticators []Authenticator
+	Authenticators []auth.Authenticator
 }
 
 // NewHandler returns the HTTP handler of the API.

@@ -24,6 +24,7 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
+	"github.com/Thinnesen/chronicle/internal/auth"
 )
 
 var (
@@ -54,9 +55,9 @@ func TestMain(m *testing.M) {
 // headerAuth is a test authenticator: the user is in the X-Test-User header.
 type headerAuth struct{}
 
-func (headerAuth) Authenticate(r *http.Request) (*Identity, error) {
+func (headerAuth) Authenticate(r *http.Request) (*auth.Identity, error) {
 	if u := r.Header.Get("X-Test-User"); u != "" {
-		return &Identity{User: u, Groups: []string{"test:users"}}, nil
+		return &auth.Identity{User: u, Groups: []string{"test:users", r.Header.Get("X-Test-Group")}}, nil
 	}
 	return nil, nil
 }
@@ -77,13 +78,19 @@ func setup(t *testing.T) *httptest.Server {
 		&rbacv1.RoleBinding{Name: "alice", Namespace: "team-a",
 			RoleRef:  rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "Role", Name: "edit"},
 			Subjects: []rbacv1.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: "alice"}}},
+		&rbacv1.Role{Name: "view", Namespace: "team-a", Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{"chronicle.thinnesen.com"}, Resources: []string{"workflows"}, Verbs: []string{"get", "list"},
+		}}},
+		&rbacv1.RoleBinding{Name: "viewers", Namespace: "team-a",
+			RoleRef:  rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "Role", Name: "view"},
+			Subjects: []rbacv1.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "Group", Name: "oidc:viewers"}}},
 	}
 	for _, o := range objs {
 		if err := admin.Create(ctx, o); client.IgnoreAlreadyExists(err) != nil {
 			t.Fatal(err)
 		}
 	}
-	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []Authenticator{headerAuth{}}})
+	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,10 +102,15 @@ func setup(t *testing.T) *httptest.Server {
 }
 
 func newClient(srv *httptest.Server, user string, opts ...connect.ClientOption) chroniclev1connect.WorkflowServiceClient {
+	return newGroupClient(srv, user, "", opts...)
+}
+
+func newGroupClient(srv *httptest.Server, user, group string, opts ...connect.ClientOption) chroniclev1connect.WorkflowServiceClient {
 	opts = append(opts, connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			if user != "" {
 				req.Header().Set("X-Test-User", user)
+				req.Header().Set("X-Test-Group", group)
 			}
 			return next(ctx, req)
 		}
@@ -106,7 +118,13 @@ func newClient(srv *httptest.Server, user string, opts ...connect.ClientOption) 
 	return chroniclev1connect.NewWorkflowServiceClient(srv.Client(), srv.URL, opts...)
 }
 
+// noError is the code of a call without an error. Connect codes start at 1.
+const noError connect.Code = 0
+
 func code(err error) connect.Code {
+	if err == nil {
+		return noError
+	}
 	if ce, ok := errors.AsType[*connect.Error](err); ok {
 		return ce.Code()
 	}
@@ -212,6 +230,15 @@ func TestWorkflowServiceErrors(t *testing.T) {
 			_, err := newClient(srv, "bob").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a"}))
 			return err
 		}, connect.CodePermissionDenied},
+		{"a viewer group cannot submit", func() error {
+			_, err := newGroupClient(srv, "carol", "oidc:viewers").SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
+				Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: "t"}}}))
+			return err
+		}, connect.CodePermissionDenied},
+		{"a viewer group can list", func() error {
+			_, err := newGroupClient(srv, "carol", "oidc:viewers").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a"}))
+			return err
+		}, noError},
 		{"other namespace", func() error {
 			_, err := newClient(srv, "alice").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "default"}))
 			return err
@@ -236,6 +263,10 @@ func TestWorkflowServiceErrors(t *testing.T) {
 			_, err := newClient(srv, "alice").GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "nope"}))
 			return err
 		}, connect.CodeNotFound},
+		{"system user", func() error {
+			_, err := newClient(srv, "system:admin").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a"}))
+			return err
+		}, connect.CodePermissionDenied},
 		{"bad page token", func() error {
 			_, err := newClient(srv, "alice").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a", PageToken: "x"}))
 			return err

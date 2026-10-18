@@ -18,12 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/auth"
 	"github.com/Thinnesen/chronicle/internal/server"
 )
 
 func main() {
-	var listen string
+	var listen, authConfig string
 	flag.StringVar(&listen, "listen", ":8080", "The address of the API. TLS ends at the ingress or the service mesh.")
+	flag.StringVar(&authConfig, "auth-config", "", "The login configuration file. Without it, the API refuses all calls.")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -34,12 +36,24 @@ func main() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(chroniclev1alpha1.AddToScheme(scheme))
 
-	api, err := server.NewHandler(server.Options{Config: ctrl.GetConfigOrDie(), Scheme: scheme})
+	mux := http.NewServeMux()
+	var authn []auth.Authenticator
+	if authConfig != "" {
+		login, err := newLogin(authConfig)
+		if err != nil {
+			log.Error(err, "Failed to set up the login")
+			os.Exit(1)
+		}
+		mux.Handle("/auth/", login.Handler())
+		authn = []auth.Authenticator{login.SessionAuthenticator(), login.BearerAuthenticator()}
+	} else {
+		log.Info("No login configuration: the API refuses all calls")
+	}
+	api, err := server.NewHandler(server.Options{Config: ctrl.GetConfigOrDie(), Scheme: scheme, Authenticators: authn})
 	if err != nil {
 		log.Error(err, "Failed to create the API")
 		os.Exit(1)
 	}
-	mux := http.NewServeMux()
 	mux.Handle("/", api)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 
@@ -68,4 +82,14 @@ func main() {
 		log.Error(err, "The server stopped")
 		os.Exit(1)
 	}
+}
+
+func newLogin(path string) (*auth.OIDC, error) {
+	cfg, err := auth.LoadConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	return auth.NewOIDC(ctx, cfg, auth.NewMemoryStore(cfg.Session.TTL.Duration, cfg.Session.IdleTimeout.Duration))
 }
