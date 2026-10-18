@@ -55,6 +55,19 @@ func workflowSpecs() {
 			Eventually(phaseOf("approval")).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Equal("Succeeded"))
 		})
 
+		It("starts a CronWorkflow run from a WorkflowTemplate", func() {
+			_, err := utils.Run(exec.Command("kubectl", "apply", "-n", workflowNamespace, "-f", "test/e2e/testdata/cron.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func(g Gomega) {
+				out, err := utils.Run(exec.Command("kubectl", "get", "workflows", "-n", workflowNamespace,
+					"-l", "chronicle.thinnesen.com/cron-workflow=every-minute", "-o", "jsonpath={.items[*].status.phase}"))
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(ContainSubstring("Succeeded"))
+			}).WithTimeout(4 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			_, err = utils.Run(exec.Command("kubectl", "delete", "cronworkflow", "every-minute", "-n", workflowNamespace))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		DescribeTable("run to the expected phase",
 			func(file, name, phase, message string) {
 				_, err := utils.Run(exec.Command("kubectl", "apply", "-n", workflowNamespace, "-f", "test/e2e/testdata/"+file))

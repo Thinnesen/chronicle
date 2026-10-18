@@ -1,0 +1,55 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: greet
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+    - name: who
+      value: nobody
+  templates:
+  - name: main
+    steps:
+    - - name: hello
+        templateRef:
+          name: library
+          template: say
+        arguments:
+          parameters:
+          - name: text
+            value: "hello {{workflow.parameters.who}}"
+---
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: library
+spec:
+  entrypoint: say
+  arguments:
+    parameters:
+    - name: text
+      value: unused
+  templates:
+  - name: say
+    inputs:
+      parameters:
+      - name: text
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: [echo, "{{inputs.parameters.text}}"]
+---
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: every-minute
+spec:
+  schedules: ["* * * * *"]
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    workflowTemplateRef:
+      name: greet
+    arguments:
+      parameters:
+      - name: who
+        value: cron
