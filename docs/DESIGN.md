@@ -78,6 +78,10 @@ The controller applies the actions. This makes the engine testable with table te
 - Retries with backoff. Timeouts. Exit handlers. Suspend and resume. Manual approval.
 - Parameter substitution: `{{inputs.parameters.x}}`, `{{tasks.a.outputs.result}}`, `{{workflow.name}}`.
 - Determinism: the same input gives the same actions.
+- One walker for DAG and steps. A step depends on all steps of the previous group. Each run of the engine visits the tasks once in dependency order, so an omission cascades in one pass.
+- A DAG ends when no task runs. Then each leaf task decides: its own phase when it ran, or the worst phase of its dependencies when it was omitted or skipped. A dependency failure that the task tests for (for example `a.Failed` or `!a.Failed`) does not pass down.
+- `failFast` (default true) stops new tasks after a failure that no task tests for. The tasks that did not start become Omitted.
+- Node IDs: the root node has the workflow name. Other nodes have the workflow name and a hash of the node path (`wf.main.a`, `wf[0].step`). The Pod name is the node ID.
 
 ## 5. Re-run, retry and history
 

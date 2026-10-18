@@ -45,6 +45,10 @@ linters:
   exclusions:
     generated: lax
     rules:
+      # Tests repeat literal names on purpose: they read better than constants.
+      - linters:
+          - goconst
+        path: _test\.go
       - linters:
           - lll
         path: api/*

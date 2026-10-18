@@ -90,6 +90,13 @@ func TestDependsEval(t *testing.T) {
 	}
 }
 
+func TestZeroDepends(t *testing.T) {
+	var d Depends
+	if !d.Eval(func(string, Result) bool { return false }) || d.Refs() != nil {
+		t.Error("the zero Depends must be true and have no refs")
+	}
+}
+
 func FuzzParseDepends(f *testing.F) {
 	for _, s := range []string{"a", "a && b.Failed", "!(a||b)", "((a))", "a.AllFailed || !b"} {
 		f.Add(s)

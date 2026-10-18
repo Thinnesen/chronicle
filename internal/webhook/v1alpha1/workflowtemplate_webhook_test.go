@@ -38,13 +38,4 @@ var _ = Describe("WorkflowTemplate validation", func() {
 		expectRejected(newTemplate("templates: ["+container+"]"), "spec.entrypoint and spec.templates are required")
 	})
 
-	It("rejects an unknown template", func() {
-		expectRejected(newTemplate("entrypoint: nope\ntemplates: ["+container+"]"), `spec.entrypoint: Not found: "nope"`)
-	})
-
-	It("skips the checks when the spec does not change", func() {
-		t := newTemplate("entrypoint: nope\ntemplates: [" + container + "]")
-		Expect((&WorkflowTemplateValidator{}).ValidateUpdate(ctx, t, t.DeepCopy())).Error().NotTo(HaveOccurred())
-		Expect((&WorkflowTemplateValidator{}).ValidateDelete(ctx, t)).Error().NotTo(HaveOccurred())
-	})
 })

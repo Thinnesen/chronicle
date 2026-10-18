@@ -44,13 +44,16 @@ type Depends struct {
 // Refs returns the task references in the order of the expression.
 func (d Depends) Refs() []Ref {
 	var refs []Ref
-	d.root.refs(&refs)
+	if d.root != nil {
+		d.root.refs(&refs)
+	}
 	return refs
 }
 
 // Eval evaluates the expression. A bare task name is true when the task Succeeded or was Skipped.
+// The zero Depends is always true.
 func (d Depends) Eval(lookup Lookup) bool {
-	return d.root.eval(lookup)
+	return d.root == nil || d.root.eval(lookup)
 }
 
 type node interface {
