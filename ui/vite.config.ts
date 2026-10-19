@@ -12,7 +12,8 @@ const csp =
 export default defineConfig({
   preview: { headers: { "Content-Security-Policy": csp } },
   plugins: [react()],
-  build: { sourcemap: false, chunkSizeWarningLimit: 900 },
+  // No inline assets: the CSP allows fonts and images only from the server itself.
+  build: { sourcemap: false, chunkSizeWarningLimit: 900, assetsInlineLimit: 0 },
   server: {
     proxy: {
       "/chronicle.v1.": api,

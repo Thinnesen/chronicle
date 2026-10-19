@@ -10,12 +10,16 @@ test("sends a visitor without a session to the login page", async ({ page }) => 
 });
 
 test("lets the user choose a namespace and shows its runs", async ({ page }) => {
+  // The strict CSP must not block any part of the page, for example an inlined font.
+  const violations: string[] = [];
+  page.on("console", (m) => m.text().includes("Content Security Policy") && violations.push(m.text().slice(0, 120)));
   await mockAPI(page);
   await page.goto("/");
   await page.getByRole("link", { name: "team-a" }).click();
   await expect(page.getByRole("heading", { name: "Runs in team-a" })).toBeVisible();
   await expect(page.getByRole("link", { name: "etl-nightly-8k2pq" })).toBeVisible();
   await expect(page.getByRole("img", { name: "3 of 7 nodes done" })).toBeVisible();
+  expect(violations).toEqual([]);
 });
 
 test("opens the only namespace at once", async ({ page }) => {
