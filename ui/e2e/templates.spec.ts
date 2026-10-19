@@ -37,7 +37,7 @@ test("a viewer cannot start a run", async ({ page }) => {
 test("shows cron schedules and suspends one", async ({ page }) => {
   const calls = await mockAPI(page);
   await page.goto("/ns/team-a/cron");
-  await expect(page.getByText("At 03:00 (Europe/Berlin)")).toBeVisible();
+  await expect(page.getByText("At 03:00 (Europe/Berlin). Loads the sales data of the day.")).toBeVisible();
   await expect(page.getByText("Next run in 3h 4m")).toBeVisible();
   await page.getByRole("link", { name: "etl-nightly" }).click();
   await page.getByRole("button", { name: "Suspend" }).click();

@@ -47,6 +47,7 @@ export function CronsPage() {
                 <p className="item-note">
                   {c.schedules.map(readable).join("; ")}
                   {c.timezone && ` (${c.timezone})`}
+                  {c.description && `. ${c.description}`}
                 </p>
                 <span className="item-side">
                   <RecentRuns runs={recent.data?.workflows.filter((w) => w.labels["chronicle.thinnesen.com/cron-workflow"] === c.name) ?? []} />

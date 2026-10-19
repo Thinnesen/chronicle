@@ -27,11 +27,15 @@ export function RecentRuns({ runs }: { runs: WorkflowSummary[] }) {
   return (
     <span className="recent">
       <span className="recent-marks" role="img" aria-label={label} title={label}>
+        {Array.from({ length: shown - last.length }, (_, i) => (
+          <span key={i} className="recent-mark recent-empty" />
+        ))}
         {last.map((r) => (
           <span key={r.uid} className={`recent-mark recent-${lampKind(r.phase || "Pending")}`} />
         ))}
       </span>
-      {finished.length > 0 && <span className="recent-rate">{Math.round((100 * ok) / finished.length)} %</span>}
+      {/* The rate keeps its width without a finished run, so that the strips of a list line up. */}
+      <span className="recent-rate">{finished.length > 0 && `${Math.round((100 * ok) / finished.length)} %`}</span>
     </span>
   );
 }

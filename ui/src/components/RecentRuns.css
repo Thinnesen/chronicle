@@ -16,6 +16,11 @@
   background: var(--lamp-idle);
 }
 
+.recent-empty {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
 .recent-proceed {
   background: var(--lamp-proceed);
 }
