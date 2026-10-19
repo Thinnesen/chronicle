@@ -65,7 +65,9 @@ func (s *workflowService) ApproveNode(ctx context.Context, req *connect.Request[
 				return connect.NewError(connect.CodeFailedPrecondition, errors.New("the node already has a decision"))
 			}
 		}
-		if err := engine.CheckApproval(wf, a); err != nil {
+		if err := engine.CheckApproval(wf, a); errors.Is(err, engine.ErrNotWaiting) {
+			return connect.NewError(connect.CodeFailedPrecondition, err)
+		} else if err != nil {
 			return connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		wf.Spec.Approvals = append(wf.Spec.Approvals, a)

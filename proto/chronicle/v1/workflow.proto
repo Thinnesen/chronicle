@@ -28,7 +28,8 @@ service WorkflowService {
   rpc StopWorkflow(StopWorkflowRequest) returns (StopWorkflowResponse);
   // TerminateWorkflow fails the running nodes without the exit handler.
   rpc TerminateWorkflow(TerminateWorkflowRequest) returns (TerminateWorkflowResponse);
-  // ApproveNode approves or rejects a suspend node.
+  // ApproveNode approves or rejects a suspend node that waits. A value of an output parameter with an enum must be
+  // one of the enum values.
   rpc ApproveNode(ApproveNodeRequest) returns (ApproveNodeResponse);
   // RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
   rpc RetryWorkflow(RetryWorkflowRequest) returns (RetryWorkflowResponse);

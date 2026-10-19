@@ -10,7 +10,7 @@ import (
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
-func TestApproveChecksTheEnum(t *testing.T) {
+func TestApproveChecks(t *testing.T) {
 	srv := setup(t)
 	ctx := context.Background()
 	wf := &v1alpha1.Workflow{Name: "gated", Namespace: "team-a", Spec: v1alpha1.WorkflowSpec{WorkflowTemplateSpec: v1alpha1.WorkflowTemplateSpec{
@@ -25,15 +25,19 @@ func TestApproveChecksTheEnum(t *testing.T) {
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)
 	}
-	approve := func(env string) error {
+	approve := func(node, env string) error {
 		_, err := newClient(srv, "alice").ApproveNode(ctx, connect.NewRequest(&chroniclev1.ApproveNodeRequest{
-			Namespace: "team-a", Name: "gated", Node: "gated", Approve: true, Parameters: map[string]string{"env": env}}))
+			Namespace: "team-a", Name: "gated", Node: node, Approve: true, Parameters: map[string]string{"env": env}}))
 		return err
 	}
-	if err := approve("hacked"); code(err) != connect.CodeInvalidArgument {
+	// An approval of an unknown node would block the approval of the real node.
+	if err := approve("gated.typo", "prod"); code(err) != connect.CodeFailedPrecondition {
+		t.Errorf("an unknown node: %v", err)
+	}
+	if err := approve("gated", "hacked"); code(err) != connect.CodeInvalidArgument {
 		t.Errorf("a value outside the enum: %v", err)
 	}
-	if err := approve("prod"); err != nil {
+	if err := approve("gated-1", "prod"); err != nil {
 		t.Errorf("an allowed value: %v", err)
 	}
 }

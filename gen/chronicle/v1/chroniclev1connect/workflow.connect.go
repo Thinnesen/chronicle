@@ -88,7 +88,8 @@ type WorkflowServiceClient interface {
 	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 	// TerminateWorkflow fails the running nodes without the exit handler.
 	TerminateWorkflow(context.Context, *connect.Request[v1.TerminateWorkflowRequest]) (*connect.Response[v1.TerminateWorkflowResponse], error)
-	// ApproveNode approves or rejects a suspend node.
+	// ApproveNode approves or rejects a suspend node that waits. A value of an output parameter with an enum must be
+	// one of the enum values.
 	ApproveNode(context.Context, *connect.Request[v1.ApproveNodeRequest]) (*connect.Response[v1.ApproveNodeResponse], error)
 	// RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
 	RetryWorkflow(context.Context, *connect.Request[v1.RetryWorkflowRequest]) (*connect.Response[v1.RetryWorkflowResponse], error)
@@ -281,7 +282,8 @@ type WorkflowServiceHandler interface {
 	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 	// TerminateWorkflow fails the running nodes without the exit handler.
 	TerminateWorkflow(context.Context, *connect.Request[v1.TerminateWorkflowRequest]) (*connect.Response[v1.TerminateWorkflowResponse], error)
-	// ApproveNode approves or rejects a suspend node.
+	// ApproveNode approves or rejects a suspend node that waits. A value of an output parameter with an enum must be
+	// one of the enum values.
 	ApproveNode(context.Context, *connect.Request[v1.ApproveNodeRequest]) (*connect.Response[v1.ApproveNodeResponse], error)
 	// RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
 	RetryWorkflow(context.Context, *connect.Request[v1.RetryWorkflowRequest]) (*connect.Response[v1.RetryWorkflowResponse], error)

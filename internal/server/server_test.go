@@ -184,6 +184,16 @@ func TestWorkflowService(t *testing.T) {
 		t.Errorf("parameter who = %q", v)
 	}
 
+	// The controller does not run here, so give the run the waiting node that ApproveNode needs.
+	var hello v1alpha1.Workflow
+	if err := admin.Get(ctx, client.ObjectKey{Namespace: "team-a", Name: "hello"}, &hello); err != nil {
+		t.Fatal(err)
+	}
+	hello.Status.Nodes = map[string]v1alpha1.NodeStatus{"hello": {ID: "hello", Name: "hello", Type: v1alpha1.NodeSuspend, TemplateName: "gate", Phase: v1alpha1.NodeRunning}}
+	if err := admin.Status().Update(ctx, &hello); err != nil {
+		t.Fatal(err)
+	}
+
 	steps := []func() error{
 		func() error {
 			_, err := alice.SuspendWorkflow(ctx, connect.NewRequest(&chroniclev1.SuspendWorkflowRequest{Namespace: "team-a", Name: "hello"}))

@@ -837,7 +837,8 @@ export const WorkflowService: GenService<{
     output: typeof TerminateWorkflowResponseSchema;
   },
   /**
-   * ApproveNode approves or rejects a suspend node.
+   * ApproveNode approves or rejects a suspend node that waits. A value of an output parameter with an enum must be
+   * one of the enum values.
    *
    * @generated from rpc chronicle.v1.WorkflowService.ApproveNode
    */
