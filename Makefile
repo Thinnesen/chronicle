@@ -99,6 +99,19 @@ postgres-up: ## Start PostgreSQL for the tests. Then run: export CHRONICLE_TEST_
 postgres-down: ## Stop the PostgreSQL of the tests.
 	$(CONTAINER_TOOL) rm -f chronicle-test-postgres
 
+# SeaweedFS is the S3 store of the artifact tests. make test uses it when CHRONICLE_TEST_S3 is set.
+S3_IMAGE ?= chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+S3_TEST_ENDPOINT ?= 127.0.0.1:58333
+
+.PHONY: s3-up
+s3-up: ## Start an S3 store for the tests. Then run: export CHRONICLE_TEST_S3='$(S3_TEST_ENDPOINT)'
+	$(CONTAINER_TOOL) run -d --rm --name chronicle-test-s3 -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test-secret \
+		-p 127.0.0.1:58333:8333 $(S3_IMAGE) mini -dir=/data -bucket=test
+
+.PHONY: s3-down
+s3-down: ## Stop the S3 store of the tests.
+	$(CONTAINER_TOOL) rm -f chronicle-test-s3
+
 .PHONY: setup-test-e2e
 setup-test-e2e: kind kubectl ## Set up a Kind cluster for e2e tests if it does not exist
 	@case "$$("$(KIND)" get clusters)" in \

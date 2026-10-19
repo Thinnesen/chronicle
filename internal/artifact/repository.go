@@ -52,7 +52,8 @@ func FromConfigMap(data map[string]string) (Repository, error) {
 			}
 		}
 	}
-	if _, _, err := net.SplitHostPort(r.Endpoint); err != nil {
+	host, port, err := net.SplitHostPort(r.Endpoint)
+	if _, perr := strconv.Atoi(port); err != nil || perr != nil || host == "" || strings.Contains(r.Endpoint, "/") {
 		return r, fmt.Errorf("ConfigMap %s: endpoint must be host:port without a scheme", Name)
 	}
 	if r.Bucket == "" {

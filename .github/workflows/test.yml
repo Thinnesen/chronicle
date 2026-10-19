@@ -32,6 +32,7 @@ jobs:
           --health-retries 10
     env:
       CHRONICLE_TEST_POSTGRES: postgres://postgres:test@127.0.0.1:55432/postgres?sslmode=disable
+      CHRONICLE_TEST_S3: 127.0.0.1:58333
     steps:
       - name: Clone the code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,6 +43,10 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+
+      # A service container cannot get the arguments that SeaweedFS needs, so a step starts it.
+      - name: Start the S3 store of the artifact tests
+        run: make s3-up
 
       - name: Running Tests
         run: make test
