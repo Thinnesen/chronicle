@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 
@@ -30,22 +30,28 @@ export function RunsPage() {
   const { q, phase } = runsRoute.useSearch();
   const navigate = useNavigate({ from: runsRoute.fullPath });
   const now = useNow(true);
-  // The list without a filter gives the counts and the activity. A phase filter asks the server, so old runs are found too.
-  const all = useQuery({
-    queryKey: ["runs", namespace, undefined],
-    queryFn: () => workflows.listWorkflows({ namespace, limit: 200, phases: [] }),
+  // The newest 200 runs without a filter give the counts and the activity. A phase filter asks the server, so older
+  // runs are found too. "Show more" loads the next page of the table.
+  const table = useInfiniteQuery({
+    queryKey: ["runs", namespace, phase],
+    queryFn: ({ pageParam }) =>
+      workflows.listWorkflows({ namespace, limit: 200, pageToken: pageParam, phases: phase === "Failed" ? ["Failed", "Error"] : phase ? [phase] : [] }),
+    initialPageParam: "",
+    getNextPageParam: (last) => last.nextPageToken || undefined,
     refetchInterval: 5000,
   });
-  const filtered = useQuery({
-    queryKey: ["runs", namespace, phase],
-    queryFn: () => workflows.listWorkflows({ namespace, limit: 200, phases: phase === "Failed" ? ["Failed", "Error"] : [phase ?? ""] }),
+  const all = useQuery({
+    queryKey: ["runs", namespace, "counts"],
+    queryFn: () => workflows.listWorkflows({ namespace, limit: 200, phases: [] }),
     refetchInterval: 5000,
     enabled: !!phase,
   });
-  const source = phase ? filtered : all;
   const term = (q ?? "").toLowerCase();
-  const shown = source.data?.workflows.filter((w) => w.name.toLowerCase().includes(term) || w.template.toLowerCase().includes(term));
-  const runs = all.data?.workflows ?? [];
+  const shown = table.data?.pages
+    .flatMap((p) => p.workflows)
+    .filter((w) => w.name.toLowerCase().includes(term) || w.template.toLowerCase().includes(term));
+  const first = phase ? all.data : table.data?.pages[0];
+  const runs = first?.workflows ?? [];
   return (
     <section>
       <header className="page-head">
@@ -78,13 +84,13 @@ export function RunsPage() {
             >
               {f.phase && <Lamp phase={f.phase} size={12} />}
               {f.label}
-              {all.data && <span className="chip-count">{runs.filter((w) => matches(w.phase, f.phase)).length}</span>}
+              {first && <span className="chip-count">{runs.filter((w) => matches(w.phase, f.phase)).length}</span>}
             </button>
           ))}
         </div>
       </div>
-      {source.isPending && <p className="quiet">Loading the runs…</p>}
-      {source.error && <p role="alert">Could not load the runs: {source.error.message}</p>}
+      {table.isPending && <p className="quiet">Loading the runs…</p>}
+      {table.error && <p role="alert">Could not load the runs: {table.error.message}</p>}
       {shown && shown.length === 0 && (
         <div className="empty card">
           <p>{q || phase ? "No run matches the filter." : "No runs yet."}</p>
@@ -143,6 +149,13 @@ export function RunsPage() {
               })}
             </tbody>
           </table>
+          {table.hasNextPage && (
+            <div className="board-more">
+              <button type="button" className="button" onClick={() => void table.fetchNextPage()} disabled={table.isFetchingNextPage}>
+                {table.isFetchingNextPage ? "Loading…" : "Show more runs"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>

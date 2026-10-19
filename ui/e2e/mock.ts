@@ -13,6 +13,8 @@ export const runs = [
 ];
 
 // run is a DAG run: fetch and validate ran, train runs, report waits.
+const oldRun = { namespace: "team-a", name: "etl-nightly-old01", uid: "u9", phase: "Succeeded", createdAt: ts(-900000), startedAt: ts(-900000), finishedAt: ts(-899000), nodesDone: 4, nodesTotal: 4 };
+
 export function run(phase: string, gate = false, archived = false) {
   const done = phase === "Succeeded";
   const node = (id: string, name: string, extra: object) => ({ id, name: `etl-nightly-8k2pq${name}`, ...extra });
@@ -105,8 +107,11 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     r.fulfill({ json: { namespaces: names.map((name, i) => ({ name, canSubmit: i === 0 && opts.canSubmit !== false })) } }),
   );
   await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) => {
-    const phases: string[] = r.request().postDataJSON()?.phases ?? [];
-    r.fulfill({ json: { workflows: runs.filter((w) => phases.length === 0 || phases.includes(w.phase)) } });
+    const body = r.request().postDataJSON() ?? {};
+    const phases: string[] = body.phases ?? [];
+    // The unfiltered list has a second page with one old run.
+    if (body.pageToken === "p2") return r.fulfill({ json: { workflows: [oldRun] } });
+    r.fulfill({ json: { workflows: runs.filter((w) => phases.length === 0 || phases.includes(w.phase)), nextPageToken: phases.length === 0 ? "p2" : "" } });
   });
   await page.route("**/chronicle.v1.LogService/StreamLogs", (r) => {
     // A streaming request is one envelope: 5 bytes of header, then the JSON message.

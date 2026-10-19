@@ -166,6 +166,13 @@
   text-align: right;
 }
 
+.board-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
 /* On a phone, each run is a card of two lines: the status and the name, then the time and the progress. */
 @media (max-width: 48rem) {
   .board-filters {

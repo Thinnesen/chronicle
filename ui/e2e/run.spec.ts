@@ -40,6 +40,15 @@ test("finds runs by name and by phase", async ({ page }) => {
   await expect(page.getByText("No run matches the filter.")).toBeVisible();
 });
 
+test("loads older runs on request", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("link", { name: "backfill-2026-10" })).toBeVisible();
+  await page.getByRole("button", { name: "Show more runs" }).click();
+  await expect(page.getByRole("link", { name: "etl-nightly-old01" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show more runs" })).toBeHidden();
+});
+
 for (const scheme of ["light", "dark"] as const) {
   test(`renders a finished run in ${scheme} mode`, async ({ page }, info) => {
     await page.emulateMedia({ colorScheme: scheme });
