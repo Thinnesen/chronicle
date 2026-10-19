@@ -107,6 +107,16 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow-md);
 }
 
+/* A "more" card stands for the hidden items of a large fan-out. */
+.station-node.is-more {
+  background: var(--surface-2);
+  border-style: dashed;
+}
+
+.station-node.is-more .station-name {
+  color: var(--accent);
+}
+
 /* A planned card is a task that has not started yet. */
 .station-node.is-planned,
 .junction-node.is-planned {

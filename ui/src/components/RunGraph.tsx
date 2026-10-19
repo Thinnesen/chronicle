@@ -2,15 +2,16 @@ import "@xyflow/react/dist/style.css";
 import "./RunGraph.css";
 
 import { Background, Controls, Handle, Position, ReactFlow, useReactFlow, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
-import { Box, Cpu, Hand } from "lucide-react";
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { Box, ChevronsDown, Cpu, Hand } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
+import { fold } from "../lib/fold";
 import { place } from "../lib/layout";
 import { duration } from "../lib/time";
 import { buildGraph, isStation, nodeLabel, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Lamp } from "./Lamp";
 
-type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number };
+type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number> };
 
 function nodeDuration(n: NodeStatus, now: number): string {
   if (!n.startedAt) return "";
@@ -63,7 +64,22 @@ function JunctionNode({ data }: NodeProps<Node<NodeData>>) {
   );
 }
 
-const nodeTypes = { station: StationNode, junction: JunctionNode };
+// MoreNode stands for the hidden items of a large fan-out. A click shows them all.
+function MoreNode({ data }: NodeProps<Node<NodeData>>) {
+  const counts = Object.entries(data.hidden ?? {}).map(([phase, n]) => `${n} ${phase.toLowerCase()}`);
+  return (
+    <div className="station-node is-more" title="Show all items">
+      <Handles vertical={data.vertical} />
+      <ChevronsDown className="station-kind" aria-hidden="true" />
+      <span className="station-text">
+        <span className="station-name">{nodeLabel(data.status)}</span>
+        <span className="station-meta">{counts.join(", ")}</span>
+      </span>
+    </div>
+  );
+}
+
+const nodeTypes = { station: StationNode, junction: JunctionNode, more: MoreNode };
 
 // FitOnResize fits the graph again when its box changes, for example when the node drawer opens.
 function FitOnResize({ box, options }: { box: React.RefObject<HTMLDivElement | null>; options: FitViewOptions }) {
@@ -96,6 +112,7 @@ function useNarrow(): boolean {
 export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: number; selected?: string; onSelect: (id: string) => void }) {
   const narrow = useNarrow();
   const box = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   // Below this zoom the names are too small to read. A wide graph then needs a pan.
   const fit = useMemo(() => ({ maxZoom: 1, minZoom: 0.5, padding: 0.08 }), []);
   const { nodes, edges, height } = useMemo(() => {
@@ -104,25 +121,31 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
     const hide = root && !isStation(root) ? root.id : undefined;
     const active = !["Succeeded", "Failed", "Error"].includes(wf.status?.phase ?? "");
     const source = active ? withPlan(wf) : (wf.status?.nodes ?? {});
-    const all = Object.values(source).filter((n) => n.id !== hide);
-    const graphEdges = buildGraph(wf, source).filter((e) => e.from !== hide && e.to !== hide);
+    const visible = Object.fromEntries(Object.entries(source).filter(([id]) => id !== hide));
+    const edges = buildGraph(wf, source).filter((e) => e.from !== hide && e.to !== hide);
+    // A phone shows fewer items of a fan-out, because the items stand side by side.
+    const folded = narrow ? fold(visible, edges, expanded, 3, 2) : fold(visible, edges, expanded);
+    const all = folded.nodes;
+    const graphEdges = folded.edges;
     const { placed, height } = place(all, graphEdges, narrow ? "TB" : "LR");
     const phase = new Map(all.map((n) => [n.id, n.phase]));
+    const groups = new Set(all.filter((n) => !isStation(n)).map((n) => n.id));
     return {
       nodes: placed.map(
         (p): Node<NodeData> => ({
           id: p.node.id,
-          type: isStation(p.node) ? "station" : "junction",
+          type: folded.hidden[p.node.id] ? "more" : isStation(p.node) ? "station" : "junction",
           position: { x: p.x, y: p.y },
           width: p.width,
           height: p.height,
-          data: { status: p.node, selected: p.node.id === selected, now, vertical: narrow, width: p.width },
+          data: { status: p.node, selected: p.node.id === selected, now, vertical: narrow, width: p.width, hidden: folded.hidden[p.node.id] },
           ariaLabel: `${nodeLabel(p.node)}, ${p.node.planned ? "not started" : p.node.phase || "Pending"}`,
         }),
       ),
       edges: graphEdges.map((e): BuiltInEdge => {
-        const from = phase.get(e.from);
         const to = phase.get(e.to);
+        // An edge out of a group shows the state of its target; an edge out of a step shows the state of the step.
+        const from = groups.has(e.from) ? to : phase.get(e.from);
         const state = from === "Failed" || from === "Error" ? " is-failed" : from === "Succeeded" ? " is-lit" : "";
         return {
           id: `${e.from}-${e.to}`,
@@ -136,14 +159,17 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
       }),
       height,
     };
-  }, [wf, selected, now, narrow]);
+  }, [wf, selected, now, narrow, expanded]);
   return (
     <div className="run-graph" ref={box} style={{ height: `clamp(18rem, ${height + 48}px, 70vh)` }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodeClick={(_, n) => !n.data.status.planned && onSelect(n.id)}
+        onNodeClick={(_, n) => {
+          if (n.data.hidden) setExpanded((e) => new Set([...e, n.id.replace(/\/more$/, "")]));
+          else if (!n.data.status.planned) onSelect(n.id);
+        }}
         nodesDraggable={false}
         nodesConnectable={false}
         fitView
