@@ -1,0 +1,33 @@
+{{- /* teams binds the groups of each team to the chronicle roles in the namespaces of the team. */}}
+{{- $prefix := .Values.auth.oidc.groupsPrefix | default "oidc:" }}
+{{- if .Values.auth.entra.tenantID }}
+{{- $prefix = ternary "entra:role:" "entra:group:" (eq .Values.auth.entra.groupsFrom "roles") }}
+{{- end }}
+{{- range $team := .Values.teams }}
+{{- range $ns := $team.namespaces }}
+{{- range $role := list "viewer" "editor" "admin" }}
+{{- with index $team $role }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chronicle-{{ $team.name }}-{{ $role }}
+  namespace: {{ $ns }}
+  labels:
+    app.kubernetes.io/name: chronicle
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    chronicle.thinnesen.com/team: {{ $team.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: chronicle-{{ $role }}
+subjects:
+{{- range $group := . }}
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: {{ printf "%s%s" $prefix $group | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

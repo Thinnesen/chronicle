@@ -376,3 +376,49 @@ endef
 define gomodver
 $(shell go list -m -f '{{if .Replace}}{{.Replace.Version}}{{else}}{{.Version}}{{end}}' $(1) 2>/dev/null)
 endef
+
+##@ Helm Deployment
+
+## Namespace to deploy the Helm release
+HELM_NAMESPACE ?= chronicle-system
+## Name of the Helm release
+HELM_RELEASE ?= chronicle
+## Path to the Helm chart directory
+HELM_CHART_DIR ?= dist/chart
+## Additional arguments to pass to helm commands
+HELM_EXTRA_ARGS ?=
+
+.PHONY: helm-lint
+helm-lint: helm ## Lint the Helm chart and render it with an OIDC and an Entra ID configuration.
+	"$(HELM)" lint --strict $(HELM_CHART_DIR) --set auth.oidc.issuer=https://dex.example.com \
+		--set auth.oidc.clientID=chronicle --set auth.redirectURL=https://chronicle.example.com/auth/callback
+	"$(HELM)" template chronicle $(HELM_CHART_DIR) --set auth.entra.tenantID=tenant --set auth.entra.clientID=client \
+		--set auth.redirectURL=https://chronicle.example.com/auth/callback \
+		--set 'teams[0].name=data' --set 'teams[0].namespaces={data}' --set 'teams[0].viewer={group}' > /dev/null
+
+.PHONY: helm-deploy
+helm-deploy: helm ## Deploy manager to the K8s cluster via Helm. Specify an image with IMG.
+	IMG="$(IMG)"; $(HELM) upgrade --install $(HELM_RELEASE) $(HELM_CHART_DIR) \
+		--namespace $(HELM_NAMESPACE) \
+		--create-namespace \
+		--set manager.image.repository=$${IMG%:*} \
+		--set manager.image.tag=$${IMG##*:} \
+		--wait \
+		--timeout 5m \
+		$(HELM_EXTRA_ARGS)
+
+.PHONY: helm-uninstall
+helm-uninstall: ## Uninstall the Helm release from the K8s cluster.
+	$(HELM) uninstall $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
+
+.PHONY: helm-status
+helm-status: ## Show Helm release status.
+	$(HELM) status $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
+
+.PHONY: helm-history
+helm-history: ## Show Helm release history.
+	$(HELM) history $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
+
+.PHONY: helm-rollback
+helm-rollback: ## Rollback to previous Helm release.
+	$(HELM) rollback $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)

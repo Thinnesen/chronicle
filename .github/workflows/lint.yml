@@ -41,3 +41,5 @@ jobs:
         run: make lint-actions
       - name: Check for known vulnerabilities
         run: make vulncheck
+      - name: Lint the Helm chart
+        run: make helm-lint

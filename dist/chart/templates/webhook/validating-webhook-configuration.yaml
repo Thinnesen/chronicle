@@ -1,0 +1,91 @@
+{{- if .Values.webhook.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    {{- if .Values.certManager.enabled }}
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "chronicle.resourceName" (dict "suffix" "serving-cert" "context" $) }}
+    {{- end }}
+  name: {{ include "chronicle.resourceName" (dict "suffix" "validating-webhook-configuration" "context" $) }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "chronicle.resourceName" (dict "suffix" "webhook-service" "context" $) }}
+      namespace: {{ .Release.Namespace }}
+      path: /validate-chronicle-thinnesen-com-v1alpha1-clusterworkflowtemplate
+  failurePolicy: Fail
+  name: vclusterworkflowtemplate-v1alpha1.kb.io
+  rules:
+  - apiGroups:
+    - chronicle.thinnesen.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterworkflowtemplates
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "chronicle.resourceName" (dict "suffix" "webhook-service" "context" $) }}
+      namespace: {{ .Release.Namespace }}
+      path: /validate-chronicle-thinnesen-com-v1alpha1-cronworkflow
+  failurePolicy: Fail
+  name: vcronworkflow-v1alpha1.kb.io
+  rules:
+  - apiGroups:
+    - chronicle.thinnesen.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cronworkflows
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "chronicle.resourceName" (dict "suffix" "webhook-service" "context" $) }}
+      namespace: {{ .Release.Namespace }}
+      path: /validate-chronicle-thinnesen-com-v1alpha1-workflow
+  failurePolicy: Fail
+  name: vworkflow-v1alpha1.kb.io
+  rules:
+  - apiGroups:
+    - chronicle.thinnesen.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - workflows
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "chronicle.resourceName" (dict "suffix" "webhook-service" "context" $) }}
+      namespace: {{ .Release.Namespace }}
+      path: /validate-chronicle-thinnesen-com-v1alpha1-workflowtemplate
+  failurePolicy: Fail
+  name: vworkflowtemplate-v1alpha1.kb.io
+  rules:
+  - apiGroups:
+    - chronicle.thinnesen.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - workflowtemplates
+  sideEffects: None
+{{- end }}

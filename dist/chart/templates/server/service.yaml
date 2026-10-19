@@ -1,0 +1,26 @@
+{{- if .Values.server.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+  {{- with .Values.server.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.server.service.type }}
+  {{- with .Values.server.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "chronicle.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: server
+  ports:
+  - name: http
+    port: {{ .Values.server.service.port }}
+    targetPort: http
+{{- end }}

@@ -1,0 +1,51 @@
+{{- if .Values.server.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+---
+# The server acts for users only through impersonation. Its own permissions are to list namespace names
+# (it filters them with access reviews as the user), to check service account tokens, to write audit Events,
+# and to read the artifact repository of a namespace after an access review as the user.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: [users, groups, serviceaccounts]
+  verbs: [impersonate]
+- apiGroups: [authentication.k8s.io]
+  resources: [tokenreviews]
+  verbs: [create]
+- apiGroups: [""]
+  resources: [namespaces]
+  verbs: [list]
+- apiGroups: [""]
+  resources: [events]
+  verbs: [create]
+- apiGroups: [""]
+  resources: [configmaps, secrets]
+  resourceNames: [chronicle-artifact-repository]
+  verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

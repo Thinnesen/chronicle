@@ -1,0 +1,42 @@
+{{- if .Values.server.enabled }}
+{{- $auth := .Values.auth }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server-auth" "context" $) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+data:
+  config.yaml: |
+    oidc:
+      {{- if $auth.entra.tenantID }}
+      clientID: {{ required "auth.entra.clientID is required" $auth.entra.clientID | quote }}
+      entra:
+        tenantID: {{ $auth.entra.tenantID | quote }}
+        {{- with $auth.entra.groupsFrom }}
+        groupsFrom: {{ . | quote }}
+        {{- end }}
+      {{- else }}
+      issuer: {{ required "set auth.oidc.issuer or auth.entra.tenantID" $auth.oidc.issuer | quote }}
+      clientID: {{ required "auth.oidc.clientID is required" $auth.oidc.clientID | quote }}
+      {{- with $auth.oidc.scopes }}
+      scopes: {{ toJson . }}
+      {{- end }}
+      {{- range $k := list "usernameClaim" "groupsClaim" "usernamePrefix" "groupsPrefix" "cliClientID" }}
+      {{- with index $auth.oidc $k }}
+      {{ $k }}: {{ . | quote }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- if (include "chronicle.clientSecret" .) }}
+      clientSecretFile: /etc/chronicle/client-secret/secret
+      {{- end }}
+      redirectURL: {{ required "auth.redirectURL is required" $auth.redirectURL | quote }}
+    session:
+      ttl: {{ $auth.session.ttl | quote }}
+      idleTimeout: {{ $auth.session.idleTimeout | quote }}
+    {{- if $auth.insecureCookies }}
+    insecureCookies: true
+    {{- end }}
+{{- end }}

@@ -1,0 +1,97 @@
+{{- if .Values.server.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+spec:
+  # The session store is in memory. Use one replica.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "chronicle.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        {{- include "chronicle.serverLabels" . | nindent 8 }}
+      annotations:
+        # A new login configuration restarts the server.
+        checksum/auth: {{ include (print $.Template.BasePath "/server/auth-config.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- with .Values.manager.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: server
+        image: {{ include "chronicle.image" . | quote }}
+        imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
+        command: [/chronicle-server]
+        args:
+        - --auth-config=/etc/chronicle/auth/config.yaml
+        {{- if .Values.archive.existingSecret }}
+        - --archive-dsn-file=/etc/chronicle/archive/{{ .Values.archive.key }}
+        {{- end }}
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        resources:
+          {{- toYaml .Values.server.resources | nindent 10 }}
+        volumeMounts:
+        - name: auth
+          mountPath: /etc/chronicle/auth
+          readOnly: true
+        {{- if (include "chronicle.clientSecret" .) }}
+        - name: client-secret
+          mountPath: /etc/chronicle/client-secret
+          readOnly: true
+        {{- end }}
+        {{- if .Values.archive.existingSecret }}
+        - name: archive
+          mountPath: /etc/chronicle/archive
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: auth
+        configMap:
+          name: {{ include "chronicle.resourceName" (dict "suffix" "server-auth" "context" $) }}
+      {{- with (include "chronicle.clientSecret" .) }}
+      - name: client-secret
+        secret:
+          secretName: {{ (split "/" .)._0 }}
+          items:
+          - key: {{ (split "/" .)._1 }}
+            path: secret
+      {{- end }}
+      {{- if .Values.archive.existingSecret }}
+      - name: archive
+        secret:
+          secretName: {{ .Values.archive.existingSecret }}
+      {{- end }}
+{{- end }}

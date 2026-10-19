@@ -1,0 +1,17 @@
+chronicle {{ .Chart.AppVersion }} is installed in the namespace {{ .Release.Namespace }}.
+
+Check the Pods:
+
+  kubectl get pods -n {{ .Release.Namespace }}
+{{- if .Values.server.enabled }}
+
+Open the UI at the address of auth.redirectURL without /auth/callback:
+
+  {{ .Values.auth.redirectURL | trimSuffix "/auth/callback" }}
+{{- if eq .Values.server.service.type "ClusterIP" }}
+
+The server Service is ClusterIP. Put it behind an ingress, or test it with a port-forward:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "chronicle.resourceName" (dict "suffix" "server" "context" $) }} 8080:{{ .Values.server.service.port }}
+{{- end }}
+{{- end }}

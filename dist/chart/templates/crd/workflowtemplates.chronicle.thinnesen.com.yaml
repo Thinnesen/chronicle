@@ -1,0 +1,1544 @@
+{{- if .Values.crd.enabled }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    {{- if .Values.crd.keep }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: workflowtemplates.chronicle.thinnesen.com
+spec:
+  group: chronicle.thinnesen.com
+  names:
+    categories:
+    - chronicle
+    kind: WorkflowTemplate
+    listKind: WorkflowTemplateList
+    plural: workflowtemplates
+    shortNames:
+    - wftmpl
+    singular: workflowtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: WorkflowTemplate is a reusable workflow definition in a namespace.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the workflow definition.
+            properties:
+              activeDeadlineSeconds:
+                description: activeDeadlineSeconds fails the workflow when it runs
+                  longer. The exit handler still runs.
+                format: int64
+                minimum: 1
+                type: integer
+              arguments:
+                description: arguments are the workflow parameters.
+                properties:
+                  artifacts:
+                    description: artifacts to give.
+                    items:
+                      description: Artifact is a file or a directory in the artifact
+                        repository of the namespace.
+                      properties:
+                        from:
+                          description: from is the artifact that an argument gives,
+                            as one placeholder, for example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                          maxLength: 1024
+                          type: string
+                        key:
+                          description: key of the object in the artifact repository.
+                            Only the status sets it.
+                          maxLength: 1024
+                          type: string
+                        name:
+                          description: name of the artifact.
+                          maxLength: 128
+                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                          type: string
+                        optional:
+                          description: optional makes a missing output file or a missing
+                            argument not an error.
+                          type: boolean
+                        path:
+                          description: path in the main container. The executor puts
+                            an input artifact there and saves an output artifact from
+                            there.
+                          maxLength: 4096
+                          pattern: ^/
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  parameters:
+                    description: parameters to give.
+                    items:
+                      description: Parameter is a named string value. Inputs, outputs
+                        and arguments use parameters.
+                      properties:
+                        default:
+                          description: default is the value when the caller does not
+                            give a value.
+                          maxLength: 262144
+                          type: string
+                        description:
+                          description: description of the parameter, for people and
+                            for the UI.
+                          maxLength: 1024
+                          type: string
+                        enum:
+                          description: enum is the list of permitted values.
+                          items:
+                            maxLength: 1024
+                            type: string
+                          maxItems: 256
+                          type: array
+                        name:
+                          description: name of the parameter.
+                          maxLength: 128
+                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                          type: string
+                        value:
+                          description: value of the parameter. For an input, a value
+                            cannot be changed by the caller.
+                          maxLength: 262144
+                          type: string
+                        valueFrom:
+                          description: valueFrom tells where an output parameter gets
+                            its value.
+                          properties:
+                            jsonPath:
+                              description: jsonPath reads the value from the object
+                                of a resource template, for example "{.metadata.name}".
+                              maxLength: 1024
+                              type: string
+                            path:
+                              description: path of a file in the main container. Its
+                                contents become the value.
+                              maxLength: 4096
+                              type: string
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    maxItems: 256
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                type: object
+              entrypoint:
+                description: entrypoint is the name of the template that the workflow
+                  starts with.
+                maxLength: 128
+                type: string
+              onExit:
+                description: onExit is the name of a template that runs after the
+                  workflow, also when it failed. It can use "{{ "{{workflow.status}}" }}".
+                maxLength: 128
+                type: string
+              podGC:
+                description: podGC deletes the Pods of finished nodes. Without it,
+                  the Pods stay until the Workflow is deleted.
+                properties:
+                  deleteDelayDuration:
+                    description: deleteDelayDuration is the wait before a Pod is deleted,
+                      for example "10m".
+                    type: string
+                  strategy:
+                    description: strategy tells when to delete Pods.
+                    enum:
+                    - OnPodCompletion
+                    - OnPodSuccess
+                    - OnWorkflowCompletion
+                    - OnWorkflowSuccess
+                    type: string
+                required:
+                - strategy
+                type: object
+              serviceAccountName:
+                description: serviceAccountName is the service account of the workflow
+                  Pods.
+                maxLength: 253
+                type: string
+              templates:
+                description: templates of the workflow.
+                items:
+                  description: 'Template is one unit of work. It has exactly one type:
+                    container, script, dag, steps, suspend or resource.'
+                  properties:
+                    container:
+                      description: container runs one container in a Pod.
+                      properties:
+                        args:
+                          description: args are the arguments to the entrypoint.
+                          items:
+                            type: string
+                          maxItems: 256
+                          type: array
+                        command:
+                          description: command is the entrypoint. It is not run in
+                            a shell.
+                          items:
+                            type: string
+                          maxItems: 256
+                          type: array
+                        env:
+                          description: env is the list of environment variables.
+                          items:
+                            description: EnvVar represents an environment variable
+                              present in a Container.
+                            properties:
+                              name:
+                                description: |-
+                                  Name of the environment variable.
+                                  May consist of any printable ASCII characters except '='.
+                                type: string
+                              value:
+                                description: |-
+                                  Variable references $(VAR_NAME) are expanded
+                                  using the previously defined environment variables in the container and
+                                  any service environment variables. If a variable cannot be resolved,
+                                  the reference in the input string will be unchanged. Double $$ are reduced
+                                  to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                                  "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                                  Escaped references will never be expanded, regardless of whether the variable
+                                  exists or not.
+                                  Defaults to "".
+                                type: string
+                              valueFrom:
+                                description: Source for the environment variable's
+                                  value. Cannot be used if value is not empty.
+                                properties:
+                                  configMapKeyRef:
+                                    description: Selects a key of a ConfigMap.
+                                    properties:
+                                      key:
+                                        description: |-
+                                          The key to select from the ConfigMap's Data field.
+                                          Keys in the BinaryData field are not currently propagated to container env vars.
+                                        type: string
+                                      name:
+                                        default: ""
+                                        description: |-
+                                          Name of the referent.
+                                          This field is effectively required, but due to backwards compatibility is
+                                          allowed to be empty. Instances of this type with an empty value here are
+                                          almost certainly wrong.
+                                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        type: string
+                                      optional:
+                                        description: Specify whether the ConfigMap
+                                          or its key must be defined
+                                        type: boolean
+                                    required:
+                                    - key
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fieldRef:
+                                    description: |-
+                                      Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                      spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                    properties:
+                                      apiVersion:
+                                        description: Version of the schema the FieldPath
+                                          is written in terms of, defaults to "v1".
+                                        type: string
+                                      fieldPath:
+                                        description: Path of the field to select in
+                                          the specified API version.
+                                        type: string
+                                    required:
+                                    - fieldPath
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fileKeyRef:
+                                    description: |-
+                                      FileKeyRef selects a key of the env file.
+                                      Requires the EnvFiles feature gate to be enabled.
+                                    properties:
+                                      key:
+                                        description: |-
+                                          The key within the env file. An invalid key will prevent the pod from starting.
+                                          The keys defined within a source may consist of any printable ASCII characters except '='.
+                                          During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                                        type: string
+                                      optional:
+                                        default: false
+                                        description: |-
+                                          Specify whether the file or its key must be defined. If the file or key
+                                          does not exist, then the env var is not published.
+                                          If optional is set to true and the specified key does not exist,
+                                          the environment variable will not be set in the Pod's containers.
+
+                                          If optional is set to false and the specified key does not exist,
+                                          an error will be returned during Pod creation.
+                                        type: boolean
+                                      path:
+                                        description: |-
+                                          The path within the volume from which to select the file.
+                                          Must be relative and may not contain the '..' path or start with '..'.
+                                        type: string
+                                      volumeName:
+                                        description: The name of the volume mount
+                                          containing the env file.
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    - volumeName
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  resourceFieldRef:
+                                    description: |-
+                                      Selects a resource of the container: only resources limits and requests
+                                      (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                    properties:
+                                      containerName:
+                                        description: 'Container name: required for
+                                          volumes, optional for env vars'
+                                        type: string
+                                      divisor:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: Specifies the output format of
+                                          the exposed resources, defaults to "1"
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
+                                      resource:
+                                        description: 'Required: resource to select'
+                                        type: string
+                                    required:
+                                    - resource
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  secretKeyRef:
+                                    description: Selects a key of a secret in the
+                                      pod's namespace
+                                    properties:
+                                      key:
+                                        description: The key of the secret to select
+                                          from.  Must be a valid secret key.
+                                        type: string
+                                      name:
+                                        default: ""
+                                        description: |-
+                                          Name of the referent.
+                                          This field is effectively required, but due to backwards compatibility is
+                                          allowed to be empty. Instances of this type with an empty value here are
+                                          almost certainly wrong.
+                                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        type: string
+                                      optional:
+                                        description: Specify whether the Secret or
+                                          its key must be defined
+                                        type: boolean
+                                    required:
+                                    - key
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                type: object
+                            required:
+                            - name
+                            type: object
+                          maxItems: 256
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        envFrom:
+                          description: envFrom is the list of sources of environment
+                            variables.
+                          items:
+                            description: EnvFromSource represents the source of a
+                              set of ConfigMaps or Secrets
+                            properties:
+                              configMapRef:
+                                description: The ConfigMap to select from
+                                properties:
+                                  name:
+                                    default: ""
+                                    description: |-
+                                      Name of the referent.
+                                      This field is effectively required, but due to backwards compatibility is
+                                      allowed to be empty. Instances of this type with an empty value here are
+                                      almost certainly wrong.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                  optional:
+                                    description: Specify whether the ConfigMap must
+                                      be defined
+                                    type: boolean
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              prefix:
+                                description: |-
+                                  Optional text to prepend to the name of each environment variable.
+                                  May consist of any printable ASCII characters except '='.
+                                type: string
+                              secretRef:
+                                description: The Secret to select from
+                                properties:
+                                  name:
+                                    default: ""
+                                    description: |-
+                                      Name of the referent.
+                                      This field is effectively required, but due to backwards compatibility is
+                                      allowed to be empty. Instances of this type with an empty value here are
+                                      almost certainly wrong.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                  optional:
+                                    description: Specify whether the Secret must be
+                                      defined
+                                    type: boolean
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                          maxItems: 32
+                          type: array
+                        image:
+                          description: image of the container.
+                          maxLength: 1024
+                          minLength: 1
+                          type: string
+                        imagePullPolicy:
+                          description: imagePullPolicy is the pull policy of the image.
+                          type: string
+                        resources:
+                          description: resources are the compute resources of the
+                            container.
+                          properties:
+                            claims:
+                              description: |-
+                                Claims lists the names of resources, defined in spec.resourceClaims,
+                                that are used by this container.
+
+                                This field depends on the
+                                DynamicResourceAllocation feature gate.
+
+                                This field is immutable. It can only be set for containers.
+                              items:
+                                description: ResourceClaim references one entry in
+                                  PodSpec.ResourceClaims.
+                                properties:
+                                  name:
+                                    description: |-
+                                      Name must match the name of one entry in pod.spec.resourceClaims of
+                                      the Pod where this field is used. It makes that resource available
+                                      inside a container.
+                                    type: string
+                                  request:
+                                    description: |-
+                                      Request is the name chosen for a request in the referenced claim.
+                                      If empty, everything from the claim is made available, otherwise
+                                      only the result of this request.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - name
+                              x-kubernetes-list-type: map
+                            limits:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                            requests:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                          type: object
+                        workingDir:
+                          description: workingDir is the working directory.
+                          maxLength: 4096
+                          type: string
+                      required:
+                      - image
+                      type: object
+                    dag:
+                      description: dag runs tasks in the order of their dependencies.
+                      properties:
+                        failFast:
+                          description: failFast stops the start of new tasks after
+                            a task fails. The default is true.
+                          type: boolean
+                        tasks:
+                          description: tasks of the DAG.
+                          items:
+                            description: DAGTask is one node of a DAG.
+                            properties:
+                              arguments:
+                                description: arguments to give to the template.
+                                properties:
+                                  artifacts:
+                                    description: artifacts to give.
+                                    items:
+                                      description: Artifact is a file or a directory
+                                        in the artifact repository of the namespace.
+                                      properties:
+                                        from:
+                                          description: from is the artifact that an
+                                            argument gives, as one placeholder, for
+                                            example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                          maxLength: 1024
+                                          type: string
+                                        key:
+                                          description: key of the object in the artifact
+                                            repository. Only the status sets it.
+                                          maxLength: 1024
+                                          type: string
+                                        name:
+                                          description: name of the artifact.
+                                          maxLength: 128
+                                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                          type: string
+                                        optional:
+                                          description: optional makes a missing output
+                                            file or a missing argument not an error.
+                                          type: boolean
+                                        path:
+                                          description: path in the main container.
+                                            The executor puts an input artifact there
+                                            and saves an output artifact from there.
+                                          maxLength: 4096
+                                          pattern: ^/
+                                          type: string
+                                      required:
+                                      - name
+                                      type: object
+                                    maxItems: 32
+                                    type: array
+                                    x-kubernetes-list-map-keys:
+                                    - name
+                                    x-kubernetes-list-type: map
+                                  parameters:
+                                    description: parameters to give.
+                                    items:
+                                      description: Parameter is a named string value.
+                                        Inputs, outputs and arguments use parameters.
+                                      properties:
+                                        default:
+                                          description: default is the value when the
+                                            caller does not give a value.
+                                          maxLength: 262144
+                                          type: string
+                                        description:
+                                          description: description of the parameter,
+                                            for people and for the UI.
+                                          maxLength: 1024
+                                          type: string
+                                        enum:
+                                          description: enum is the list of permitted
+                                            values.
+                                          items:
+                                            maxLength: 1024
+                                            type: string
+                                          maxItems: 256
+                                          type: array
+                                        name:
+                                          description: name of the parameter.
+                                          maxLength: 128
+                                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                          type: string
+                                        value:
+                                          description: value of the parameter. For
+                                            an input, a value cannot be changed by
+                                            the caller.
+                                          maxLength: 262144
+                                          type: string
+                                        valueFrom:
+                                          description: valueFrom tells where an output
+                                            parameter gets its value.
+                                          properties:
+                                            jsonPath:
+                                              description: jsonPath reads the value
+                                                from the object of a resource template,
+                                                for example "{.metadata.name}".
+                                              maxLength: 1024
+                                              type: string
+                                            path:
+                                              description: path of a file in the main
+                                                container. Its contents become the
+                                                value.
+                                              maxLength: 4096
+                                              type: string
+                                          type: object
+                                      required:
+                                      - name
+                                      type: object
+                                    maxItems: 256
+                                    type: array
+                                    x-kubernetes-list-map-keys:
+                                    - name
+                                    x-kubernetes-list-type: map
+                                type: object
+                              dependencies:
+                                description: dependencies are the names of the tasks
+                                  that must succeed before this task starts.
+                                items:
+                                  maxLength: 128
+                                  type: string
+                                maxItems: 200
+                                type: array
+                                x-kubernetes-list-type: set
+                              depends:
+                                description: depends is a boolean expression of task
+                                  results, for example "a.Succeeded || b.Failed".
+                                maxLength: 4096
+                                type: string
+                              name:
+                                description: name of the task. It is unique in the
+                                  DAG.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
+                                type: string
+                              template:
+                                description: template is the name of a template of
+                                  this workflow.
+                                maxLength: 128
+                                type: string
+                              templateRef:
+                                description: templateRef is a template of a WorkflowTemplate
+                                  in the same namespace or of a ClusterWorkflowTemplate.
+                                properties:
+                                  clusterScope:
+                                    description: clusterScope is true for a ClusterWorkflowTemplate.
+                                    type: boolean
+                                  name:
+                                    description: name of the WorkflowTemplate or the
+                                      ClusterWorkflowTemplate.
+                                    maxLength: 253
+                                    minLength: 1
+                                    type: string
+                                  template:
+                                    description: template is the name of the template
+                                      in it.
+                                    maxLength: 128
+                                    minLength: 1
+                                    type: string
+                                required:
+                                - name
+                                - template
+                                type: object
+                              when:
+                                description: when is a condition. When it is false,
+                                  the node is Skipped. For example "{{ "{{tasks.a.outputs.result}}" }}
+                                  == heads".
+                                maxLength: 4096
+                                type: string
+                              withItems:
+                                description: withItems runs the template once for
+                                  each item. "{{ "{{item}}" }}" is the item, "{{ "{{item.key}}" }}"
+                                  a field of an object item.
+                                items:
+                                  x-kubernetes-preserve-unknown-fields: true
+                                maxItems: 1000
+                                type: array
+                              withParam:
+                                description: withParam runs the template once for
+                                  each item of a JSON list, for example "{{ "{{tasks.a.outputs.result}}" }}".
+                                maxLength: 4096
+                                type: string
+                            required:
+                            - name
+                            type: object
+                            x-kubernetes-validations:
+                            - message: use dependencies or depends, not both
+                              rule: '!(has(self.dependencies) && has(self.depends))'
+                            - message: give template or templateRef
+                              rule: has(self.template) != has(self.templateRef)
+                          maxItems: 200
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                      required:
+                      - tasks
+                      type: object
+                    inputs:
+                      description: inputs are the parameters that the template accepts.
+                      properties:
+                        artifacts:
+                          description: artifacts that the template accepts.
+                          items:
+                            description: Artifact is a file or a directory in the
+                              artifact repository of the namespace.
+                            properties:
+                              from:
+                                description: from is the artifact that an argument
+                                  gives, as one placeholder, for example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                maxLength: 1024
+                                type: string
+                              key:
+                                description: key of the object in the artifact repository.
+                                  Only the status sets it.
+                                maxLength: 1024
+                                type: string
+                              name:
+                                description: name of the artifact.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              optional:
+                                description: optional makes a missing output file
+                                  or a missing argument not an error.
+                                type: boolean
+                              path:
+                                description: path in the main container. The executor
+                                  puts an input artifact there and saves an output
+                                  artifact from there.
+                                maxLength: 4096
+                                pattern: ^/
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          maxItems: 32
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        parameters:
+                          description: parameters that the template accepts.
+                          items:
+                            description: Parameter is a named string value. Inputs,
+                              outputs and arguments use parameters.
+                            properties:
+                              default:
+                                description: default is the value when the caller
+                                  does not give a value.
+                                maxLength: 262144
+                                type: string
+                              description:
+                                description: description of the parameter, for people
+                                  and for the UI.
+                                maxLength: 1024
+                                type: string
+                              enum:
+                                description: enum is the list of permitted values.
+                                items:
+                                  maxLength: 1024
+                                  type: string
+                                maxItems: 256
+                                type: array
+                              name:
+                                description: name of the parameter.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              value:
+                                description: value of the parameter. For an input,
+                                  a value cannot be changed by the caller.
+                                maxLength: 262144
+                                type: string
+                              valueFrom:
+                                description: valueFrom tells where an output parameter
+                                  gets its value.
+                                properties:
+                                  jsonPath:
+                                    description: jsonPath reads the value from the
+                                      object of a resource template, for example "{.metadata.name}".
+                                    maxLength: 1024
+                                    type: string
+                                  path:
+                                    description: path of a file in the main container.
+                                      Its contents become the value.
+                                    maxLength: 4096
+                                    type: string
+                                type: object
+                            required:
+                            - name
+                            type: object
+                          maxItems: 256
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                      type: object
+                    name:
+                      description: name of the template. It is unique in the workflow.
+                      maxLength: 128
+                      pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
+                      type: string
+                    outputs:
+                      description: outputs are the parameters that the template produces.
+                      properties:
+                        artifacts:
+                          description: artifacts that the template produces.
+                          items:
+                            description: Artifact is a file or a directory in the
+                              artifact repository of the namespace.
+                            properties:
+                              from:
+                                description: from is the artifact that an argument
+                                  gives, as one placeholder, for example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                maxLength: 1024
+                                type: string
+                              key:
+                                description: key of the object in the artifact repository.
+                                  Only the status sets it.
+                                maxLength: 1024
+                                type: string
+                              name:
+                                description: name of the artifact.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              optional:
+                                description: optional makes a missing output file
+                                  or a missing argument not an error.
+                                type: boolean
+                              path:
+                                description: path in the main container. The executor
+                                  puts an input artifact there and saves an output
+                                  artifact from there.
+                                maxLength: 4096
+                                pattern: ^/
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          maxItems: 32
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        parameters:
+                          description: parameters that the template produces.
+                          items:
+                            description: Parameter is a named string value. Inputs,
+                              outputs and arguments use parameters.
+                            properties:
+                              default:
+                                description: default is the value when the caller
+                                  does not give a value.
+                                maxLength: 262144
+                                type: string
+                              description:
+                                description: description of the parameter, for people
+                                  and for the UI.
+                                maxLength: 1024
+                                type: string
+                              enum:
+                                description: enum is the list of permitted values.
+                                items:
+                                  maxLength: 1024
+                                  type: string
+                                maxItems: 256
+                                type: array
+                              name:
+                                description: name of the parameter.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              value:
+                                description: value of the parameter. For an input,
+                                  a value cannot be changed by the caller.
+                                maxLength: 262144
+                                type: string
+                              valueFrom:
+                                description: valueFrom tells where an output parameter
+                                  gets its value.
+                                properties:
+                                  jsonPath:
+                                    description: jsonPath reads the value from the
+                                      object of a resource template, for example "{.metadata.name}".
+                                    maxLength: 1024
+                                    type: string
+                                  path:
+                                    description: path of a file in the main container.
+                                      Its contents become the value.
+                                    maxLength: 4096
+                                    type: string
+                                type: object
+                            required:
+                            - name
+                            type: object
+                          maxItems: 256
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        result:
+                          description: result is the standard output of a container
+                            or script node. Only the status sets it.
+                          type: string
+                      type: object
+                    resource:
+                      description: |-
+                        resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the
+                        service account of the workflow, so it has only the permissions of that service account.
+                      properties:
+                        action:
+                          description: action is the operation.
+                          enum:
+                          - get
+                          - create
+                          - apply
+                          - patch
+                          - delete
+                          type: string
+                        failureCondition:
+                          description: failureCondition fails the node when the object
+                            matches, for example "status.failed > 3".
+                          maxLength: 1024
+                          type: string
+                        manifest:
+                          description: manifest is the object as YAML. Placeholders
+                            can be in string values only, never in keys.
+                          maxLength: 262144
+                          minLength: 1
+                          type: string
+                        setOwnerReference:
+                          description: setOwnerReference makes the Workflow the owner
+                            of the object, so that the object is deleted with the
+                            Workflow.
+                          type: boolean
+                        successCondition:
+                          description: |-
+                            successCondition ends the node with success when the object matches, for example "status.succeeded > 0".
+                            Conditions are comma-separated "path operator value" terms, and all terms must match.
+                          maxLength: 1024
+                          type: string
+                      required:
+                      - action
+                      - manifest
+                      type: object
+                    retryStrategy:
+                      description: retryStrategy runs the template again when it fails.
+                      properties:
+                        backoff:
+                          description: backoff is the wait before each retry. Without
+                            a backoff, a retry starts at once.
+                          properties:
+                            duration:
+                              description: duration is the wait before the first retry,
+                                for example "10s".
+                              type: string
+                            factor:
+                              description: factor multiplies the wait for each retry.
+                                The default is 1.
+                              format: int32
+                              maximum: 100
+                              minimum: 1
+                              type: integer
+                            maxDuration:
+                              description: maxDuration is the longest wait.
+                              type: string
+                          required:
+                          - duration
+                          type: object
+                        limit:
+                          description: limit is the number of retries after the first
+                            attempt.
+                          format: int32
+                          maximum: 1000
+                          minimum: 0
+                          type: integer
+                        retryPolicy:
+                          description: retryPolicy tells which failures start a new
+                            attempt. The default is OnFailure.
+                          enum:
+                          - Always
+                          - OnFailure
+                          - OnError
+                          type: string
+                      required:
+                      - limit
+                      type: object
+                    script:
+                      description: script runs a script in a Pod.
+                      properties:
+                        args:
+                          description: args are the arguments to the entrypoint.
+                          items:
+                            type: string
+                          maxItems: 256
+                          type: array
+                        command:
+                          description: command is the entrypoint. It is not run in
+                            a shell.
+                          items:
+                            type: string
+                          maxItems: 256
+                          type: array
+                        env:
+                          description: env is the list of environment variables.
+                          items:
+                            description: EnvVar represents an environment variable
+                              present in a Container.
+                            properties:
+                              name:
+                                description: |-
+                                  Name of the environment variable.
+                                  May consist of any printable ASCII characters except '='.
+                                type: string
+                              value:
+                                description: |-
+                                  Variable references $(VAR_NAME) are expanded
+                                  using the previously defined environment variables in the container and
+                                  any service environment variables. If a variable cannot be resolved,
+                                  the reference in the input string will be unchanged. Double $$ are reduced
+                                  to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                                  "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                                  Escaped references will never be expanded, regardless of whether the variable
+                                  exists or not.
+                                  Defaults to "".
+                                type: string
+                              valueFrom:
+                                description: Source for the environment variable's
+                                  value. Cannot be used if value is not empty.
+                                properties:
+                                  configMapKeyRef:
+                                    description: Selects a key of a ConfigMap.
+                                    properties:
+                                      key:
+                                        description: |-
+                                          The key to select from the ConfigMap's Data field.
+                                          Keys in the BinaryData field are not currently propagated to container env vars.
+                                        type: string
+                                      name:
+                                        default: ""
+                                        description: |-
+                                          Name of the referent.
+                                          This field is effectively required, but due to backwards compatibility is
+                                          allowed to be empty. Instances of this type with an empty value here are
+                                          almost certainly wrong.
+                                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        type: string
+                                      optional:
+                                        description: Specify whether the ConfigMap
+                                          or its key must be defined
+                                        type: boolean
+                                    required:
+                                    - key
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fieldRef:
+                                    description: |-
+                                      Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                      spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                    properties:
+                                      apiVersion:
+                                        description: Version of the schema the FieldPath
+                                          is written in terms of, defaults to "v1".
+                                        type: string
+                                      fieldPath:
+                                        description: Path of the field to select in
+                                          the specified API version.
+                                        type: string
+                                    required:
+                                    - fieldPath
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fileKeyRef:
+                                    description: |-
+                                      FileKeyRef selects a key of the env file.
+                                      Requires the EnvFiles feature gate to be enabled.
+                                    properties:
+                                      key:
+                                        description: |-
+                                          The key within the env file. An invalid key will prevent the pod from starting.
+                                          The keys defined within a source may consist of any printable ASCII characters except '='.
+                                          During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                                        type: string
+                                      optional:
+                                        default: false
+                                        description: |-
+                                          Specify whether the file or its key must be defined. If the file or key
+                                          does not exist, then the env var is not published.
+                                          If optional is set to true and the specified key does not exist,
+                                          the environment variable will not be set in the Pod's containers.
+
+                                          If optional is set to false and the specified key does not exist,
+                                          an error will be returned during Pod creation.
+                                        type: boolean
+                                      path:
+                                        description: |-
+                                          The path within the volume from which to select the file.
+                                          Must be relative and may not contain the '..' path or start with '..'.
+                                        type: string
+                                      volumeName:
+                                        description: The name of the volume mount
+                                          containing the env file.
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    - volumeName
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  resourceFieldRef:
+                                    description: |-
+                                      Selects a resource of the container: only resources limits and requests
+                                      (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                    properties:
+                                      containerName:
+                                        description: 'Container name: required for
+                                          volumes, optional for env vars'
+                                        type: string
+                                      divisor:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: Specifies the output format of
+                                          the exposed resources, defaults to "1"
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
+                                      resource:
+                                        description: 'Required: resource to select'
+                                        type: string
+                                    required:
+                                    - resource
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  secretKeyRef:
+                                    description: Selects a key of a secret in the
+                                      pod's namespace
+                                    properties:
+                                      key:
+                                        description: The key of the secret to select
+                                          from.  Must be a valid secret key.
+                                        type: string
+                                      name:
+                                        default: ""
+                                        description: |-
+                                          Name of the referent.
+                                          This field is effectively required, but due to backwards compatibility is
+                                          allowed to be empty. Instances of this type with an empty value here are
+                                          almost certainly wrong.
+                                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        type: string
+                                      optional:
+                                        description: Specify whether the Secret or
+                                          its key must be defined
+                                        type: boolean
+                                    required:
+                                    - key
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                type: object
+                            required:
+                            - name
+                            type: object
+                          maxItems: 256
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        envFrom:
+                          description: envFrom is the list of sources of environment
+                            variables.
+                          items:
+                            description: EnvFromSource represents the source of a
+                              set of ConfigMaps or Secrets
+                            properties:
+                              configMapRef:
+                                description: The ConfigMap to select from
+                                properties:
+                                  name:
+                                    default: ""
+                                    description: |-
+                                      Name of the referent.
+                                      This field is effectively required, but due to backwards compatibility is
+                                      allowed to be empty. Instances of this type with an empty value here are
+                                      almost certainly wrong.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                  optional:
+                                    description: Specify whether the ConfigMap must
+                                      be defined
+                                    type: boolean
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              prefix:
+                                description: |-
+                                  Optional text to prepend to the name of each environment variable.
+                                  May consist of any printable ASCII characters except '='.
+                                type: string
+                              secretRef:
+                                description: The Secret to select from
+                                properties:
+                                  name:
+                                    default: ""
+                                    description: |-
+                                      Name of the referent.
+                                      This field is effectively required, but due to backwards compatibility is
+                                      allowed to be empty. Instances of this type with an empty value here are
+                                      almost certainly wrong.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                  optional:
+                                    description: Specify whether the Secret must be
+                                      defined
+                                    type: boolean
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                          maxItems: 32
+                          type: array
+                        image:
+                          description: image of the container.
+                          maxLength: 1024
+                          minLength: 1
+                          type: string
+                        imagePullPolicy:
+                          description: imagePullPolicy is the pull policy of the image.
+                          type: string
+                        resources:
+                          description: resources are the compute resources of the
+                            container.
+                          properties:
+                            claims:
+                              description: |-
+                                Claims lists the names of resources, defined in spec.resourceClaims,
+                                that are used by this container.
+
+                                This field depends on the
+                                DynamicResourceAllocation feature gate.
+
+                                This field is immutable. It can only be set for containers.
+                              items:
+                                description: ResourceClaim references one entry in
+                                  PodSpec.ResourceClaims.
+                                properties:
+                                  name:
+                                    description: |-
+                                      Name must match the name of one entry in pod.spec.resourceClaims of
+                                      the Pod where this field is used. It makes that resource available
+                                      inside a container.
+                                    type: string
+                                  request:
+                                    description: |-
+                                      Request is the name chosen for a request in the referenced claim.
+                                      If empty, everything from the claim is made available, otherwise
+                                      only the result of this request.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - name
+                              x-kubernetes-list-type: map
+                            limits:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                            requests:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                          type: object
+                        source:
+                          description: source is the script. The controller writes
+                            it to a file and runs the command with the file as the
+                            last argument.
+                          maxLength: 262144
+                          minLength: 1
+                          type: string
+                        workingDir:
+                          description: workingDir is the working directory.
+                          maxLength: 4096
+                          type: string
+                      required:
+                      - image
+                      - source
+                      type: object
+                    steps:
+                      description: steps runs groups of steps. The groups run one
+                        after the other. The steps in a group run in parallel.
+                      items:
+                        items:
+                          description: WorkflowStep is one step in a group of parallel
+                            steps.
+                          properties:
+                            arguments:
+                              description: arguments to give to the template.
+                              properties:
+                                artifacts:
+                                  description: artifacts to give.
+                                  items:
+                                    description: Artifact is a file or a directory
+                                      in the artifact repository of the namespace.
+                                    properties:
+                                      from:
+                                        description: from is the artifact that an
+                                          argument gives, as one placeholder, for
+                                          example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                        maxLength: 1024
+                                        type: string
+                                      key:
+                                        description: key of the object in the artifact
+                                          repository. Only the status sets it.
+                                        maxLength: 1024
+                                        type: string
+                                      name:
+                                        description: name of the artifact.
+                                        maxLength: 128
+                                        pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                        type: string
+                                      optional:
+                                        description: optional makes a missing output
+                                          file or a missing argument not an error.
+                                        type: boolean
+                                      path:
+                                        description: path in the main container. The
+                                          executor puts an input artifact there and
+                                          saves an output artifact from there.
+                                        maxLength: 4096
+                                        pattern: ^/
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  maxItems: 32
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
+                                parameters:
+                                  description: parameters to give.
+                                  items:
+                                    description: Parameter is a named string value.
+                                      Inputs, outputs and arguments use parameters.
+                                    properties:
+                                      default:
+                                        description: default is the value when the
+                                          caller does not give a value.
+                                        maxLength: 262144
+                                        type: string
+                                      description:
+                                        description: description of the parameter,
+                                          for people and for the UI.
+                                        maxLength: 1024
+                                        type: string
+                                      enum:
+                                        description: enum is the list of permitted
+                                          values.
+                                        items:
+                                          maxLength: 1024
+                                          type: string
+                                        maxItems: 256
+                                        type: array
+                                      name:
+                                        description: name of the parameter.
+                                        maxLength: 128
+                                        pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                        type: string
+                                      value:
+                                        description: value of the parameter. For an
+                                          input, a value cannot be changed by the
+                                          caller.
+                                        maxLength: 262144
+                                        type: string
+                                      valueFrom:
+                                        description: valueFrom tells where an output
+                                          parameter gets its value.
+                                        properties:
+                                          jsonPath:
+                                            description: jsonPath reads the value
+                                              from the object of a resource template,
+                                              for example "{.metadata.name}".
+                                            maxLength: 1024
+                                            type: string
+                                          path:
+                                            description: path of a file in the main
+                                              container. Its contents become the value.
+                                            maxLength: 4096
+                                            type: string
+                                        type: object
+                                    required:
+                                    - name
+                                    type: object
+                                  maxItems: 256
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
+                              type: object
+                            name:
+                              description: name of the step. It is unique in the steps
+                                template.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
+                              type: string
+                            template:
+                              description: template is the name of a template of this
+                                workflow.
+                              maxLength: 128
+                              type: string
+                            templateRef:
+                              description: templateRef is a template of a WorkflowTemplate
+                                in the same namespace or of a ClusterWorkflowTemplate.
+                              properties:
+                                clusterScope:
+                                  description: clusterScope is true for a ClusterWorkflowTemplate.
+                                  type: boolean
+                                name:
+                                  description: name of the WorkflowTemplate or the
+                                    ClusterWorkflowTemplate.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                                template:
+                                  description: template is the name of the template
+                                    in it.
+                                  maxLength: 128
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - template
+                              type: object
+                            when:
+                              description: when is a condition. When it is false,
+                                the node is Skipped. For example "{{ "{{tasks.a.outputs.result}}" }}
+                                == heads".
+                              maxLength: 4096
+                              type: string
+                            withItems:
+                              description: withItems runs the template once for each
+                                item. "{{ "{{item}}" }}" is the item, "{{ "{{item.key}}" }}" a field
+                                of an object item.
+                              items:
+                                x-kubernetes-preserve-unknown-fields: true
+                              maxItems: 1000
+                              type: array
+                            withParam:
+                              description: withParam runs the template once for each
+                                item of a JSON list, for example "{{ "{{tasks.a.outputs.result}}" }}".
+                              maxLength: 4096
+                              type: string
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: give template or templateRef
+                            rule: has(self.template) != has(self.templateRef)
+                        maxItems: 100
+                        minItems: 1
+                        type: array
+                      maxItems: 100
+                      minItems: 1
+                      type: array
+                    suspend:
+                      description: |-
+                        suspend waits for an approval in spec.approvals of the Workflow, or for a duration.
+                        The approval can give values to the output parameters. Without a value, an output parameter gets its default.
+                      properties:
+                        duration:
+                          description: duration ends the wait with success, for example
+                            "1h". Without a duration, the node waits for an approval.
+                          type: string
+                      type: object
+                    timeout:
+                      description: timeout fails a node of this template when it runs
+                        longer, for example "10m". With retries, it applies to each
+                        attempt.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                  x-kubernetes-validations:
+                  - message: a template must have exactly one of container, script,
+                      dag, steps, suspend or resource
+                    rule: '[has(self.container), has(self.script), has(self.dag),
+                      has(self.steps), has(self.suspend), has(self.resource)].filter(x,
+                      x).size() == 1'
+                maxItems: 200
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              ttlStrategy:
+                description: ttlStrategy deletes the Workflow some time after it finished.
+                properties:
+                  secondsAfterCompletion:
+                    description: secondsAfterCompletion applies to all finished workflows.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  secondsAfterFailure:
+                    description: secondsAfterFailure applies to workflows that failed
+                      or had an error.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  secondsAfterSuccess:
+                    description: secondsAfterSuccess applies to workflows that succeeded.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: spec.entrypoint and spec.templates are required
+          rule: has(self.spec.entrypoint) && has(self.spec.templates)
+    served: true
+    storage: true
+{{- end }}

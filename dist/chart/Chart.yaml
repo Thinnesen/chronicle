@@ -1,0 +1,15 @@
+apiVersion: v2
+name: chronicle
+description: chronicle, a Kubernetes-native workflow engine with a web UI, OIDC login and Kubernetes RBAC
+type: application
+
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - kubernetes
+  - workflows
+  - argo-workflows
+
+annotations:
+  kubebuilder.io/generated-by: kubebuilder

@@ -1,0 +1,64 @@
+{{- if .Values.userRoles.enabled }}
+# chronicle-viewer, chronicle-editor and chronicle-admin are the roles of docs/entra-id.md.
+# Bind them in a namespace with a RoleBinding, or with the teams value.
+{{- $workflows := list "workflows" "workflowtemplates" "cronworkflows" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chronicle-viewer
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+rules:
+- apiGroups: [chronicle.thinnesen.com]
+  resources: {{ toJson $workflows }}
+  verbs: [get, list, watch]
+- apiGroups: [chronicle.thinnesen.com]
+  resources: [clusterworkflowtemplates]
+  verbs: [get, list, watch]
+# The UI and the CLI show the logs of the workflow Pods.
+- apiGroups: [""]
+  resources: [pods, pods/log]
+  verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chronicle-editor
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+rules:
+- apiGroups: [chronicle.thinnesen.com]
+  resources: {{ toJson $workflows }}
+  verbs: [get, list, watch, create, update, patch]
+- apiGroups: [chronicle.thinnesen.com]
+  resources: [clusterworkflowtemplates]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [pods, pods/log]
+  verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chronicle-admin
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+rules:
+- apiGroups: [chronicle.thinnesen.com]
+  resources: {{ toJson $workflows }}
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [chronicle.thinnesen.com]
+  resources: [clusterworkflowtemplates]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [pods, pods/log]
+  verbs: [get, list]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [rolebindings]
+  verbs: [get, list, watch, create, update, patch, delete]
+# A RoleBinding can give only the permissions that its author has, or roles that the author may bind.
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [clusterroles]
+  resourceNames: [chronicle-viewer, chronicle-editor, chronicle-admin]
+  verbs: [bind]
+{{- end }}
