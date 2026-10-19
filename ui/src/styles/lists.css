@@ -187,3 +187,9 @@
 .item-meta {
   font-size: var(--text-xs);
 }
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}

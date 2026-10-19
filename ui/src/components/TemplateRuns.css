@@ -1,0 +1,69 @@
+.template-runs ol {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.template-runs li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(3rem, 6rem) 3.5rem;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.template-runs a {
+  overflow: hidden;
+  font-family: var(--font-code);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.template-runs a:hover {
+  text-decoration: underline;
+}
+
+.template-runs .quiet {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.run-bar {
+  height: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 3px;
+}
+
+.run-bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--lamp-idle);
+}
+
+.run-bar-proceed {
+  background: var(--lamp-proceed);
+}
+
+.run-bar-danger {
+  background: var(--lamp-danger);
+}
+
+.run-bar-running {
+  background: var(--lamp-running);
+}
+
+.run-bar-caution {
+  background: var(--lamp-caution);
+}
+
+.run-took {
+  font-size: var(--text-xs);
+  text-align: right;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
