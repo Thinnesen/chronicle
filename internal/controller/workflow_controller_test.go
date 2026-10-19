@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/artifact"
 	"github.com/Thinnesen/chronicle/internal/executor"
 )
 
@@ -258,6 +259,43 @@ templates:
 		Expect(fake.saved).To(HaveLen(1))
 		Expect(fake.saved[0]).To(Equal([2]int{1, 1}))
 		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, key, wf))).To(BeTrue())
+	})
+
+	It("passes an artifact through the repository of the namespace", func() {
+		cm := &corev1.ConfigMap{Name: artifact.Name, Namespace: "default",
+			Data: map[string]string{"endpoint": "s3.example.com:443", "bucket": "runs", "archiveLogs": "true"}}
+		Expect(k8sClient.Create(ctx, cm)).To(Succeed())
+		DeferCleanup(func() error { return k8sClient.Delete(ctx, cm) })
+		key := create(`
+entrypoint: main
+templates:
+- name: main
+  dag:
+    tasks:
+    - {name: a, template: make}
+    - {name: b, template: use, depends: a, arguments: {artifacts: [{name: data, from: "{{tasks.a.outputs.artifacts.data}}"}]}}
+- {name: make, outputs: {artifacts: [{name: data, path: /tmp/out}]}, container: {image: alpine, command: [run]}}
+- {name: use, inputs: {artifacts: [{name: data, path: /tmp/in}]}, container: {image: alpine, command: [run]}}
+`)
+		wf := reconcileOnce(key)
+		a := pods(wf)[0]
+		prefix := "default/" + string(wf.UID) + "/" + a.Name
+		Expect(a.Annotations).To(HaveKeyWithValue(AnnotationArtifactPrefix, prefix))
+		env := a.Spec.Containers[0].Env
+		Expect(env).To(ContainElement(HaveField("ValueFrom.SecretKeyRef.Name", artifact.Name)))
+		Expect(env).To(ContainElement(HaveField("Value", ContainSubstring(`"outputs":[{"name":"data","path":"/tmp/out"}]`))))
+
+		finish(&a, 0, executor.Message{Artifacts: []string{"data"}, Log: true})
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Nodes[a.Name].LogKey).To(Equal(prefix + "/main.log"))
+		var b corev1.Pod
+		for _, p := range pods(wf) {
+			if p.Name != a.Name {
+				b = p
+			}
+		}
+		Expect(b.Spec.Containers[0].Env).To(ContainElement(HaveField("Value",
+			ContainSubstring(`"inputs":[{"name":"data","path":"/tmp/in","key":"`+prefix+`/data.tgz"}]`))))
 	})
 
 	It("runs a container without a command directly", func() {

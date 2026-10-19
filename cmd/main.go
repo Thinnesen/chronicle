@@ -191,6 +191,7 @@ func main() {
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		ExecutorImage: executorImage,
+		APIReader:     mgr.GetAPIReader(),
 	}
 	if archiveDSNFile != "" {
 		store, err := archive.OpenFile(context.Background(), archiveDSNFile)

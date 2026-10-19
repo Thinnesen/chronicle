@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/artifact"
 	"github.com/Thinnesen/chronicle/internal/engine"
 	"github.com/Thinnesen/chronicle/internal/executor"
 )
@@ -17,7 +18,7 @@ import (
 func podResult(pod *corev1.Pod) engine.PodResult {
 	main := containerStatus(pod.Status.ContainerStatuses, mainContainer)
 	if t := main.State.Terminated; t != nil {
-		return terminated(t)
+		return terminated(t, pod.Annotations[AnnotationArtifactPrefix])
 	}
 	if init := containerStatus(pod.Status.InitContainerStatuses, "init"); init.State.Terminated != nil && init.State.Terminated.ExitCode != 0 {
 		return engine.PodResult{Phase: v1alpha1.NodeError, Message: "the executor did not install: " + init.State.Terminated.Reason}
@@ -44,11 +45,15 @@ func containerStatus(list []corev1.ContainerStatus, name string) corev1.Containe
 	return corev1.ContainerStatus{}
 }
 
-func terminated(t *corev1.ContainerStateTerminated) engine.PodResult {
+// terminated reads the result of the main container. prefix is the key prefix of its artifacts.
+func terminated(t *corev1.ContainerStateTerminated, prefix string) engine.PodResult {
 	r := engine.PodResult{Phase: v1alpha1.NodeSucceeded, FinishedAt: &t.FinishedAt}
 	var msg executor.Message
 	if json.Unmarshal([]byte(t.Message), &msg) == nil {
-		r.Outputs = outputs(msg)
+		r.Outputs = outputs(msg, prefix)
+		if msg.Log && prefix != "" {
+			r.LogKey = artifact.LogKey(prefix)
+		}
 	}
 	if t.ExitCode == 0 {
 		return r
@@ -65,11 +70,16 @@ func terminated(t *corev1.ContainerStateTerminated) engine.PodResult {
 	return r
 }
 
-func outputs(msg executor.Message) *v1alpha1.Outputs {
-	if msg.Result == nil && len(msg.Parameters) == 0 {
+func outputs(msg executor.Message, prefix string) *v1alpha1.Outputs {
+	if msg.Result == nil && len(msg.Parameters) == 0 && len(msg.Artifacts) == 0 {
 		return nil
 	}
 	o := &v1alpha1.Outputs{Result: msg.Result}
+	if prefix != "" {
+		for _, name := range msg.Artifacts {
+			o.Artifacts = append(o.Artifacts, v1alpha1.Artifact{Name: name, Key: artifact.ArtifactKey(prefix, name)})
+		}
+	}
 	for _, name := range slices.Sorted(maps.Keys(msg.Parameters)) {
 		v := msg.Parameters[name]
 		o.Parameters = append(o.Parameters, v1alpha1.Parameter{Name: name, Value: &v})

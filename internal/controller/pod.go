@@ -32,7 +32,8 @@ const (
 )
 
 // buildPod returns the Pod for a CreatePod action. The Pod meets the "restricted" Pod security standard.
-func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engine.CreatePod, executorImage string) *corev1.Pod {
+// files is the artifact work of the executor, or nil.
+func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engine.CreatePod, executorImage string, files *executor.ArtifactSpec) *corev1.Pod {
 	labels := map[string]string{LabelWorkflowUID: string(wf.UID), LabelNodeID: a.NodeID}
 	if len(wf.Name) <= 63 {
 		labels[LabelWorkflow] = wf.Name
@@ -44,19 +45,25 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 	} else {
 		main, wrapped = mainContainerFor(a.Template)
 	}
+	annotations := map[string]string{AnnotationNode: a.NodeName}
 	initContainers := []corev1.Container(nil)
 	volumes := []corev1.Volume(nil)
 	if wrapped {
+		// The volume holds the executor, the script and the log (up to 32 MiB) for the log archive.
 		volumes = []corev1.Volume{{Name: execVolume, EmptyDir: &corev1.EmptyDirVolumeSource{
-			SizeLimit: new(resource.MustParse("64Mi")),
+			SizeLimit: new(resource.MustParse("128Mi")),
 		}}}
 		initContainers = []corev1.Container{initContainer(executorImage)}
+		if files != nil {
+			main.Env = append(main.Env, artifactEnv(files)...)
+			annotations[AnnotationArtifactPrefix] = files.Prefix
+		}
 	}
 	return &corev1.Pod{
 		Name:            a.PodName,
 		Namespace:       wf.Namespace,
 		Labels:          labels,
-		Annotations:     map[string]string{AnnotationNode: a.NodeName},
+		Annotations:     annotations,
 		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(wf, v1alpha1.GroupVersion.WithKind("Workflow"))},
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
@@ -76,6 +83,11 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 			Volumes:        volumes,
 		},
 	}
+}
+
+// usesExecutor tells if the executor wraps the main container of a template.
+func usesExecutor(t *v1alpha1.Template) bool {
+	return t.Script != nil || t.Container != nil && len(t.Container.Command) > 0
 }
 
 // mainContainerFor returns the main container. When the template has a command, the executor wraps it,

@@ -41,7 +41,11 @@ type Message struct {
 	// ResultTooLarge is true when the standard output was too large to be the result.
 	ResultTooLarge bool              `json:"resultTooLarge,omitempty"`
 	Parameters     map[string]string `json:"parameters,omitempty"`
-	Error          string            `json:"error,omitempty"`
+	// Artifacts are the names of the saved output artifacts. The keys come from the prefix of the Pod.
+	Artifacts []string `json:"artifacts,omitempty"`
+	// Log is true when the log is archived.
+	Log   bool   `json:"log,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 // Install copies the running binary to dst, so that the main container can run it.
@@ -70,11 +74,22 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(stderr, err)
 	}
+	f, err := openFiles()
+	if err == nil {
+		err = f.download()
+	}
+	if err != nil {
+		return fail(stderr, err)
+	}
 	var captured limitedBuffer
+	log := f.logWriter()
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, io.MultiWriter(stdout, &captured), stderr
+	cmd.Env = childEnv()
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, io.MultiWriter(stdout, &captured, log), io.MultiWriter(stderr, log)
 	code := runChild(cmd, stderr)
-	msg := fitMessage(collect(&captured))
+	msg := collect(&captured)
+	f.save(&msg, code == 0, stderr)
+	msg = fitMessage(msg)
 	if msg.Error != "" {
 		_, _ = fmt.Fprintln(stderr, "chronicle-exec:", msg.Error)
 		if code == 0 {
