@@ -8,7 +8,6 @@ import socket
 import threading
 import time
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -84,7 +83,6 @@ class Worker:
             raise ValueError("register at least one task function")
         stop = stop or threading.Event()
         slots = threading.Semaphore(self._concurrency)
-        pool = ThreadPoolExecutor(max_workers=self._concurrency)
         try:
             while not stop.is_set():
                 if not slots.acquire(timeout=1):
@@ -97,17 +95,27 @@ class Worker:
                         raise
                     time.sleep(1)
                     continue
+                except OSError:
+                    # A lost connection, for example while the server restarts: poll again.
+                    slots.release()
+                    time.sleep(1)
+                    continue
                 if task is None:
                     slots.release()
                     continue
-                future = pool.submit(self._handle, task)
-                future.add_done_callback(lambda _: slots.release())
+                # A daemon thread: a task that hangs after the grace period does not keep the process alive.
+                threading.Thread(target=self._run_task, args=(task, slots), daemon=True).start()
         finally:
-            pool.shutdown(wait=False)
             # Wait for the running tasks: each one holds a slot.
             deadline = time.monotonic() + self._grace_period
             for _ in range(self._concurrency):
                 slots.acquire(timeout=max(deadline - time.monotonic(), 0))
+
+    def _run_task(self, d: _Delivery, slots: threading.Semaphore) -> None:
+        try:
+            self._handle(d)
+        finally:
+            slots.release()
 
     def _poll(self) -> _Delivery | None:
         body = {"namespace": self._namespace, "queue": self._queue, "names": sorted(self._funcs), "worker": self._name}

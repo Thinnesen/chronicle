@@ -1,5 +1,9 @@
 import json
+import signal
+import subprocess
+import sys
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import chronicle
@@ -90,3 +94,54 @@ def test_worker():
         "retryable": False,
     }
     assert "slow" not in queue.results, "a cancelled task must not send a result"
+
+
+_HANGING = """
+import signal, sys, threading
+import chronicle
+worker = chronicle.Worker(chronicle.Client(sys.argv[1], "tok"), "team-a", heartbeat=0.05, grace_period=1)
+started = threading.Event()
+
+@worker.task("greet")
+def greet(data, task):
+    started.set()
+    threading.Event().wait()  # never returns
+
+stop = threading.Event()
+signal.signal(signal.SIGTERM, lambda *_: stop.set())
+threading.Thread(target=lambda: started.wait() and print("started", flush=True), daemon=True).start()
+worker.run(stop)
+"""
+
+
+def test_a_hanging_task_does_not_keep_the_process_alive():
+    """run() waits at most the grace period, and the process ends then, also when a task function hangs."""
+    queue = _Queue()
+    server = _serve(queue)
+    proc = subprocess.Popen(  # noqa: S603 - a fixed test program
+        [sys.executable, "-c", _HANGING, f"http://127.0.0.1:{server.server_port}"], stdout=subprocess.PIPE, text=True
+    )
+    try:
+        assert proc.stdout.readline().strip() == "started"
+        start = time.monotonic()
+        proc.send_signal(signal.SIGTERM)
+        proc.wait(timeout=15)
+        assert time.monotonic() - start < 10
+    finally:
+        proc.kill()
+        server.shutdown()
+
+
+def test_a_server_that_is_down_does_not_stop_the_worker():
+    """A lost connection is not fatal: the worker polls again, as the Go and Rust workers do."""
+    client = chronicle.Client("http://127.0.0.1:9", "tok", timeout=1)
+    worker = chronicle.Worker(client, "team-a")
+    worker.task("greet")(lambda data, task: {})
+    stop = threading.Event()
+    runner = threading.Thread(target=worker.run, args=(stop,))
+    runner.start()
+    runner.join(2.5)
+    assert runner.is_alive(), "the worker stopped on a connection error"
+    stop.set()
+    runner.join(5)
+    assert not runner.is_alive()
