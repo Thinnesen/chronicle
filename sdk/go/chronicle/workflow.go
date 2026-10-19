@@ -323,3 +323,40 @@ func (k *Task) Output(name string) string {
 func (k *Task) Artifact(name string) string {
 	return "{{tasks." + k.Name() + ".outputs.artifacts." + name + "}}"
 }
+
+// TaskTemplate returns a template that sends its input parameters to a worker that runs the task type taskType.
+func TaskTemplate(name, taskType string) *Template {
+	return &Template{t: v1alpha1.Template{Name: name, Task: &v1alpha1.TaskTemplate{Name: taskType}}}
+}
+
+func (t *Template) task() *v1alpha1.TaskTemplate {
+	if t.t.Task == nil {
+		t.errs = append(t.errs, fmt.Errorf("template %q is not a task template", t.t.Name))
+		t.t.Task = &v1alpha1.TaskTemplate{}
+	}
+	return t.t.Task
+}
+
+// Queue sets the queue of a task template.
+func (t *Template) Queue(queue string) *Template {
+	t.task().Queue = queue
+	return t
+}
+
+// HeartbeatTimeout fails an attempt of a task template when the worker sends no heartbeat for d.
+func (t *Template) HeartbeatTimeout(d time.Duration) *Template {
+	t.task().HeartbeatTimeout = &metav1.Duration{Duration: d}
+	return t
+}
+
+// ScheduleToStartTimeout fails an attempt of a task template when no worker takes the task in d.
+func (t *Template) ScheduleToStartTimeout(d time.Duration) *Template {
+	t.task().ScheduleToStartTimeout = &metav1.Duration{Duration: d}
+	return t
+}
+
+// OutputField declares an output parameter of a task template. It gets the field of the result with the same name.
+func (t *Template) OutputField(name string) *Template {
+	t.t.Outputs.Parameters = append(t.t.Outputs.Parameters, v1alpha1.Parameter{Name: name})
+	return t
+}

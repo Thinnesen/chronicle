@@ -18,6 +18,8 @@ import (
 type Client struct {
 	// Workflows is the generated API client. Use it for the calls that Client does not wrap.
 	Workflows chroniclev1connect.WorkflowServiceClient
+	// Tasks is the API of the task workers. Worker uses it.
+	Tasks chroniclev1connect.TaskServiceClient
 }
 
 // NewClient returns a client for the server URL, for example "https://chronicle.example.com".
@@ -27,7 +29,10 @@ func NewClient(server, token string) (*Client, error) {
 		return nil, errors.New("give the server URL and a token")
 	}
 	hc := &http.Client{Transport: bearer{token: token, next: http.DefaultTransport}}
-	return &Client{Workflows: chroniclev1connect.NewWorkflowServiceClient(hc, server)}, nil
+	return &Client{
+		Workflows: chroniclev1connect.NewWorkflowServiceClient(hc, server),
+		Tasks:     chroniclev1connect.NewTaskServiceClient(hc, server),
+	}, nil
 }
 
 // Submit starts a run of the workflow in a namespace and returns the name of the run.
