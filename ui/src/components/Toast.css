@@ -11,11 +11,13 @@
 .toast {
   margin: 0;
   padding: var(--space-3) var(--space-4);
-  background: var(--ink);
-  color: var(--panel);
-  border-radius: var(--radius);
-  font-size: var(--text-sm);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
   border-left: 4px solid var(--lamp-proceed);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
 }
 
 .toast-error {

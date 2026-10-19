@@ -117,7 +117,7 @@ button {
 
 .button-danger {
   background: var(--lamp-danger);
-  color: #fff;
+  color: var(--accent-ink);
   border-color: var(--lamp-danger);
 }
 

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { namespaces, workflows } from "../api/client";
 import { logout } from "../api/session";
 import { applyTheme, readTheme, type Theme } from "../theme";
+import { BrandMark } from "./BrandMark";
 import { CommandPalette } from "./CommandPalette";
 import "./Shell.css";
 
@@ -135,18 +136,6 @@ function Breadcrumbs() {
         </span>
       ))}
     </nav>
-  );
-}
-
-function BrandMark() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
-      <rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)" />
-      <path d="M10 16h4c2 0 3-6 8-6M14 16c2 0 3 6 8 6" fill="none" stroke="var(--accent-ink)" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="9" cy="16" r="3.2" fill="var(--accent-ink)" />
-      <circle cx="23" cy="10" r="3.2" fill="var(--accent-ink)" />
-      <circle cx="23" cy="22" r="3.2" fill="var(--accent-ink)" />
-    </svg>
   );
 }
 

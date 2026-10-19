@@ -15,7 +15,8 @@
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 41;
 }
 
