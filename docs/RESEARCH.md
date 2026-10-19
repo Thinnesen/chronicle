@@ -49,3 +49,11 @@ What we do:
 - Dagster: a Gantt timeline of the steps of a run, next to the logs.
 - Hatchet computes the DAG edges from the task "shape". chronicle has a node tree in the status, so the UI computes the edges from the stored spec (template, then tasks, then node names `<boundary>.<task>`).
 - Ideas for chronicle (M4): a DAG graph and a Gantt timeline of the same run, side by side with the logs. A command palette. Readable cron text and the next runs. A YAML view with schema completion. Study the real pages before M4 starts and record the result here.
+
+## SDKs: workflows as code (Hera, Hatchet, Dagster)
+
+- Hera (the Python SDK of Argo Workflows) builds Argo YAML with context managers (`with DAG(...)`), decorators for script templates, and `a >> b` for dependencies. The result is a normal Workflow object, so GitOps and kubectl keep working.
+- Hatchet (Go, Python, TypeScript) registers functions as tasks: `workflow.NewTask(name, fn, WithParents(step1))`, and a task reads the output of a parent with `ctx.ParentOutput(step1, &out)`. A worker runs the functions. This matches chronicle task workers (M7), not container templates.
+- Dagster defines assets and ops as decorated functions, with a typed graph.
+- What we do: the SDKs build the chronicle Workflow object (the CRD types) and validate it with the webhook rules before they render or submit it. A task handle gives the dependency and the typed placeholders (`Result`, `Output`, `Artifact`), so a user never writes `{{tasks...}}` by hand. Task workers (M7) add the Hatchet style of functions as tasks.
+- Go: a builder in the main module (`sdk/go/chronicle`) that uses `api/v1alpha1` and `internal/validate` directly. Python and Rust: generated types from the CRD schema, with the same builder shape.

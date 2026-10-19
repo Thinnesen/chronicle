@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -108,6 +109,19 @@ func cliSpecs() {
 			out, err = chronicle("list")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(MatchRegexp(`archived\s+Succeeded`))
+		})
+
+		It("submits a workflow from the Go SDK", func() {
+			token, err := utils.Run(exec.Command("kubectl", "create", "token", "ci", "-n", cliNS, "--audience=chronicle"))
+			Expect(err).NotTo(HaveOccurred())
+			tokenFile := filepath.Join(GinkgoT().TempDir(), "token")
+			Expect(os.WriteFile(tokenFile, []byte(token), 0o600)).To(Succeed())
+			out, err := utils.Run(exec.Command("go", "run", "./sdk/go/examples/fanout", "-server", server, "-namespace", cliNS, "-token-file", tokenFile))
+			Expect(err).NotTo(HaveOccurred(), out)
+			name := strings.TrimSpace(strings.TrimPrefix(out, "Started "+cliNS+"/"))
+			out, err = chronicle("watch", name)
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring(name + " Succeeded"))
 		})
 
 		It("passes an artifact between steps and archives the logs", func() {
