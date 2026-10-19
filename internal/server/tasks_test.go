@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -87,6 +88,22 @@ func TestTaskService(t *testing.T) {
 	if _, err := c.CompleteTask(ctx, stale); connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Errorf("a stale lease: %v", err)
 	}
+	// During a shutdown, a poll without a task returns at once instead of after the long poll.
+	drain := make(chan struct{})
+	close(drain)
+	dh, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}, Tasks: &fakeTasks{}, Drain: drain})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dsrv := httptest.NewServer(dh)
+	t.Cleanup(dsrv.Close)
+	idle := connect.NewRequest(&chroniclev1.PollTaskRequest{Namespace: "team-a", Names: []string{"greet"}})
+	as("worker", idle)
+	start := time.Now()
+	if got, err := chroniclev1connect.NewTaskServiceClient(dsrv.Client(), dsrv.URL).PollTask(ctx, idle); err != nil || got.Msg.Task != nil || time.Since(start) > 5*time.Second {
+		t.Errorf("a poll during a shutdown: %v %+v after %s", err, got, time.Since(start))
+	}
+
 	done := connect.NewRequest(&chroniclev1.CompleteTaskRequest{Namespace: "team-a", Id: "u/n1", Lease: "lease-1", OutputJson: `{"ok":true}`})
 	as("worker", done)
 	if _, err := c.CompleteTask(ctx, done); err != nil || store.completed != `u/n1 {"ok":true}` {

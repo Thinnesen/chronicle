@@ -38,6 +38,7 @@ const (
 type taskService struct {
 	workflows *workflowService
 	store     TaskStore
+	drain     <-chan struct{}
 
 	mu      sync.Mutex
 	allowed map[string]time.Time // identity and namespace, to the end of the decision
@@ -70,6 +71,8 @@ func (s *taskService) PollTask(ctx context.Context, req *connect.Request[chronic
 		}
 		select {
 		case <-ctx.Done():
+			return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
+		case <-s.drain:
 			return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
 		case <-time.After(pollEvery):
 		}

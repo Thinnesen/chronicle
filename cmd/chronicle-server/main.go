@@ -89,7 +89,8 @@ func main() {
 	if len(authn) == 0 {
 		log.Info("No login and no service account tokens: the API refuses all calls")
 	}
-	apiOpts := server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn}
+	drain := make(chan struct{})
+	apiOpts := server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn, Drain: drain}
 	if store != nil {
 		apiOpts.Archive = store
 		apiOpts.Tasks = store
@@ -133,6 +134,7 @@ func main() {
 	defer stop()
 	go func() {
 		<-ctx.Done()
+		close(drain)
 		shutdown, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		_ = srv.Shutdown(shutdown)

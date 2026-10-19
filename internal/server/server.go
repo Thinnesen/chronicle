@@ -30,6 +30,9 @@ type Options struct {
 	Tasks TaskStore
 	// Artifacts opens the artifact repositories. The default reads the ConfigMap and the Secret of each namespace.
 	Artifacts ArtifactStores
+	// Drain closes when the server shuts down. Then the long polls of the task workers end at once, so that the
+	// workers poll another replica instead of holding up the shutdown.
+	Drain <-chan struct{}
 }
 
 // NewHandler returns the HTTP handler of the API.
@@ -55,7 +58,7 @@ func NewHandler(opts Options) (http.Handler, error) {
 	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs, stores: opts.Artifacts}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	if opts.Tasks != nil {
-		path, h = chroniclev1connect.NewTaskServiceHandler(&taskService{workflows: workflows, store: opts.Tasks, allowed: map[string]time.Time{}}, limit)
+		path, h = chroniclev1connect.NewTaskServiceHandler(&taskService{workflows: workflows, store: opts.Tasks, drain: opts.Drain, allowed: map[string]time.Time{}}, limit)
 		mux.Handle(path, authenticate(opts.Authenticators, h))
 	}
 	mux.Handle("GET "+ArtifactPath+"{namespace}/{workflow}/{node}/{name}",
