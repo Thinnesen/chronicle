@@ -179,7 +179,7 @@ function WaitingApprovals({ nodes, onReview }: { nodes: Record<string, NodeStatu
   const first = waiting[0];
   if (!first) return null;
   return (
-    <div className="run-notice run-approval">
+    <div className="approval-notice">
       <Hand aria-hidden="true" />
       <span>{waiting.length === 1 ? `The step ${nodeLabel(first)} waits for an approval.` : `${waiting.length} steps wait for an approval.`}</span>
       <button type="button" className="button" onClick={() => onReview(first.id)}>

@@ -239,6 +239,37 @@ button {
   border-color: transparent;
 }
 
+/* A notice about work that waits for a person, for example an approval. */
+.approval-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--caution-ink);
+  background: var(--caution-soft);
+  border: 1px solid color-mix(in srgb, var(--lamp-caution) 30%, transparent);
+  border-left: 3px solid var(--lamp-caution);
+  border-radius: var(--radius);
+}
+
+.approval-notice > svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.approval-notice > .button {
+  margin-left: auto;
+}
+
+.approval-notice a {
+  font-family: var(--font-code);
+  color: inherit;
+}
+
 /* Shared parts: menus, keyboard keys and icon buttons. */
 kbd {
   padding: 0 var(--space-1);
@@ -325,4 +356,9 @@ kbd {
   color: var(--caution-ink);
   background: var(--caution-soft);
   border-radius: var(--radius);
+}
+
+/* On the runs page the notice comes before the activity card. */
+.approval-notice.waiting-runs {
+  margin: 0 0 var(--space-4);
 }

@@ -33,6 +33,8 @@ test("finds runs by name and by phase", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
   await expect(page.getByRole("row", { name: /deploy-api-x7c1m/ }).getByText("Needs approval")).toBeVisible();
+  const notice = page.getByRole("status", { name: "Runs that wait for an approval" });
+  await expect(notice).toContainText("deploy-api-x7c1m waits for an approval.");
   await page.getByRole("searchbox", { name: "Search runs" }).fill("model");
   await expect(page).toHaveURL(/q=model/);
   await expect(page.getByRole("link", { name: "train-model-4rq9z" })).toBeVisible();
@@ -42,7 +44,7 @@ test("finds runs by name and by phase", async ({ page }) => {
   await page.getByRole("radio", { name: "Succeeded" }).click();
   await expect(page).toHaveURL(/phase=Succeeded/);
   await expect(page.getByRole("link", { name: "backfill-2026-10" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "deploy-api-x7c1m" })).toBeHidden();
+  await expect(page.getByRole("table").getByRole("link", { name: "deploy-api-x7c1m" })).toBeHidden();
 
   await page.getByRole("searchbox", { name: "Search runs" }).fill("nothing-like-this");
   await expect(page.getByText("No run matches the filter.")).toBeVisible();

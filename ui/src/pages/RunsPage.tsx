@@ -11,6 +11,7 @@ import { RefreshError } from "../components/RefreshError";
 import { useCanEdit } from "../components/RunActions";
 import { SubmitDialog } from "../components/SubmitDialog";
 import { ago, duration, toDate } from "../lib/time";
+import { WaitingRuns } from "../components/WaitingRuns";
 import { useNow } from "../lib/useNow";
 import { runsRoute } from "../router";
 import "./RunsPage.css";
@@ -73,6 +74,7 @@ export function RunsPage() {
         )}
       </header>
       {submitting && <SubmitDialog namespace={namespace} open={submitting} onOpenChange={setSubmitting} />}
+      <WaitingRuns namespace={namespace} />
       <ActivityStrip runs={runs.map((w) => ({ phase: w.phase, start: toDate(w.startedAt) ?? toDate(w.createdAt) }))} now={now} />
       <div className="board-filters">
         <label className="search-field">

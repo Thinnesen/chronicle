@@ -118,26 +118,6 @@
   border-left-color: var(--lamp-danger);
 }
 
-.run-approval {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--caution-ink);
-  background: var(--caution-soft);
-  border-color: color-mix(in srgb, var(--lamp-caution) 30%, transparent);
-  border-left-color: var(--lamp-caution);
-}
-
-.run-approval > svg {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-}
-
-.run-approval > .button {
-  margin-left: auto;
-}
-
 .run-tabs {
   display: flex;
   gap: var(--space-1);
