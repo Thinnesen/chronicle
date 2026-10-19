@@ -17,6 +17,7 @@
       ]
     },
     "entrypoint": "main",
+    "parallelism": 4,
     "templates": [
       {
         "dag": {
@@ -57,7 +58,8 @@
             }
           ]
         },
-        "name": "main"
+        "name": "main",
+        "parallelism": 2
       },
       {
         "name": "fetch",

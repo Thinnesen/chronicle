@@ -240,6 +240,12 @@ impl Template {
         self
     }
 
+    /// Limits the Pods that run at the same time below a node of this DAG or steps template.
+    pub fn parallelism(mut self, n: u32) -> Self {
+        self.extra.insert("parallelism".into(), n.into());
+        self
+    }
+
     /// Fails a node of the template, or one attempt of a retry, after duration, for example "5m".
     pub fn timeout(mut self, duration: &str) -> Self {
         self.extra.insert("timeout".into(), duration.into());

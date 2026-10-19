@@ -40,6 +40,12 @@ impl Workflow {
         self
     }
 
+    /// Limits the Pods of a run that run at the same time.
+    pub fn parallelism(mut self, n: u32) -> Self {
+        self.spec.insert("parallelism".into(), n.into());
+        self
+    }
+
     /// Runs the workflow Pods with a Kubernetes service account.
     pub fn service_account(mut self, name: &str) -> Self {
         self.spec.insert("serviceAccountName".into(), name.into());

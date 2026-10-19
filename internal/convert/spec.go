@@ -7,7 +7,7 @@ import (
 
 // spec converts a workflow spec. forWorkflow allows workflowTemplateRef.
 func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
-	copied := []string{"entrypoint", "onExit", "activeDeadlineSeconds", "serviceAccountName"}
+	copied := []string{"entrypoint", "onExit", "activeDeadlineSeconds", "serviceAccountName", "parallelism"}
 	if forWorkflow {
 		copied = append(copied, "workflowTemplateRef")
 	}

@@ -31,6 +31,11 @@ type Template struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
+	// parallelism limits the Pods that run at the same time below a node of this DAG or steps template.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	Parallelism *int32 `json:"parallelism,omitempty"`
+
 	// container runs one container in a Pod.
 	// +optional
 	Container *ContainerTemplate `json:"container,omitempty"`

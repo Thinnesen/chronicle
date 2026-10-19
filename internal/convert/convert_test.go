@@ -81,6 +81,12 @@ func TestRules(t *testing.T) {
 			err:       "not a shell script",
 		},
 		{
+			name: "parallelism of the workflow and of a dag",
+			templates: "  - {name: main, parallelism: 2, dag: {tasks: [{name: a, template: c}]}}\n" +
+				"  - {name: c, parallelism: 1, container: {image: x}}\n  parallelism: 5",
+			want: []string{"parallelism: 5", "- dag:", "parallelism: 2", "spec.templates[1].parallelism: only a dag or steps template"},
+		},
+		{
 			name: "unsupported fields are dropped",
 			templates: "  - {name: main, nodeSelector: {a: b}, container: {image: x, securityContext: {privileged: true}}}\n" +
 				"  podSpecPatch: '{}'",

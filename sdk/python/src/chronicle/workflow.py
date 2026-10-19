@@ -75,6 +75,11 @@ class Template:
         self._extra["retryStrategy"] = strategy
         return self
 
+    def parallelism(self, n: int) -> Template:
+        """Limit the Pods that run at the same time below a node of this DAG or steps template."""
+        self._extra["parallelism"] = n
+        return self
+
     def timeout(self, duration: str) -> Template:
         """Fail a node of the template, or one attempt of a retry, after duration, for example "5m"."""
         self._extra["timeout"] = duration
@@ -226,6 +231,11 @@ class Workflow:
     def label(self, key: str, value: str) -> Workflow:
         """Add a label to the run."""
         self._metadata.setdefault("labels", {})[key] = value
+        return self
+
+    def parallelism(self, n: int) -> Workflow:
+        """Limit the Pods of a run that run at the same time."""
+        self._spec["parallelism"] = n
         return self
 
     def service_account(self, name: str) -> Workflow:

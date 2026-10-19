@@ -322,6 +322,12 @@ spec:
                       the workflow, also when it failed. It can use "{{workflow.status}}".
                     maxLength: 128
                     type: string
+                  parallelism:
+                    description: parallelism limits the Pods of the workflow that
+                      run at the same time. A step that has no free slot waits.
+                    format: int32
+                    minimum: 1
+                    type: integer
                   podGC:
                     description: podGC deletes the Pods of finished nodes. Without
                       it, the Pods stay until the Workflow is deleted.
@@ -1111,6 +1117,12 @@ spec:
                                 or script node. Only the status sets it.
                               type: string
                           type: object
+                        parallelism:
+                          description: parallelism limits the Pods that run at the
+                            same time below a node of this DAG or steps template.
+                          format: int32
+                          minimum: 1
+                          type: integer
                         resource:
                           description: |-
                             resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the

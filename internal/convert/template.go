@@ -10,8 +10,15 @@ import (
 // template converts one Argo template.
 func (c *converter) template(in obj, path string) (obj, error) {
 	out := c.pick(in, path, []string{fName, "dag", "steps"},
-		"inputs", "outputs", "container", "script", "suspend", "resource", "retryStrategy", "timeout", "activeDeadlineSeconds")
+		"inputs", "outputs", "container", "script", "suspend", "resource", "retryStrategy", "timeout", "activeDeadlineSeconds", "parallelism")
 	var err error
+	if v, ok := in["parallelism"]; ok {
+		if out["dag"] != nil || out["steps"] != nil {
+			out["parallelism"] = v
+		} else {
+			c.warn(join(path, "parallelism"), "only a dag or steps template can limit its parallelism: it is dropped")
+		}
+	}
 	if v, ok := in["inputs"]; ok {
 		out["inputs"] = c.inputs(asObj(v), join(path, "inputs"))
 	}

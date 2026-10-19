@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-19: `parallelism` (of the workflow, and of a `dag` or `steps` template) counts Pods only, not task nodes or suspends. A waiting Pod node is marked by its message; an admitted Pod holds its slot also before the cache shows it, so a limit is never exceeded. Reason: a fan-out of many items must not start all Pods at once; this was the most common Argo feature that chronicle lacked. Task workers limit their own work with their concurrency.
+
 - 2026-10-19: With an archive database, the login sessions of the UI are in that database (table `sessions`, keyed by a hash of the session ID). Reason: the memory store logged every user out at each restart and allowed only one server replica. A signed cookie without server state would make logout unable to end a session. Without an archive, the memory store stays, and the chart refuses more than one server replica with a login.
 
 - 2026-10-19: With an archive, the history limits of a CronWorkflow delete a run only after the archive has it, as the TTL does. A user who deletes a run by hand still deletes it at once: there is no finalizer, because a finalizer would block deletes while the archive is down. Lists page with a cursor (creation time and name of the last run) instead of an offset, so a deep page in a large archive costs the same as the first page. Findings of the code review (#36).

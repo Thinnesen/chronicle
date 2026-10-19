@@ -26,6 +26,7 @@ type Workflow struct {
 	params             []v1alpha1.Parameter
 	entrypoint, onExit *Template
 	serviceAccount     string
+	parallelism        *int32
 }
 
 // New returns a workflow whose runs get the name prefix generateName, for example "etl-".
@@ -51,6 +52,12 @@ func (w *Workflow) Label(key, value string) *Workflow {
 // ServiceAccount runs the workflow Pods with a Kubernetes service account.
 func (w *Workflow) ServiceAccount(name string) *Workflow {
 	w.serviceAccount = name
+	return w
+}
+
+// Parallelism limits the Pods of a run that run at the same time.
+func (w *Workflow) Parallelism(n int32) *Workflow {
+	w.parallelism = &n
 	return w
 }
 
@@ -81,6 +88,7 @@ func (w *Workflow) Spec() (*v1alpha1.WorkflowTemplateSpec, error) {
 		Entrypoint:         w.entrypoint.t.Name,
 		Arguments:          v1alpha1.Arguments{Parameters: w.params},
 		ServiceAccountName: w.serviceAccount,
+		Parallelism:        w.parallelism,
 	}
 	seen := map[string]*Template{}
 	var errs []error
@@ -239,6 +247,12 @@ func (t *Template) Retry(limit int32, backoff time.Duration) *Template {
 // Timeout fails a node of the template, or one attempt of a retry, after d.
 func (t *Template) Timeout(d time.Duration) *Template {
 	t.t.Timeout = &metav1.Duration{Duration: d}
+	return t
+}
+
+// Parallelism limits the Pods that run at the same time below a node of this DAG or steps template.
+func (t *Template) Parallelism(n int32) *Template {
+	t.t.Parallelism = &n
 	return t
 }
 

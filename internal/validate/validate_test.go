@@ -134,6 +134,11 @@ func TestSpecTemplates(t *testing.T) {
 			want: []string{`entrypoint: Not found: "nope"`},
 		},
 		{
+			name: "parallelism on a container template",
+			spec: "entrypoint: a\ntemplates: [{name: a, parallelism: 2, container: {image: x}}]",
+			want: []string{`templates[0].parallelism: Invalid value: 2: only a dag or steps template can limit its parallelism`},
+		},
+		{
 			name: "unknown exit handler",
 			spec: "entrypoint: a\nonExit: nope\ntemplates: [{name: a, container: {image: x}}]",
 			want: []string{`onExit: Not found: "nope"`},

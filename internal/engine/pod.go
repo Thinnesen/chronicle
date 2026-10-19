@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"fmt"
+
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/expr"
 	"github.com/Thinnesen/chronicle/internal/manifest"
@@ -13,11 +15,16 @@ func (e *engine) runPod(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1a
 	case observed:
 		e.applyPod(&n, pod)
 	case n.Phase == v1alpha1.NodePending:
+		if limit, full := e.noSlot(n); full {
+			n.Message = fmt.Sprintf("%s (parallelism %d)", waitingForSlot, limit)
+			break
+		}
 		resolved, err := substituteTemplate(t, e.inputScope(n.Inputs))
 		if err != nil {
 			e.setPhase(&n, v1alpha1.NodeError, err.Error())
 			break
 		}
+		n.Message = ""
 		e.actions = append(e.actions, CreatePod{NodeID: n.ID, NodeName: c.nodeName, PodName: n.PodName, Template: resolved, Inputs: n.Inputs})
 	default:
 		e.setPhase(&n, v1alpha1.NodeError, "the Pod was deleted")

@@ -12,7 +12,7 @@ var fuzzResults = []string{"", ".Succeeded", ".Failed", ".Errored", ".Omitted", 
 var fuzzOutcomes = []v1alpha1.NodePhase{succeeded, succeeded, failed, errored}
 
 // fuzzDAG builds a random DAG and Pod outcomes from data. Each task depends only on earlier tasks.
-func fuzzDAG(data []byte) (string, map[string]v1alpha1.NodePhase, map[string][]string) {
+func fuzzDAG(data []byte) (string, map[string]v1alpha1.NodePhase, map[string][]string, int) {
 	next := func() int {
 		if len(data) == 0 {
 			return 0
@@ -47,8 +47,13 @@ func fuzzDAG(data []byte) (string, map[string]v1alpha1.NodePhase, map[string][]s
 		outcomes["wf."+name] = fuzzOutcomes[next()%len(fuzzOutcomes)]
 	}
 	ff := []string{"true", "false"}[next()%2]
-	spec := "entrypoint: main\ntemplates:\n- name: main\n  dag:\n    failFast: " + ff + "\n    tasks:\n" + tasks.String() + pod
-	return spec, outcomes, deps
+	// limit is the parallelism of the DAG; 0 is none.
+	limit, parallelism := next()%4, ""
+	if limit > 0 {
+		parallelism = fmt.Sprintf("  parallelism: %d\n", limit)
+	}
+	spec := "entrypoint: main\ntemplates:\n- name: main\n" + parallelism + "  dag:\n    failFast: " + ff + "\n    tasks:\n" + tasks.String() + pod
+	return spec, outcomes, deps, limit
 }
 
 func FuzzEngine(f *testing.F) {
@@ -56,12 +61,21 @@ func FuzzEngine(f *testing.F) {
 	f.Add([]byte{7, 255, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16})
 	f.Add([]byte{5, 0, 0, 2, 1, 1, 2, 3, 0, 1, 7, 1, 1, 0, 2, 0, 15, 0, 3, 1})
 	f.Fuzz(func(t *testing.T, data []byte) {
-		spec, outcomes, deps := fuzzDAG(data)
+		spec, outcomes, deps, limit := fuzzDAG(data)
 		s := newSim(t, spec, outcomes)
 		var st v1alpha1.WorkflowStatus
 		for i := range 100 {
 			r := s.step(i)
 			checkStartOrder(t, r, deps)
+			running := 0
+			for _, p := range s.in.Pods {
+				if p.Phase == v1alpha1.NodeRunning {
+					running++
+				}
+			}
+			if limit > 0 && running > limit {
+				t.Fatalf("%d Pods run with a parallelism of %d:\n%s", running, limit, spec)
+			}
 			st = r.Status
 			if isFinished(st.Phase) {
 				break

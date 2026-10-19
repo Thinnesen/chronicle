@@ -109,6 +109,9 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 		sc = sc.with("inputs.artifacts." + a.Name)
 	}
 	c.checkArtifacts(t, path)
+	if t.Parallelism != nil && t.DAG == nil && t.Steps == nil {
+		c.errs = append(c.errs, field.Invalid(path.Child("parallelism"), *t.Parallelism, "only a dag or steps template can limit its parallelism"))
+	}
 	c.checkOutputs(t, path.Child("outputs", "parameters"), sc.with(c.childOutputs(t)...))
 	switch {
 	case t.Container != nil:

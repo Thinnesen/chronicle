@@ -13,7 +13,7 @@ FIXTURE = Path(__file__).parents[2] / "testdata" / "etl.json"
 
 def etl() -> chronicle.Workflow:
     """Build the same workflow as etl() in the Go SDK tests."""
-    w = chronicle.Workflow("etl-").label("team", "data")
+    w = chronicle.Workflow("etl-").label("team", "data").parallelism(4)
     day = w.param("day", "2026-10-17")
     source = 'mkdir -p /tmp/rows && echo "$DAY" > /tmp/rows/day.txt && echo 1204'
     fetch = chronicle.script("fetch", "busybox:1.37", source).env("DAY", day)
@@ -23,7 +23,7 @@ def etl() -> chronicle.Workflow:
     echo = chronicle.container("echo", "busybox:1.37", "echo")
     echo.args(echo.input("msg"))
 
-    main = chronicle.dag("main")
+    main = chronicle.dag("main").parallelism(2)
     f = main.task("fetch", fetch)
     c = main.task("count", count).after(f).artifact_arg("rows", f.artifact("rows"))
     main.task("report", echo).after(c).arg("msg", f"fetched {f.result()} rows")

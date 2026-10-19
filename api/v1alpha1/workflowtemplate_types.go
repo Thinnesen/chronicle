@@ -28,6 +28,11 @@ type WorkflowTemplateSpec struct {
 	// +optional
 	OnExit string `json:"onExit,omitempty"`
 
+	// parallelism limits the Pods of the workflow that run at the same time. A step that has no free slot waits.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	Parallelism *int32 `json:"parallelism,omitempty"`
+
 	// activeDeadlineSeconds fails the workflow when it runs longer. The exit handler still runs.
 	// +kubebuilder:validation:Minimum=1
 	// +optional

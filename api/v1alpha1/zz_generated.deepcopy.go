@@ -714,6 +714,11 @@ func (in *Template) DeepCopyInto(out *Template) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.Parallelism != nil {
+		in, out := &in.Parallelism, &out.Parallelism
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Container != nil {
 		in, out := &in.Container, &out.Container
 		*out = new(ContainerTemplate)
@@ -1061,6 +1066,11 @@ func (in *WorkflowTemplateSpec) DeepCopyInto(out *WorkflowTemplateSpec) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.Parallelism != nil {
+		in, out := &in.Parallelism, &out.Parallelism
+		*out = new(int32)
+		**out = **in
 	}
 	if in.ActiveDeadlineSeconds != nil {
 		in, out := &in.ActiveDeadlineSeconds, &out.ActiveDeadlineSeconds

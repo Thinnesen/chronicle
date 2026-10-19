@@ -48,7 +48,7 @@ The spec follows the Argo Workflows concepts, so that the converter is simple:
 
 - `entrypoint`, `arguments.parameters`, `templates`.
 - Template types: `container`, `script`, `dag` (tasks with `dependencies` and `depends` expressions), `steps` (lists of parallel steps), `suspend` (wait or manual approval), `resource` (create a Kubernetes object), `task` (call a task worker, section 7).
-- `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions, `withItems` and `withParam` fan-out.
+- `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions, `withItems` and `withParam` fan-out, `parallelism` (of the workflow, and of a `dag` or `steps` template).
 - Inputs and outputs: parameters (from a file, from stdout, from a JSON path) and artifacts (S3-compatible store).
 - `podGC`, `ttlStrategy`, `serviceAccountName`. There is no `podSpecPatch`: a patch of the Pod spec could undo the Pod security settings.
 
@@ -101,6 +101,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Retries: `retryStrategy` makes a Retry node with one child for each attempt (`a(0)`, `a(1)`). `limit` (required) counts the retries after the first attempt. `retryPolicy`: OnFailure (default), OnError, Always. The wait is `duration * factor^(retry-1)`, at most `maxDuration`.
 - Timers: the engine has no clock. It returns the time until the next timer (backoff, `timeout`, `activeDeadlineSeconds`), and the controller runs it again then.
 - `timeout` fails a node of the template (each attempt of a retry). `activeDeadlineSeconds` fails the workflow. Both stop the running descendants and delete their Pods.
+- `parallelism` limits the Pods that run at the same time. A Pod node without a free slot stays Pending with a message. The slots go to the waiting nodes in the order of the walk, and a Pod that the engine asked for still holds its slot before the cache shows it.
 - `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`. A failed exit handler fails a workflow that succeeded.
 - The exit handler is protected: `activeDeadlineSeconds` and `shutdown: Stop` stop only the entrypoint, so that cleanup can run. Give the exit template a `timeout`. `shutdown: Terminate` always stops the exit handler too.
 - `withParam` has a limit of 1000 items, like `withItems`.

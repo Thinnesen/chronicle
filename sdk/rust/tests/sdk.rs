@@ -30,8 +30,9 @@ fn etl() -> Workflow {
         .arg("msg", &format!("fetched {} rows", f.result()));
     Workflow::new("etl-")
         .label("team", "data")
+        .parallelism(4)
         .param("day", "2026-10-17")
-        .entrypoint(Template::dag("main").tasks([f, c, r]))
+        .entrypoint(Template::dag("main").parallelism(2).tasks([f, c, r]))
 }
 
 #[test]
