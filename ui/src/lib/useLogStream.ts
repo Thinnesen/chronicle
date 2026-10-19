@@ -1,3 +1,4 @@
+import { Code, ConnectError } from "@connectrpc/connect";
 import { useEffect, useState } from "react";
 
 import { logs } from "../api/client";
@@ -26,9 +27,13 @@ export interface LogState {
 // useLogStream streams the log of one node. It follows new lines while follow is true.
 export function useLogStream(namespace: string, workflow: string, node: string | undefined, follow: boolean): LogState {
   const [state, setState] = useState<LogState>({ lines: [], dropped: 0, done: false });
+  // attempt counts the connections. A followed stream that breaks, for example during a server rollout, connects
+  // again after a short wait and reads the log from the start.
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!node) return;
     const abort = new AbortController();
+    let retry: ReturnType<typeof setTimeout> | undefined;
     let count = 0;
     setState({ lines: [], dropped: 0, done: false });
     void (async () => {
@@ -46,12 +51,25 @@ export function useLogStream(namespace: string, workflow: string, node: string |
         }
         if (!abort.signal.aborted) setState((s) => ({ ...s, done: true }));
       } catch (e) {
-        if (!abort.signal.aborted) {
-          setState((s) => ({ ...s, done: true, error: e instanceof Error ? e.message : String(e) }));
+        if (abort.signal.aborted) return;
+        if (follow && healable(e)) {
+          setState((s) => ({ ...s, error: "The log stream stopped. Connecting again…" }));
+          retry = setTimeout(() => setAttempt((a) => a + 1), 2000);
+          return;
         }
+        setState((s) => ({ ...s, done: true, error: e instanceof Error ? e.message : String(e) }));
       }
     })();
-    return () => abort.abort();
-  }, [namespace, workflow, node, follow]);
+    return () => {
+      abort.abort();
+      clearTimeout(retry);
+    };
+  }, [namespace, workflow, node, follow, attempt]);
   return state;
+}
+
+// healable tells if a stream error can go away by itself, such as a lost connection or a server that restarts.
+function healable(e: unknown): boolean {
+  const code = ConnectError.from(e).code;
+  return code === Code.Unavailable || code === Code.Unknown || code === Code.Internal || code === Code.DeadlineExceeded;
 }

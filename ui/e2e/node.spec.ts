@@ -53,3 +53,14 @@ test("shows the archived log and the artifacts of a node", async ({ page }, info
   await page.getByRole("complementary", { name: "Step validate" }).getByRole("tab", { name: "Summary" }).click();
   await expect(page.getByText("/tmp/rows")).toBeVisible();
 });
+
+test("connects the log of a running node again after a broken stream", async ({ page }) => {
+  await mockAPI(page);
+  // The first stream breaks, as during a server rollout. Routes added later win.
+  let calls = 0;
+  await page.route("**/chronicle.v1.LogService/StreamLogs", (r) => (calls++ === 0 ? r.fulfill({ status: 503, body: "" }) : r.fallback()));
+  await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n3b");
+  const panel = page.getByRole("complementary", { name: "Step train(1)" });
+  await expect(panel.getByLabel("Log", { exact: true }).getByText("starting n3b")).toBeVisible();
+  expect(calls).toBeGreaterThan(1);
+});
