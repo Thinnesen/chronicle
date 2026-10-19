@@ -1,0 +1,41 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # New vulnerabilities appear without a code change.
+    - cron: "17 5 * * 1"
+
+permissions: {}
+
+# Only the newest commit of a branch runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trivy:
+    permissions:
+      contents: read
+    name: Trivy scan of the image and the lockfiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build the image
+        run: make docker-build IMG=chronicle:scan
+
+      # The Makefile downloads a pinned Trivy and checks its SHA-256.
+      - name: Scan
+        run: make scan SCAN_IMG=chronicle:scan

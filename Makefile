@@ -230,6 +230,7 @@ GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 BUF ?= $(LOCALBIN)/buf
 ACTIONLINT ?= $(LOCALBIN)/actionlint
 HELM ?= $(LOCALBIN)/helm
+TRIVY ?= $(LOCALBIN)/trivy
 PROTOC_GEN_GO ?= $(LOCALBIN)/protoc-gen-go
 PROTOC_GEN_CONNECT_GO ?= $(LOCALBIN)/protoc-gen-connect-go
 
@@ -251,7 +252,12 @@ KUBECTL_SHA256_arm64 = ff749f4b78d9c4f1ec87307df9b50119ed819e2094aa9810cb9acffc3
 HELM_VERSION ?= v4.3.1
 HELM_SHA256_amd64 = 0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b
 HELM_SHA256_arm64 = 8cf8f66ecbc252ac8f7f06cca68aba88508ddfde3a6a34feb1678ad1694b4f88
+TRIVY_VERSION ?= v0.75.0
+TRIVY_SHA256_amd64 = c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f
+TRIVY_SHA256_arm64 = a1ee9f6ffb7d112b64ff726a2a0717c21175c1114361391f4a132956751a13b3
 HOST_ARCH := $(shell go env GOARCH)
+TRIVY_ARCH_amd64 = 64bit
+TRIVY_ARCH_arm64 = ARM64
 
 #ENVTEST_VERSION is the controller-runtime version to use for setup-envtest, derived from go.mod
 ENVTEST_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-runtime)'; \
@@ -336,6 +342,11 @@ helm: $(HELM) ## Download helm locally if necessary.
 $(HELM): $(LOCALBIN)
 	$(call download-tool,$(HELM),https://get.helm.sh/helm-$(HELM_VERSION)-linux-$(HOST_ARCH).tar.gz,$(HELM_VERSION),$(HELM_SHA256_$(HOST_ARCH)),linux-$(HOST_ARCH)/helm)
 
+.PHONY: trivy
+trivy: $(TRIVY) ## Download trivy locally if necessary.
+$(TRIVY): $(LOCALBIN)
+	$(call download-tool,$(TRIVY),https://github.com/aquasecurity/trivy/releases/download/$(TRIVY_VERSION)/trivy_$(TRIVY_VERSION:v%=%)_Linux-$(TRIVY_ARCH_$(HOST_ARCH)).tar.gz,$(TRIVY_VERSION),$(TRIVY_SHA256_$(HOST_ARCH)),trivy)
+
 # download-tool downloads a binary, checks its SHA-256 and links it.
 # $1 - target path with name of binary
 # $2 - download URL
@@ -391,6 +402,15 @@ HELM_EXTRA_ARGS ?=
 .PHONY: helm-crds
 helm-crds: manifests ## Copy the generated CRDs and the controller role into the Helm chart.
 	hack/helm-sync.sh
+
+# SCAN_IMG is the image that "make scan" checks. Build it first with "make docker-build IMG=$(SCAN_IMG)".
+SCAN_IMG ?= chronicle:scan
+
+.PHONY: scan
+scan: trivy ## Scan the image and the lockfiles for HIGH and CRITICAL vulnerabilities with a fix.
+	"$(TRIVY)" image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 $(SCAN_IMG)
+	"$(TRIVY)" fs --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+		--skip-dirs ui/node_modules --skip-dirs sdk/rust/target --skip-dirs sdk/python/.venv .
 
 .PHONY: helm-lint
 helm-lint: helm ## Lint the Helm chart and render it with an OIDC and an Entra ID configuration.

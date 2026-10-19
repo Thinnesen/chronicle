@@ -64,3 +64,8 @@ jobs:
 
       - name: Test
         run: cargo test --locked
+
+      - name: Check the dependencies for known vulnerabilities
+        run: |
+          cargo install --locked cargo-audit --version 0.22.2
+          cargo audit
