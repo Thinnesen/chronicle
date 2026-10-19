@@ -37,7 +37,7 @@ pub struct Client {
 }
 
 impl Client {
-    /// Returns a client for the server URL, for example "https://chronicle.example.com".
+    /// Returns a client for the server URL, for example `https://chronicle.example.com`.
     pub fn new(server: &str, token: &str) -> Result<Self, ApiError> {
         if !(server.starts_with("https://") || server.starts_with("http://")) {
             return Err(api_error(
