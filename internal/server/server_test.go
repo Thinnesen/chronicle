@@ -179,6 +179,10 @@ func TestWorkflowService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The object can go back to kubectl apply.
+	if f := got.Msg.Workflow.Fields; f["kind"].GetStringValue() != "Workflow" || f["apiVersion"].GetStringValue() != "chronicle.thinnesen.com/v1alpha1" {
+		t.Errorf("kind %v, apiVersion %v", f["kind"], f["apiVersion"])
+	}
 	params := got.Msg.Workflow.Fields["spec"].GetStructValue().Fields["arguments"].GetStructValue().Fields["parameters"].GetListValue()
 	if v := params.Values[0].GetStructValue().Fields["value"].GetStringValue(); v != "world" {
 		t.Errorf("parameter who = %q", v)

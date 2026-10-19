@@ -8,6 +8,10 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -45,8 +49,19 @@ func timestamp(t *metav1.Time) *timestamppb.Timestamp {
 	return timestamppb.New(t.Time)
 }
 
-// toStruct converts an object to a protobuf Struct through JSON.
-func toStruct(obj any) (*structpb.Struct, error) {
+// kinds knows the chronicle types, so that toStruct can set their kind.
+var kinds = func() *runtime.Scheme {
+	s := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(s))
+	return s
+}()
+
+// toStruct converts an object to a protobuf Struct through JSON. It sets the kind and the API version, which a typed
+// read leaves empty, so that the object can go back to kubectl apply.
+func toStruct(obj client.Object) (*structpb.Struct, error) {
+	if gvk, err := apiutil.GVKForObject(obj, kinds); err == nil {
+		obj.GetObjectKind().SetGroupVersionKind(gvk)
+	}
 	data, err := json.Marshal(obj)
 	if err != nil {
 		return nil, fmt.Errorf("encode the object: %w", err)
