@@ -34,6 +34,8 @@ export function useLogStream(namespace: string, workflow: string, node: string |
     void (async () => {
       try {
         for await (const m of logs.streamLogs({ namespace, workflow, node, follow }, { signal: abort.signal })) {
+          // After a cleanup, a buffered line of the old stream must not reach the state of the new stream.
+          if (abort.signal.aborted) return;
           count++;
           const line: LogLine = { n: count, text: m.line.replace(ansi, ""), time: m.time ? new Date(Number(m.time.seconds) * 1000).toISOString() : undefined };
           setState((s) => {
@@ -42,7 +44,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
             return { ...s, lines, dropped: s.dropped + (s.lines.length >= maxLines ? 1 : 0), archived: s.archived || m.archived };
           });
         }
-        setState((s) => ({ ...s, done: true }));
+        if (!abort.signal.aborted) setState((s) => ({ ...s, done: true }));
       } catch (e) {
         if (!abort.signal.aborted) {
           setState((s) => ({ ...s, done: true, error: e instanceof Error ? e.message : String(e) }));

@@ -230,8 +230,9 @@ func main() {
 		}
 	}
 	if err := (&controller.CronWorkflowReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Archive: workflows.Archive != nil,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "cronworkflow")
 		os.Exit(1)

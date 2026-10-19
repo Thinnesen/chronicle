@@ -20,7 +20,8 @@ type fakeReader struct{ rows []archive.Row }
 func (f fakeReader) List(_ context.Context, q archive.Query) ([]archive.Row, error) {
 	var out []archive.Row
 	for _, r := range f.rows {
-		if r.Namespace == q.Namespace {
+		after := q.After == nil || r.CreatedAt.Before(q.After.CreatedAt) || r.CreatedAt.Equal(q.After.CreatedAt) && r.Name > q.After.Name
+		if r.Namespace == q.Namespace && after && len(out) < q.Limit {
 			out = append(out, r)
 		}
 	}
@@ -57,6 +58,23 @@ func TestArchivedRuns(t *testing.T) {
 	last := list.Msg.Workflows[len(list.Msg.Workflows)-1]
 	if last.Name != "gone" || !last.Archived {
 		t.Errorf("the oldest run must be the archived one: %+v", last)
+	}
+	// Page by page, one run at a time, the list has the same runs in the same order.
+	var paged []string
+	for token := ""; ; {
+		resp, err := alice.ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a", Limit: 1, PageToken: token}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, w := range resp.Msg.Workflows {
+			paged = append(paged, w.Name)
+		}
+		if token = resp.Msg.NextPageToken; token == "" {
+			break
+		}
+	}
+	if len(paged) != len(list.Msg.Workflows) || paged[len(paged)-1] != "gone" {
+		t.Errorf("pages %v, list %d runs", paged, len(list.Msg.Workflows))
 	}
 	sel, err := alice.ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a", LabelSelector: "team!=b"}))
 	if err != nil {

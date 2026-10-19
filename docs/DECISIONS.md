@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-19: With an archive, the history limits of a CronWorkflow delete a run only after the archive has it, as the TTL does. A user who deletes a run by hand still deletes it at once: there is no finalizer, because a finalizer would block deletes while the archive is down. Lists page with a cursor (creation time and name of the last run) instead of an offset, so a deep page in a large archive costs the same as the first page. Findings of the code review (#36).
+
 - 2026-10-19: The containers of the chronicle image in workflow Pods (the executor init container and resource steps) have a read-only root file system; the container of a user step does not. Reason: many user images write to their root file system, for example to `/tmp` or a cache. The step still runs as non-root without capabilities. There is no `podSpecPatch` (section 3.2 promised a limited one), because a patch could undo the Pod security settings. Found by the security review (#36).
 
 - 2026-10-19: The web UI is an ops console (sidebar, Cmd+K search, tabs Graph, Timeline and Spec, a node drawer), not the signal-box panel of section 8.1. Status icons replace the signal lamps, and the graph does not draw the root node. Reason: the owner found the first UI "vibecoded" and chose the ops console direction. The design combines Argo Workflows, Argo CD, Temporal and Dagster (docs/RESEARCH.md).

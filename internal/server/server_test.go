@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -325,17 +326,17 @@ func TestHTTPJSON(t *testing.T) {
 	}
 }
 
-func TestPaginate(t *testing.T) {
-	items := []int{1, 2, 3, 4, 5}
-	page, next, _ := paginate(items, 2, "")
-	if len(page) != 2 || next != "2" {
-		t.Fatalf("first page %v %q", page, next)
+func TestCursor(t *testing.T) {
+	t0 := time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
+	c, err := parseCursor(cursor{Time: t0, Name: "b"}.token())
+	if err != nil {
+		t.Fatal(err)
 	}
-	page, next, _ = paginate(items, 2, "4")
-	if len(page) != 1 || next != "" {
-		t.Fatalf("last page %v %q", page, next)
+	// Newest first, then by name: a newer run and "a" at the same time were on an earlier page.
+	if !c.before(t0.Add(time.Second), "z") || !c.before(t0, "a") || !c.before(t0, "b") || c.before(t0, "c") || c.before(t0.Add(-time.Second), "a") {
+		t.Error("wrong order")
 	}
-	if page, _, _ := paginate(items, 0, "9"); page != nil {
-		t.Fatalf("past the end %v", page)
+	if _, err := parseCursor("4"); code(err) != connect.CodeInvalidArgument {
+		t.Errorf("a bad token: %v", err)
 	}
 }

@@ -68,7 +68,7 @@ func TestStore(t *testing.T) {
 	if err != nil || len(data) != 1 || data[0].Name != "a" || data[0].Labels["team"] != "data" || data[0].StartedAt == nil {
 		t.Fatalf("filtered: %v %+v", err, data)
 	}
-	page, err := s.List(ctx, Query{Namespace: "team-a", Limit: 1, Offset: 1})
+	page, err := s.List(ctx, Query{Namespace: "team-a", Limit: 1, After: &Position{CreatedAt: all[0].CreatedAt, Name: all[0].Name}})
 	if err != nil || len(page) != 1 || page[0].Name != "b" {
 		t.Fatalf("page: %v %+v", err, page)
 	}

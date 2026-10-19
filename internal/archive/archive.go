@@ -131,7 +131,14 @@ type Query struct {
 	Labels map[string]string
 	Phases []string
 	Limit  int
-	Offset int
+	// After starts the list after this run, for the next page.
+	After *Position
+}
+
+// Position is a place in the order of a list: newest first, then by name.
+type Position struct {
+	CreatedAt time.Time
+	Name      string
 }
 
 // List returns the runs that match the query.
@@ -142,10 +149,15 @@ func (s *Store) List(ctx context.Context, q Query) ([]Row, error) {
 		args = append(args, q.Phases)
 		where += ` AND phase = ANY($` + strconv.Itoa(len(args)) + `)`
 	}
-	args = append(args, q.Limit, q.Offset)
+	if q.After != nil {
+		args = append(args, q.After.CreatedAt, q.After.Name)
+		t, n := strconv.Itoa(len(args)-1), strconv.Itoa(len(args))
+		where += ` AND (created_at < $` + t + ` OR created_at = $` + t + ` AND name > $` + n + `)`
+	}
+	args = append(args, q.Limit)
 	rows, err := s.pool.Query(ctx, `
 SELECT uid, namespace, name, phase, message, template, labels, created_at, started_at, finished_at, nodes_done, nodes_total
-FROM workflow_runs WHERE `+where+` ORDER BY created_at DESC, name LIMIT $`+strconv.Itoa(len(args)-1)+` OFFSET $`+strconv.Itoa(len(args)), args...)
+FROM workflow_runs WHERE `+where+` ORDER BY created_at DESC, name LIMIT $`+strconv.Itoa(len(args)), args...)
 	if err != nil {
 		return nil, fmt.Errorf("list the archived runs: %w", err)
 	}

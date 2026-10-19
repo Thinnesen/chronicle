@@ -33,6 +33,9 @@ type CronWorkflowReconciler struct {
 	Scheme *runtime.Scheme
 	// Now returns the current time. Tests replace it.
 	Now func() time.Time
+	// Archive is true when the controller archives runs. Then the history limits delete a run only after the archive
+	// has it, as the TTL does.
+	Archive bool
 }
 
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=cronworkflows,verbs=get;list;watch
@@ -56,6 +59,7 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// A bad schedule does not heal itself, so the controller waits for a spec change.
 		return ctrl.Result{}, r.setReady(ctx, &cw, metav1.ConditionFalse, "InvalidSchedule", err.Error())
 	}
+	plan.Delete = archivedOnly(runs, plan.Delete, r.Archive)
 	if err := r.apply(ctx, &cw, plan); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -76,6 +80,25 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 	return ctrl.Result{RequeueAfter: max(plan.Next.Sub(now), time.Second)}, nil
+}
+
+// archivedOnly returns the runs of names that can be deleted: all of them without an archive, else only the runs that
+// the archive has. A run that is not archived yet is deleted by a later reconcile, after its status changes.
+func archivedOnly(runs []chroniclev1alpha1.Workflow, names []string, archive bool) []string {
+	if !archive {
+		return names
+	}
+	saved := map[string]bool{}
+	for _, wf := range runs {
+		saved[wf.Name] = meta.IsStatusConditionTrue(wf.Status.Conditions, conditionArchived)
+	}
+	var out []string
+	for _, name := range names {
+		if saved[name] {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // apply deletes old runs, terminates replaced runs and creates the due run.

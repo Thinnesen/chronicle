@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"slices"
-	"strconv"
 
 	"connectrpc.com/connect"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,9 +15,6 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
-
-// maxPage is the default and the largest page size of a list.
-const maxPage = 500
 
 // workflowService implements the WorkflowService API.
 type workflowService struct {
@@ -45,14 +41,19 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 	if err := c.List(ctx, &list, opts...); err != nil {
 		return nil, toConnect(err)
 	}
+	after, err := parseCursor(m.PageToken)
+	if err != nil {
+		return nil, err
+	}
 	live := slices.DeleteFunc(list.Items, func(wf v1alpha1.Workflow) bool {
-		return len(m.Phases) > 0 && !slices.Contains(m.Phases, string(wf.Status.Phase))
+		return len(m.Phases) > 0 && !slices.Contains(m.Phases, string(wf.Status.Phase)) || after.before(wf.CreationTimestamp.Time, wf.Name)
 	})
 	items := make([]*chroniclev1.WorkflowSummary, 0, len(live))
 	for i := range live {
 		items = append(items, summary(&live[i]))
 	}
-	archived, err := s.archivedRuns(ctx, m, live)
+	limit := pageSize(m.Limit)
+	archived, err := s.archivedRuns(ctx, m, live, after, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -60,42 +61,13 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 	slices.SortFunc(items, func(a, b *chroniclev1.WorkflowSummary) int {
 		return cmp.Or(b.CreatedAt.AsTime().Compare(a.CreatedAt.AsTime()), cmp.Compare(a.Name, b.Name))
 	})
-	page, next, err := paginate(items, m.Limit, m.PageToken)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: page, NextPageToken: next}), nil
-}
-
-func pageOffset(token string) (int, error) {
-	offset, err := strconv.Atoi(token)
-	if err != nil || offset < 0 {
-		return 0, connect.NewError(connect.CodeInvalidArgument, errors.New("bad page token"))
-	}
-	return offset, nil
-}
-
-// paginate returns one page. The page token is the offset of the page.
-func paginate[T any](items []T, limit int32, token string) ([]T, string, error) {
-	if limit <= 0 || limit > maxPage {
-		limit = maxPage
-	}
-	offset := 0
-	if token != "" {
-		var err error
-		if offset, err = pageOffset(token); err != nil {
-			return nil, "", err
-		}
-	}
-	if offset >= len(items) {
-		return nil, "", nil
-	}
-	end := min(offset+int(limit), len(items))
 	next := ""
-	if end < len(items) {
-		next = strconv.Itoa(end)
+	if len(items) > limit {
+		items = items[:limit]
+		last := items[limit-1]
+		next = cursor{Time: last.CreatedAt.AsTime(), Name: last.Name}.token()
 	}
-	return items[offset:end], next, nil
+	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: items, NextPageToken: next}), nil
 }
 
 func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
