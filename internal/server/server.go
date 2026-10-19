@@ -23,6 +23,8 @@ type Options struct {
 	Authenticators []auth.Authenticator
 	// Archive holds finished runs whose Workflow was deleted, or is nil.
 	Archive ArchiveReader
+	// Artifacts opens the artifact repositories. The default reads the ConfigMap and the Secret of each namespace.
+	Artifacts ArtifactStores
 }
 
 // NewHandler returns the HTTP handler of the API.
@@ -35,14 +37,19 @@ func NewHandler(opts Options) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create the server client: %w", err)
 	}
+	if opts.Artifacts == nil {
+		opts.Artifacts = &repositoryStores{own: own}
+	}
 	mux := http.NewServeMux()
 	audit := &auditor{log: ctrl.Log.WithName("audit"), events: own}
 	limit := connect.WithHandlerOptions(connect.WithReadMaxBytes(4<<20), connect.WithInterceptors(audit.interceptor()))
 	workflows := &workflowService{clients: clients, archive: opts.Archive}
 	path, h := chroniclev1connect.NewWorkflowServiceHandler(workflows, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
-	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs}, limit)
+	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs, stores: opts.Artifacts}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
+	mux.Handle("GET "+ArtifactPath+"{namespace}/{workflow}/{node}/{name}",
+		authenticate(opts.Authenticators, &artifactHandler{workflows: workflows, stores: opts.Artifacts}))
 	path, h = chroniclev1connect.NewTemplateServiceHandler(&templateService{clients: clients}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewCronServiceHandler(&cronService{clients: clients}, limit)

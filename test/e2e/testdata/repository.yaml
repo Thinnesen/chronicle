@@ -1,0 +1,18 @@
+# The artifact repository of the CLI test namespace, with the log archive on.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chronicle-artifact-repository
+data:
+  endpoint: seaweedfs.chronicle-s3.svc.cluster.local:8333
+  bucket: runs
+  insecure: "true"
+  archiveLogs: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chronicle-artifact-repository
+stringData:
+  accessKey: chronicle
+  secretKey: chronicle-e2e-secret

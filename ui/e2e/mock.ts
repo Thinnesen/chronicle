@@ -32,8 +32,14 @@ export function run(phase: string, gate = false, archived = false) {
         },
         nodes: {
           "etl-nightly-8k2pq": { id: "etl-nightly-8k2pq", name: "etl-nightly-8k2pq", type: "DAG", templateName: "main", phase, startedAt: ts(-290), children: ["n1", "n2", "n3", "n4"] },
-          n1: node("n1", ".fetch", { displayName: "fetch", type: "Pod", phase: "Succeeded", startedAt: ts(-290), finishedAt: ts(-230), podName: "n1", outputs: { result: "1204 rows" } }),
-          n2: node("n2", ".validate", { displayName: "validate", type: "Pod", phase: "Succeeded", startedAt: ts(-228), finishedAt: ts(-200), podName: "n2", inputs: { parameters: [{ name: "rows", value: "1204 rows" }] } }),
+          n1: node("n1", ".fetch", {
+            displayName: "fetch", type: "Pod", phase: "Succeeded", startedAt: ts(-290), finishedAt: ts(-230), podName: "n1",
+            outputs: { result: "1204 rows", artifacts: [{ name: "rows", key: "team-a/u1/n1/rows.tgz" }] },
+          }),
+          n2: node("n2", ".validate", {
+            displayName: "validate", type: "Pod", phase: "Succeeded", startedAt: ts(-228), finishedAt: ts(-200), podName: "n2",
+            inputs: { parameters: [{ name: "rows", value: "1204 rows" }], artifacts: [{ name: "rows", path: "/tmp/rows", key: "team-a/u1/n1/rows.tgz" }] },
+          }),
           n3: node("n3", ".train", { displayName: "train", type: "Retry", phase: done ? "Succeeded" : "Running", startedAt: ts(-198), finishedAt: done ? ts(-20) : undefined, children: ["n3a", "n3b"] }),
           n3a: node("n3a", ".train(0)", { displayName: "train(0)", type: "Pod", phase: "Failed", message: "OOMKilled (exit code 137)", startedAt: ts(-198), finishedAt: ts(-150), podName: "n3a" }),
           n3b: node("n3b", ".train(1)", { displayName: "train(1)", type: "Pod", phase: done ? "Succeeded" : "Running", startedAt: ts(-149), finishedAt: done ? ts(-20) : undefined, podName: "n3b" }),
@@ -99,7 +105,7 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
   await page.route("**/chronicle.v1.LogService/StreamLogs", (r) => {
     // A streaming request is one envelope: 5 bytes of header, then the JSON message.
     const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
-    r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node)) });
+    r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node, opts.archived)) });
   });
   await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate, opts.archived) }));
   await page.route("**/chronicle.v1.TemplateService/ListTemplates", (r) => r.fulfill({ json: { templates: templateList } }));
@@ -143,12 +149,13 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
   return calls;
 }
 
-function logLines(node: string) {
+// logLines are the lines of a node. An archived run has no Pods, so its lines come from the log archive.
+function logLines(node: string, archived = false) {
   return [
     { nodeId: node, line: `\u001b[32mstarting ${node}\u001b[0m`, time: ts(-100) },
     { nodeId: node, line: "loaded 1204 rows" },
     { nodeId: node, line: "epoch 1/3 loss=0.41" },
-  ];
+  ].map((l) => ({ ...l, archived }));
 }
 
 // envelopes encodes messages as a Connect stream: a flag byte and a 4-byte length before each JSON message.

@@ -9,6 +9,7 @@ option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1
 // LogService streams the logs of workflow Pods.
 service LogService {
   // StreamLogs streams the log lines of one node, or of all Pod nodes of a run. The caller needs "get pods/log".
+  // When a Pod was deleted, it sends the archived log of the node, if there is one.
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
 }
 
@@ -28,4 +29,6 @@ message StreamLogsResponse {
   string node_name = 2;
   google.protobuf.Timestamp time = 3;
   string line = 4;
+  // archived is true when the line comes from the log archive, because the Pod was deleted.
+  bool archived = 5;
 }

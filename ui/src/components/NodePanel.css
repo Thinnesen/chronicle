@@ -148,3 +148,27 @@
   display: flex;
   gap: var(--space-2);
 }
+
+.artifacts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+}
+
+.artifacts li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--rule);
+  overflow-wrap: anywhere;
+}
+
+.artifacts a {
+  font-family: var(--font-code);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}

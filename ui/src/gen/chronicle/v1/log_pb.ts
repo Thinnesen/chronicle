@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file chronicle/v1/log.proto.
  */
 export const file_chronicle_v1_log: GenFile = /*@__PURE__*/
-  fileDesc("ChZjaHJvbmljbGUvdjEvbG9nLnByb3RvEgxjaHJvbmljbGUudjEiagoRU3RyZWFtTG9nc1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhAKCHdvcmtmbG93GAIgASgJEgwKBG5vZGUYAyABKAkSDgoGZm9sbG93GAQgASgIEhIKCnRhaWxfbGluZXMYBSABKAMicAoSU3RyZWFtTG9nc1Jlc3BvbnNlEg8KB25vZGVfaWQYASABKAkSEQoJbm9kZV9uYW1lGAIgASgJEigKBHRpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGxpbmUYBCABKAkyXwoKTG9nU2VydmljZRJRCgpTdHJlYW1Mb2dzEh8uY2hyb25pY2xlLnYxLlN0cmVhbUxvZ3NSZXF1ZXN0GiAuY2hyb25pY2xlLnYxLlN0cmVhbUxvZ3NSZXNwb25zZTABQj1aO2dpdGh1Yi5jb20vVGhpbm5lc2VuL2Nocm9uaWNsZS9nZW4vY2hyb25pY2xlL3YxO2Nocm9uaWNsZXYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChZjaHJvbmljbGUvdjEvbG9nLnByb3RvEgxjaHJvbmljbGUudjEiagoRU3RyZWFtTG9nc1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhAKCHdvcmtmbG93GAIgASgJEgwKBG5vZGUYAyABKAkSDgoGZm9sbG93GAQgASgIEhIKCnRhaWxfbGluZXMYBSABKAMiggEKElN0cmVhbUxvZ3NSZXNwb25zZRIPCgdub2RlX2lkGAEgASgJEhEKCW5vZGVfbmFtZRgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRsaW5lGAQgASgJEhAKCGFyY2hpdmVkGAUgASgIMl8KCkxvZ1NlcnZpY2USUQoKU3RyZWFtTG9ncxIfLmNocm9uaWNsZS52MS5TdHJlYW1Mb2dzUmVxdWVzdBogLmNocm9uaWNsZS52MS5TdHJlYW1Mb2dzUmVzcG9uc2UwAUI9WjtnaXRodWIuY29tL1RoaW5uZXNlbi9jaHJvbmljbGUvZ2VuL2Nocm9uaWNsZS92MTtjaHJvbmljbGV2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message chronicle.v1.StreamLogsRequest
@@ -80,6 +80,13 @@ export type StreamLogsResponse = Message<"chronicle.v1.StreamLogsResponse"> & {
    * @generated from field: string line = 4;
    */
   line: string;
+
+  /**
+   * archived is true when the line comes from the log archive, because the Pod was deleted.
+   *
+   * @generated from field: bool archived = 5;
+   */
+  archived: boolean;
 };
 
 /**
@@ -97,6 +104,7 @@ export const StreamLogsResponseSchema: GenMessage<StreamLogsResponse> = /*@__PUR
 export const LogService: GenService<{
   /**
    * StreamLogs streams the log lines of one node, or of all Pod nodes of a run. The caller needs "get pods/log".
+   * When a Pod was deleted, it sends the archived log of the node, if there is one.
    *
    * @generated from rpc chronicle.v1.LogService.StreamLogs
    */

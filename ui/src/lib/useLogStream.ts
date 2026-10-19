@@ -19,6 +19,8 @@ export interface LogState {
   dropped: number;
   error?: string;
   done: boolean;
+  // archived is true when the lines come from the log archive.
+  archived?: boolean;
 }
 
 // useLogStream streams the log of one node. It follows new lines while follow is true.
@@ -37,7 +39,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
           setState((s) => {
             const lines = s.lines.length >= maxLines ? s.lines.slice(1) : s.lines.slice();
             lines.push(line);
-            return { ...s, lines, dropped: s.dropped + (s.lines.length >= maxLines ? 1 : 0) };
+            return { ...s, lines, dropped: s.dropped + (s.lines.length >= maxLines ? 1 : 0), archived: s.archived || m.archived };
           });
         }
         setState((s) => ({ ...s, done: true }));

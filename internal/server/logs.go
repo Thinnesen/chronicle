@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -28,11 +29,12 @@ type podLogs func(ctx context.Context, namespace, pod string, opts *corev1.PodLo
 type logService struct {
 	workflows *workflowService
 	open      podLogs
+	stores    ArtifactStores
 }
 
 func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroniclev1.StreamLogsRequest], stream *connect.ServerStream[chroniclev1.StreamLogsResponse]) error {
 	m := req.Msg
-	wf, err := s.workflows.get(ctx, m.Namespace, m.Workflow)
+	wf, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow)
 	if err != nil {
 		return err
 	}
@@ -61,6 +63,9 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 
 func (s *logService) streamNode(ctx context.Context, namespace string, n v1alpha1.NodeStatus, opts *corev1.PodLogOptions, send func(*chroniclev1.StreamLogsResponse) error) error {
 	rc, err := s.open(ctx, namespace, n.PodName, opts)
+	if apierrors.IsNotFound(err) && n.LogKey != "" {
+		return s.streamArchived(ctx, namespace, n, opts.TailLines, send)
+	}
 	if err != nil {
 		return err
 	}
@@ -75,6 +80,40 @@ func (s *logService) streamNode(ctx context.Context, namespace string, n v1alpha
 	}
 	if err := sc.Err(); err != nil && !errors.Is(err, context.Canceled) {
 		return err
+	}
+	return nil
+}
+
+// streamArchived sends the archived log of a node after an access review of the caller for "get pods/log".
+func (s *logService) streamArchived(ctx context.Context, namespace string, n v1alpha1.NodeStatus, tail *int64, send func(*chroniclev1.StreamLogsResponse) error) error {
+	c, err := s.workflows.client(ctx, namespace)
+	if err != nil {
+		return err
+	}
+	if !canReadLogs(ctx, c, namespace) {
+		return connect.NewError(connect.CodePermissionDenied, errors.New("you cannot read logs in this namespace"))
+	}
+	rc, _, err := openStored(ctx, s.stores, namespace, n.LogKey)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rc.Close() }()
+	var lines []string
+	sc := bufio.NewScanner(rc)
+	sc.Buffer(make([]byte, 64<<10), maxLogLine)
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+		if tail != nil && int64(len(lines)) > *tail {
+			lines = lines[1:]
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return err
+	}
+	for _, line := range lines {
+		if err := send(&chroniclev1.StreamLogsResponse{NodeId: n.ID, NodeName: n.Name, Line: line, Archived: true}); err != nil {
+			return err
+		}
 	}
 	return nil
 }

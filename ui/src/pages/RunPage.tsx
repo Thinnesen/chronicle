@@ -84,7 +84,7 @@ export function RunPage() {
           </div>
         </dl>
         {s.message && <p className="run-message">{s.message}</p>}
-        {s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted, so live logs are gone.</p>}
+        {s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted. Logs are available only when the namespace archives them.</p>}
       </header>
       <Suspense fallback={<div className="run-graph-placeholder" />}>
         <RunGraph wf={wf} now={now} selected={selected} onSelect={select} />

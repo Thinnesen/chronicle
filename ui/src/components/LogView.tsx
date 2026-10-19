@@ -5,7 +5,7 @@ import "./LogView.css";
 
 // LogView shows the log of one node. While the node runs, new lines arrive live.
 export function LogView({ namespace, workflow, node, live }: { namespace: string; workflow: string; node: string; live: boolean }) {
-  const { lines, dropped, error, done } = useLogStream(namespace, workflow, node, live);
+  const { lines, dropped, error, done, archived } = useLogStream(namespace, workflow, node, live);
   const [filter, setFilter] = useState("");
   const box = useRef<HTMLPreElement>(null);
   const atBottom = useRef(true);
@@ -26,6 +26,7 @@ export function LogView({ namespace, workflow, node, live }: { namespace: string
           {dropped > 0 && `, the first ${dropped} are not shown`}
         </span>
       </div>
+      {archived && <p className="logview-note">The Pod was deleted. This log comes from the log archive.</p>}
       {error && <p role="alert">Could not read the log: {error}</p>}
       <pre
         ref={box}

@@ -102,11 +102,13 @@ func (x *StreamLogsRequest) GetTailLines() int64 {
 }
 
 type StreamLogsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	NodeName      string                 `protobuf:"bytes,2,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
-	Time          *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=time,proto3" json:"time,omitempty"`
-	Line          string                 `protobuf:"bytes,4,opt,name=line,proto3" json:"line,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	NodeId   string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeName string                 `protobuf:"bytes,2,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	Time     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=time,proto3" json:"time,omitempty"`
+	Line     string                 `protobuf:"bytes,4,opt,name=line,proto3" json:"line,omitempty"`
+	// archived is true when the line comes from the log archive, because the Pod was deleted.
+	Archived      bool `protobuf:"varint,5,opt,name=archived,proto3" json:"archived,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -169,6 +171,13 @@ func (x *StreamLogsResponse) GetLine() string {
 	return ""
 }
 
+func (x *StreamLogsResponse) GetArchived() bool {
+	if x != nil {
+		return x.Archived
+	}
+	return false
+}
+
 var File_chronicle_v1_log_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_log_proto_rawDesc = "" +
@@ -180,12 +189,13 @@ const file_chronicle_v1_log_proto_rawDesc = "" +
 	"\x04node\x18\x03 \x01(\tR\x04node\x12\x16\n" +
 	"\x06follow\x18\x04 \x01(\bR\x06follow\x12\x1d\n" +
 	"\n" +
-	"tail_lines\x18\x05 \x01(\x03R\ttailLines\"\x8e\x01\n" +
+	"tail_lines\x18\x05 \x01(\x03R\ttailLines\"\xaa\x01\n" +
 	"\x12StreamLogsResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
 	"\tnode_name\x18\x02 \x01(\tR\bnodeName\x12.\n" +
 	"\x04time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x12\n" +
-	"\x04line\x18\x04 \x01(\tR\x04line2_\n" +
+	"\x04line\x18\x04 \x01(\tR\x04line\x12\x1a\n" +
+	"\barchived\x18\x05 \x01(\bR\barchived2_\n" +
 	"\n" +
 	"LogService\x12Q\n" +
 	"\n" +

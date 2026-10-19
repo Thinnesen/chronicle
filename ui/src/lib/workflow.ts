@@ -17,8 +17,19 @@ export interface NodeStatus {
   message?: string;
   children?: string[];
   podName?: string;
-  inputs?: { parameters?: Parameter[] };
-  outputs?: { parameters?: Parameter[]; result?: string };
+  logKey?: string;
+  inputs?: { parameters?: Parameter[]; artifacts?: Artifact[] };
+  outputs?: { parameters?: Parameter[]; result?: string; artifacts?: Artifact[] };
+}
+
+export interface Artifact {
+  name: string;
+  path?: string;
+}
+
+// artifactURL is the download link of an output artifact of a node.
+export function artifactURL(namespace: string, workflow: string, node: string, name: string): string {
+  return `/artifacts/${[namespace, workflow, node, name].map(encodeURIComponent).join("/")}`;
 }
 
 interface DAGTask {

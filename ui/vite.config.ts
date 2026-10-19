@@ -17,6 +17,7 @@ export default defineConfig({
     proxy: {
       "/chronicle.v1.": api,
       "/auth/": api,
+      "/artifacts/": api,
     },
   },
   test: {

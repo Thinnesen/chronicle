@@ -90,7 +90,7 @@ func main() {
 	}
 	web := server.UIHandler(ui.Files())
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/chronicle.v1.") {
+		if strings.HasPrefix(r.URL.Path, "/chronicle.v1.") || strings.HasPrefix(r.URL.Path, server.ArtifactPath) {
 			api.ServeHTTP(w, r)
 			return
 		}

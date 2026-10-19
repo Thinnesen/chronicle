@@ -1,0 +1,45 @@
+# SeaweedFS is the S3-compatible artifact repository of the e2e tests. MinIO no longer publishes images.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chronicle-s3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  namespace: chronicle-s3
+spec:
+  selector:
+    matchLabels: {app: seaweedfs}
+  template:
+    metadata:
+      labels: {app: seaweedfs}
+    spec:
+      containers:
+      - name: seaweedfs
+        image: chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+        args: [mini, -dir=/data, -bucket=runs]
+        env:
+        - {name: AWS_ACCESS_KEY_ID, value: chronicle}
+        - {name: AWS_SECRET_ACCESS_KEY, value: chronicle-e2e-secret}
+        ports:
+        - {name: s3, containerPort: 8333}
+        readinessProbe:
+          tcpSocket: {port: s3}
+          initialDelaySeconds: 5
+        volumeMounts:
+        - {name: data, mountPath: /data}
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  namespace: chronicle-s3
+spec:
+  selector: {app: seaweedfs}
+  ports:
+  - {name: s3, port: 8333, targetPort: s3}

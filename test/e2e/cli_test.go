@@ -26,6 +26,8 @@ func cliSpecs() {
 			config = filepath.Join(GinkgoT().TempDir(), "config.json")
 			for _, args := range [][]string{
 				{"go", "build", "-o", cli, "./cmd/chronicle"},
+				// The webhook must be ready, also when only these specs run.
+				{"kubectl", "rollout", "status", "-n", "chronicle-system", "deploy/chronicle-controller-manager", "--timeout=3m"},
 				{"kubectl", "create", "ns", cliNS},
 				{"kubectl", "create", "serviceaccount", "ci", "-n", cliNS},
 				{"kubectl", "create", "rolebinding", "ci-edit", "-n", cliNS, "--clusterrole=chronicle-workflow-editor-role", "--serviceaccount=" + cliNS + ":ci"},
@@ -106,6 +108,24 @@ func cliSpecs() {
 			out, err = chronicle("list")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(MatchRegexp(`archived\s+Succeeded`))
+		})
+
+		It("passes an artifact between steps and archives the logs", func() {
+			_, err := utils.Run(exec.Command("kubectl", "apply", "-f", "test/e2e/testdata/seaweedfs.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			_, err = utils.Run(exec.Command("kubectl", "apply", "-n", cliNS, "-f", "test/e2e/testdata/repository.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			_, err = utils.Run(exec.Command("kubectl", "rollout", "status", "-n", "chronicle-s3", "deploy/seaweedfs", "--timeout=3m"))
+			Expect(err).NotTo(HaveOccurred())
+
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/artifacts.yaml", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Eventually(func() (string, error) {
+				return utils.Run(exec.Command("kubectl", "get", "pods", "-n", cliNS, "-l", "chronicle.thinnesen.com/workflow=artifacts", "-o", "name"))
+			}).WithTimeout(time.Minute).WithPolling(2*time.Second).Should(BeEmpty(), "the Pod GC must delete the Pods")
+			out, err = chronicle("logs", "artifacts")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("passed-between-steps"))
 		})
 
 		It("retries and re-runs a run", func() {

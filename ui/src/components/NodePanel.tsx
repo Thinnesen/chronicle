@@ -8,7 +8,7 @@ import { useCanEdit } from "./RunActions";
 import { useToast } from "./Toast";
 
 import { clock, duration } from "../lib/time";
-import { nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
+import { artifactURL, nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
 import { ApprovalForm } from "./ApprovalForm";
 import { Lamp } from "./Lamp";
 import { LogView } from "./LogView";
@@ -71,6 +71,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
           <>
             <RetryFromNode wf={wf} node={node} />
             <Details node={node} />
+            <Artifacts node={node} namespace={namespace} workflow={workflow} />
           </>
         )}
         {tab === "logs" && <LogView namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
@@ -199,6 +200,34 @@ function Params({ title, params, result }: { title: string; params?: Parameter[]
           </div>
         )}
       </dl>
+    </section>
+  );
+}
+
+// Artifacts lists the files of a node. Output artifacts download as tar.gz archives.
+function Artifacts({ node, namespace, workflow }: { node: NodeStatus; namespace: string; workflow: string }) {
+  const inputs = node.inputs?.artifacts ?? [];
+  const outputs = node.outputs?.artifacts ?? [];
+  if (inputs.length === 0 && outputs.length === 0) return null;
+  return (
+    <section className="params">
+      <h3>Artifacts</h3>
+      <ul className="artifacts">
+        {inputs.map((a) => (
+          <li key={`in-${a.name}`}>
+            <span>{a.name}</span>
+            <span className="quiet">input at <code>{a.path}</code></span>
+          </li>
+        ))}
+        {outputs.map((a) => (
+          <li key={`out-${a.name}`}>
+            <a href={artifactURL(namespace, workflow, node.id, a.name)} download={`${a.name}.tgz`}>
+              {a.name}.tgz
+            </a>
+            <span className="quiet">output</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

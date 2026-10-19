@@ -53,3 +53,12 @@
   overflow-wrap: anywhere;
   padding-right: var(--space-2);
 }
+
+.logview-note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  border-left: 3px solid var(--rule);
+  background: var(--panel);
+}

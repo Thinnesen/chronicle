@@ -1,5 +1,6 @@
 # The server acts for users only through impersonation. Its own permissions are to list namespace names,
-# which it filters with access reviews as the user, and to write audit Events.
+# which it filters with access reviews as the user, to write audit Events, and to read the artifact repository
+# of a namespace after an access review as the user.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -18,6 +19,10 @@ rules:
 - apiGroups: [""]
   resources: [events]
   verbs: [create]
+- apiGroups: [""]
+  resources: [configmaps, secrets]
+  resourceNames: [chronicle-artifact-repository]
+  verbs: [get]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

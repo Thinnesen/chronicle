@@ -40,6 +40,7 @@ const (
 // LogServiceClient is a client for the chronicle.v1.LogService service.
 type LogServiceClient interface {
 	// StreamLogs streams the log lines of one node, or of all Pod nodes of a run. The caller needs "get pods/log".
+	// When a Pod was deleted, it sends the archived log of the node, if there is one.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error)
 }
 
@@ -76,6 +77,7 @@ func (c *logServiceClient) StreamLogs(ctx context.Context, req *connect.Request[
 // LogServiceHandler is an implementation of the chronicle.v1.LogService service.
 type LogServiceHandler interface {
 	// StreamLogs streams the log lines of one node, or of all Pod nodes of a run. The caller needs "get pods/log".
+	// When a Pod was deleted, it sends the archived log of the node, if there is one.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error
 }
 
