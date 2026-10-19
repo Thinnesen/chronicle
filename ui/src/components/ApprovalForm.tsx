@@ -15,7 +15,7 @@ export function ApprovalForm({ wf, node }: { wf: Workflow; node: NodeStatus }) {
   const toast = useToast();
   const client = useQueryClient();
   const outputs = templateOf(wf, node)?.outputs?.parameters ?? [];
-  const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(outputs.map((p) => [p.name, p.default ?? ""])));
+  const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(outputs.map((p) => [p.name, p.default ?? p.enum?.[0] ?? ""])));
   const [message, setMessage] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const decide = useMutation({
@@ -42,7 +42,15 @@ export function ApprovalForm({ wf, node }: { wf: Workflow; node: NodeStatus }) {
       {outputs.map((p) => (
         <label key={p.name} className="field">
           <span>{p.name}</span>
-          <input value={values[p.name] ?? ""} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} />
+          {p.enum?.length ? (
+            <select value={values[p.name] ?? ""} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })}>
+              {p.enum.map((v) => (
+                <option key={v}>{v}</option>
+              ))}
+            </select>
+          ) : (
+            <input value={values[p.name] ?? ""} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} />
+          )}
           {p.description && <small className="quiet">{p.description}</small>}
         </label>
       ))}

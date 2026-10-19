@@ -152,7 +152,7 @@ spec:
     suspend: {}               # waits for an approval; "suspend: {duration: 1h}" waits one hour
     outputs:
       parameters:
-      - {name: env, default: staging}   # the approver can give a value
+      - {name: env, default: staging, enum: [staging, prod]}   # the approver can give a value
   - name: notify
     container:
       image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
@@ -160,7 +160,7 @@ spec:
       env: [{name: STATUS, value: "{{workflow.status}}"}]
 ```
 
-Approve a suspend node in the UI, or with `chronicle approve <run> <node> -p env=prod`. A `resource` template runs with the service account of the run (`spec.serviceAccountName`), so a step can do only what that account can do.
+Approve a suspend node in the UI, or with `chronicle approve <run> <node> -p env=prod`. With `enum`, the approver can give only one of those values: the API refuses other values, and the node fails if such a value comes in another way. A `resource` template runs with the service account of the run (`spec.serviceAccountName`), so a step can do only what that account can do.
 
 ## 9. Locks
 

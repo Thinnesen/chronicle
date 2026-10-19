@@ -44,7 +44,7 @@ interface DAGTask {
 export interface Template {
   name: string;
   suspend?: { duration?: string };
-  outputs?: { parameters?: { name: string; default?: string; description?: string }[] };
+  outputs?: { parameters?: { name: string; default?: string; enum?: string[]; description?: string }[] };
   dag?: { tasks: DAGTask[] };
   steps?: { name: string; template?: string }[][];
 }

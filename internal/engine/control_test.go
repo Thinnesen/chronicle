@@ -61,6 +61,11 @@ func TestEngineControls(t *testing.T) {
 			s.in.Approvals = []v1alpha1.Approval{{Node: "wf[0].gate", Decision: v1alpha1.DecisionReject}}
 		},
 			v1alpha1.WorkflowFailed, `task "gate" failed`, "Failed"},
+		{"an approval value outside the enum", strings.Replace(approvalSpec, "default: staging}", "default: staging, enum: [staging, prod]}", 1), func(s *sim) {
+			s.in.Approvals = []v1alpha1.Approval{{Node: "wf[0].gate", Decision: v1alpha1.DecisionApprove,
+				Parameters: []v1alpha1.Parameter{{Name: "env", Value: new("hacked")}}}}
+		},
+			v1alpha1.WorkflowFailed, `task "gate" failed`, "Failed"},
 		{"duration", strings.Replace(approvalSpec, "suspend: {}", "suspend: {duration: 5s}", 1), func(*sim) {},
 			v1alpha1.WorkflowSucceeded, "", "Succeeded"},
 		{"stop runs the exit handler", approvalSpec, func(s *sim) { s.in.Shutdown = v1alpha1.ShutdownStop },

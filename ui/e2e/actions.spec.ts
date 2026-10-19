@@ -41,12 +41,13 @@ test("an editor approves a node with a parameter", async ({ page }) => {
   await expect(page.getByText("The step gate waits for an approval.")).toBeVisible();
   await page.getByRole("button", { name: "Review" }).click();
   const form = page.getByRole("complementary", { name: "Step gate" });
-  await expect(form.getByRole("textbox", { name: "env" })).toHaveValue("staging");
-  await form.getByRole("textbox", { name: "env" }).fill("prod");
+  await expect(form.getByRole("combobox", { name: "env" })).toHaveValue("staging");
+  await form.getByRole("combobox", { name: "env" }).selectOption("prod");
+  await form.getByRole("textbox", { name: "ticket" }).fill("OPS-7");
   await form.getByRole("textbox", { name: "Comment for the run history" }).fill("checked");
   await form.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByRole("status")).toContainText("Approved gate");
-  expect(calls.ApproveNode).toEqual([{ namespace: "team-a", name: "etl-nightly-8k2pq", node: "n5", approve: true, parameters: { env: "prod" }, message: "checked" }]);
+  expect(calls.ApproveNode).toEqual([{ namespace: "team-a", name: "etl-nightly-8k2pq", node: "n5", approve: true, parameters: { env: "prod", ticket: "OPS-7" }, message: "checked" }]);
 });
 
 test("an editor deletes a finished run", async ({ page }) => {

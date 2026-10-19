@@ -10,6 +10,7 @@ import (
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
 func (s *workflowService) SuspendWorkflow(ctx context.Context, req *connect.Request[chroniclev1.SuspendWorkflowRequest]) (*connect.Response[chroniclev1.SuspendWorkflowResponse], error) {
@@ -63,6 +64,9 @@ func (s *workflowService) ApproveNode(ctx context.Context, req *connect.Request[
 			if old.Node == m.Node {
 				return connect.NewError(connect.CodeFailedPrecondition, errors.New("the node already has a decision"))
 			}
+		}
+		if err := engine.CheckApproval(wf, a); err != nil {
+			return connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		wf.Spec.Approvals = append(wf.Spec.Approvals, a)
 		return nil
