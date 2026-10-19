@@ -167,6 +167,14 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 	if !ok || finished(wf.Status.Phase) || meta.IsStatusConditionTrue(wf.Status.Conditions, conditionLocked) {
 		return ctrl.Result{}, false, nil
 	}
+	if wf.Spec.Shutdown != "" {
+		// A run that waits has no nodes yet: a stop or a terminate ends it at once.
+		now := metav1.Now()
+		wf.Status.Phase, wf.Status.FinishedAt = chroniclev1alpha1.WorkflowFailed, &now
+		wf.Status.Message = "the workflow was stopped while it waited for the lock " + name
+		setLocked(wf, false, "Stopped", wf.Status.Message)
+		return r.writeWaiting(ctx, wf, observed, ctrl.Result{})
+	}
 	held, msg, err := r.acquire(ctx, wf, name, limit)
 	if err != nil {
 		return ctrl.Result{}, true, err
@@ -177,6 +185,13 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 	}
 	wf.Status.Phase, wf.Status.Message = chroniclev1alpha1.WorkflowPending, msg
 	setLocked(wf, false, "Waiting", msg)
+	// A holder that finishes does not wake the waiting runs, so they look again soon.
+	return r.writeWaiting(ctx, wf, observed, ctrl.Result{RequeueAfter: lockPoll})
+}
+
+// writeWaiting writes the status of a run that the gate holds back, and tells the caller to stop there.
+func (r *WorkflowReconciler) writeWaiting(ctx context.Context, wf *chroniclev1alpha1.Workflow, observed *chroniclev1alpha1.WorkflowStatus,
+	result ctrl.Result) (ctrl.Result, bool, error) {
 	if !equality.Semantic.DeepEqual(*observed, wf.Status) {
 		if err := r.Status().Update(ctx, wf); apierrors.IsConflict(err) {
 			return ctrl.Result{RequeueAfter: time.Second}, true, nil
@@ -184,8 +199,7 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 			return ctrl.Result{}, true, fmt.Errorf("update the workflow status: %w", err)
 		}
 	}
-	// A holder that finishes does not wake the waiting runs, so they look again soon.
-	return ctrl.Result{RequeueAfter: lockPoll}, true, nil
+	return result, true, nil
 }
 
 // unlock gives the lock back when the run has finished.

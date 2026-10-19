@@ -61,6 +61,18 @@ var _ = Describe("Workflow synchronization", func() {
 		Expect(step(b).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
 	})
 
+	It("stops a run that waits for the lock", func() {
+		e, f := run(), run()
+		Expect(step(e).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		Expect(step(f).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowPending))
+		patch := client.RawPatch(types.MergePatchType, []byte(`{"spec":{"shutdown":"Stop"}}`))
+		Expect(k8sClient.Patch(ctx, &chroniclev1alpha1.Workflow{Name: f.Name, Namespace: f.Namespace}, patch)).To(Succeed())
+		stopped := step(f)
+		Expect(stopped.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowFailed))
+		Expect(stopped.Status.Message).To(ContainSubstring("stopped while it waited for the lock"))
+		Expect(stopped.Status.FinishedAt).NotTo(BeNil())
+	})
+
 	It("does not keep the lock for a holder that was deleted", func() {
 		c, d := run(), run()
 		Expect(step(c).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
