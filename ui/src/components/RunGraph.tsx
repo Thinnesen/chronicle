@@ -19,6 +19,14 @@ function nodeDuration(n: NodeStatus, now: number): string {
   return duration(end - Date.parse(n.startedAt));
 }
 
+// meta is the second line of a card: the template in a preview, else the state or the duration.
+function meta(n: NodeStatus, data: NodeData): string {
+  if (data.preview) return n.templateName !== nodeLabel(n) ? (n.templateName ?? "") : "";
+  if (n.planned) return "Not started";
+  if (n.phase === "Pending" && n.message?.startsWith("waiting for a free slot")) return "Waiting for a slot";
+  return nodeDuration(n, data.now) || n.phase || "Pending";
+}
+
 const kindIcon = { Pod: Box, Task: Cpu, Suspend: Hand } as const;
 
 function Handles({ vertical }: { vertical: boolean }) {
@@ -43,7 +51,7 @@ function StationNode({ data }: NodeProps<Node<NodeData>>) {
         <span className="station-name" title={nodeLabel(n)}>
           {nodeLabel(n)}
         </span>
-        <span className="station-meta">{data.preview ? (n.templateName !== nodeLabel(n) ? n.templateName : "") : n.planned ? "Not started" : nodeDuration(n, data.now) || phase}</span>
+        <span className="station-meta">{meta(n, data)}</span>
       </span>
       <Icon className="station-kind" aria-hidden="true" />
     </div>
