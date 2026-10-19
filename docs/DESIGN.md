@@ -26,7 +26,7 @@ Not goals (for now): a full Temporal clone with deterministic replay of workflow
 | `chronicle-server` | Go | API (Connect-RPC: gRPC and HTTP/JSON), OIDC login, web UI (embedded), log streaming, archive. |
 | `chronicle` CLI | Go | Submit, list, watch, logs, retry, re-run, suspend, resume, approve, convert. |
 | Web UI | TypeScript, React, Vite | Runs, DAG graph, logs, history, templates, cron, actions. pnpm, lockfile committed. |
-| SDKs | Go, Python, Rust | Define workflows as code. Submit them. Run task workers. Generated from the protobuf API. |
+| SDKs | Go, Python, Rust | Define workflows as code with builders. Submit them through the API. Run task workers. |
 | Archive | PostgreSQL (optional) | Completed runs and node history. Without a database, chronicle keeps runs in Kubernetes only. |
 
 The controller and the server are two binaries in one Go module. The Helm chart deploys both.
@@ -144,7 +144,7 @@ The controller applies the actions. This makes the engine testable with table te
 ## 6. Server, login and permissions
 
 - API: Connect-RPC from protobuf (`proto/`). gRPC for SDKs, HTTP/JSON for the UI and curl. `buf` generates the code (pinned) into `gen/`, and CI checks that it is current.
-- API messages carry a Workflow as a JSON object (`google.protobuf.Struct`) and use typed summaries for lists. The CRD types stay the one definition of a workflow. The SDKs generate their workflow types from the CRD schema; the API clients come from the protobuf files.
+- API messages carry a Workflow as a JSON object (`google.protobuf.Struct`) and use typed summaries for lists. The CRD types stay the one definition of a workflow. The Go SDK uses the CRD types and the webhook validation. The Python and Rust SDKs build plain objects, and the server validates them on submit.
 - Every API call needs an authenticated identity. The server calls Kubernetes with impersonation of that identity for all user actions, reads too. There is no unauthenticated mode and no fallback to the permissions of the server.
 - The server can impersonate users and groups. So an identity provider must never give a user a Kubernetes system name: the claim mapping always adds a prefix (`oidc:`, `entra:`) to user and group names, and the server rejects names that start with `system:`.
 - Login (UI): OIDC authorization code flow with PKCE (any OIDC provider: Dex, Keycloak, Okta, Google, GitHub through Dex). Session cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, short life, server-side session store. CSRF protection for state-changing calls.
