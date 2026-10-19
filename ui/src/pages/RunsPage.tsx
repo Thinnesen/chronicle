@@ -1,12 +1,15 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { useState } from "react";
 
 import { workflows } from "../api/client";
 import { ActivityStrip } from "../components/ActivityStrip";
 import { Lamp, lampKind, Status } from "../components/Lamp";
 import { ProgressTrack } from "../components/ProgressTrack";
 import { RefreshError } from "../components/RefreshError";
+import { useCanEdit } from "../components/RunActions";
+import { SubmitDialog } from "../components/SubmitDialog";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { runsRoute } from "../router";
@@ -31,6 +34,8 @@ export function RunsPage() {
   const { q, phase } = runsRoute.useSearch();
   const navigate = useNavigate({ from: runsRoute.fullPath });
   const now = useNow(true);
+  const canSubmit = useCanEdit(namespace);
+  const [submitting, setSubmitting] = useState(false);
   // The newest 200 runs without a filter give the counts and the activity. A phase filter asks the server, so older
   // runs are found too. "Show more" loads the next page of the table.
   const table = useInfiniteQuery({
@@ -60,7 +65,14 @@ export function RunsPage() {
           <h1>Runs</h1>
           <p className="quiet">All runs in {namespace}, newest first.</p>
         </div>
+        {canSubmit && (
+          <button type="button" className="button button-primary" onClick={() => setSubmitting(true)}>
+            <Plus aria-hidden="true" />
+            New run
+          </button>
+        )}
       </header>
+      {submitting && <SubmitDialog namespace={namespace} open={submitting} onOpenChange={setSubmitting} />}
       <ActivityStrip runs={runs.map((w) => ({ phase: w.phase, start: toDate(w.startedAt) ?? toDate(w.createdAt) }))} now={now} />
       <div className="board-filters">
         <label className="search-field">

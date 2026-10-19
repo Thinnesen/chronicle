@@ -56,6 +56,21 @@ test("keeps the run on the page when a refresh fails", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "etl-nightly-8k2pq" })).toBeVisible();
 });
 
+test("starts a run from YAML", async ({ page }) => {
+  const calls = await mockAPI(page);
+  await page.goto("/ns/team-a");
+  await page.getByRole("button", { name: "New run" }).click();
+  const dialog = page.getByRole("dialog", { name: "New run in team-a" });
+  await dialog.getByRole("textbox", { name: "Workflow" }).fill("kind: [broken");
+  await dialog.getByRole("button", { name: "Start the run" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("The YAML is not valid");
+  // YAML 1.2: "yes" and "n" stay strings.
+  await dialog.getByRole("textbox", { name: "Workflow" }).fill("kind: Workflow\nspec:\n  arguments:\n    parameters: [{name: n, value: yes}]\n");
+  await dialog.getByRole("button", { name: "Start the run" }).click();
+  await expect(page).toHaveURL(/\/runs\/deploy-api-new01$/);
+  expect(calls.SubmitWorkflow).toEqual([{ namespace: "team-a", workflow: { kind: "Workflow", spec: { arguments: { parameters: [{ name: "n", value: "yes" }] } } } }]);
+});
+
 test("loads older runs on request", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
