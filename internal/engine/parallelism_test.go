@@ -105,3 +105,22 @@ func equalInts(a, b []int) bool {
 	}
 	return true
 }
+
+// TestParallelismUnknownPod checks that a running Pod whose node the status does not have yet holds a slot.
+func TestParallelismUnknownPod(t *testing.T) {
+	s := newSim(t, `
+entrypoint: main
+parallelism: 1
+templates:
+- name: main
+  dag:
+    tasks:
+    - {name: a, template: c}
+- {name: c, container: {image: x, command: [run]}}`, nil)
+	s.in.Pods["wf-from-an-older-status"] = PodResult{Phase: "Running"}
+	for _, a := range Run(s.in).Actions {
+		if _, ok := a.(CreatePod); ok {
+			t.Fatal("a Pod started although the only slot is taken")
+		}
+	}
+}

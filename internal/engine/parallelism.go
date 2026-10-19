@@ -39,14 +39,25 @@ func (e *engine) noSlot(n v1alpha1.NodeStatus) (int32, bool) {
 
 // slotHolders counts the unfinished Pod nodes below root, other than except, that hold a slot: their Pod exists,
 // or the engine asked for it in an earlier step. A Pod that the cache does not show yet thus still counts.
+// For the whole workflow, an unfinished Pod without a node in the status counts too: the status can be older than the
+// Pods, for example after a failed status update.
 func (e *engine) slotHolders(root, except string) int {
 	count := 0
+	known := make(map[string]bool, len(e.nodes))
 	for _, m := range e.nodes {
+		known[m.PodName] = true
 		if m.Type != v1alpha1.NodePod || m.ID == except || isTerminal(m.Phase) || !below(m.Name, root) {
 			continue
 		}
 		if _, observed := e.in.Pods[m.PodName]; observed || !strings.HasPrefix(m.Message, waitingForSlot) {
 			count++
+		}
+	}
+	if root == "" {
+		for name, p := range e.in.Pods {
+			if !known[name] && !isTerminal(p.Phase) {
+				count++
+			}
 		}
 	}
 	return count

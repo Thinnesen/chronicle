@@ -37,6 +37,8 @@ type WorkflowReconciler struct {
 	Recorder events.EventRecorder
 	// APIReader reads objects that the manager does not cache, such as the artifact repository ConfigMap.
 	APIReader client.Reader
+
+	created createdPods
 }
 
 // Archiver saves a finished run with its node counts.
@@ -253,6 +255,7 @@ func (r *WorkflowReconciler) observePods(ctx context.Context, wf *chroniclev1alp
 	for i := range list.Items {
 		pods[list.Items[i].Name] = podResult(&list.Items[i])
 	}
+	r.created.fill(wf.UID, pods, time.Now())
 	return pods, nil
 }
 
@@ -270,6 +273,7 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		if err := r.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("create the Pod of node %s: %w", a.NodeName, err)
 		}
+		r.created.add(wf.UID, pod.Name, time.Now())
 	case engine.EnqueueTask, engine.CancelTask:
 		return r.applyTask(ctx, wf, a)
 	case engine.DeletePod:
