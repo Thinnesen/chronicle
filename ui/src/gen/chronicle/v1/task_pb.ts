@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file chronicle/v1/task.proto.
  */
 export const file_chronicle_v1_task: GenFile = /*@__PURE__*/
-  fileDesc("ChdjaHJvbmljbGUvdjEvdGFzay5wcm90bxIMY2hyb25pY2xlLnYxIlIKD1BvbGxUYXNrUmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDQoFcXVldWUYAiABKAkSDQoFbmFtZXMYAyADKAkSDgoGd29ya2VyGAQgASgJIoEBCgRUYXNrEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKaW5wdXRfanNvbhgDIAEoCRIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkSEAoId29ya2Zsb3cYBSABKAkSEQoJbm9kZV9uYW1lGAYgASgJEg0KBWxlYXNlGAcgASgJIjQKEFBvbGxUYXNrUmVzcG9uc2USIAoEdGFzaxgBIAEoCzISLmNocm9uaWNsZS52MS5UYXNrIkQKFEhlYXJ0YmVhdFRhc2tSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIKCgJpZBgCIAEoCRINCgVsZWFzZRgDIAEoCSIqChVIZWFydGJlYXRUYXNrUmVzcG9uc2USEQoJY2FuY2VsbGVkGAEgASgIInoKE0NvbXBsZXRlVGFza1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgoKAmlkGAIgASgJEg0KBWxlYXNlGAMgASgJEhMKC291dHB1dF9qc29uGAQgASgJEg0KBWVycm9yGAUgASgJEhEKCXJldHJ5YWJsZRgGIAEoCCIWChRDb21wbGV0ZVRhc2tSZXNwb25zZTKJAgoLVGFza1NlcnZpY2USSQoIUG9sbFRhc2sSHS5jaHJvbmljbGUudjEuUG9sbFRhc2tSZXF1ZXN0Gh4uY2hyb25pY2xlLnYxLlBvbGxUYXNrUmVzcG9uc2USWAoNSGVhcnRiZWF0VGFzaxIiLmNocm9uaWNsZS52MS5IZWFydGJlYXRUYXNrUmVxdWVzdBojLmNocm9uaWNsZS52MS5IZWFydGJlYXRUYXNrUmVzcG9uc2USVQoMQ29tcGxldGVUYXNrEiEuY2hyb25pY2xlLnYxLkNvbXBsZXRlVGFza1JlcXVlc3QaIi5jaHJvbmljbGUudjEuQ29tcGxldGVUYXNrUmVzcG9uc2VCPVo7Z2l0aHViLmNvbS9UaGlubmVzZW4vY2hyb25pY2xlL2dlbi9jaHJvbmljbGUvdjE7Y2hyb25pY2xldjFiBnByb3RvMw");
+  fileDesc("ChdjaHJvbmljbGUvdjEvdGFzay5wcm90bxIMY2hyb25pY2xlLnYxIlIKD1BvbGxUYXNrUmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDQoFcXVldWUYAiABKAkSDQoFbmFtZXMYAyADKAkSDgoGd29ya2VyGAQgASgJIoEBCgRUYXNrEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKaW5wdXRfanNvbhgDIAEoCRIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkSEAoId29ya2Zsb3cYBSABKAkSEQoJbm9kZV9uYW1lGAYgASgJEg0KBWxlYXNlGAcgASgJIjQKEFBvbGxUYXNrUmVzcG9uc2USIAoEdGFzaxgBIAEoCzISLmNocm9uaWNsZS52MS5UYXNrIkQKFEhlYXJ0YmVhdFRhc2tSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIKCgJpZBgCIAEoCRINCgVsZWFzZRgDIAEoCSIqChVIZWFydGJlYXRUYXNrUmVzcG9uc2USEQoJY2FuY2VsbGVkGAEgASgIInoKE0NvbXBsZXRlVGFza1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgoKAmlkGAIgASgJEg0KBWxlYXNlGAMgASgJEhMKC291dHB1dF9qc29uGAQgASgJEg0KBWVycm9yGAUgASgJEhEKCXJldHJ5YWJsZRgGIAEoCCIWChRDb21wbGV0ZVRhc2tSZXNwb25zZSJEChBMaXN0VGFza3NSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIOCgZzdGF0ZXMYAiADKAkSDQoFbGltaXQYAyABKAUinAIKC1Rhc2tTdW1tYXJ5EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFcXVldWUYAyABKAkSDQoFc3RhdGUYBCABKAkSEAoId29ya2Zsb3cYBSABKAkSEQoJbm9kZV9uYW1lGAYgASgJEg4KBndvcmtlchgHIAEoCRIPCgdtZXNzYWdlGAggASgJEi4KCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnN0YXJ0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC2ZpbmlzaGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCI9ChFMaXN0VGFza3NSZXNwb25zZRIoCgV0YXNrcxgBIAMoCzIZLmNocm9uaWNsZS52MS5UYXNrU3VtbWFyeTLXAgoLVGFza1NlcnZpY2USSQoIUG9sbFRhc2sSHS5jaHJvbmljbGUudjEuUG9sbFRhc2tSZXF1ZXN0Gh4uY2hyb25pY2xlLnYxLlBvbGxUYXNrUmVzcG9uc2USWAoNSGVhcnRiZWF0VGFzaxIiLmNocm9uaWNsZS52MS5IZWFydGJlYXRUYXNrUmVxdWVzdBojLmNocm9uaWNsZS52MS5IZWFydGJlYXRUYXNrUmVzcG9uc2USVQoMQ29tcGxldGVUYXNrEiEuY2hyb25pY2xlLnYxLkNvbXBsZXRlVGFza1JlcXVlc3QaIi5jaHJvbmljbGUudjEuQ29tcGxldGVUYXNrUmVzcG9uc2USTAoJTGlzdFRhc2tzEh4uY2hyb25pY2xlLnYxLkxpc3RUYXNrc1JlcXVlc3QaHy5jaHJvbmljbGUudjEuTGlzdFRhc2tzUmVzcG9uc2VCPVo7Z2l0aHViLmNvbS9UaGlubmVzZW4vY2hyb25pY2xlL2dlbi9jaHJvbmljbGUvdjE7Y2hyb25pY2xldjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message chronicle.v1.PollTaskRequest
@@ -228,6 +230,121 @@ export const CompleteTaskResponseSchema: GenMessage<CompleteTaskResponse> = /*@_
   messageDesc(file_chronicle_v1_task, 6);
 
 /**
+ * @generated from message chronicle.v1.ListTasksRequest
+ */
+export type ListTasksRequest = Message<"chronicle.v1.ListTasksRequest"> & {
+  /**
+   * @generated from field: string namespace = 1;
+   */
+  namespace: string;
+
+  /**
+   * states filters by state: pending, running, succeeded, failed, error or cancelled. Empty means all.
+   *
+   * @generated from field: repeated string states = 2;
+   */
+  states: string[];
+
+  /**
+   * limit is the largest number of tasks. The default and the maximum is 200.
+   *
+   * @generated from field: int32 limit = 3;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message chronicle.v1.ListTasksRequest.
+ * Use `create(ListTasksRequestSchema)` to create a new message.
+ */
+export const ListTasksRequestSchema: GenMessage<ListTasksRequest> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_task, 7);
+
+/**
+ * @generated from message chronicle.v1.TaskSummary
+ */
+export type TaskSummary = Message<"chronicle.v1.TaskSummary"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string queue = 3;
+   */
+  queue: string;
+
+  /**
+   * @generated from field: string state = 4;
+   */
+  state: string;
+
+  /**
+   * @generated from field: string workflow = 5;
+   */
+  workflow: string;
+
+  /**
+   * @generated from field: string node_name = 6;
+   */
+  nodeName: string;
+
+  /**
+   * @generated from field: string worker = 7;
+   */
+  worker: string;
+
+  /**
+   * @generated from field: string message = 8;
+   */
+  message: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 9;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started_at = 10;
+   */
+  startedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp finished_at = 11;
+   */
+  finishedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message chronicle.v1.TaskSummary.
+ * Use `create(TaskSummarySchema)` to create a new message.
+ */
+export const TaskSummarySchema: GenMessage<TaskSummary> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_task, 8);
+
+/**
+ * @generated from message chronicle.v1.ListTasksResponse
+ */
+export type ListTasksResponse = Message<"chronicle.v1.ListTasksResponse"> & {
+  /**
+   * @generated from field: repeated chronicle.v1.TaskSummary tasks = 1;
+   */
+  tasks: TaskSummary[];
+};
+
+/**
+ * Describes the message chronicle.v1.ListTasksResponse.
+ * Use `create(ListTasksResponseSchema)` to create a new message.
+ */
+export const ListTasksResponseSchema: GenMessage<ListTasksResponse> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_task, 9);
+
+/**
  * TaskService gives the tasks of task templates to task workers. A worker needs "update" on "workflows/tasks"
  * in the namespace. Delivery is at-least-once: use the idempotency key to detect a repeated task.
  *
@@ -263,6 +380,16 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof CompleteTaskRequestSchema;
     output: typeof CompleteTaskResponseSchema;
+  },
+  /**
+   * ListTasks lists the newest tasks of a namespace for the UI. The caller needs "list workflows".
+   *
+   * @generated from rpc chronicle.v1.TaskService.ListTasks
+   */
+  listTasks: {
+    methodKind: "unary";
+    input: typeof ListTasksRequestSchema;
+    output: typeof ListTasksResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_chronicle_v1_task, 0);

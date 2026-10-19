@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package chronicle.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1";
 
 // TaskService gives the tasks of task templates to task workers. A worker needs "update" on "workflows/tasks"
@@ -13,6 +15,8 @@ service TaskService {
   rpc HeartbeatTask(HeartbeatTaskRequest) returns (HeartbeatTaskResponse);
   // CompleteTask sends the result or the error of a task.
   rpc CompleteTask(CompleteTaskRequest) returns (CompleteTaskResponse);
+  // ListTasks lists the newest tasks of a namespace for the UI. The caller needs "list workflows".
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
 }
 
 message PollTaskRequest {
@@ -66,3 +70,29 @@ message CompleteTaskRequest {
 }
 
 message CompleteTaskResponse {}
+
+message ListTasksRequest {
+  string namespace = 1;
+  // states filters by state: pending, running, succeeded, failed, error or cancelled. Empty means all.
+  repeated string states = 2;
+  // limit is the largest number of tasks. The default and the maximum is 200.
+  int32 limit = 3;
+}
+
+message TaskSummary {
+  string id = 1;
+  string name = 2;
+  string queue = 3;
+  string state = 4;
+  string workflow = 5;
+  string node_name = 6;
+  string worker = 7;
+  string message = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp finished_at = 11;
+}
+
+message ListTasksResponse {
+  repeated TaskSummary tasks = 1;
+}

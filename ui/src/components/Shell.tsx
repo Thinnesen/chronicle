@@ -32,7 +32,7 @@ export function Shell() {
   );
 }
 
-// SectionNav switches between the runs, the templates and the cron workflows of the namespace.
+// SectionNav switches between the runs, the templates, the cron workflows and the tasks of the namespace.
 function SectionNav() {
   const params = useParams({ strict: false }) as { namespace?: string };
   if (!params.namespace) return null;
@@ -48,6 +48,9 @@ function SectionNav() {
       </Link>
       <Link to="/ns/$namespace/cron" params={{ namespace }} {...link}>
         Cron
+      </Link>
+      <Link to="/ns/$namespace/tasks" params={{ namespace }} {...link}>
+        Tasks
       </Link>
     </nav>
   );

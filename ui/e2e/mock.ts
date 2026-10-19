@@ -69,6 +69,12 @@ export const cronList = [
   { namespace: "team-a", name: "cleanup", schedules: ["*/15 * * * *"], suspend: true, managedBy: "Flux" },
 ];
 
+export const taskList = [
+  { id: "u1/n7", name: "send-mail", queue: "mail", state: "running", workflow: "etl-nightly-8k2pq", nodeName: "etl-nightly-8k2pq.notify", worker: "mailer-6d9f", createdAt: ts(-40), startedAt: ts(-38) },
+  { id: "u1/n8", name: "score-model", queue: "gpu", state: "pending", workflow: "train-model-4rq9z", nodeName: "train-model-4rq9z.score", createdAt: ts(-20) },
+  { id: "u1/n9", name: "send-mail", queue: "mail", state: "failed", workflow: "deploy-api-x7c1m", nodeName: "deploy-api-x7c1m.notify", worker: "mailer-6d9f", message: "the worker sent no heartbeat for 30s", createdAt: ts(-600) },
+];
+
 export interface MockOptions {
   loggedIn?: boolean;
   namespaces?: string[];
@@ -115,6 +121,10 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     r.fulfill({ json: { summary: t, template: { apiVersion: "chronicle.thinnesen.com/v1alpha1", kind: "WorkflowTemplate", metadata: { name }, spec: { entrypoint: "main" } } } });
   });
   await page.route("**/chronicle.v1.CronService/ListCronWorkflows", (r) => r.fulfill({ json: { cronWorkflows: cronList } }));
+  await page.route("**/chronicle.v1.TaskService/ListTasks", (r) => {
+    const states: string[] = r.request().postDataJSON()?.states ?? [];
+    r.fulfill({ json: { tasks: taskList.filter((t) => states.length === 0 || states.includes(t.state)) } });
+  });
   await page.route("**/chronicle.v1.CronService/GetCronWorkflow", (r) => {
     const name: string = r.request().postDataJSON()?.name;
     r.fulfill({ json: { summary: cronList.find((c) => c.name === name), cronWorkflow: { kind: "CronWorkflow", metadata: { name } } } });

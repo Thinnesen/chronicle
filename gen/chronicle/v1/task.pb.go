@@ -9,6 +9,7 @@ package chroniclev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -459,11 +460,241 @@ func (*CompleteTaskResponse) Descriptor() ([]byte, []int) {
 	return file_chronicle_v1_task_proto_rawDescGZIP(), []int{6}
 }
 
+type ListTasksRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Namespace string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// states filters by state: pending, running, succeeded, failed, error or cancelled. Empty means all.
+	States []string `protobuf:"bytes,2,rep,name=states,proto3" json:"states,omitempty"`
+	// limit is the largest number of tasks. The default and the maximum is 200.
+	Limit         int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTasksRequest) Reset() {
+	*x = ListTasksRequest{}
+	mi := &file_chronicle_v1_task_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTasksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTasksRequest) ProtoMessage() {}
+
+func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_task_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
+func (*ListTasksRequest) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_task_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListTasksRequest) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *ListTasksRequest) GetStates() []string {
+	if x != nil {
+		return x.States
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type TaskSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Queue         string                 `protobuf:"bytes,3,opt,name=queue,proto3" json:"queue,omitempty"`
+	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	Workflow      string                 `protobuf:"bytes,5,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	NodeName      string                 `protobuf:"bytes,6,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	Worker        string                 `protobuf:"bytes,7,opt,name=worker,proto3" json:"worker,omitempty"`
+	Message       string                 `protobuf:"bytes,8,opt,name=message,proto3" json:"message,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskSummary) Reset() {
+	*x = TaskSummary{}
+	mi := &file_chronicle_v1_task_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskSummary) ProtoMessage() {}
+
+func (x *TaskSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_task_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskSummary.ProtoReflect.Descriptor instead.
+func (*TaskSummary) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_task_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TaskSummary) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetQueue() string {
+	if x != nil {
+		return x.Queue
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetWorkflow() string {
+	if x != nil {
+		return x.Workflow
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetWorker() string {
+	if x != nil {
+		return x.Worker
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *TaskSummary) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *TaskSummary) GetFinishedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return nil
+}
+
+type ListTasksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tasks         []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTasksResponse) Reset() {
+	*x = ListTasksResponse{}
+	mi := &file_chronicle_v1_task_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTasksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTasksResponse) ProtoMessage() {}
+
+func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_task_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
+func (*ListTasksResponse) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_task_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListTasksResponse) GetTasks() []*TaskSummary {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
 var File_chronicle_v1_task_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x17chronicle/v1/task.proto\x12\fchronicle.v1\"s\n" +
+	"\x17chronicle/v1/task.proto\x12\fchronicle.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"s\n" +
 	"\x0fPollTaskRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x14\n" +
 	"\x05queue\x18\x02 \x01(\tR\x05queue\x12\x14\n" +
@@ -494,11 +725,34 @@ const file_chronicle_v1_task_proto_rawDesc = "" +
 	"outputJson\x12\x14\n" +
 	"\x05error\x18\x05 \x01(\tR\x05error\x12\x1c\n" +
 	"\tretryable\x18\x06 \x01(\bR\tretryable\"\x16\n" +
-	"\x14CompleteTaskResponse2\x89\x02\n" +
+	"\x14CompleteTaskResponse\"^\n" +
+	"\x10ListTasksRequest\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x16\n" +
+	"\x06states\x18\x02 \x03(\tR\x06states\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\xfb\x02\n" +
+	"\vTaskSummary\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05queue\x18\x03 \x01(\tR\x05queue\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12\x1a\n" +
+	"\bworkflow\x18\x05 \x01(\tR\bworkflow\x12\x1b\n" +
+	"\tnode_name\x18\x06 \x01(\tR\bnodeName\x12\x16\n" +
+	"\x06worker\x18\a \x01(\tR\x06worker\x12\x18\n" +
+	"\amessage\x18\b \x01(\tR\amessage\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"started_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vfinished_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\"D\n" +
+	"\x11ListTasksResponse\x12/\n" +
+	"\x05tasks\x18\x01 \x03(\v2\x19.chronicle.v1.TaskSummaryR\x05tasks2\xd7\x02\n" +
 	"\vTaskService\x12I\n" +
 	"\bPollTask\x12\x1d.chronicle.v1.PollTaskRequest\x1a\x1e.chronicle.v1.PollTaskResponse\x12X\n" +
 	"\rHeartbeatTask\x12\".chronicle.v1.HeartbeatTaskRequest\x1a#.chronicle.v1.HeartbeatTaskResponse\x12U\n" +
-	"\fCompleteTask\x12!.chronicle.v1.CompleteTaskRequest\x1a\".chronicle.v1.CompleteTaskResponseB=Z;github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1b\x06proto3"
+	"\fCompleteTask\x12!.chronicle.v1.CompleteTaskRequest\x1a\".chronicle.v1.CompleteTaskResponse\x12L\n" +
+	"\tListTasks\x12\x1e.chronicle.v1.ListTasksRequest\x1a\x1f.chronicle.v1.ListTasksResponseB=Z;github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1b\x06proto3"
 
 var (
 	file_chronicle_v1_task_proto_rawDescOnce sync.Once
@@ -512,7 +766,7 @@ func file_chronicle_v1_task_proto_rawDescGZIP() []byte {
 	return file_chronicle_v1_task_proto_rawDescData
 }
 
-var file_chronicle_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_chronicle_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_chronicle_v1_task_proto_goTypes = []any{
 	(*PollTaskRequest)(nil),       // 0: chronicle.v1.PollTaskRequest
 	(*Task)(nil),                  // 1: chronicle.v1.Task
@@ -521,20 +775,30 @@ var file_chronicle_v1_task_proto_goTypes = []any{
 	(*HeartbeatTaskResponse)(nil), // 4: chronicle.v1.HeartbeatTaskResponse
 	(*CompleteTaskRequest)(nil),   // 5: chronicle.v1.CompleteTaskRequest
 	(*CompleteTaskResponse)(nil),  // 6: chronicle.v1.CompleteTaskResponse
+	(*ListTasksRequest)(nil),      // 7: chronicle.v1.ListTasksRequest
+	(*TaskSummary)(nil),           // 8: chronicle.v1.TaskSummary
+	(*ListTasksResponse)(nil),     // 9: chronicle.v1.ListTasksResponse
+	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_chronicle_v1_task_proto_depIdxs = []int32{
-	1, // 0: chronicle.v1.PollTaskResponse.task:type_name -> chronicle.v1.Task
-	0, // 1: chronicle.v1.TaskService.PollTask:input_type -> chronicle.v1.PollTaskRequest
-	3, // 2: chronicle.v1.TaskService.HeartbeatTask:input_type -> chronicle.v1.HeartbeatTaskRequest
-	5, // 3: chronicle.v1.TaskService.CompleteTask:input_type -> chronicle.v1.CompleteTaskRequest
-	2, // 4: chronicle.v1.TaskService.PollTask:output_type -> chronicle.v1.PollTaskResponse
-	4, // 5: chronicle.v1.TaskService.HeartbeatTask:output_type -> chronicle.v1.HeartbeatTaskResponse
-	6, // 6: chronicle.v1.TaskService.CompleteTask:output_type -> chronicle.v1.CompleteTaskResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1,  // 0: chronicle.v1.PollTaskResponse.task:type_name -> chronicle.v1.Task
+	10, // 1: chronicle.v1.TaskSummary.created_at:type_name -> google.protobuf.Timestamp
+	10, // 2: chronicle.v1.TaskSummary.started_at:type_name -> google.protobuf.Timestamp
+	10, // 3: chronicle.v1.TaskSummary.finished_at:type_name -> google.protobuf.Timestamp
+	8,  // 4: chronicle.v1.ListTasksResponse.tasks:type_name -> chronicle.v1.TaskSummary
+	0,  // 5: chronicle.v1.TaskService.PollTask:input_type -> chronicle.v1.PollTaskRequest
+	3,  // 6: chronicle.v1.TaskService.HeartbeatTask:input_type -> chronicle.v1.HeartbeatTaskRequest
+	5,  // 7: chronicle.v1.TaskService.CompleteTask:input_type -> chronicle.v1.CompleteTaskRequest
+	7,  // 8: chronicle.v1.TaskService.ListTasks:input_type -> chronicle.v1.ListTasksRequest
+	2,  // 9: chronicle.v1.TaskService.PollTask:output_type -> chronicle.v1.PollTaskResponse
+	4,  // 10: chronicle.v1.TaskService.HeartbeatTask:output_type -> chronicle.v1.HeartbeatTaskResponse
+	6,  // 11: chronicle.v1.TaskService.CompleteTask:output_type -> chronicle.v1.CompleteTaskResponse
+	9,  // 12: chronicle.v1.TaskService.ListTasks:output_type -> chronicle.v1.ListTasksResponse
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_chronicle_v1_task_proto_init() }
@@ -548,7 +812,7 @@ func file_chronicle_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chronicle_v1_task_proto_rawDesc), len(file_chronicle_v1_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

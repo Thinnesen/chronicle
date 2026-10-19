@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -20,6 +21,7 @@ type TaskStore interface {
 	Poll(ctx context.Context, namespace, queue string, names []string, worker string) (*archive.Task, string, error)
 	Heartbeat(ctx context.Context, namespace, id, lease string) (bool, error)
 	Complete(ctx context.Context, namespace, id, lease, output, failure string, retryable bool) error
+	ListTasks(ctx context.Context, namespace string, states []string, limit int) ([]archive.Task, error)
 }
 
 const (
@@ -29,6 +31,7 @@ const (
 	// workerCacheTTL is how long the server keeps an access decision for a worker.
 	workerCacheTTL = 30 * time.Second
 	maxTaskNames   = 100
+	maxListedTasks = 200
 )
 
 // taskService implements the TaskService API.
@@ -97,6 +100,41 @@ func (s *taskService) CompleteTask(ctx context.Context, req *connect.Request[chr
 		return nil, taskError(err)
 	}
 	return connect.NewResponse(&chroniclev1.CompleteTaskResponse{}), nil
+}
+
+func (s *taskService) ListTasks(ctx context.Context, req *connect.Request[chroniclev1.ListTasksRequest]) (*connect.Response[chroniclev1.ListTasksResponse], error) {
+	m := req.Msg
+	c, err := s.workflows.client(ctx, m.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	if !allowed(ctx, c, m.Namespace, "list") {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("you cannot list runs in this namespace"))
+	}
+	limit := int(m.Limit)
+	if limit <= 0 || limit > maxListedTasks {
+		limit = maxListedTasks
+	}
+	tasks, err := s.store.ListTasks(ctx, m.Namespace, m.States, limit)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	out := make([]*chroniclev1.TaskSummary, 0, len(tasks))
+	for _, t := range tasks {
+		out = append(out, &chroniclev1.TaskSummary{
+			Id: t.ID, Name: t.Name, Queue: t.Queue, State: t.State, Workflow: t.Workflow, NodeName: t.NodeName,
+			Worker: t.Worker, Message: t.Message, CreatedAt: timestamppb.New(t.CreatedAt),
+			StartedAt: optionalTime(t.StartedAt), FinishedAt: optionalTime(t.FinishedAt),
+		})
+	}
+	return connect.NewResponse(&chroniclev1.ListTasksResponse{Tasks: out}), nil
+}
+
+func optionalTime(t *time.Time) *timestamppb.Timestamp {
+	if t == nil {
+		return nil
+	}
+	return timestamppb.New(*t)
 }
 
 func taskError(err error) error {

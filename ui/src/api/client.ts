@@ -3,6 +3,7 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 
 import { LogService } from "../gen/chronicle/v1/log_pb";
 import { NamespaceService } from "../gen/chronicle/v1/namespace_pb";
+import { TaskService } from "../gen/chronicle/v1/task_pb";
 import { CronService, TemplateService } from "../gen/chronicle/v1/template_pb";
 import { WorkflowService } from "../gen/chronicle/v1/workflow_pb";
 import { csrfToken } from "./session";
@@ -27,3 +28,4 @@ export const namespaces = createClient(NamespaceService, transport);
 export const logs = createClient(LogService, transport);
 export const templates = createClient(TemplateService, transport);
 export const crons = createClient(CronService, transport);
+export const tasks = createClient(TaskService, transport);

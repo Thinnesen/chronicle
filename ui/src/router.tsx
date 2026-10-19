@@ -8,6 +8,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RunPage } from "./pages/RunPage";
 import { CronPage } from "./pages/CronPage";
 import { CronsPage } from "./pages/CronsPage";
+import { TasksPage } from "./pages/TasksPage";
 import { RunsPage } from "./pages/RunsPage";
 import { TemplatePage } from "./pages/TemplatePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
@@ -71,9 +72,16 @@ export const cronsRoute = createRoute({ getParentRoute: () => appRoute, path: "/
 
 export const cronRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace/cron/$name", component: CronPage });
 
+export const tasksRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ns/$namespace/tasks",
+  component: TasksPage,
+  validateSearch: (s: Record<string, unknown>): { state?: string } => ({ state: typeof s.state === "string" ? s.state : undefined }),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([homeRoute, runsRoute, runRoute, templatesRoute, templateRoute, cronsRoute, cronRoute]),
+  appRoute.addChildren([homeRoute, runsRoute, runRoute, templatesRoute, templateRoute, cronsRoute, cronRoute, tasksRoute]),
 ]);
 
 export function newRouter(queryClient: QueryClient) {

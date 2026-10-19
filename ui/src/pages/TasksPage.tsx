@@ -1,0 +1,85 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+
+import { tasks } from "../api/client";
+import { Lamp } from "../components/Lamp";
+import { relative } from "../lib/cron";
+import { toDate } from "../lib/time";
+import { useNow } from "../lib/useNow";
+import { tasksRoute } from "../router";
+
+const stateFilters = { pending: "Pending", running: "Running", failed: "Failed", succeeded: "Succeeded" };
+
+// phaseOf maps a task state to the phase that the lamps show.
+function phaseOf(state: string): string {
+  switch (state) {
+    case "pending":
+      return "Pending";
+    case "running":
+      return "Running";
+    case "succeeded":
+      return "Succeeded";
+    case "cancelled":
+      return "Suspended";
+    default:
+      return "Failed";
+  }
+}
+
+// TasksPage lists the newest tasks of the task queue of the namespace: what waits for a worker, and what runs.
+export function TasksPage() {
+  const { namespace } = tasksRoute.useParams();
+  const { state } = tasksRoute.useSearch();
+  const navigate = useNavigate({ from: tasksRoute.fullPath });
+  const now = useNow();
+  const states = state === "failed" ? ["failed", "error", "cancelled"] : state ? [state] : [];
+  const { data, error, isPending } = useQuery({
+    queryKey: ["tasks", namespace, state],
+    queryFn: () => tasks.listTasks({ namespace, states }),
+    refetchInterval: 5_000,
+  });
+  return (
+    <section>
+      <h1 className="page-title">Tasks in {namespace}</h1>
+      <div className="phase-filter" role="radiogroup" aria-label="State">
+        {[undefined, ...Object.keys(stateFilters)].map((s) => (
+          <button key={s ?? "all"} type="button" role="radio" aria-checked={state === s}
+            onClick={() => void navigate({ search: { state: s }, replace: true })}>
+            {s ? stateFilters[s as keyof typeof stateFilters] : "All"}
+          </button>
+        ))}
+      </div>
+      {isPending && <p className="quiet">Loading the tasks…</p>}
+      {error && <p role="alert">Could not load the tasks: {error.message}</p>}
+      {data?.tasks.length === 0 && (
+        <p className="quiet">{state ? "No task matches the filter." : "No tasks yet. A task template sends work to the workers of an SDK."}</p>
+      )}
+      {data && data.tasks.length > 0 && (
+        <ul className="item-list">
+          {data.tasks.map((t) => {
+            const created = toDate(t.createdAt);
+            return (
+              <li key={t.id}>
+                <span className="item-title">
+                  <Lamp phase={phaseOf(t.state)} /> {t.name}
+                  <span className="quiet"> in queue {t.queue}</span>
+                </span>
+                <p className="item-note">
+                  <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: t.workflow }}>
+                    {t.nodeName || t.workflow}
+                  </Link>
+                  {t.worker && `, taken by ${t.worker}`}
+                  {t.message && `: ${t.message}`}
+                </p>
+                <span className="item-side">
+                  {t.state}
+                  {created && `, ${relative(created, now)}`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}

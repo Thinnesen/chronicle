@@ -41,6 +41,8 @@ const (
 	// TaskServiceCompleteTaskProcedure is the fully-qualified name of the TaskService's CompleteTask
 	// RPC.
 	TaskServiceCompleteTaskProcedure = "/chronicle.v1.TaskService/CompleteTask"
+	// TaskServiceListTasksProcedure is the fully-qualified name of the TaskService's ListTasks RPC.
+	TaskServiceListTasksProcedure = "/chronicle.v1.TaskService/ListTasks"
 )
 
 // TaskServiceClient is a client for the chronicle.v1.TaskService service.
@@ -51,6 +53,8 @@ type TaskServiceClient interface {
 	HeartbeatTask(context.Context, *connect.Request[v1.HeartbeatTaskRequest]) (*connect.Response[v1.HeartbeatTaskResponse], error)
 	// CompleteTask sends the result or the error of a task.
 	CompleteTask(context.Context, *connect.Request[v1.CompleteTaskRequest]) (*connect.Response[v1.CompleteTaskResponse], error)
+	// ListTasks lists the newest tasks of a namespace for the UI. The caller needs "list workflows".
+	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the chronicle.v1.TaskService service. By default, it
@@ -82,6 +86,12 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("CompleteTask")),
 			connect.WithClientOptions(opts...),
 		),
+		listTasks: connect.NewClient[v1.ListTasksRequest, v1.ListTasksResponse](
+			httpClient,
+			baseURL+TaskServiceListTasksProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("ListTasks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -90,6 +100,7 @@ type taskServiceClient struct {
 	pollTask      *connect.Client[v1.PollTaskRequest, v1.PollTaskResponse]
 	heartbeatTask *connect.Client[v1.HeartbeatTaskRequest, v1.HeartbeatTaskResponse]
 	completeTask  *connect.Client[v1.CompleteTaskRequest, v1.CompleteTaskResponse]
+	listTasks     *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 }
 
 // PollTask calls chronicle.v1.TaskService.PollTask.
@@ -107,6 +118,11 @@ func (c *taskServiceClient) CompleteTask(ctx context.Context, req *connect.Reque
 	return c.completeTask.CallUnary(ctx, req)
 }
 
+// ListTasks calls chronicle.v1.TaskService.ListTasks.
+func (c *taskServiceClient) ListTasks(ctx context.Context, req *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
+	return c.listTasks.CallUnary(ctx, req)
+}
+
 // TaskServiceHandler is an implementation of the chronicle.v1.TaskService service.
 type TaskServiceHandler interface {
 	// PollTask waits up to 30 seconds for a task. The answer has no task when there is none.
@@ -115,6 +131,8 @@ type TaskServiceHandler interface {
 	HeartbeatTask(context.Context, *connect.Request[v1.HeartbeatTaskRequest]) (*connect.Response[v1.HeartbeatTaskResponse], error)
 	// CompleteTask sends the result or the error of a task.
 	CompleteTask(context.Context, *connect.Request[v1.CompleteTaskRequest]) (*connect.Response[v1.CompleteTaskResponse], error)
+	// ListTasks lists the newest tasks of a namespace for the UI. The caller needs "list workflows".
+	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -142,6 +160,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("CompleteTask")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceListTasksHandler := connect.NewUnaryHandler(
+		TaskServiceListTasksProcedure,
+		svc.ListTasks,
+		connect.WithSchema(taskServiceMethods.ByName("ListTasks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/chronicle.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServicePollTaskProcedure:
@@ -150,6 +174,8 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceHeartbeatTaskHandler.ServeHTTP(w, r)
 		case TaskServiceCompleteTaskProcedure:
 			taskServiceCompleteTaskHandler.ServeHTTP(w, r)
+		case TaskServiceListTasksProcedure:
+			taskServiceListTasksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -169,4 +195,8 @@ func (UnimplementedTaskServiceHandler) HeartbeatTask(context.Context, *connect.R
 
 func (UnimplementedTaskServiceHandler) CompleteTask(context.Context, *connect.Request[v1.CompleteTaskRequest]) (*connect.Response[v1.CompleteTaskResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.TaskService.CompleteTask is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.TaskService.ListTasks is not implemented"))
 }

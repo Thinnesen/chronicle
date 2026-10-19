@@ -9,7 +9,7 @@ export interface NodeStatus {
   id: string;
   name: string;
   displayName?: string;
-  type: "Pod" | "DAG" | "Steps" | "StepGroup" | "TaskGroup" | "Retry" | "Suspend";
+  type: "Pod" | "DAG" | "Steps" | "StepGroup" | "TaskGroup" | "Retry" | "Suspend" | "Task";
   templateName?: string;
   phase?: string;
   startedAt?: string;
@@ -61,9 +61,9 @@ export interface GraphEdge {
   to: string;
 }
 
-// A station does work (a Pod or a suspend). A junction only groups other nodes.
+// A station does work (a Pod, a task or a suspend). A junction only groups other nodes.
 export function isStation(n: NodeStatus): boolean {
-  return n.type === "Pod" || n.type === "Suspend";
+  return n.type === "Pod" || n.type === "Suspend" || n.type === "Task";
 }
 
 // buildGraph returns the edges between the nodes of a run. The status has a tree (parent to children);

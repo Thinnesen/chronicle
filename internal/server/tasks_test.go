@@ -34,6 +34,10 @@ func (f *fakeTasks) Heartbeat(_ context.Context, _, _, lease string) (bool, erro
 	return false, nil
 }
 
+func (f *fakeTasks) ListTasks(context.Context, string, []string, int) ([]archive.Task, error) {
+	return []archive.Task{{ID: "u/n1", Name: "greet", State: archive.TaskRunning}}, nil
+}
+
 func (f *fakeTasks) Complete(_ context.Context, _, id, lease, output, _ string, _ bool) error {
 	if lease != "lease-1" {
 		return archive.ErrLeaseLost
@@ -93,6 +97,11 @@ func TestTaskService(t *testing.T) {
 	as("bob", denied)
 	if _, err := c.PollTask(ctx, denied); connect.CodeOf(err) != connect.CodePermissionDenied {
 		t.Errorf("bob: %v", err)
+	}
+	list := connect.NewRequest(&chroniclev1.ListTasksRequest{Namespace: "team-a"})
+	as("alice", list)
+	if got, err := c.ListTasks(ctx, list); err != nil || len(got.Msg.Tasks) != 1 || got.Msg.Tasks[0].State != "running" {
+		t.Errorf("list: %v %+v", err, got)
 	}
 	empty := connect.NewRequest(&chroniclev1.PollTaskRequest{Namespace: "team-a"})
 	as("worker", empty)
