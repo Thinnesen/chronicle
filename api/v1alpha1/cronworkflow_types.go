@@ -98,7 +98,8 @@ type CronWorkflowStatus struct {
 // +kubebuilder:printcolumn:name="Schedules",type=string,JSONPath=`.spec.schedules`
 // +kubebuilder:printcolumn:name="Suspend",type=boolean,JSONPath=`.spec.suspend`
 // +kubebuilder:printcolumn:name="Last",type=date,JSONPath=`.status.lastScheduledTime`
-// +kubebuilder:printcolumn:name="Next",type=date,JSONPath=`.status.nextScheduledTime`
+// A date column shows an age, and kubectl prints "<invalid>" for a time in the future.
+// +kubebuilder:printcolumn:name="Next",type=string,JSONPath=`.status.nextScheduledTime`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:validation:XValidation:rule="has(self.spec.workflowSpec.workflowTemplateRef) ? !has(self.spec.workflowSpec.templates) : (has(self.spec.workflowSpec.entrypoint) && has(self.spec.workflowSpec.templates))",message="give spec.workflowSpec.entrypoint and templates, or workflowTemplateRef without templates"
 

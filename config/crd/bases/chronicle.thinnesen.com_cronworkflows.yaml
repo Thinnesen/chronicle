@@ -31,7 +31,7 @@ spec:
       type: date
     - jsonPath: .status.nextScheduledTime
       name: Next
-      type: date
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

@@ -388,6 +388,10 @@ HELM_CHART_DIR ?= dist/chart
 ## Additional arguments to pass to helm commands
 HELM_EXTRA_ARGS ?=
 
+.PHONY: helm-crds
+helm-crds: manifests ## Copy the generated CRDs into the Helm chart.
+	hack/helm-crds.sh
+
 .PHONY: helm-lint
 helm-lint: helm ## Lint the Helm chart and render it with an OIDC and an Entra ID configuration.
 	"$(HELM)" lint --strict $(HELM_CHART_DIR) --set auth.oidc.issuer=https://dex.example.com \

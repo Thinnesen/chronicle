@@ -43,3 +43,7 @@ jobs:
         run: make vulncheck
       - name: Lint the Helm chart
         run: make helm-lint
+      - name: Check that the chart has the current CRDs
+        run: |
+          make helm-crds
+          git diff --exit-code dist/chart

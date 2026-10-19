@@ -63,7 +63,7 @@ spec:
                       properties:
                         from:
                           description: from is the artifact that an argument gives,
-                            as one placeholder, for example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                            as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                           maxLength: 1024
                           type: string
                         key:
@@ -159,7 +159,7 @@ spec:
                 type: string
               onExit:
                 description: onExit is the name of a template that runs after the
-                  workflow, also when it failed. It can use "{{ "{{workflow.status}}" }}".
+                  workflow, also when it failed. It can use "{{ "{{" }}workflow.status}}".
                 maxLength: 128
                 type: string
               podGC:
@@ -523,7 +523,7 @@ spec:
                                         from:
                                           description: from is the artifact that an
                                             argument gives, as one placeholder, for
-                                            example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                            example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                           maxLength: 1024
                                           type: string
                                         key:
@@ -666,13 +666,13 @@ spec:
                                 type: object
                               when:
                                 description: when is a condition. When it is false,
-                                  the node is Skipped. For example "{{ "{{tasks.a.outputs.result}}" }}
+                                  the node is Skipped. For example "{{ "{{" }}tasks.a.outputs.result}}
                                   == heads".
                                 maxLength: 4096
                                 type: string
                               withItems:
                                 description: withItems runs the template once for
-                                  each item. "{{ "{{item}}" }}" is the item, "{{ "{{item.key}}" }}"
+                                  each item. "{{ "{{" }}item}}" is the item, "{{ "{{" }}item.key}}"
                                   a field of an object item.
                                 items:
                                   x-kubernetes-preserve-unknown-fields: true
@@ -680,7 +680,7 @@ spec:
                                 type: array
                               withParam:
                                 description: withParam runs the template once for
-                                  each item of a JSON list, for example "{{ "{{tasks.a.outputs.result}}" }}".
+                                  each item of a JSON list, for example "{{ "{{" }}tasks.a.outputs.result}}".
                                 maxLength: 4096
                                 type: string
                             required:
@@ -711,7 +711,7 @@ spec:
                             properties:
                               from:
                                 description: from is the artifact that an argument
-                                  gives, as one placeholder, for example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                  gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                 maxLength: 1024
                                 type: string
                               key:
@@ -816,7 +816,7 @@ spec:
                             properties:
                               from:
                                 description: from is the artifact that an argument
-                                  gives, as one placeholder, for example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                  gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                 maxLength: 1024
                                 type: string
                               key:
@@ -1326,7 +1326,7 @@ spec:
                                       from:
                                         description: from is the artifact that an
                                           argument gives, as one placeholder, for
-                                          example "{{ "{{tasks.make.outputs.artifacts.data}}" }}".
+                                          example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                         maxLength: 1024
                                         type: string
                                       key:
@@ -1454,13 +1454,13 @@ spec:
                               type: object
                             when:
                               description: when is a condition. When it is false,
-                                the node is Skipped. For example "{{ "{{tasks.a.outputs.result}}" }}
+                                the node is Skipped. For example "{{ "{{" }}tasks.a.outputs.result}}
                                 == heads".
                               maxLength: 4096
                               type: string
                             withItems:
                               description: withItems runs the template once for each
-                                item. "{{ "{{item}}" }}" is the item, "{{ "{{item.key}}" }}" a field
+                                item. "{{ "{{" }}item}}" is the item, "{{ "{{" }}item.key}}" a field
                                 of an object item.
                               items:
                                 x-kubernetes-preserve-unknown-fields: true
@@ -1468,7 +1468,7 @@ spec:
                               type: array
                             withParam:
                               description: withParam runs the template once for each
-                                item of a JSON list, for example "{{ "{{tasks.a.outputs.result}}" }}".
+                                item of a JSON list, for example "{{ "{{" }}tasks.a.outputs.result}}".
                               maxLength: 4096
                               type: string
                           required:
