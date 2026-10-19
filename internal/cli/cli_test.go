@@ -35,6 +35,8 @@ type stub struct {
 	// breakLogs makes the first log stream fail after two lines, as during a server restart.
 	breakLogs bool
 	streams   int
+	// failGets makes this many reads of a run fail with Unavailable first.
+	failGets int
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -43,6 +45,10 @@ func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.
 }
 
 func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
+	if s.failGets > 0 {
+		s.failGets--
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("the server restarts"))
+	}
 	status := map[string]any{"nodes": map[string]any{
 		r.Msg.Name: map[string]any{"id": r.Msg.Name, "name": r.Msg.Name, "type": "DAG", "phase": s.phase, "children": []any{"n1"}},
 		"n1":       map[string]any{"id": "n1", "name": r.Msg.Name + ".a", "displayName": "a", "type": "Pod", "phase": s.phase},
@@ -258,5 +264,14 @@ func TestLogsReconnect(t *testing.T) {
 	out, err := run(t, s, "logs", "hello", "-f")
 	if err != nil || out != "hello.a: one\nhello.a: two\nhello.a: three\n" || s.streams != 2 {
 		t.Fatalf("out %q, err %v, %d streams", out, err, s.streams)
+	}
+}
+
+// TestWatchRetries checks that a watch survives a failed read of the run, as during a server restart.
+func TestWatchRetries(t *testing.T) {
+	pollInterval = time.Millisecond
+	s := &stub{phase: "Succeeded", failGets: 1}
+	if out, err := run(t, s, "watch", "x"); err != nil || !strings.Contains(out, "x Succeeded") {
+		t.Fatalf("out %q, err %v", out, err)
 	}
 }

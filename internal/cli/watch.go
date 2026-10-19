@@ -16,8 +16,8 @@ import (
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
-// pollInterval is the wait between two reads of a watched run.
-const pollInterval = 2 * time.Second
+// pollInterval is the wait between two reads of a watched run. Tests make it short.
+var pollInterval = 2 * time.Second
 
 // errRunFailed makes the CLI exit with an error when a watched run fails, for use in scripts and CI.
 var errRunFailed = errors.New("the run did not succeed")
@@ -47,8 +47,18 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 	seen := map[string]v1alpha1.NodePhase{}
 	for {
 		resp, err := c.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: name}))
-		if err != nil {
+		if err != nil && !healable(err) {
 			return err
+		}
+		if err != nil {
+			// The server restarts, for example: the run goes on, so look again after the next interval.
+			_, _ = fmt.Fprintln(a.errOut, "Could not read the run, trying again:", err)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(pollInterval):
+			}
+			continue
 		}
 		var changed []v1alpha1.NodeStatus
 		for _, n := range nodes(resp.Msg) {

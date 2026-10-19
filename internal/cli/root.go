@@ -21,19 +21,20 @@ type app struct {
 	server     string
 	namespace  string
 	out        io.Writer
+	errOut     io.Writer
 	cfg        *Config
 }
 
 // NewCommand returns the root command of the CLI.
 func NewCommand() *cobra.Command {
-	a := &app{out: os.Stdout}
+	a := &app{out: os.Stdout, errOut: os.Stderr}
 	root := &cobra.Command{
 		Use:           "chronicle",
 		Short:         "Run and watch chronicle workflows",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			a.out = cmd.OutOrStdout()
+			a.out, a.errOut = cmd.OutOrStdout(), cmd.ErrOrStderr()
 			cfg, err := loadConfig(a.configPath)
 			a.cfg = cfg
 			return err
