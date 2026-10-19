@@ -31,6 +31,7 @@ type Store interface {
 }
 
 // MemoryStore keeps sessions in memory. Use it with one server replica. Sessions end when the server restarts.
+// With an archive database, the server uses the store of the archive instead.
 type MemoryStore struct {
 	ttl, idle time.Duration
 	now       func() time.Time
@@ -46,11 +47,11 @@ func NewMemoryStore(ttl, idle time.Duration) *MemoryStore {
 
 // Create implements Store.
 func (m *MemoryStore) Create(id Identity) (string, *Session, error) {
-	sid, err := randomToken()
+	sid, err := NewToken()
 	if err != nil {
 		return "", nil, err
 	}
-	csrf, err := randomToken()
+	csrf, err := NewToken()
 	if err != nil {
 		return "", nil, err
 	}
@@ -63,7 +64,7 @@ func (m *MemoryStore) Create(id Identity) (string, *Session, error) {
 			delete(m.sessions, k)
 		}
 	}
-	m.sessions[hashKey(sid)] = s
+	m.sessions[SessionKey(sid)] = s
 	return sid, s, nil
 }
 
@@ -71,7 +72,7 @@ func (m *MemoryStore) Create(id Identity) (string, *Session, error) {
 func (m *MemoryStore) Get(sessionID string) (*Session, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	k := hashKey(sessionID)
+	k := SessionKey(sessionID)
 	s, ok := m.sessions[k]
 	now := m.now()
 	if !ok || m.ended(s, now) {
@@ -87,20 +88,21 @@ func (m *MemoryStore) Get(sessionID string) (*Session, error) {
 func (m *MemoryStore) Delete(sessionID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	delete(m.sessions, hashKey(sessionID))
+	delete(m.sessions, SessionKey(sessionID))
 }
 
 func (m *MemoryStore) ended(s *Session, now time.Time) bool {
 	return !now.Before(s.ExpiresAt) || now.Sub(s.lastUsed) >= m.idle
 }
 
-func hashKey(sessionID string) string {
+// SessionKey is the key of a session in a store: a hash of the session ID, so that a store never holds a usable cookie value.
+func SessionKey(sessionID string) string {
 	h := sha256.Sum256([]byte(sessionID))
 	return hex.EncodeToString(h[:])
 }
 
-// randomToken returns 32 random bytes as URL-safe base64.
-func randomToken() (string, error) {
+// NewToken returns a secret: 32 random bytes as URL-safe base64.
+func NewToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", err

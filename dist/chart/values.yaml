@@ -217,6 +217,8 @@ networkPolicy:
 ##
 server:
   enabled: true
+  ## The login sessions are in the archive database, so more than one replica needs archive.existingSecret.
+  replicas: 1
   service:
     ## ClusterIP behind an ingress, or LoadBalancer.
     type: ClusterIP

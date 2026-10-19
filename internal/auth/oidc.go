@@ -99,8 +99,8 @@ func (o *OIDC) Handler() http.Handler {
 
 // login starts the authorization code flow with PKCE and a nonce.
 func (o *OIDC) login(w http.ResponseWriter, r *http.Request) {
-	state, err1 := randomToken()
-	nonce, err2 := randomToken()
+	state, err1 := NewToken()
+	nonce, err2 := NewToken()
 	if err := errors.Join(err1, err2); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

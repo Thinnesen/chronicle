@@ -61,8 +61,16 @@ func main() {
 		log.Info("The login configuration file does not exist: the OIDC login is off", "file", authConfig)
 		authConfig = ""
 	}
+	var store *archive.Store
+	if archiveDSNFile != "" {
+		if store, err = archive.OpenFile(context.Background(), archiveDSNFile); err != nil {
+			log.Error(err, "Failed to open the archive")
+			os.Exit(1)
+		}
+		defer store.Close()
+	}
 	if authConfig != "" {
-		login, err := newLogin(authConfig)
+		login, err := newLogin(authConfig, store)
 		if err != nil {
 			log.Error(err, "Failed to set up the login")
 			os.Exit(1)
@@ -82,13 +90,7 @@ func main() {
 		log.Info("No login and no service account tokens: the API refuses all calls")
 	}
 	apiOpts := server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn}
-	if archiveDSNFile != "" {
-		store, err := archive.OpenFile(context.Background(), archiveDSNFile)
-		if err != nil {
-			log.Error(err, "Failed to open the archive")
-			os.Exit(1)
-		}
-		defer store.Close()
+	if store != nil {
 		apiOpts.Archive = store
 		apiOpts.Tasks = store
 	}
@@ -143,13 +145,17 @@ func main() {
 }
 
 // newLogin reads the login configuration and discovers the provider. It tries again for 5 minutes,
-// because the provider can start after the server.
-func newLogin(path string) (*auth.OIDC, error) {
+// because the provider can start after the server. With an archive, the sessions are in its database, so that
+// all replicas share them and a restart keeps them.
+func newLogin(path string, db *archive.Store) (*auth.OIDC, error) {
 	cfg, err := auth.LoadConfig(path)
 	if err != nil {
 		return nil, err
 	}
-	store := auth.NewMemoryStore(cfg.Session.TTL.Duration, cfg.Session.IdleTimeout.Duration)
+	var store auth.Store = auth.NewMemoryStore(cfg.Session.TTL.Duration, cfg.Session.IdleTimeout.Duration)
+	if db != nil {
+		store = db.Sessions(cfg.Session.TTL.Duration, cfg.Session.IdleTimeout.Duration)
+	}
 	deadline := time.Now().Add(5 * time.Minute)
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

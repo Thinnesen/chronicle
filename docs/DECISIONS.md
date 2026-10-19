@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-19: With an archive database, the login sessions of the UI are in that database (table `sessions`, keyed by a hash of the session ID). Reason: the memory store logged every user out at each restart and allowed only one server replica. A signed cookie without server state would make logout unable to end a session. Without an archive, the memory store stays, and the chart refuses more than one server replica with a login.
+
 - 2026-10-19: With an archive, the history limits of a CronWorkflow delete a run only after the archive has it, as the TTL does. A user who deletes a run by hand still deletes it at once: there is no finalizer, because a finalizer would block deletes while the archive is down. Lists page with a cursor (creation time and name of the last run) instead of an offset, so a deep page in a large archive costs the same as the first page. Findings of the code review (#36).
 
 - 2026-10-19: The containers of the chronicle image in workflow Pods (the executor init container and resource steps) have a read-only root file system; the container of a user step does not. Reason: many user images write to their root file system, for example to `/tmp` or a cache. The step still runs as non-root without capabilities. There is no `podSpecPatch` (section 3.2 promised a limited one), because a patch could undo the Pod security settings. Found by the security review (#36).

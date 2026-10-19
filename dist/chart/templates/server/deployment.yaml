@@ -7,8 +7,11 @@ metadata:
   labels:
     {{- include "chronicle.serverLabels" . | nindent 4 }}
 spec:
-  # The session store is in memory. Use one replica.
-  replicas: 1
+  {{- $login := or .Values.auth.entra.tenantID .Values.auth.oidc.issuer }}
+  {{- if and $login (gt (int .Values.server.replicas) 1) (not .Values.archive.existingSecret) }}
+  {{- fail "server.replicas above 1 with a login needs archive.existingSecret: without the archive database, the login sessions are in the memory of one replica" }}
+  {{- end }}
+  replicas: {{ .Values.server.replicas }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "chronicle.name" . }}
