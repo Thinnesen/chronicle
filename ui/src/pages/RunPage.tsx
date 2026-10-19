@@ -161,7 +161,7 @@ function SpecView({ wf }: { wf: Workflow }) {
   const stored = wf.spec.workflowTemplateRef ? wf.status?.storedSpec : undefined;
   return (
     <div className="spec-view">
-      <YamlView value={{ metadata: wf.metadata, spec: wf.spec }} label="The run" />
+      <YamlView value={wf} label="The run" />
       {stored && (
         <>
           <h2 className="spec-title">Spec from the template {wf.spec.workflowTemplateRef?.name}</h2>
