@@ -50,7 +50,7 @@
   stroke-dasharray: 5 4;
 }
 
-.run-graph .react-flow__edge.animated:not(.is-lit) path {
+.run-graph .react-flow__edge.animated:not(.is-lit):not(.is-failed) path {
   stroke: var(--lamp-running);
 }
 
