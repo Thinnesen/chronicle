@@ -21,3 +21,5 @@ let name = Client::new(server, token)?.submit("team-a", &w)?;
 - The Go, Python and Rust SDKs make the same object for the same workflow. The tests compare it with `sdk/testdata/etl.json`.
 
 Development: `cargo test`, `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check`. The toolchain is pinned in `rust-toolchain.toml`. Dependencies are pinned with `=` versions, and `Cargo.lock` is committed.
+
+Task workers: see [docs/task-workers.md](../../docs/task-workers.md) and `examples/worker`.

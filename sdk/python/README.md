@@ -26,3 +26,5 @@ name = client.submit("team-a", w)  # start a run
 - The Go, Python and Rust SDKs make the same object for the same workflow. The tests compare it with `sdk/testdata/etl.json`.
 
 Development: `uv run pytest`, `uv run ruff check .` and `uv run ruff format --check .`.
+
+Task workers: see [docs/task-workers.md](../../docs/task-workers.md) and `examples/worker`.

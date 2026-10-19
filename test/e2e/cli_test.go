@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -161,6 +162,47 @@ func cliSpecs() {
 			out, err = chronicle("logs", "artifacts")
 			Expect(err).NotTo(HaveOccurred(), out)
 			Expect(out).To(ContainSubstring("passed-between-steps"))
+		})
+
+		It("runs a task in a worker of each SDK", func() {
+			// The task queue is in the archive database, which the archive spec configured.
+			for _, args := range [][]string{
+				{"kubectl", "create", "role", "task-worker", "-n", cliNS, "--verb=update", "--resource=workflows.chronicle.thinnesen.com/tasks"},
+				{"kubectl", "create", "rolebinding", "ci-tasks", "-n", cliNS, "--role=task-worker", "--serviceaccount=" + cliNS + ":ci"},
+			} {
+				_, err := utils.Run(exec.Command(args[0], args[1:]...))
+				Expect(err).NotTo(HaveOccurred())
+			}
+			token, err := utils.Run(exec.Command("kubectl", "create", "token", "ci", "-n", cliNS, "--audience=chronicle", "--duration=1h"))
+			Expect(err).NotTo(HaveOccurred())
+			tokenFile := filepath.Join(GinkgoT().TempDir(), "token")
+			Expect(os.WriteFile(tokenFile, []byte(token), 0o600)).To(Succeed())
+			workers := []*exec.Cmd{
+				exec.Command("go", "run", "./sdk/go/examples/worker", "-server", server, "-namespace", cliNS, "-token-file", tokenFile),
+				exec.Command("uv", "run", "--frozen", "--project", "sdk/python", "sdk/python/examples/worker.py",
+					"--server", server, "--namespace", cliNS, "--token-file", tokenFile),
+				exec.Command("cargo", "run", "--quiet", "--manifest-path", "sdk/rust/Cargo.toml", "--example", "worker", "--",
+					server, cliNS, tokenFile),
+			}
+			for _, w := range workers {
+				w.Stdout, w.Stderr = GinkgoWriter, GinkgoWriter
+				// A process group, so that the stop signal also reaches the program that go run or cargo run starts.
+				w.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+				Expect(w.Start()).To(Succeed())
+			}
+			DeferCleanup(func() {
+				for _, w := range workers {
+					_ = syscall.Kill(-w.Process.Pid, syscall.SIGTERM)
+					_ = w.Wait()
+				}
+			})
+
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/tasks.yaml", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			values, err := utils.Run(exec.Command("kubectl", "get", "workflow", "tasks", "-n", cliNS,
+				"-o", "jsonpath={.status.nodes}"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(values).To(ContainSubstring("Rust says hello to Python says hello to Go says hello to chronicle"))
 		})
 
 		It("retries and re-runs a run", func() {

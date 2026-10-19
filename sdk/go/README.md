@@ -24,3 +24,5 @@ name, err := c.Submit(ctx, "team-a", w)  // start a run
 - Placeholders connect the steps: `Workflow.Param`, `Template.Input`, `Task.Result`, `Task.Output` and `Task.Artifact`.
 - The token is an OIDC ID token, or a Kubernetes service account token with the audience `chronicle` (`kubectl create token <sa> --audience chronicle`).
 - Examples: `example_test.go` (artifacts, retries) and `examples/fanout` (fan-out with `WithItems`).
+
+Task workers: see [docs/task-workers.md](../../docs/task-workers.md) and `examples/worker`.

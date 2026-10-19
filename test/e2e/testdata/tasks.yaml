@@ -1,0 +1,28 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: tasks
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    dag:
+      tasks:
+      - {name: go, template: go-greet, arguments: {parameters: [{name: who, value: chronicle}]}}
+      - {name: python, template: python-greet, depends: go, arguments: {parameters: [{name: who, value: "{{tasks.go.outputs.parameters.greeting}}"}]}}
+      - {name: rust, template: rust-greet, depends: python, arguments: {parameters: [{name: who, value: "{{tasks.python.outputs.parameters.greeting}}"}]}}
+  - name: go-greet
+    inputs: {parameters: [{name: who}]}
+    outputs: {parameters: [{name: greeting}]}
+    timeout: 5m
+    task: {name: go-greet, heartbeatTimeout: 1m}
+  - name: python-greet
+    inputs: {parameters: [{name: who}]}
+    outputs: {parameters: [{name: greeting}]}
+    timeout: 5m
+    task: {name: python-greet, heartbeatTimeout: 1m}
+  - name: rust-greet
+    inputs: {parameters: [{name: who}]}
+    outputs: {parameters: [{name: greeting}]}
+    timeout: 5m
+    task: {name: rust-greet, heartbeatTimeout: 1m}
