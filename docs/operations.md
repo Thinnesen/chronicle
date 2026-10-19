@@ -83,3 +83,5 @@ Runs continue during an upgrade: the engine reads all state from the Workflow st
 ## 9. Sizing
 
 The defaults fit small and medium clusters. Raise `manager.resources` for many active runs, because the controller keeps the Workflows and their Pods in its cache. Use `podGC` and `ttlStrategy` in your templates, so that finished Pods and Workflows do not pile up.
+
+Each step is a Pod with an init container, so a burst of many steps loads the kubelet and the container runtime of the nodes more than the controller. On a small node, 120 Pods at once took minutes each to start. Limit large fan-outs with `parallelism`, and many runs of one template with a `synchronization.semaphore`.
