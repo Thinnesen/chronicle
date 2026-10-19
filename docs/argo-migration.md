@@ -35,6 +35,22 @@ In a test with the 190 examples of Argo Workflows (October 2026), 43 converted w
 | Suspend output `valueFrom.supplied` with `valueFrom.default` | `default` | The value comes from the approval. |
 | Artifact locations (`s3`, `gcs`, `git`, `http`, `raw` and others) | Dropped | chronicle keeps all artifacts in the repository of the namespace. See [artifacts.md](artifacts.md). |
 
+## CLI commands
+
+| Argo | chronicle |
+|---|---|
+| `argo submit wf.yaml --watch` | `chronicle submit -f wf.yaml --watch` |
+| `argo submit --from workflowtemplate/etl` | `chronicle submit --from etl` (`--from cluster/<name>` for a cluster template) |
+| `argo list`, `argo get`, `argo watch` | `chronicle list`, `chronicle get`, `chronicle watch` |
+| `argo wait` | `chronicle watch`. The exit code is 1 when the run does not succeed. |
+| `argo logs -f` | `chronicle logs -f` |
+| `argo retry`, `argo retry --node-field-selector` | `chronicle retry`, `chronicle retry --node <node>` |
+| `argo resubmit` | `chronicle rerun`, optionally with changed parameters (`-p`) |
+| `argo resume` of a suspend node | `chronicle approve <run> <node>`, or `--reject` |
+| `argo suspend`, `resume`, `stop`, `terminate`, `delete` | The same command names. |
+| `argo template list` | `chronicle templates` |
+| `argo cron list`, `suspend`, `resume` | `chronicle cron list`, `suspend`, `resume` |
+
 ## Supported as in Argo
 
 DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps, `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).

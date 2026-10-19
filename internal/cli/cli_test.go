@@ -27,6 +27,8 @@ import (
 type stub struct {
 	chroniclev1connect.UnimplementedWorkflowServiceHandler
 	chroniclev1connect.UnimplementedLogServiceHandler
+	chroniclev1connect.UnimplementedTemplateServiceHandler
+	chroniclev1connect.UnimplementedCronServiceHandler
 	phase    string
 	requests []any
 	auth     string
@@ -108,6 +110,8 @@ func run(t *testing.T, s *stub, args ...string) (string, error) {
 	mux := http.NewServeMux()
 	mux.Handle(chroniclev1connect.NewWorkflowServiceHandler(s))
 	mux.Handle(chroniclev1connect.NewLogServiceHandler(s))
+	mux.Handle(chroniclev1connect.NewTemplateServiceHandler(s))
+	mux.Handle(chroniclev1connect.NewCronServiceHandler(s))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	cfgPath := filepath.Join(t.TempDir(), "config.json")

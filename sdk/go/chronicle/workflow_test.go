@@ -58,7 +58,9 @@ type submitStub struct {
 	phases []string
 }
 
-func (s *submitStub) GetWorkflow(context.Context, *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
+func (s *submitStub) GetWorkflow(
+	context.Context, *connect.Request[chroniclev1.GetWorkflowRequest],
+) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
 	p := s.phases[0]
 	if len(s.phases) > 1 {
 		s.phases = s.phases[1:]
