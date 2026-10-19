@@ -25,7 +25,7 @@ func openTest(t *testing.T) *Store {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
-	if _, err := s.pool.Exec(ctx, `TRUNCATE workflow_runs`); err != nil {
+	if _, err := s.pool.Exec(ctx, `TRUNCATE workflow_runs, tasks`); err != nil {
 		t.Fatal(err)
 	}
 	return s
