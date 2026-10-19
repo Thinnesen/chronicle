@@ -2,10 +2,12 @@ package chronicle
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -52,6 +54,19 @@ type submitStub struct {
 	chroniclev1connect.UnimplementedWorkflowServiceHandler
 	req  *chroniclev1.SubmitWorkflowRequest
 	auth string
+	// phases are the answers of GetWorkflow, in order; "" is an Unavailable error.
+	phases []string
+}
+
+func (s *submitStub) GetWorkflow(context.Context, *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
+	p := s.phases[0]
+	if len(s.phases) > 1 {
+		s.phases = s.phases[1:]
+	}
+	if p == "" {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("the server restarts"))
+	}
+	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Summary: &chroniclev1.WorkflowSummary{Phase: p}}), nil
 }
 
 func (s *submitStub) SubmitWorkflow(
@@ -81,5 +96,20 @@ func TestSubmit(t *testing.T) {
 	wf := stub.req.GetWorkflow().AsMap()
 	if stub.auth != "Bearer tok" || stub.req.Namespace != "team-a" || wf["kind"] != "Workflow" {
 		t.Errorf("request = %v, auth %q", wf, stub.auth)
+	}
+}
+
+func TestWait(t *testing.T) {
+	stub := &submitStub{phases: []string{"", "Running", "Succeeded"}}
+	mux := http.NewServeMux()
+	mux.Handle(chroniclev1connect.NewWorkflowServiceHandler(stub))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c, err := NewClient(srv.URL, "tok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if phase, err := c.Wait(context.Background(), "team-a", "x", time.Millisecond); err != nil || phase != "Succeeded" {
+		t.Fatalf("wait: %q, %v", phase, err)
 	}
 }

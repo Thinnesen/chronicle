@@ -18,6 +18,7 @@ w.Entrypoint(main)
 yaml, err := w.YAML()                    // for kubectl or Git
 c, err := chronicle.NewClient(server, token)
 name, err := c.Submit(ctx, "team-a", w)  // start a run
+phase, err := c.Wait(ctx, "team-a", name, 5*time.Second) // Succeeded, Failed or Error
 ```
 
 - `Spec`, `YAML` and `Submit` validate the workflow with the same rules as the admission webhook.

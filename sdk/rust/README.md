@@ -11,7 +11,9 @@ let b = Task::new("b", &echo).after(&[&a]).arg("text", &format!("a said {}", a.r
 let w = Workflow::new("hello-").param("who", "world").entrypoint(Template::dag("main").tasks([a, b]));
 
 println!("{}", w.to_json()?);                    // for kubectl or Git
-let name = Client::new(server, token)?.submit("team-a", &w)?;
+let client = Client::new(server, token)?;
+let name = client.submit("team-a", &w)?;
+let phase = client.wait("team-a", &name, Duration::from_secs(5), None)?; // Succeeded, Failed or Error
 ```
 
 - Placeholders connect the steps: `param`, `input`, `Task::result`, `Task::output` and `Task::artifact`.

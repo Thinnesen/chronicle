@@ -1,7 +1,8 @@
 //! The client for the chronicle API server. It uses the Connect protocol with JSON.
 
 use std::fmt;
-use std::time::Duration;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
@@ -28,6 +29,9 @@ fn api_error(code: &str, message: impl fmt::Display) -> ApiError {
         message: message.to_string(),
     }
 }
+
+/// The API error codes that can go away by themselves, for example while the server restarts.
+const HEALABLE: [&str; 4] = ["unavailable", "unknown", "internal", "deadline_exceeded"];
 
 /// Submits workflows. The token is an OIDC ID token, or a service account token with the audience "chronicle".
 pub struct Client {
@@ -89,6 +93,33 @@ impl Client {
             .as_str()
             .unwrap_or_default()
             .to_string())
+    }
+
+    /// Reads a run every interval until it finishes, and returns its final phase: Succeeded, Failed or Error.
+    /// A read that fails with an error that can heal, for example while the server restarts, is tried again.
+    /// With a timeout, the error "deadline_exceeded" comes after that time.
+    pub fn wait(
+        &self,
+        namespace: &str,
+        name: &str,
+        every: Duration,
+        timeout: Option<Duration>,
+    ) -> Result<String, ApiError> {
+        let deadline = timeout.map(|t| Instant::now() + t);
+        loop {
+            match self.phase(namespace, name) {
+                Ok(p) if matches!(p.as_str(), "Succeeded" | "Failed" | "Error") => return Ok(p),
+                Err(e) if !HEALABLE.contains(&e.code.as_str()) => return Err(e),
+                _ => {}
+            }
+            if deadline.is_some_and(|d| Instant::now() + every > d) {
+                return Err(api_error(
+                    "deadline_exceeded",
+                    format!("the run {name} did not finish in time"),
+                ));
+            }
+            thread::sleep(every);
+        }
     }
 
     /// Calls a method of the API. timeout replaces the default of 30 s, for example for a long poll.

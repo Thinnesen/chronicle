@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -66,6 +67,35 @@ func (c *Client) Phase(ctx context.Context, namespace, name string) (string, err
 		return "", fmt.Errorf("get the run: %w", err)
 	}
 	return resp.Msg.Summary.Phase, nil
+}
+
+// Wait reads a run every interval until it finishes, and returns its final phase: Succeeded, Failed or Error.
+// A read that fails with an error that can heal, for example while the server restarts, is tried again.
+// Wait stops when ctx ends; give ctx a deadline for a time limit.
+func (c *Client) Wait(ctx context.Context, namespace, name string, every time.Duration) (string, error) {
+	for {
+		phase, err := c.Phase(ctx, namespace, name)
+		switch {
+		case err != nil && !healable(err):
+			return "", err
+		case phase == "Succeeded" || phase == "Failed" || phase == "Error":
+			return phase, nil
+		}
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("wait for the run: %w", ctx.Err())
+		case <-time.After(every):
+		}
+	}
+}
+
+// healable tells if an API error can go away by itself.
+func healable(err error) bool {
+	switch connect.CodeOf(err) {
+	case connect.CodeUnavailable, connect.CodeUnknown, connect.CodeInternal, connect.CodeDeadlineExceeded:
+		return true
+	}
+	return false
 }
 
 // bearer adds the token to each request.

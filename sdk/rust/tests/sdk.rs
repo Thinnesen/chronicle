@@ -1,6 +1,7 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
 use std::thread;
+use std::time::Duration;
 
 use chronicle::{Client, Task, Template, Workflow, input, param};
 use serde_json::Value;
@@ -72,11 +73,16 @@ fn reports_mistakes() {
     }
 }
 
-/// serve answers two requests: a submit, then a permission error. It returns the first request.
-fn serve(listener: TcpListener) -> thread::JoinHandle<String> {
+/// serve answers one request with each (status, body) of answers. It returns the first request.
+fn serve(
+    listener: TcpListener,
+    answers: Vec<(&'static str, &'static str)>,
+) -> thread::JoinHandle<String> {
     thread::spawn(move || {
         let mut first = String::new();
-        for (i, stream) in listener.incoming().take(2).enumerate() {
+        for (i, ((status, answer), stream)) in
+            answers.into_iter().zip(listener.incoming()).enumerate()
+        {
             let mut stream = stream.unwrap();
             let mut reader = BufReader::new(stream.try_clone().unwrap());
             let mut head = String::new();
@@ -94,15 +100,9 @@ fn serve(listener: TcpListener) -> thread::JoinHandle<String> {
             }
             let mut body = vec![0; length];
             reader.read_exact(&mut body).unwrap();
-            let (status, answer) = if i == 0 {
+            if i == 0 {
                 first = head + &String::from_utf8(body).unwrap();
-                ("200 OK", r#"{"summary":{"name":"hello-x1"}}"#)
-            } else {
-                (
-                    "403 Forbidden",
-                    r#"{"code":"permission_denied","message":"workflows is forbidden"}"#,
-                )
-            };
+            }
             let resp = format!(
                 "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{answer}",
                 answer.len()
@@ -117,7 +117,16 @@ fn serve(listener: TcpListener) -> thread::JoinHandle<String> {
 fn submits_through_the_api() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
-    let server = serve(listener);
+    let server = serve(
+        listener,
+        vec![
+            ("200 OK", r#"{"summary":{"name":"hello-x1"}}"#),
+            (
+                "403 Forbidden",
+                r#"{"code":"permission_denied","message":"workflows is forbidden"}"#,
+            ),
+        ],
+    );
     let client = Client::new(&url, "tok").unwrap();
     let w =
         Workflow::new("hello-").entrypoint(Template::container("hi", "busybox", ["echo", "hi"]));
@@ -138,4 +147,27 @@ fn submits_through_the_api() {
     assert_eq!(body["workflow"]["kind"], "Workflow");
     assert_eq!(body["namespace"], "team-a");
     assert!(Client::new("file:///etc/passwd", "tok").is_err());
+}
+
+#[test]
+fn waits_for_the_end_of_a_run() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let server = serve(
+        listener,
+        vec![
+            (
+                "503 Service Unavailable",
+                r#"{"code":"unavailable","message":"the server restarts"}"#,
+            ),
+            ("200 OK", r#"{"summary":{"phase":"Running"}}"#),
+            ("200 OK", r#"{"summary":{"phase":"Succeeded"}}"#),
+        ],
+    );
+    let client = Client::new(&url, "tok").unwrap();
+    let phase = client
+        .wait("team-a", "hello-x1", Duration::from_millis(10), None)
+        .unwrap();
+    assert_eq!(phase, "Succeeded");
+    server.join().unwrap();
 }

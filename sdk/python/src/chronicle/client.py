@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import ssl
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -12,6 +13,10 @@ from urllib.parse import urlsplit
 from .workflow import Workflow
 
 _PREFIX = "/chronicle.v1."
+
+
+# _HEALABLE are the API error codes that can go away by themselves, for example while the server restarts.
+_HEALABLE = frozenset({"unavailable", "unknown", "internal", "deadline_exceeded"})
 
 
 class APIError(RuntimeError):
@@ -48,6 +53,27 @@ class Client:
         """Return the phase of a run: Pending, Running, Succeeded, Failed, Error or Suspended."""
         answer = self._call("GetWorkflow", {"namespace": namespace, "name": name})
         return answer["summary"].get("phase", "")
+
+    def wait(self, namespace: str, name: str, interval: float = 2.0, timeout: float | None = None) -> str:
+        """Read a run every interval seconds until it finishes, and return its final phase: Succeeded, Failed or Error.
+
+        A read that fails with an error that can heal, for example while the server restarts, is tried again.
+        With timeout, a TimeoutError comes after that many seconds.
+        """
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while True:
+            try:
+                phase = self.phase(namespace, name)
+                if phase in ("Succeeded", "Failed", "Error"):
+                    return phase
+            except APIError as err:
+                if err.code not in _HEALABLE:
+                    raise
+            except OSError:
+                pass  # A lost connection: read again.
+            if deadline is not None and time.monotonic() + interval > deadline:
+                raise TimeoutError(f"the run {name} did not finish in {timeout} seconds")
+            time.sleep(interval)
 
     def _call(
         self, method: str, body: dict[str, Any], service: str = "WorkflowService", timeout: float | None = None
