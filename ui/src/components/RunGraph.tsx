@@ -89,16 +89,34 @@ function MoreNode({ data }: NodeProps<Node<NodeData>>) {
 
 const nodeTypes = { station: StationNode, junction: JunctionNode, more: MoreNode };
 
-// FitOnResize fits the graph again when its box changes, for example when the node drawer opens.
-function FitOnResize({ box, options }: { box: React.RefObject<HTMLDivElement | null>; options: FitViewOptions }) {
-  const { fitView } = useReactFlow();
+// Frame fits the graph into its box, again when the box changes, for example when the step drawer opens. A graph
+// that does not fit at the smallest zoom shows the selected step, or else the start of the run.
+function Frame({ box, options, selected, vertical }: { box: React.RefObject<HTMLDivElement | null>; options: FitViewOptions; selected?: string; vertical: boolean }) {
+  const flow = useReactFlow();
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const observer = new ResizeObserver(() => void fitView(options));
+    const frame = async () => {
+      await flow.fitView(options);
+      const { x, y, zoom } = flow.getViewport();
+      const nodes = flow.getNodes();
+      if (zoom > (options.minZoom ?? 0) + 0.001 || nodes.length === 0) return;
+      // The view moves along the axis of the graph only, between its start and its end.
+      const start = (n: Node) => (vertical ? n.position.y : n.position.x);
+      const size = (n: Node) => (vertical ? (n.height ?? 0) : (n.width ?? 0));
+      const first = Math.min(...nodes.map(start));
+      const last = Math.max(...nodes.map((n) => start(n) + size(n)));
+      const room = vertical ? el.clientHeight : el.clientWidth;
+      const node = selected ? flow.getNode(selected) : undefined;
+      let offset = 24 - first * zoom; // the start of the run
+      if (node) offset = room / 2 - (start(node) + size(node) / 2) * zoom;
+      offset = Math.min(24 - first * zoom, Math.max(room - 24 - last * zoom, offset));
+      await flow.setViewport(vertical ? { x, y: offset, zoom } : { x: offset, y, zoom });
+    };
+    const observer = new ResizeObserver(() => void frame());
     observer.observe(el);
     return () => observer.disconnect();
-  }, [box, fitView, options]);
+  }, [box, flow, options, selected, vertical]);
   return null;
 }
 
@@ -202,7 +220,7 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
       >
         <Background gap={20} size={1} />
         <Controls showInteractive={false} position="bottom-right" fitViewOptions={{ ...fit, minZoom: 0.2 }} />
-        <FitOnResize box={box} options={fit} />
+        <Frame box={box} options={fit} selected={selected} vertical={narrow} />
       </ReactFlow>
     </div>
   );
