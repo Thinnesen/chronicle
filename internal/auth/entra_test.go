@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -45,6 +46,10 @@ func TestEntra(t *testing.T) {
 			return nil, code
 		}
 		return e.me(t), code
+	}
+
+	if code, body := (&env{srv: srv, user: srv.Client()}).do(t, http.MethodGet, "/auth/provider", nil); code != http.StatusOK || !strings.Contains(body, `"provider":"microsoft"`) {
+		t.Errorf("provider: %d %s", code, body)
 	}
 
 	me, _ := login(map[string]any{"tid": "tenant-1", "oid": "user-1", "groups": []any{"g-9"}})

@@ -94,6 +94,8 @@ export interface MockOptions {
   gate?: boolean;
   // archived makes the run come from the archive.
   archived?: boolean;
+  // provider is the identity provider that /auth/provider names.
+  provider?: string;
 }
 
 // calls records the actions that the UI sent, by RPC name.
@@ -103,6 +105,7 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
   const calls: Calls = {};
   const loggedIn = opts.loggedIn ?? true;
   const names = opts.namespaces ?? ["team-a", "team-b"];
+  await page.route("**/auth/provider", (r) => r.fulfill({ json: { provider: opts.provider ?? "oidc" } }));
   await page.route("**/auth/me", (r) =>
     loggedIn
       ? r.fulfill({ json: { user: "oidc:alice@example.com", groups: ["oidc:data"], csrfToken: "csrf", expiresAt: ts(3600) } })

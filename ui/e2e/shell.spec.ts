@@ -9,6 +9,12 @@ test("sends a visitor without a session to the login page", async ({ page }) => 
   await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/auth/login?redirect=%2Fns%2Fteam-a");
 });
 
+test("names Microsoft on the login button for Entra ID", async ({ page }) => {
+  await mockAPI(page, { loggedIn: false, provider: "microsoft" });
+  await page.goto("/login");
+  await expect(page.getByRole("link", { name: "Log in with Microsoft" })).toBeVisible();
+});
+
 test("lets the user choose a namespace and shows its runs", async ({ page }) => {
   // The strict CSP must not block any part of the page, for example an inlined font.
   const violations: string[] = [];

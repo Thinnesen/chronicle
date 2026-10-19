@@ -85,13 +85,14 @@ func httpClient(caFile string) (*http.Client, error) {
 	return &http.Client{Timeout: 30 * time.Second, Transport: tr}, nil
 }
 
-// Handler serves /auth/login, /auth/callback, /auth/logout and /auth/me.
+// Handler serves /auth/login, /auth/callback, /auth/logout, /auth/me, /auth/provider and /auth/cli.
 func (o *OIDC) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /auth/login", o.login)
 	mux.HandleFunc("GET /auth/callback", o.callback)
 	mux.HandleFunc("POST /auth/logout", o.logout)
 	mux.HandleFunc("GET /auth/me", o.me)
+	mux.HandleFunc("GET /auth/provider", o.provider)
 	mux.HandleFunc("GET /auth/cli", o.cli)
 	return mux
 }
@@ -211,6 +212,17 @@ func (o *OIDC) logout(w http.ResponseWriter, r *http.Request) {
 	o.store.Delete(c.Value)
 	http.SetCookie(w, o.cookie(SessionCookie(o.cfg.InsecureCookies), "", -1))
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// provider tells the login page which identity provider the button opens: "microsoft" for Entra ID, else "oidc".
+// The login redirect shows the provider anyway, so this needs no session.
+func (o *OIDC) provider(w http.ResponseWriter, _ *http.Request) {
+	name := "oidc"
+	if o.cfg.OIDC.Entra != nil {
+		name = "microsoft"
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"provider": name})
 }
 
 // me returns the user, the groups and the CSRF token of the session, for the UI.
