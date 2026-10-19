@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/archive"
 	"github.com/Thinnesen/chronicle/internal/artifact"
 	"github.com/Thinnesen/chronicle/internal/executor"
 )
@@ -298,6 +299,34 @@ templates:
 			ContainSubstring(`"inputs":[{"name":"data","path":"/tmp/in","key":"`+prefix+`/data.tgz"}]`))))
 	})
 
+	It("sends a task to the queue and takes its result", func() {
+		queue := &fakeQueue{}
+		rec := r()
+		rec.Tasks = queue
+		key := create(`
+entrypoint: greet
+templates:
+- name: greet
+  inputs: {parameters: [{name: who, value: world}]}
+  outputs: {parameters: [{name: greeting}]}
+  task: {name: greet, queue: mail}
+`)
+		_, err := rec.Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(queue.added).To(HaveLen(1))
+		task := queue.added[0]
+		Expect(task.Queue).To(Equal("mail"))
+		Expect(task.Input).To(Equal(`{"who":"world"}`))
+
+		queue.tasks = []archive.Task{{NewTask: task, State: archive.TaskSucceeded, Output: `{"greeting":"hello"}`}}
+		_, err = rec.Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		wf := &chroniclev1alpha1.Workflow{}
+		Expect(k8sClient.Get(ctx, key, wf)).To(Succeed())
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+		Expect(*wf.Status.Nodes[wf.Name].Outputs.Parameters[0].Value).To(Equal("hello"))
+	})
+
 	It("runs a container without a command directly", func() {
 		key := create("entrypoint: c\ntemplates:\n- {name: c, container: {image: alpine, args: [x]}}")
 		wf := reconcileOnce(key)
@@ -322,3 +351,18 @@ func (f *fakeArchive) Save(_ context.Context, _ *chroniclev1alpha1.Workflow, don
 	f.saved = append(f.saved, [2]int{done, total})
 	return nil
 }
+
+// fakeQueue records the enqueued tasks and returns the tasks that a test sets.
+type fakeQueue struct {
+	added []archive.NewTask
+	tasks []archive.Task
+}
+
+func (q *fakeQueue) Enqueue(_ context.Context, t archive.NewTask) error {
+	q.added = append(q.added, t)
+	return nil
+}
+
+func (q *fakeQueue) Cancel(context.Context, string, string) error { return nil }
+
+func (q *fakeQueue) ForWorkflow(context.Context, string) ([]archive.Task, error) { return q.tasks, nil }

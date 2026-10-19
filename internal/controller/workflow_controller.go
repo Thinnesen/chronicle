@@ -30,6 +30,8 @@ type WorkflowReconciler struct {
 	ExecutorImage string
 	// Archive keeps finished runs, or is nil without an archive.
 	Archive Archiver
+	// Tasks is the task queue of the task templates, or nil without the archive database.
+	Tasks TaskQueue
 	// APIReader reads objects that the manager does not cache, such as the artifact repository ConfigMap.
 	APIReader client.Reader
 }
@@ -70,10 +72,15 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	tasks, err := r.observeTasks(ctx, &wf)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	res := engine.Run(engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
 		CreatedAt: wf.CreationTimestamp, ScheduledTime: wf.Annotations[AnnotationScheduledTime],
-		Spec: spec, Status: wf.Status, Pods: pods, Now: metav1.Now(), Restarts: wf.Status.Restarts,
+		Spec: spec, Status: wf.Status, Pods: pods, Tasks: tasks, TasksEnabled: r.Tasks != nil,
+		Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,
 	})
 	for _, a := range res.Actions {
@@ -254,6 +261,8 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		if err := r.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("create the Pod of node %s: %w", a.NodeName, err)
 		}
+	case engine.EnqueueTask, engine.CancelTask:
+		return r.applyTask(ctx, wf, a)
 	case engine.DeletePod:
 		pod := &corev1.Pod{Name: a.PodName, Namespace: wf.Namespace}
 		if err := r.Delete(ctx, pod); client.IgnoreNotFound(err) != nil {

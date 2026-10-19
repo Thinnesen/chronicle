@@ -201,6 +201,7 @@ func main() {
 		}
 		defer store.Close()
 		workflows.Archive = store
+		workflows.Tasks = store
 	}
 	if err := workflows.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "workflow")
