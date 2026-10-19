@@ -232,6 +232,7 @@ server:
   nodeSelector: {}
 
 ## Login. Set auth.entra (Microsoft Entra ID, see docs/entra-id.md) or auth.oidc (any OIDC provider).
+## Without both, the UI has no login and the API accepts only service account tokens (CLI and SDKs).
 ##
 auth:
   ## The callback URL of the UI, for example https://chronicle.example.com/auth/callback.

@@ -1,0 +1,21 @@
+# The workflow definitions of team A come from Git. The chronicle UI shows them as managed by Argo CD
+# and read-only, and runs started from them stay outside Git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: team-a-workflows
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Thinnesen/chronicle.git
+    targetRevision: main
+    path: deploy/argocd/workflows/team-a
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: team-a
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions: [CreateNamespace=true]

@@ -1,0 +1,18 @@
+# The root application of the app-of-apps example. It syncs the applications in deploy/argocd/apps.
+# Change repoURL to your fork, then: kubectl apply -n argocd -f deploy/argocd/root.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chronicle-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Thinnesen/chronicle.git
+    targetRevision: main
+    path: deploy/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}

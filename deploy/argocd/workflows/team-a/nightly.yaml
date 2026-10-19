@@ -1,0 +1,30 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: nightly-report
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+    - {name: day, value: today, description: The day of the report.}
+  templates:
+  - name: main
+    steps:
+    - - {name: collect, template: say, arguments: {parameters: [{name: text, value: "collecting {{workflow.parameters.day}}"}]}}
+    - - {name: report, template: say, arguments: {parameters: [{name: text, value: "the report is ready"}]}}
+  - name: say
+    inputs: {parameters: [{name: text}]}
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: [sh, -c, 'echo "$TEXT"']
+      env: [{name: TEXT, value: "{{inputs.parameters.text}}"}]
+---
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: nightly-report
+spec:
+  schedules: ["0 2 * * *"]
+  timezone: Europe/Berlin
+  workflowSpec:
+    workflowTemplateRef: {name: nightly-report}

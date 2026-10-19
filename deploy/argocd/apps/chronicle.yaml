@@ -1,0 +1,37 @@
+# chronicle from the Helm chart in this repository. Set the image, the login and the teams for your cluster.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chronicle
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Thinnesen/chronicle.git
+    targetRevision: main
+    path: dist/chart
+    helm:
+      valuesObject:
+        manager:
+          image:
+            # Pin the image by digest: repository: ghcr.io/thinnesen/chronicle@sha256:...
+            repository: ghcr.io/thinnesen/chronicle
+        auth:
+          redirectURL: https://chronicle.example.com/auth/callback
+          oidc:
+            issuer: https://login.example.com
+            clientID: chronicle
+            clientSecret:
+              existingSecret: chronicle-oidc
+        teams:
+          - name: team-a
+            namespaces: [team-a]
+            editor: [team-a-engineers]
+            viewer: [team-a-readers]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chronicle-system
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    # The Workflow CRD is too large for client-side apply.
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

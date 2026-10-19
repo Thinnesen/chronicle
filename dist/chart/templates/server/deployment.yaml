@@ -81,6 +81,8 @@ spec:
       - name: auth
         configMap:
           name: {{ include "chronicle.resourceName" (dict "suffix" "server-auth" "context" $) }}
+          # Without a login configuration, the server starts with service account tokens only.
+          optional: true
       {{- with (include "chronicle.clientSecret" .) }}
       - name: client-secret
         secret:

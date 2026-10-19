@@ -1,5 +1,6 @@
-{{- if .Values.server.enabled }}
 {{- $auth := .Values.auth }}
+{{- /* Without a login, the server accepts only service account tokens (CLI and SDKs). */}}
+{{- if and .Values.server.enabled (or $auth.entra.tenantID $auth.oidc.issuer) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,7 +19,7 @@ data:
         groupsFrom: {{ . | quote }}
         {{- end }}
       {{- else }}
-      issuer: {{ required "set auth.oidc.issuer or auth.entra.tenantID" $auth.oidc.issuer | quote }}
+      issuer: {{ $auth.oidc.issuer | quote }}
       clientID: {{ required "auth.oidc.clientID is required" $auth.oidc.clientID | quote }}
       {{- with $auth.oidc.scopes }}
       scopes: {{ toJson . }}

@@ -412,6 +412,10 @@ scan: trivy ## Scan the image and the lockfiles for HIGH and CRITICAL vulnerabil
 	"$(TRIVY)" fs --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
 		--skip-dirs ui/node_modules --skip-dirs sdk/rust/target --skip-dirs sdk/python/.venv .
 
+.PHONY: test-chart
+test-chart: kind kubectl helm ## Install the Helm chart into its own Kind cluster and run a workflow.
+	hack/test-chart.sh
+
 .PHONY: helm-lint
 helm-lint: helm ## Lint the Helm chart and render it with an OIDC and an Entra ID configuration.
 	"$(HELM)" lint --strict $(HELM_CHART_DIR) --set auth.oidc.issuer=https://dex.example.com \
