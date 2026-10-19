@@ -147,6 +147,8 @@ export function RunActions({ wf, phase, archived = false }: { wf: Workflow; phas
         onConfirm={() => run.mutate("delete")}
       >
         The run, its Pods and their logs are deleted from the cluster.
+        {wf.status?.conditions?.some((c) => c.type === "Archived" && c.status === "True") &&
+          " The archive keeps its record, so the run stays in the history with the mark Archived."}
       </ConfirmDialog>
     </div>
   );

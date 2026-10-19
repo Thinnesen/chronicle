@@ -55,6 +55,7 @@ test("an editor deletes a finished run", async ({ page }) => {
   await page.goto(runURL);
   await expect(page.getByRole("button", { name: "Suspend" })).toHaveCount(0);
   await page.getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("dialog")).toContainText("The archive keeps its record");
   await page.getByRole("dialog").getByRole("button", { name: "Delete the run" }).click();
   await expect(page).toHaveURL(/\/ns\/team-a$/);
   expect(calls.DeleteWorkflow).toHaveLength(1);

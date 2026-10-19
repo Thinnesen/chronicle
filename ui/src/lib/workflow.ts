@@ -54,6 +54,7 @@ export interface Workflow {
   spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; approvals?: { node: string }[] };
   status?: {
     phase?: string;
+    conditions?: { type: string; status: string }[];
     nodes?: Record<string, NodeStatus>;
     storedSpec?: { templates?: Template[]; arguments?: { parameters?: Parameter[] } };
   };
