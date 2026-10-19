@@ -1,6 +1,21 @@
 """chronicle defines chronicle workflows as Python code, renders them and submits them."""
 
 from .client import APIError, Client
-from .workflow import Task, Template, Workflow, WorkflowError, container, dag, script
+from .worker import NonRetryable, TaskInfo, Worker
+from .workflow import Task, Template, Workflow, WorkflowError, container, dag, script, task_template
 
-__all__ = ["APIError", "Client", "Task", "Template", "Workflow", "WorkflowError", "container", "dag", "script"]
+__all__ = [
+    "APIError",
+    "Client",
+    "NonRetryable",
+    "Task",
+    "TaskInfo",
+    "Template",
+    "Worker",
+    "Workflow",
+    "WorkflowError",
+    "container",
+    "dag",
+    "script",
+    "task_template",
+]

@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from .workflow import Workflow
 
-_SERVICE = "/chronicle.v1.WorkflowService/"
+_PREFIX = "/chronicle.v1."
 
 
 class APIError(RuntimeError):
@@ -49,15 +49,18 @@ class Client:
         answer = self._call("GetWorkflow", {"namespace": namespace, "name": name})
         return answer["summary"].get("phase", "")
 
-    def _call(self, method: str, body: dict[str, Any]) -> dict[str, Any]:
+    def _call(
+        self, method: str, body: dict[str, Any], service: str = "WorkflowService", timeout: float | None = None
+    ) -> dict[str, Any]:
         request = urllib.request.Request(  # noqa: S310 - the scheme is checked in __init__
-            self._server + _SERVICE + method,
+            self._server + _PREFIX + service + "/" + method,
             data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self._token},
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout, context=self._context) as response:  # noqa: S310
+            wait = timeout or self._timeout
+            with urllib.request.urlopen(request, timeout=wait, context=self._context) as response:  # noqa: S310
                 return json.load(response)
         except urllib.error.HTTPError as err:
             try:

@@ -57,6 +57,11 @@ class Template:
         self._inputs.setdefault("artifacts", []).append({"name": name, "path": path})
         return self
 
+    def output_field(self, name: str) -> Template:
+        """Declare an output parameter of a task template. It gets the field of the result with the same name."""
+        self._outputs.setdefault("parameters", []).append({"name": name})
+        return self
+
     def output_artifact(self, name: str, path: str) -> Template:
         """Declare an output artifact that the executor saves from path."""
         self._outputs.setdefault("artifacts", []).append({"name": name, "path": path})
@@ -112,6 +117,25 @@ def script(name: str, image: str, source: str) -> Template:
     if "{{" in source:
         raise WorkflowError(f"template {name!r}: a script source cannot have placeholders, use env()")
     return Template(name, {"image": image, "source": source}, "script")
+
+
+def task_template(
+    name: str,
+    task_type: str,
+    *,
+    queue: str | None = None,
+    heartbeat_timeout: str | None = None,
+    schedule_to_start_timeout: str | None = None,
+) -> Template:
+    """Return a template that sends its input parameters to a worker that runs the task type task_type."""
+    body: dict[str, Any] = {"name": task_type}
+    if queue:
+        body["queue"] = queue
+    if heartbeat_timeout:
+        body["heartbeatTimeout"] = heartbeat_timeout
+    if schedule_to_start_timeout:
+        body["scheduleToStartTimeout"] = schedule_to_start_timeout
+    return Template(name, body, "task")
 
 
 def dag(name: str) -> Template:
