@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -39,6 +40,8 @@ type stub struct {
 	streams   int
 	// failGets makes this many reads of a run fail with Unavailable first.
 	failGets int
+	// gates is the number of suspend nodes of the run that wait for an approval.
+	gates int
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -55,6 +58,11 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 		r.Msg.Name: map[string]any{"id": r.Msg.Name, "name": r.Msg.Name, "type": "DAG", "phase": s.phase, "children": []any{"n1"}},
 		"n1":       map[string]any{"id": "n1", "name": r.Msg.Name + ".a", "displayName": "a", "type": "Pod", "phase": s.phase},
 	}}
+	nodes := status["nodes"].(map[string]any)
+	for i := range s.gates {
+		id := fmt.Sprintf("g%d", i)
+		nodes[id] = map[string]any{"id": id, "name": fmt.Sprintf("%s.gate%d", r.Msg.Name, i), "type": "Suspend", "phase": "Running"}
+	}
 	spec := map[string]any{}
 	if s.restarted != "" {
 		spec["restart"] = map[string]any{"generation": 1}

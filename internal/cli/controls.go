@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -11,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
 )
@@ -98,18 +100,26 @@ func (a *app) approveCommand() *cobra.Command {
 	var params []string
 	var message string
 	cmd := &cobra.Command{
-		Use:     "approve <name> <node>",
-		Short:   "Approve or reject a suspend node",
-		Example: "  chronicle approve deploy-x7k2p deploy-x7k2p[0].gate -p env=prod -m 'checked by ops'",
-		Args:    cobra.ExactArgs(2),
+		Use:   "approve <name> [node]",
+		Short: "Approve or reject a suspend node",
+		Long:  "Approve or reject a suspend node. Without a node, the command takes the one step of the run that waits.",
+		Example: "  chronicle approve deploy-x7k2p -p env=prod -m 'checked by ops'\n" +
+			"  chronicle approve deploy-x7k2p deploy-x7k2p[0].gate --reject",
+		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := keyValues(params)
 			if err != nil {
 				return err
 			}
 			return a.onWorkflow(cmd, args[0], func(ctx context.Context, c chroniclev1connect.WorkflowServiceClient, ns string) error {
+				node := ""
+				if len(args) == 2 {
+					node = args[1]
+				} else if node, err = waitingNode(ctx, c, ns, args[0]); err != nil {
+					return err
+				}
 				_, err := c.ApproveNode(ctx, connect.NewRequest(&chroniclev1.ApproveNodeRequest{
-					Namespace: ns, Name: args[0], Node: args[1], Approve: !reject, Parameters: p, Message: message}))
+					Namespace: ns, Name: args[0], Node: node, Approve: !reject, Parameters: p, Message: message}))
 				if err != nil {
 					return err
 				}
@@ -117,7 +127,7 @@ func (a *app) approveCommand() *cobra.Command {
 				if reject {
 					verb = "Rejected"
 				}
-				return done(a.out, verb+" "+args[1]+" in", ns, args[0])
+				return done(a.out, verb+" "+node+" in", ns, args[0])
 			})
 		},
 	}
@@ -125,6 +135,27 @@ func (a *app) approveCommand() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&params, "parameter", "p", nil, "An output parameter of the suspend node as name=value.")
 	cmd.Flags().StringVarP(&message, "message", "m", "", "A comment for the run history.")
 	return cmd
+}
+
+// waitingNode returns the name of the one suspend node of a run that waits for an approval.
+func waitingNode(ctx context.Context, c chroniclev1connect.WorkflowServiceClient, ns, name string) (string, error) {
+	resp, err := c.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: name}))
+	if err != nil {
+		return "", err
+	}
+	var waiting []string
+	for _, n := range nodes(resp.Msg) {
+		if n.Type == v1alpha1.NodeSuspend && n.Phase == v1alpha1.NodeRunning {
+			waiting = append(waiting, n.Name)
+		}
+	}
+	switch len(waiting) {
+	case 0:
+		return "", fmt.Errorf("the run %s has no step that waits for an approval", name)
+	case 1:
+		return waiting[0], nil
+	}
+	return "", fmt.Errorf("more than one step waits, give one: %s", strings.Join(waiting, ", "))
 }
 
 func (a *app) namespacesCommand() *cobra.Command {
