@@ -40,8 +40,9 @@ export function NodePanel(props: PanelProps) {
 }
 
 function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: PanelProps) {
-  const [tab, setTab] = useState<Tab>(node.podName ? "logs" : "details");
   const phase = node.phase || "Pending";
+  // A Pod that has not started has no log yet; its events tell why it waits, for example a missing image.
+  const [tab, setTab] = useState<Tab>(!node.podName ? "details" : phase === "Pending" ? "events" : "logs");
   const retry = retryOf(node, nodes);
   const tabs: { id: Tab; label: string }[] = [
     { id: "details", label: "Summary" },
@@ -50,7 +51,11 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
   ];
   return (
     <div className="node-panel">
-      {node.message && <p className="node-message">{node.message}</p>}
+      {node.message && (
+        <p className="node-message" data-phase={phase}>
+          {node.message}
+        </p>
+      )}
       <ApprovalForm wf={wf} node={node} />
       <div className="tabs" role="tablist" aria-label="Node views">
         {tabs.map((t) => (
@@ -67,7 +72,12 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
             <Artifacts node={node} namespace={namespace} workflow={workflow} />
           </>
         )}
-        {tab === "logs" && <LogView namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
+        {tab === "logs" &&
+          (phase === "Pending" ? (
+            <p className="quiet">The step has not started yet. Its log appears here when the container starts.</p>
+          ) : (
+            <LogView namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running"} />
+          ))}
         {tab === "events" && <NodeEvents namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
         {tab === "attempts" && retry && <Attempts retry={retry} nodes={nodes} current={node.id} onSelect={onSelect} />}
       </div>

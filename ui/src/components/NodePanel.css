@@ -15,6 +15,18 @@
   overflow-wrap: anywhere;
 }
 
+/* A pending step with a message waits for something, for example an image. A failed step tells why it failed. */
+.node-message[data-phase="Pending"] {
+  color: var(--caution-ink);
+  background: var(--caution-soft);
+}
+
+.node-message[data-phase="Failed"],
+.node-message[data-phase="Error"] {
+  color: var(--danger-ink);
+  background: var(--danger-soft);
+}
+
 .facts {
   display: grid;
   grid-template-columns: max-content 1fr;

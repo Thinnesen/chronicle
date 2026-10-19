@@ -15,7 +15,7 @@ export const runs = [
 // run is a DAG run: fetch and validate ran, train runs, report waits.
 const oldRun = { namespace: "team-a", name: "etl-nightly-old01", uid: "u9", phase: "Succeeded", createdAt: ts(-900000), startedAt: ts(-900000), finishedAt: ts(-899000), nodesDone: 4, nodesTotal: 4 };
 
-export function run(phase: string, gate = false, archived = false) {
+export function run(phase: string, gate = false, archived = false, stuck = false) {
   const done = phase === "Succeeded";
   const node = (id: string, name: string, extra: object) => ({ id, name: `etl-nightly-8k2pq${name}`, ...extra });
   return {
@@ -46,6 +46,9 @@ export function run(phase: string, gate = false, archived = false) {
           n3: node("n3", ".train", { displayName: "train", type: "Retry", phase: done ? "Succeeded" : "Running", startedAt: ts(-198), finishedAt: done ? ts(-20) : undefined, children: ["n3a", "n3b"] }),
           n3a: node("n3a", ".train(0)", { displayName: "train(0)", type: "Pod", phase: "Failed", message: "OOMKilled (exit code 137)", startedAt: ts(-198), finishedAt: ts(-150), podName: "n3a" }),
           n3b: node("n3b", ".train(1)", { displayName: "train(1)", type: "Pod", phase: done ? "Succeeded" : "Running", startedAt: ts(-149), finishedAt: done ? ts(-20) : undefined, podName: "n3b" }),
+          ...(stuck
+            ? { n6: node("n6", ".publish", { displayName: "publish", type: "Pod", phase: "Pending", startedAt: ts(-30), podName: "n6", message: "ErrImagePull: registry.invalid/publish:1 not found" }) }
+            : {}),
           ...(gate
             ? { n5: node("n5", ".gate", { displayName: "gate", type: "Suspend", templateName: "approve", phase: "Running", startedAt: ts(-10), message: "waiting for an approval" }) }
             : {}),
@@ -97,6 +100,8 @@ export interface MockOptions {
   archived?: boolean;
   // provider is the identity provider that /auth/provider names.
   provider?: string;
+  // stuck adds a Pod node that cannot start, because its image is missing.
+  stuck?: boolean;
 }
 
 // calls records the actions that the UI sent, by RPC name.
@@ -137,7 +142,7 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
     r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node, opts.archived)) });
   });
-  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate, opts.archived) }));
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate, opts.archived, opts.stuck) }));
   await page.route("**/chronicle.v1.TemplateService/ListTemplates", (r) => r.fulfill({ json: { templates: templateList } }));
   await page.route("**/chronicle.v1.TemplateService/GetTemplate", (r) => {
     const name: string = r.request().postDataJSON()?.name;
