@@ -186,4 +186,4 @@ spec:
 
 ## 11. A YAML trap
 
-YAML 1.1 reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans, also in kubectl. A parameter `value: yes` is then not a string, and the API refuses the object. Put such values in quotes: `value: "yes"`. Do not use these words as task names.
+kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. A parameter `value: yes` or a parameter named `n` is then not a string, and the API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans.

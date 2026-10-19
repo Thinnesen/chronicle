@@ -8,8 +8,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
+	yamlv3 "go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/types/known/structpb"
-	"sigs.k8s.io/yaml"
 
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
@@ -94,11 +94,78 @@ func readObject(file string) (*structpb.Struct, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", file, err)
 	}
-	var m map[string]any
-	if err := yaml.Unmarshal(data, &m); err != nil {
+	// YAML 1.2 (yaml/v3) reads only true and false as booleans. YAML 1.1 (kubectl) also reads n, yes and off.
+	var doc yamlv3.Node
+	if err := yamlv3.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", file, err)
 	}
+	v, err := plain(&doc)
+	if err != nil {
+		return nil, fmt.Errorf("parse %s: %w", file, err)
+	}
+	m, ok := v.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("parse %s: the file is not an object", file)
+	}
 	return structpb.NewStruct(m)
+}
+
+// merge adds the keys of a "<<" merge value (a map or a list of maps) that m does not have yet.
+func merge(m map[string]any, v any) {
+	maps, ok := v.([]any)
+	if !ok {
+		maps = []any{v}
+	}
+	for _, x := range maps {
+		src, _ := x.(map[string]any)
+		for k, val := range src {
+			if _, set := m[k]; !set {
+				m[k] = val
+			}
+		}
+	}
+}
+
+// plain converts a YAML node to maps, lists and scalars. A date stays a string, as Kubernetes expects.
+func plain(n *yamlv3.Node) (any, error) {
+	switch n.Kind {
+	case yamlv3.DocumentNode:
+		if len(n.Content) == 0 {
+			return nil, nil
+		}
+		return plain(n.Content[0])
+	case yamlv3.AliasNode:
+		return plain(n.Alias)
+	case yamlv3.MappingNode:
+		m := make(map[string]any, len(n.Content)/2)
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			v, err := plain(n.Content[i+1])
+			if err != nil {
+				return nil, err
+			}
+			if n.Content[i].Tag == "!!merge" {
+				merge(m, v)
+				continue
+			}
+			m[n.Content[i].Value] = v
+		}
+		return m, nil
+	case yamlv3.SequenceNode:
+		l := make([]any, 0, len(n.Content))
+		for _, c := range n.Content {
+			v, err := plain(c)
+			if err != nil {
+				return nil, err
+			}
+			l = append(l, v)
+		}
+		return l, nil
+	}
+	if n.Tag == "!!timestamp" {
+		return n.Value, nil
+	}
+	var v any
+	return v, n.Decode(&v)
 }
 
 func keyValues(pairs []string) (map[string]string, error) {

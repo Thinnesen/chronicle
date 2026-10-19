@@ -207,3 +207,28 @@ func TestChangeOrder(t *testing.T) {
 		t.Errorf("order = %v, want %v", got, want)
 	}
 }
+
+// TestReadObjectYAML12 checks that submit reads YAML 1.2: "n", "yes" and dates stay strings, as a user expects.
+func TestReadObjectYAML12(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "wf.yaml")
+	src := "base: &base {image: busybox}\nimage: {<<: *base, command: [run]}\n" +
+		"spec:\n  arguments:\n    parameters:\n    - {name: n, value: yes}\n    - {name: day, value: 2026-10-19}\n    - {name: count, value: 3}\n"
+	if err := os.WriteFile(file, []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	obj, err := readObject(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	params := obj.Fields["spec"].GetStructValue().Fields["arguments"].GetStructValue().Fields["parameters"].GetListValue().Values
+	first := params[0].GetStructValue().Fields
+	if first["name"].GetStringValue() != "n" || first["value"].GetStringValue() != "yes" {
+		t.Errorf("first parameter = %v", first)
+	}
+	if day := params[1].GetStructValue().Fields["value"].GetStringValue(); day != "2026-10-19" {
+		t.Errorf("day = %q", day)
+	}
+	if img := obj.Fields["image"].GetStructValue().Fields["image"].GetStringValue(); img != "busybox" {
+		t.Errorf("the merge key gave image %q", img)
+	}
+}
