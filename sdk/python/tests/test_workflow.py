@@ -13,7 +13,7 @@ FIXTURE = Path(__file__).parents[2] / "testdata" / "etl.json"
 
 def etl() -> chronicle.Workflow:
     """Build the same workflow as etl() in the Go SDK tests."""
-    w = chronicle.Workflow("etl-").label("team", "data").parallelism(4)
+    w = chronicle.Workflow("etl-").label("team", "data").parallelism(4).mutex("etl")
     day = w.param("day", "2026-10-17")
     source = 'mkdir -p /tmp/rows && echo "$DAY" > /tmp/rows/day.txt && echo 1204'
     fetch = chronicle.script("fetch", "busybox:1.37", source).env("DAY", day)

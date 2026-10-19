@@ -46,6 +46,22 @@ impl Workflow {
         self
     }
 
+    /// Lets one run with the lock name run at a time in the namespace. Other runs wait.
+    pub fn mutex(mut self, name: &str) -> Self {
+        self.spec
+            .insert("synchronization".into(), json!({"mutex": {"name": name}}));
+        self
+    }
+
+    /// Lets limit runs with the lock name run at the same time in the namespace. Other runs wait.
+    pub fn semaphore(mut self, name: &str, limit: u32) -> Self {
+        self.spec.insert(
+            "synchronization".into(),
+            json!({"semaphore": {"name": name, "limit": limit}}),
+        );
+        self
+    }
+
     /// Runs the workflow Pods with a Kubernetes service account.
     pub fn service_account(mut self, name: &str) -> Self {
         self.spec.insert("serviceAccountName".into(), name.into());

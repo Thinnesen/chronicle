@@ -162,7 +162,18 @@ spec:
 
 Approve a suspend node in the UI, or with `chronicle approve <run> <node> -p env=prod`. A `resource` template runs with the service account of the run (`spec.serviceAccountName`), so a step can do only what that account can do.
 
-## 9. Templates and schedules
+## 9. Locks
+
+```yaml
+spec:
+  synchronization:
+    mutex: {name: deploy-prod}                 # one run at a time
+    # semaphore: {name: gpu-jobs, limit: 3}    # or at most 3 runs at a time
+```
+
+Runs with the same lock name in a namespace share the lock. A run that waits for it is Pending, with the message "waiting for the lock ..., which ... holds". A finished run gives the lock back, and so does a run that was deleted. There is no fixed order among the waiting runs.
+
+## 10. Templates and schedules
 
 ```yaml
 apiVersion: chronicle.thinnesen.com/v1alpha1
@@ -180,11 +191,11 @@ spec:
 - `workflowTemplateRef` runs a `WorkflowTemplate`. Add `clusterScope: true` for a `ClusterWorkflowTemplate`.
 - A task or a step can call a template of another template with `templateRef: {name: <template object>, template: <template name>}`.
 
-## 10. Clean up
+## 11. Clean up
 
 - `spec.podGC.strategy` deletes the Pods: `OnPodCompletion`, `OnPodSuccess`, `OnWorkflowCompletion` or `OnWorkflowSuccess`.
 - `spec.ttlStrategy` deletes the finished run after some seconds. With the archive, the run stays visible in the UI and the CLI.
 
-## 11. A YAML trap
+## 12. A YAML trap
 
 kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. A parameter `value: yes` or a parameter named `n` is then not a string, and the API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans.

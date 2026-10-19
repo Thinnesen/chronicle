@@ -11,7 +11,12 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 	if forWorkflow {
 		copied = append(copied, "workflowTemplateRef")
 	}
-	out := c.pick(in, path, copied, "templates", "arguments", "podGC", "ttlStrategy")
+	out := c.pick(in, path, copied, "templates", "arguments", "podGC", "ttlStrategy", "synchronization")
+	if v, ok := in["synchronization"]; ok {
+		if sync := c.synchronization(asObj(v), join(path, "synchronization")); sync != nil {
+			out["synchronization"] = sync
+		}
+	}
 	if v, ok := in["arguments"]; ok {
 		a := asObj(v)
 		args := c.pick(a, join(path, "arguments"), nil, "parameters")
@@ -202,4 +207,25 @@ func (c *converter) steps(groups []any, path string) ([]any, error) {
 		out = append(out, group)
 	}
 	return out, nil
+}
+
+// synchronization keeps an Argo mutex. An Argo semaphore reads its limit from a ConfigMap, which chronicle does not do.
+func (c *converter) synchronization(in obj, path string) obj {
+	var names []any
+	if m := asObj(in["mutex"]); m != nil {
+		names = append(names, m["name"])
+	}
+	for _, m := range asList(in["mutexes"]) {
+		names = append(names, asObj(m)["name"])
+	}
+	if _, ok := in["semaphore"]; ok || in["semaphores"] != nil {
+		c.warn(path, "a semaphore takes its limit from a ConfigMap in Argo: set synchronization.semaphore with a limit by hand")
+	}
+	if len(names) > 1 {
+		c.warn(path, "chronicle has one lock for each run: it keeps the first mutex")
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	return obj{"mutex": obj{"name": names[0]}}
 }

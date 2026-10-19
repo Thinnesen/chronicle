@@ -27,6 +27,7 @@ type Workflow struct {
 	entrypoint, onExit *Template
 	serviceAccount     string
 	parallelism        *int32
+	sync               *v1alpha1.Synchronization
 }
 
 // New returns a workflow whose runs get the name prefix generateName, for example "etl-".
@@ -61,6 +62,18 @@ func (w *Workflow) Parallelism(n int32) *Workflow {
 	return w
 }
 
+// Mutex lets one run with the lock name run at a time in the namespace. Other runs wait.
+func (w *Workflow) Mutex(name string) *Workflow {
+	w.sync = &v1alpha1.Synchronization{Mutex: &v1alpha1.Mutex{Name: name}}
+	return w
+}
+
+// Semaphore lets limit runs with the lock name run at the same time in the namespace. Other runs wait.
+func (w *Workflow) Semaphore(name string, limit int32) *Workflow {
+	w.sync = &v1alpha1.Synchronization{Semaphore: &v1alpha1.Semaphore{Name: name, Limit: limit}}
+	return w
+}
+
 // Param declares a workflow parameter with a default value and returns its placeholder.
 func (w *Workflow) Param(name, value string) string {
 	w.params = append(w.params, v1alpha1.Parameter{Name: name, Value: &value})
@@ -89,6 +102,7 @@ func (w *Workflow) Spec() (*v1alpha1.WorkflowTemplateSpec, error) {
 		Arguments:          v1alpha1.Arguments{Parameters: w.params},
 		ServiceAccountName: w.serviceAccount,
 		Parallelism:        w.parallelism,
+		Synchronization:    w.sync,
 	}
 	seen := map[string]*Template{}
 	var errs []error

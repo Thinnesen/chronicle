@@ -238,6 +238,16 @@ class Workflow:
         self._spec["parallelism"] = n
         return self
 
+    def mutex(self, name: str) -> Workflow:
+        """Let one run with the lock name run at a time in the namespace. Other runs wait."""
+        self._spec["synchronization"] = {"mutex": {"name": name}}
+        return self
+
+    def semaphore(self, name: str, limit: int) -> Workflow:
+        """Let limit runs with the lock name run at the same time in the namespace. Other runs wait."""
+        self._spec["synchronization"] = {"semaphore": {"name": name, "limit": limit}}
+        return self
+
     def service_account(self, name: str) -> Workflow:
         """Run the workflow Pods with a Kubernetes service account."""
         self._spec["serviceAccountName"] = name

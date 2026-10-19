@@ -54,6 +54,7 @@ const conditionArchived = "Archived"
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflowtemplates;clusterworkflowtemplates,verbs=get;list;watch
 
 // Reconcile runs one step of the engine for a Workflow.
@@ -73,6 +74,9 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	observed := wf.Status.DeepCopy()
 	if err := r.restart(ctx, &wf, spec); err != nil {
 		return ctrl.Result{}, err
+	}
+	if res, wait, err := r.gate(ctx, &wf, spec, observed); wait || err != nil {
+		return res, err
 	}
 	pods, err := r.observePods(ctx, &wf)
 	if err != nil {
@@ -97,6 +101,9 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
 	wf.Status = res.Status
+	if err := r.unlock(ctx, &wf, spec); err != nil {
+		return ctrl.Result{}, err
+	}
 	archiveErr := r.archive(ctx, &wf)
 	if equality.Semantic.DeepEqual(*observed, wf.Status) {
 		if archiveErr != nil {

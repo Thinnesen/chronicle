@@ -33,6 +33,11 @@ type WorkflowTemplateSpec struct {
 	// +optional
 	Parallelism *int32 `json:"parallelism,omitempty"`
 
+	// synchronization lets only a limited number of runs with the same lock run at the same time in a namespace,
+	// for example one deployment at a time. A run that waits for the lock is Pending.
+	// +optional
+	Synchronization *Synchronization `json:"synchronization,omitempty"`
+
 	// activeDeadlineSeconds fails the workflow when it runs longer. The exit handler still runs.
 	// +kubebuilder:validation:Minimum=1
 	// +optional
@@ -124,4 +129,35 @@ func init() {
 		s.AddKnownTypes(SchemeGroupVersion, &WorkflowTemplate{}, &WorkflowTemplateList{})
 		return nil
 	})
+}
+
+// Synchronization names the lock of a run. Set mutex (one run at a time) or semaphore (a limited number of runs).
+// +kubebuilder:validation:XValidation:rule="has(self.mutex) != has(self.semaphore)",message="set mutex or semaphore"
+type Synchronization struct {
+	// +optional
+	Mutex *Mutex `json:"mutex,omitempty"`
+	// +optional
+	Semaphore *Semaphore `json:"semaphore,omitempty"`
+}
+
+// Mutex lets one run with the lock name run at a time in the namespace.
+type Mutex struct {
+	// name of the lock. Runs with the same name in a namespace share it.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	// +kubebuilder:validation:MaxLength=48
+	// +required
+	Name string `json:"name"`
+}
+
+// Semaphore lets limit runs with the lock name run at the same time in the namespace.
+type Semaphore struct {
+	// name of the lock. Runs with the same name in a namespace share it.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	// +kubebuilder:validation:MaxLength=48
+	// +required
+	Name string `json:"name"`
+	// limit is the number of runs that can hold the lock at the same time.
+	// +kubebuilder:validation:Minimum=1
+	// +required
+	Limit int32 `json:"limit"`
 }

@@ -87,6 +87,11 @@ func TestRules(t *testing.T) {
 			want: []string{"parallelism: 5", "- dag:", "parallelism: 2", "spec.templates[1].parallelism: only a dag or steps template"},
 		},
 		{
+			name:      "a mutex stays and a semaphore warns",
+			templates: "  - {name: main, container: {image: x}}\n  synchronization: {mutexes: [{name: deploy}], semaphores: [{configMapKeyRef: {name: c, key: k}}]}",
+			want:      []string{"synchronization:\n    mutex:\n      name: deploy", "set synchronization.semaphore with a limit by hand"},
+		},
+		{
 			name: "unsupported fields are dropped",
 			templates: "  - {name: main, nodeSelector: {a: b}, container: {image: x, securityContext: {privileged: true}}}\n" +
 				"  podSpecPatch: '{}'",

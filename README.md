@@ -103,7 +103,7 @@ To use the web UI and the CLI, configure a login with OIDC (any provider, or Mic
 
 | Topic | Guide |
 |---|---|
-| Write workflows: DAGs, steps, parameters, retries, approvals | [`docs/workflows.md`](docs/workflows.md) |
+| Write workflows: DAGs, steps, parameters, retries, approvals, locks | [`docs/workflows.md`](docs/workflows.md) |
 | Artifacts and archived logs in S3 | [`docs/artifacts.md`](docs/artifacts.md) |
 | Task workers in Go, Python and Rust | [`docs/task-workers.md`](docs/task-workers.md) |
 | Login with Microsoft Entra ID and teams | [`docs/entra-id.md`](docs/entra-id.md) |

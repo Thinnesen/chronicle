@@ -52,7 +52,7 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
 | Global outputs (`globalName`, `workflow.outputs.*`) and `workflow.failures` | Not planned for the first version. |
 | `inline` templates in tasks or steps | Write a named template. |
-| `synchronization` (mutex, semaphore), `memoize`, `metrics` | Not in the first version. |
+| `synchronization.semaphore` with a ConfigMap limit, template-level `synchronization`, `memoize`, `metrics` | Not supported. A workflow `mutex` converts; set a semaphore limit by hand. |
 | `http`, `plugin`, `data` and `containerSet` templates | Not supported. Task workers (M7) cover calls to services. |
 | Artifacts that a workflow gives (`arguments.artifacts` on the Workflow) | A workflow cannot give artifacts. Make them in a first step. |
 | Parameters from a ConfigMap (`valueFrom.configMapKeyRef`) | Give the value in the Workflow, or read the ConfigMap in a step. |

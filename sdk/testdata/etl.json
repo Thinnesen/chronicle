@@ -18,6 +18,11 @@
     },
     "entrypoint": "main",
     "parallelism": 4,
+    "synchronization": {
+      "mutex": {
+        "name": "etl"
+      }
+    },
     "templates": [
       {
         "dag": {
