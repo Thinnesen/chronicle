@@ -40,3 +40,27 @@ jobs:
 
       - name: Test
         run: uv run --frozen pytest -q
+
+  rust:
+    permissions:
+      contents: read
+    name: Rust SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdk/rust
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # rustup installs the toolchain of rust-toolchain.toml.
+      - name: Lint
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --locked
