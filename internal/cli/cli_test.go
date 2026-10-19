@@ -52,6 +52,16 @@ func (s *stub) ApproveNode(_ context.Context, r *connect.Request[chroniclev1.App
 	return connect.NewResponse(&chroniclev1.ApproveNodeResponse{}), nil
 }
 
+func (s *stub) RetryWorkflow(_ context.Context, r *connect.Request[chroniclev1.RetryWorkflowRequest]) (*connect.Response[chroniclev1.RetryWorkflowResponse], error) {
+	s.requests = append(s.requests, r.Msg)
+	return connect.NewResponse(&chroniclev1.RetryWorkflowResponse{}), nil
+}
+
+func (s *stub) RerunWorkflow(_ context.Context, r *connect.Request[chroniclev1.RerunWorkflowRequest]) (*connect.Response[chroniclev1.RerunWorkflowResponse], error) {
+	s.requests = append(s.requests, r.Msg)
+	return connect.NewResponse(&chroniclev1.RerunWorkflowResponse{Summary: &chroniclev1.WorkflowSummary{Name: "hello-new"}}), nil
+}
+
 func (s *stub) StreamLogs(_ context.Context, _ *connect.Request[chroniclev1.StreamLogsRequest], st *connect.ServerStream[chroniclev1.StreamLogsResponse]) error {
 	return st.Send(&chroniclev1.StreamLogsResponse{NodeName: "hello.a", Line: "hi"})
 }
@@ -110,6 +120,8 @@ func TestCommands(t *testing.T) {
 		{[]string{"get", "hello"}, "● hello\n  ● a"},
 		{[]string{"logs", "hello"}, "hello.a: hi"},
 		{[]string{"approve", "hello", "hello.gate", "--reject", "-m", "no"}, "Rejected hello.gate in team-a/hello"},
+		{[]string{"retry", "hello", "--node", "hello.a"}, "Retrying team-a/hello"},
+		{[]string{"rerun", "hello", "-p", "x=1"}, "Started team-a/hello-new"},
 		{[]string{"submit", "--from", "cluster/base"}, "Started team-a/hello-abc"},
 	}
 	for _, tt := range tests {

@@ -6,10 +6,11 @@ import { namespaces, workflows } from "../api/client";
 import { actionError } from "../lib/errors";
 import type { Workflow } from "../lib/workflow";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { RerunDialog } from "./RerunDialog";
 import { useToast } from "./Toast";
 import "./RunActions.css";
 
-type Action = "suspend" | "resume" | "stop" | "terminate" | "delete";
+type Action = "suspend" | "resume" | "stop" | "terminate" | "delete" | "retry";
 
 const done: Record<Action, string> = {
   suspend: "Suspended",
@@ -17,6 +18,7 @@ const done: Record<Action, string> = {
   stop: "Stopping",
   terminate: "Terminating",
   delete: "Deleted",
+  retry: "Retrying",
 };
 
 // useCanEdit tells if the user can change runs in the namespace. The server checks again on each call.
@@ -33,6 +35,16 @@ export function RunActions({ wf, phase }: { wf: Workflow; phase: string }) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const [confirm, setConfirm] = useState<Action | null>(null);
+  const [rerunning, setRerunning] = useState(false);
+  const rerun = useMutation({
+    mutationFn: (parameters: Record<string, string>) => workflows.rerunWorkflow({ namespace, name, parameters }),
+    onSuccess: (resp) => {
+      const next = resp.summary?.name ?? "";
+      toast(`Started ${next}`);
+      void navigate({ to: "/ns/$namespace/runs/$name", params: { namespace, name: next } });
+    },
+    onError: (err) => toast(actionError("re-run runs", namespace, err), "error"),
+  });
   const run = useMutation({
     mutationFn: async (a: Action) => {
       const req = { namespace, name };
@@ -41,6 +53,7 @@ export function RunActions({ wf, phase }: { wf: Workflow; phase: string }) {
       if (a === "stop") await workflows.stopWorkflow(req);
       if (a === "terminate") await workflows.terminateWorkflow(req);
       if (a === "delete") await workflows.deleteWorkflow(req);
+      if (a === "retry") await workflows.retryWorkflow(req);
       return a;
     },
     onSuccess: (a) => {
@@ -78,11 +91,22 @@ export function RunActions({ wf, phase }: { wf: Workflow; phase: string }) {
           Terminate
         </button>
       )}
+      {(phase === "Failed" || phase === "Error") && (
+        <button type="button" className="button button-primary" onClick={() => run.mutate("retry")} disabled={run.isPending}>
+          Retry
+        </button>
+      )}
+      {!active && (
+        <button type="button" className="button" onClick={() => setRerunning(true)}>
+          Re-run
+        </button>
+      )}
       {!active && (
         <button type="button" className="button" onClick={() => setConfirm("delete")}>
           Delete
         </button>
       )}
+      {rerunning && <RerunDialog wf={wf} open={rerunning} onOpenChange={setRerunning} onRerun={(p) => rerun.mutate(p)} />}
       <ConfirmDialog
         open={confirm === "stop"}
         onOpenChange={(o) => !o && setConfirm(null)}

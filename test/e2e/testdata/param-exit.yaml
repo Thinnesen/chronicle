@@ -1,0 +1,30 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: param-exit
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+    - name: code
+      value: "1"
+  templates:
+  - name: main
+    dag:
+      tasks:
+      - name: first
+        template: ok
+      - name: second
+        template: exit
+        depends: first
+  - name: ok
+    container:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: ["true"]
+  - name: exit
+    script:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      env:
+      - name: CODE
+        value: "{{workflow.parameters.code}}"
+      source: exit "$CODE"

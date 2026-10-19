@@ -24,8 +24,11 @@ type Input struct {
 	Spec *v1alpha1.WorkflowTemplateSpec
 	// Status is the status from the last run of the engine.
 	Status v1alpha1.WorkflowStatus
-	// Pods are the observed Pods, by node ID.
+	// Pods are the observed Pods, by Pod name.
 	Pods map[string]PodResult
+	// Restarts is the number of retries of the workflow. New Pods get it in their name, so that a Pod
+	// of an earlier try can never stand for a new node.
+	Restarts int32
 	// Suspend, Shutdown and Approvals are the run controls from the Workflow spec.
 	Suspend   bool
 	Shutdown  v1alpha1.ShutdownMode
@@ -285,6 +288,9 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 	case err == nil && n.Type == v1alpha1.NodePod:
 		n.Phase = v1alpha1.NodePending
 		n.PodName = n.ID
+		if e.in.Restarts > 0 {
+			n.PodName = fmt.Sprintf("%s-r%d", n.ID, e.in.Restarts)
+		}
 	case err == nil:
 		e.setPhase(&n, v1alpha1.NodeRunning, "")
 	}

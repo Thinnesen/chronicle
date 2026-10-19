@@ -24,6 +24,7 @@ export function run(phase: string, gate = false) {
       status: {
         phase,
         storedSpec: {
+          arguments: { parameters: [{ name: "day", value: "2026-10-17" }, { name: "rows", value: "all" }] },
           templates: [
             { name: "main", dag: { tasks: [{ name: "fetch" }, { name: "validate", depends: "fetch" }, { name: "train", dependencies: ["validate"] }, { name: "report", depends: "train.Succeeded" }, { name: "gate", depends: "validate" }] } },
             { name: "approve", suspend: {}, outputs: { parameters: [{ name: "env", default: "staging", description: "The environment to deploy to." }] } },
@@ -120,7 +121,14 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
       r.fulfill({ json: {} });
     });
   }
-  for (const rpc of ["SuspendWorkflow", "ResumeWorkflow", "StopWorkflow", "TerminateWorkflow", "DeleteWorkflow", "ApproveNode"]) {
+  await page.route("**/chronicle.v1.WorkflowService/RerunWorkflow", (r) => {
+    (calls.RerunWorkflow ??= []).push(r.request().postDataJSON());
+    if (opts.deny?.includes("RerunWorkflow")) {
+      return r.fulfill({ status: 403, json: { code: "permission_denied", message: "workflows is forbidden" } });
+    }
+    return r.fulfill({ json: { summary: { namespace: "team-a", name: "etl-nightly-rr001" } } });
+  });
+  for (const rpc of ["SuspendWorkflow", "ResumeWorkflow", "StopWorkflow", "TerminateWorkflow", "DeleteWorkflow", "ApproveNode", "RetryWorkflow"]) {
     await page.route(`**/chronicle.v1.WorkflowService/${rpc}`, (r) => {
       (calls[rpc] ??= []).push(r.request().postDataJSON());
       if (opts.deny?.includes(rpc)) {

@@ -8,7 +8,7 @@ import (
 
 // runPod creates the Pod of a node or mirrors the observed Pod into the node.
 func (e *engine) runPod(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1alpha1.NodeStatus {
-	pod, observed := e.in.Pods[n.ID]
+	pod, observed := e.in.Pods[n.PodName]
 	switch {
 	case observed:
 		e.applyPod(&n, pod)

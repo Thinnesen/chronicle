@@ -70,5 +70,34 @@ func cliSpecs() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(MatchRegexp(`dag-succeeds\s+Succeeded`))
 		})
+
+		It("retries and re-runs a run", func() {
+			jsonpath := func(name, path string) string {
+				out, err := utils.Run(exec.Command("kubectl", "get", "workflow", name, "-n", cliNS, "-o", "jsonpath="+path))
+				Expect(err).NotTo(HaveOccurred())
+				return out
+			}
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/param-exit.yaml", "--watch")
+			Expect(err).To(HaveOccurred(), "the run must fail: %s", out)
+			Expect(out).To(ContainSubstring("param-exit Failed"))
+
+			By("retrying the failed node, which fails again")
+			out, err = chronicle("retry", "param-exit", "--watch")
+			Expect(err).To(HaveOccurred(), out)
+			Expect(jsonpath("param-exit", "{.status.restarts}")).To(Equal("1"))
+			pods, err := utils.Run(exec.Command("kubectl", "get", "pods", "-n", cliNS, "-o", "name"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pods).To(MatchRegexp(`pod/param-exit-\d+-r1`))
+
+			By("re-running with a changed parameter")
+			out, err = chronicle("rerun", "param-exit", "-p", "code=0", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			rerun := strings.Fields(strings.TrimPrefix(strings.SplitN(out, "\n", 2)[0], "Started "+cliNS+"/"))[0]
+
+			By("retrying the new run from its second node")
+			out, err = chronicle("retry", rerun, "--node", rerun+".second", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(jsonpath(rerun, "{.status.phase}/{.status.restarts}")).To(Equal("Succeeded/1"))
+		})
 	})
 }

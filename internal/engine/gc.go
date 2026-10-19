@@ -19,9 +19,9 @@ func (e *engine) gc(status *v1alpha1.WorkflowStatus) []Action {
 		delay = p.DeleteDelayDuration.Duration
 	}
 	var actions []Action
-	for _, id := range slices.Sorted(maps.Keys(e.in.Pods)) {
-		n, ok := status.Nodes[id]
-		if !ok || !isTerminal(n.Phase) || n.FinishedAt == nil {
+	for _, id := range slices.Sorted(maps.Keys(status.Nodes)) {
+		n := status.Nodes[id]
+		if _, observed := e.in.Pods[n.PodName]; !observed || !isTerminal(n.Phase) || n.FinishedAt == nil {
 			continue
 		}
 		var since time.Time

@@ -24,7 +24,8 @@ type sim struct {
 	pods     map[string]CreatePod // by node name
 	// startStep is the step in which each Pod was created, by node name.
 	startStep map[string]int
-	deleted   []string // deleted Pod names
+	deleted   []string          // deleted Pod names
+	podNode   map[string]string // the node ID of each Pod name
 	// outputs are the Pod outputs by node name. The default is the result "out-<display name>".
 	outputs map[string]*v1alpha1.Outputs
 }
@@ -42,6 +43,7 @@ func newSim(t *testing.T, spec string, outcomes map[string]v1alpha1.NodePhase) *
 		created:   map[string]bool{},
 		pods:      map[string]CreatePod{},
 		startStep: map[string]int{},
+		podNode:   map[string]string{},
 		outputs:   map[string]*v1alpha1.Outputs{},
 	}
 }
@@ -53,13 +55,14 @@ func at(step int) metav1.Time {
 // step runs the engine once and applies its actions.
 func (s *sim) step(i int) Result {
 	s.in.Now = at(i)
-	for id, p := range s.in.Pods {
+	for name, p := range s.in.Pods {
 		if p.Phase == v1alpha1.NodeRunning {
+			id := s.podNode[name]
 			p.Phase = s.outcome(id)
 			now := s.in.Now
 			p.FinishedAt = &now
 			p.Outputs = s.podOutputs(id)
-			s.in.Pods[id] = p
+			s.in.Pods[name] = p
 		}
 	}
 	r := Run(s.in)
@@ -72,13 +75,14 @@ func (s *sim) step(i int) Result {
 		}
 		cp := a.(CreatePod)
 		s.startStep[cp.NodeName] = i
-		if s.created[cp.NodeID] {
+		if s.created[cp.PodName] {
 			s.t.Fatalf("Pod of %s created twice", cp.NodeName)
 		}
-		s.created[cp.NodeID] = true
+		s.created[cp.PodName] = true
 		s.pods[cp.NodeName] = cp
 		wave = append(wave, cp.NodeName)
-		s.in.Pods[cp.NodeID] = PodResult{Phase: v1alpha1.NodeRunning}
+		s.in.Pods[cp.PodName] = PodResult{Phase: v1alpha1.NodeRunning}
+		s.podNode[cp.PodName] = cp.NodeID
 	}
 	if len(wave) > 0 {
 		s.waves = append(s.waves, wave)

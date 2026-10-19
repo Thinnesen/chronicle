@@ -37,8 +37,12 @@ export interface Template {
 
 export interface Workflow {
   metadata: { name: string; namespace: string; creationTimestamp?: string };
-  spec: { templates?: Template[]; suspend?: boolean; shutdown?: "Stop" | "Terminate"; approvals?: { node: string }[] };
-  status?: { phase?: string; nodes?: Record<string, NodeStatus>; storedSpec?: { templates?: Template[] } };
+  spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; approvals?: { node: string }[] };
+  status?: {
+    phase?: string;
+    nodes?: Record<string, NodeStatus>;
+    storedSpec?: { templates?: Template[]; arguments?: { parameters?: Parameter[] } };
+  };
 }
 
 export interface GraphEdge {
@@ -109,4 +113,9 @@ export function nodeLabel(n: NodeStatus): string {
 export function templateOf(wf: Workflow, n: NodeStatus): Template | undefined {
   const templates = wf.status?.storedSpec?.templates ?? wf.spec.templates ?? [];
   return templates.find((t) => t.name === n.templateName);
+}
+
+// runParameters returns the workflow parameters of a run with their values.
+export function runParameters(wf: Workflow): Parameter[] {
+  return wf.status?.storedSpec?.arguments?.parameters ?? wf.spec.arguments?.parameters ?? [];
 }

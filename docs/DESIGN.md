@@ -122,8 +122,9 @@ The controller applies the actions. This makes the engine testable with table te
 ## 5. Re-run, retry and history
 
 - Retry: start the failed nodes again. Keep the succeeded nodes and their outputs.
-- Retry from a node: start again from a selected node and all nodes after it.
-- Re-run (resubmit): a new Workflow with the same spec and parameters, optionally with changed parameters.
+- Retry from a node: start again from a selected node and all nodes after it (dependent DAG tasks and later step groups, in its boundary and in each boundary above it).
+- A retry is a run control in the spec: `spec.restart: {generation, fromNode}`. The controller applies a new generation when the run has finished (pure function `engine.Restart`), deletes the old Pods and counts it in `status.restarts`. The boundaries above each reset node and the exit handler run again. New Pods have the name `<node ID>-r<restarts>`, so an old Pod that still terminates can never stand for a new node. A refused retry becomes the condition `Restarted=False`.
+- Re-run (resubmit): a new Workflow with the same spec and parameters, optionally with changed parameters. It has the label `chronicle.thinnesen.com/rerun-of` and no run controls.
 - Resume and suspend. Stop (graceful, runs exit handlers). Terminate (immediate).
 - History: each run, each node attempt, its logs and its outputs stay in the archive. The UI and the API show them.
 

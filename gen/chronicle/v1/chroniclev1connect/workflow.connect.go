@@ -58,6 +58,12 @@ const (
 	// WorkflowServiceApproveNodeProcedure is the fully-qualified name of the WorkflowService's
 	// ApproveNode RPC.
 	WorkflowServiceApproveNodeProcedure = "/chronicle.v1.WorkflowService/ApproveNode"
+	// WorkflowServiceRetryWorkflowProcedure is the fully-qualified name of the WorkflowService's
+	// RetryWorkflow RPC.
+	WorkflowServiceRetryWorkflowProcedure = "/chronicle.v1.WorkflowService/RetryWorkflow"
+	// WorkflowServiceRerunWorkflowProcedure is the fully-qualified name of the WorkflowService's
+	// RerunWorkflow RPC.
+	WorkflowServiceRerunWorkflowProcedure = "/chronicle.v1.WorkflowService/RerunWorkflow"
 	// WorkflowServiceDeleteWorkflowProcedure is the fully-qualified name of the WorkflowService's
 	// DeleteWorkflow RPC.
 	WorkflowServiceDeleteWorkflowProcedure = "/chronicle.v1.WorkflowService/DeleteWorkflow"
@@ -81,6 +87,10 @@ type WorkflowServiceClient interface {
 	TerminateWorkflow(context.Context, *connect.Request[v1.TerminateWorkflowRequest]) (*connect.Response[v1.TerminateWorkflowResponse], error)
 	// ApproveNode approves or rejects a suspend node.
 	ApproveNode(context.Context, *connect.Request[v1.ApproveNodeRequest]) (*connect.Response[v1.ApproveNodeResponse], error)
+	// RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
+	RetryWorkflow(context.Context, *connect.Request[v1.RetryWorkflowRequest]) (*connect.Response[v1.RetryWorkflowResponse], error)
+	// RerunWorkflow starts a new run with the spec of a run, optionally with changed parameters.
+	RerunWorkflow(context.Context, *connect.Request[v1.RerunWorkflowRequest]) (*connect.Response[v1.RerunWorkflowResponse], error)
 	// DeleteWorkflow deletes a run and its Pods.
 	DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error)
 }
@@ -146,6 +156,18 @@ func NewWorkflowServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(workflowServiceMethods.ByName("ApproveNode")),
 			connect.WithClientOptions(opts...),
 		),
+		retryWorkflow: connect.NewClient[v1.RetryWorkflowRequest, v1.RetryWorkflowResponse](
+			httpClient,
+			baseURL+WorkflowServiceRetryWorkflowProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("RetryWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
+		rerunWorkflow: connect.NewClient[v1.RerunWorkflowRequest, v1.RerunWorkflowResponse](
+			httpClient,
+			baseURL+WorkflowServiceRerunWorkflowProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("RerunWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 		deleteWorkflow: connect.NewClient[v1.DeleteWorkflowRequest, v1.DeleteWorkflowResponse](
 			httpClient,
 			baseURL+WorkflowServiceDeleteWorkflowProcedure,
@@ -165,6 +187,8 @@ type workflowServiceClient struct {
 	stopWorkflow      *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 	terminateWorkflow *connect.Client[v1.TerminateWorkflowRequest, v1.TerminateWorkflowResponse]
 	approveNode       *connect.Client[v1.ApproveNodeRequest, v1.ApproveNodeResponse]
+	retryWorkflow     *connect.Client[v1.RetryWorkflowRequest, v1.RetryWorkflowResponse]
+	rerunWorkflow     *connect.Client[v1.RerunWorkflowRequest, v1.RerunWorkflowResponse]
 	deleteWorkflow    *connect.Client[v1.DeleteWorkflowRequest, v1.DeleteWorkflowResponse]
 }
 
@@ -208,6 +232,16 @@ func (c *workflowServiceClient) ApproveNode(ctx context.Context, req *connect.Re
 	return c.approveNode.CallUnary(ctx, req)
 }
 
+// RetryWorkflow calls chronicle.v1.WorkflowService.RetryWorkflow.
+func (c *workflowServiceClient) RetryWorkflow(ctx context.Context, req *connect.Request[v1.RetryWorkflowRequest]) (*connect.Response[v1.RetryWorkflowResponse], error) {
+	return c.retryWorkflow.CallUnary(ctx, req)
+}
+
+// RerunWorkflow calls chronicle.v1.WorkflowService.RerunWorkflow.
+func (c *workflowServiceClient) RerunWorkflow(ctx context.Context, req *connect.Request[v1.RerunWorkflowRequest]) (*connect.Response[v1.RerunWorkflowResponse], error) {
+	return c.rerunWorkflow.CallUnary(ctx, req)
+}
+
 // DeleteWorkflow calls chronicle.v1.WorkflowService.DeleteWorkflow.
 func (c *workflowServiceClient) DeleteWorkflow(ctx context.Context, req *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error) {
 	return c.deleteWorkflow.CallUnary(ctx, req)
@@ -231,6 +265,10 @@ type WorkflowServiceHandler interface {
 	TerminateWorkflow(context.Context, *connect.Request[v1.TerminateWorkflowRequest]) (*connect.Response[v1.TerminateWorkflowResponse], error)
 	// ApproveNode approves or rejects a suspend node.
 	ApproveNode(context.Context, *connect.Request[v1.ApproveNodeRequest]) (*connect.Response[v1.ApproveNodeResponse], error)
+	// RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
+	RetryWorkflow(context.Context, *connect.Request[v1.RetryWorkflowRequest]) (*connect.Response[v1.RetryWorkflowResponse], error)
+	// RerunWorkflow starts a new run with the spec of a run, optionally with changed parameters.
+	RerunWorkflow(context.Context, *connect.Request[v1.RerunWorkflowRequest]) (*connect.Response[v1.RerunWorkflowResponse], error)
 	// DeleteWorkflow deletes a run and its Pods.
 	DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error)
 }
@@ -292,6 +330,18 @@ func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.Handl
 		connect.WithSchema(workflowServiceMethods.ByName("ApproveNode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workflowServiceRetryWorkflowHandler := connect.NewUnaryHandler(
+		WorkflowServiceRetryWorkflowProcedure,
+		svc.RetryWorkflow,
+		connect.WithSchema(workflowServiceMethods.ByName("RetryWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceRerunWorkflowHandler := connect.NewUnaryHandler(
+		WorkflowServiceRerunWorkflowProcedure,
+		svc.RerunWorkflow,
+		connect.WithSchema(workflowServiceMethods.ByName("RerunWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workflowServiceDeleteWorkflowHandler := connect.NewUnaryHandler(
 		WorkflowServiceDeleteWorkflowProcedure,
 		svc.DeleteWorkflow,
@@ -316,6 +366,10 @@ func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.Handl
 			workflowServiceTerminateWorkflowHandler.ServeHTTP(w, r)
 		case WorkflowServiceApproveNodeProcedure:
 			workflowServiceApproveNodeHandler.ServeHTTP(w, r)
+		case WorkflowServiceRetryWorkflowProcedure:
+			workflowServiceRetryWorkflowHandler.ServeHTTP(w, r)
+		case WorkflowServiceRerunWorkflowProcedure:
+			workflowServiceRerunWorkflowHandler.ServeHTTP(w, r)
 		case WorkflowServiceDeleteWorkflowProcedure:
 			workflowServiceDeleteWorkflowHandler.ServeHTTP(w, r)
 		default:
@@ -357,6 +411,14 @@ func (UnimplementedWorkflowServiceHandler) TerminateWorkflow(context.Context, *c
 
 func (UnimplementedWorkflowServiceHandler) ApproveNode(context.Context, *connect.Request[v1.ApproveNodeRequest]) (*connect.Response[v1.ApproveNodeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.WorkflowService.ApproveNode is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) RetryWorkflow(context.Context, *connect.Request[v1.RetryWorkflowRequest]) (*connect.Response[v1.RetryWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.WorkflowService.RetryWorkflow is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) RerunWorkflow(context.Context, *connect.Request[v1.RerunWorkflowRequest]) (*connect.Response[v1.RerunWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.WorkflowService.RerunWorkflow is not implemented"))
 }
 
 func (UnimplementedWorkflowServiceHandler) DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error) {

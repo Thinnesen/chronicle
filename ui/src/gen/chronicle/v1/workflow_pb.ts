@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file chronicle/v1/workflow.proto.
  */
 export const file_chronicle_v1_workflow: GenFile = /*@__PURE__*/
-  fileDesc("ChtjaHJvbmljbGUvdjEvd29ya2Zsb3cucHJvdG8SDGNocm9uaWNsZS52MSKVAwoPV29ya2Zsb3dTdW1tYXJ5EhEKCW5hbWVzcGFjZRgBIAEoCRIMCgRuYW1lGAIgASgJEgsKA3VpZBgDIAEoCRINCgVwaGFzZRgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnN0YXJ0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC2ZpbmlzaGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI5CgZsYWJlbHMYCSADKAsyKS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5LkxhYmVsc0VudHJ5EhAKCHRlbXBsYXRlGAogASgJEhIKCm5vZGVzX2RvbmUYCyABKAUSEwoLbm9kZXNfdG90YWwYDCABKAUaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJ0ChRMaXN0V29ya2Zsb3dzUmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSFgoObGFiZWxfc2VsZWN0b3IYAiABKAkSDgoGcGhhc2VzGAMgAygJEg0KBWxpbWl0GAQgASgFEhIKCnBhZ2VfdG9rZW4YBSABKAkiYgoVTGlzdFdvcmtmbG93c1Jlc3BvbnNlEjAKCXdvcmtmbG93cxgBIAMoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIjUKEkdldFdvcmtmbG93UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDAoEbmFtZRgCIAEoCSJwChNHZXRXb3JrZmxvd1Jlc3BvbnNlEi4KB3N1bW1hcnkYASABKAsyHS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5EikKCHdvcmtmbG93GAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCL/AgoVU3VibWl0V29ya2Zsb3dSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIrCgh3b3JrZmxvdxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RIABIwCgh0ZW1wbGF0ZRgDIAEoCzIcLmNocm9uaWNsZS52MS5UZW1wbGF0ZVNvdXJjZUgAEkcKCnBhcmFtZXRlcnMYBCADKAsyMy5jaHJvbmljbGUudjEuU3VibWl0V29ya2Zsb3dSZXF1ZXN0LlBhcmFtZXRlcnNFbnRyeRI/CgZsYWJlbHMYBSADKAsyLy5jaHJvbmljbGUudjEuU3VibWl0V29ya2Zsb3dSZXF1ZXN0LkxhYmVsc0VudHJ5GjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCCAoGc291cmNlIkwKDlRlbXBsYXRlU291cmNlEgwKBG5hbWUYASABKAkSFQoNY2x1c3Rlcl9zY29wZRgCIAEoCBIVCg1nZW5lcmF0ZV9uYW1lGAMgASgJIkgKFlN1Ym1pdFdvcmtmbG93UmVzcG9uc2USLgoHc3VtbWFyeRgBIAEoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkiOQoWU3VzcGVuZFdvcmtmbG93UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDAoEbmFtZRgCIAEoCSJJChdTdXNwZW5kV29ya2Zsb3dSZXNwb25zZRIuCgdzdW1tYXJ5GAEgASgLMh0uY2hyb25pY2xlLnYxLldvcmtmbG93U3VtbWFyeSI4ChVSZXN1bWVXb3JrZmxvd1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgwKBG5hbWUYAiABKAkiSAoWUmVzdW1lV29ya2Zsb3dSZXNwb25zZRIuCgdzdW1tYXJ5GAEgASgLMh0uY2hyb25pY2xlLnYxLldvcmtmbG93U3VtbWFyeSI2ChNTdG9wV29ya2Zsb3dSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIMCgRuYW1lGAIgASgJIkYKFFN0b3BXb3JrZmxvd1Jlc3BvbnNlEi4KB3N1bW1hcnkYASABKAsyHS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5IjsKGFRlcm1pbmF0ZVdvcmtmbG93UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDAoEbmFtZRgCIAEoCSJLChlUZXJtaW5hdGVXb3JrZmxvd1Jlc3BvbnNlEi4KB3N1bW1hcnkYASABKAsyHS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5It4BChJBcHByb3ZlTm9kZVJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEbm9kZRgDIAEoCRIPCgdhcHByb3ZlGAQgASgIEkQKCnBhcmFtZXRlcnMYBSADKAsyMC5jaHJvbmljbGUudjEuQXBwcm92ZU5vZGVSZXF1ZXN0LlBhcmFtZXRlcnNFbnRyeRIPCgdtZXNzYWdlGAYgASgJGjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkUKE0FwcHJvdmVOb2RlUmVzcG9uc2USLgoHc3VtbWFyeRgBIAEoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkiOAoVRGVsZXRlV29ya2Zsb3dSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIMCgRuYW1lGAIgASgJIhgKFkRlbGV0ZVdvcmtmbG93UmVzcG9uc2Uy0QYKD1dvcmtmbG93U2VydmljZRJdCg1MaXN0V29ya2Zsb3dzEiIuY2hyb25pY2xlLnYxLkxpc3RXb3JrZmxvd3NSZXF1ZXN0GiMuY2hyb25pY2xlLnYxLkxpc3RXb3JrZmxvd3NSZXNwb25zZSIDkAIBElcKC0dldFdvcmtmbG93EiAuY2hyb25pY2xlLnYxLkdldFdvcmtmbG93UmVxdWVzdBohLmNocm9uaWNsZS52MS5HZXRXb3JrZmxvd1Jlc3BvbnNlIgOQAgESWwoOU3VibWl0V29ya2Zsb3cSIy5jaHJvbmljbGUudjEuU3VibWl0V29ya2Zsb3dSZXF1ZXN0GiQuY2hyb25pY2xlLnYxLlN1Ym1pdFdvcmtmbG93UmVzcG9uc2USXgoPU3VzcGVuZFdvcmtmbG93EiQuY2hyb25pY2xlLnYxLlN1c3BlbmRXb3JrZmxvd1JlcXVlc3QaJS5jaHJvbmljbGUudjEuU3VzcGVuZFdvcmtmbG93UmVzcG9uc2USWwoOUmVzdW1lV29ya2Zsb3cSIy5jaHJvbmljbGUudjEuUmVzdW1lV29ya2Zsb3dSZXF1ZXN0GiQuY2hyb25pY2xlLnYxLlJlc3VtZVdvcmtmbG93UmVzcG9uc2USVQoMU3RvcFdvcmtmbG93EiEuY2hyb25pY2xlLnYxLlN0b3BXb3JrZmxvd1JlcXVlc3QaIi5jaHJvbmljbGUudjEuU3RvcFdvcmtmbG93UmVzcG9uc2USZAoRVGVybWluYXRlV29ya2Zsb3cSJi5jaHJvbmljbGUudjEuVGVybWluYXRlV29ya2Zsb3dSZXF1ZXN0GicuY2hyb25pY2xlLnYxLlRlcm1pbmF0ZVdvcmtmbG93UmVzcG9uc2USUgoLQXBwcm92ZU5vZGUSIC5jaHJvbmljbGUudjEuQXBwcm92ZU5vZGVSZXF1ZXN0GiEuY2hyb25pY2xlLnYxLkFwcHJvdmVOb2RlUmVzcG9uc2USWwoORGVsZXRlV29ya2Zsb3cSIy5jaHJvbmljbGUudjEuRGVsZXRlV29ya2Zsb3dSZXF1ZXN0GiQuY2hyb25pY2xlLnYxLkRlbGV0ZVdvcmtmbG93UmVzcG9uc2VCPVo7Z2l0aHViLmNvbS9UaGlubmVzZW4vY2hyb25pY2xlL2dlbi9jaHJvbmljbGUvdjE7Y2hyb25pY2xldjFiBnByb3RvMw", [file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("ChtjaHJvbmljbGUvdjEvd29ya2Zsb3cucHJvdG8SDGNocm9uaWNsZS52MSKVAwoPV29ya2Zsb3dTdW1tYXJ5EhEKCW5hbWVzcGFjZRgBIAEoCRIMCgRuYW1lGAIgASgJEgsKA3VpZBgDIAEoCRINCgVwaGFzZRgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnN0YXJ0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC2ZpbmlzaGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI5CgZsYWJlbHMYCSADKAsyKS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5LkxhYmVsc0VudHJ5EhAKCHRlbXBsYXRlGAogASgJEhIKCm5vZGVzX2RvbmUYCyABKAUSEwoLbm9kZXNfdG90YWwYDCABKAUaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJ0ChRMaXN0V29ya2Zsb3dzUmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSFgoObGFiZWxfc2VsZWN0b3IYAiABKAkSDgoGcGhhc2VzGAMgAygJEg0KBWxpbWl0GAQgASgFEhIKCnBhZ2VfdG9rZW4YBSABKAkiYgoVTGlzdFdvcmtmbG93c1Jlc3BvbnNlEjAKCXdvcmtmbG93cxgBIAMoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIjUKEkdldFdvcmtmbG93UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDAoEbmFtZRgCIAEoCSJwChNHZXRXb3JrZmxvd1Jlc3BvbnNlEi4KB3N1bW1hcnkYASABKAsyHS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5EikKCHdvcmtmbG93GAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCL/AgoVU3VibWl0V29ya2Zsb3dSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIrCgh3b3JrZmxvdxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RIABIwCgh0ZW1wbGF0ZRgDIAEoCzIcLmNocm9uaWNsZS52MS5UZW1wbGF0ZVNvdXJjZUgAEkcKCnBhcmFtZXRlcnMYBCADKAsyMy5jaHJvbmljbGUudjEuU3VibWl0V29ya2Zsb3dSZXF1ZXN0LlBhcmFtZXRlcnNFbnRyeRI/CgZsYWJlbHMYBSADKAsyLy5jaHJvbmljbGUudjEuU3VibWl0V29ya2Zsb3dSZXF1ZXN0LkxhYmVsc0VudHJ5GjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCCAoGc291cmNlIkwKDlRlbXBsYXRlU291cmNlEgwKBG5hbWUYASABKAkSFQoNY2x1c3Rlcl9zY29wZRgCIAEoCBIVCg1nZW5lcmF0ZV9uYW1lGAMgASgJIkgKFlN1Ym1pdFdvcmtmbG93UmVzcG9uc2USLgoHc3VtbWFyeRgBIAEoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkiOQoWU3VzcGVuZFdvcmtmbG93UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDAoEbmFtZRgCIAEoCSJJChdTdXNwZW5kV29ya2Zsb3dSZXNwb25zZRIuCgdzdW1tYXJ5GAEgASgLMh0uY2hyb25pY2xlLnYxLldvcmtmbG93U3VtbWFyeSI4ChVSZXN1bWVXb3JrZmxvd1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgwKBG5hbWUYAiABKAkiSAoWUmVzdW1lV29ya2Zsb3dSZXNwb25zZRIuCgdzdW1tYXJ5GAEgASgLMh0uY2hyb25pY2xlLnYxLldvcmtmbG93U3VtbWFyeSI2ChNTdG9wV29ya2Zsb3dSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIMCgRuYW1lGAIgASgJIkYKFFN0b3BXb3JrZmxvd1Jlc3BvbnNlEi4KB3N1bW1hcnkYASABKAsyHS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5IjsKGFRlcm1pbmF0ZVdvcmtmbG93UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSDAoEbmFtZRgCIAEoCSJLChlUZXJtaW5hdGVXb3JrZmxvd1Jlc3BvbnNlEi4KB3N1bW1hcnkYASABKAsyHS5jaHJvbmljbGUudjEuV29ya2Zsb3dTdW1tYXJ5It4BChJBcHByb3ZlTm9kZVJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEbm9kZRgDIAEoCRIPCgdhcHByb3ZlGAQgASgIEkQKCnBhcmFtZXRlcnMYBSADKAsyMC5jaHJvbmljbGUudjEuQXBwcm92ZU5vZGVSZXF1ZXN0LlBhcmFtZXRlcnNFbnRyeRIPCgdtZXNzYWdlGAYgASgJGjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkUKE0FwcHJvdmVOb2RlUmVzcG9uc2USLgoHc3VtbWFyeRgBIAEoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkiRQoUUmV0cnlXb3JrZmxvd1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEbm9kZRgDIAEoCSJHChVSZXRyeVdvcmtmbG93UmVzcG9uc2USLgoHc3VtbWFyeRgBIAEoCzIdLmNocm9uaWNsZS52MS5Xb3JrZmxvd1N1bW1hcnkisgEKFFJlcnVuV29ya2Zsb3dSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIMCgRuYW1lGAIgASgJEkYKCnBhcmFtZXRlcnMYAyADKAsyMi5jaHJvbmljbGUudjEuUmVydW5Xb3JrZmxvd1JlcXVlc3QuUGFyYW1ldGVyc0VudHJ5GjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkcKFVJlcnVuV29ya2Zsb3dSZXNwb25zZRIuCgdzdW1tYXJ5GAEgASgLMh0uY2hyb25pY2xlLnYxLldvcmtmbG93U3VtbWFyeSI4ChVEZWxldGVXb3JrZmxvd1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEgwKBG5hbWUYAiABKAkiGAoWRGVsZXRlV29ya2Zsb3dSZXNwb25zZTKFCAoPV29ya2Zsb3dTZXJ2aWNlEl0KDUxpc3RXb3JrZmxvd3MSIi5jaHJvbmljbGUudjEuTGlzdFdvcmtmbG93c1JlcXVlc3QaIy5jaHJvbmljbGUudjEuTGlzdFdvcmtmbG93c1Jlc3BvbnNlIgOQAgESVwoLR2V0V29ya2Zsb3cSIC5jaHJvbmljbGUudjEuR2V0V29ya2Zsb3dSZXF1ZXN0GiEuY2hyb25pY2xlLnYxLkdldFdvcmtmbG93UmVzcG9uc2UiA5ACARJbCg5TdWJtaXRXb3JrZmxvdxIjLmNocm9uaWNsZS52MS5TdWJtaXRXb3JrZmxvd1JlcXVlc3QaJC5jaHJvbmljbGUudjEuU3VibWl0V29ya2Zsb3dSZXNwb25zZRJeCg9TdXNwZW5kV29ya2Zsb3cSJC5jaHJvbmljbGUudjEuU3VzcGVuZFdvcmtmbG93UmVxdWVzdBolLmNocm9uaWNsZS52MS5TdXNwZW5kV29ya2Zsb3dSZXNwb25zZRJbCg5SZXN1bWVXb3JrZmxvdxIjLmNocm9uaWNsZS52MS5SZXN1bWVXb3JrZmxvd1JlcXVlc3QaJC5jaHJvbmljbGUudjEuUmVzdW1lV29ya2Zsb3dSZXNwb25zZRJVCgxTdG9wV29ya2Zsb3cSIS5jaHJvbmljbGUudjEuU3RvcFdvcmtmbG93UmVxdWVzdBoiLmNocm9uaWNsZS52MS5TdG9wV29ya2Zsb3dSZXNwb25zZRJkChFUZXJtaW5hdGVXb3JrZmxvdxImLmNocm9uaWNsZS52MS5UZXJtaW5hdGVXb3JrZmxvd1JlcXVlc3QaJy5jaHJvbmljbGUudjEuVGVybWluYXRlV29ya2Zsb3dSZXNwb25zZRJSCgtBcHByb3ZlTm9kZRIgLmNocm9uaWNsZS52MS5BcHByb3ZlTm9kZVJlcXVlc3QaIS5jaHJvbmljbGUudjEuQXBwcm92ZU5vZGVSZXNwb25zZRJYCg1SZXRyeVdvcmtmbG93EiIuY2hyb25pY2xlLnYxLlJldHJ5V29ya2Zsb3dSZXF1ZXN0GiMuY2hyb25pY2xlLnYxLlJldHJ5V29ya2Zsb3dSZXNwb25zZRJYCg1SZXJ1bldvcmtmbG93EiIuY2hyb25pY2xlLnYxLlJlcnVuV29ya2Zsb3dSZXF1ZXN0GiMuY2hyb25pY2xlLnYxLlJlcnVuV29ya2Zsb3dSZXNwb25zZRJbCg5EZWxldGVXb3JrZmxvdxIjLmNocm9uaWNsZS52MS5EZWxldGVXb3JrZmxvd1JlcXVlc3QaJC5jaHJvbmljbGUudjEuRGVsZXRlV29ya2Zsb3dSZXNwb25zZUI9WjtnaXRodWIuY29tL1RoaW5uZXNlbi9jaHJvbmljbGUvZ2VuL2Nocm9uaWNsZS92MTtjaHJvbmljbGV2MWIGcHJvdG8z", [file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * WorkflowSummary is the short form of a run, for lists.
@@ -531,6 +531,98 @@ export const ApproveNodeResponseSchema: GenMessage<ApproveNodeResponse> = /*@__P
   messageDesc(file_chronicle_v1_workflow, 17);
 
 /**
+ * @generated from message chronicle.v1.RetryWorkflowRequest
+ */
+export type RetryWorkflowRequest = Message<"chronicle.v1.RetryWorkflowRequest"> & {
+  /**
+   * @generated from field: string namespace = 1;
+   */
+  namespace: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * node is the ID or the name of the node to retry from. Empty retries the nodes that failed.
+   *
+   * @generated from field: string node = 3;
+   */
+  node: string;
+};
+
+/**
+ * Describes the message chronicle.v1.RetryWorkflowRequest.
+ * Use `create(RetryWorkflowRequestSchema)` to create a new message.
+ */
+export const RetryWorkflowRequestSchema: GenMessage<RetryWorkflowRequest> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_workflow, 18);
+
+/**
+ * @generated from message chronicle.v1.RetryWorkflowResponse
+ */
+export type RetryWorkflowResponse = Message<"chronicle.v1.RetryWorkflowResponse"> & {
+  /**
+   * @generated from field: chronicle.v1.WorkflowSummary summary = 1;
+   */
+  summary?: WorkflowSummary | undefined;
+};
+
+/**
+ * Describes the message chronicle.v1.RetryWorkflowResponse.
+ * Use `create(RetryWorkflowResponseSchema)` to create a new message.
+ */
+export const RetryWorkflowResponseSchema: GenMessage<RetryWorkflowResponse> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_workflow, 19);
+
+/**
+ * @generated from message chronicle.v1.RerunWorkflowRequest
+ */
+export type RerunWorkflowRequest = Message<"chronicle.v1.RerunWorkflowRequest"> & {
+  /**
+   * @generated from field: string namespace = 1;
+   */
+  namespace: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * parameters change workflow parameters by name. The others keep their values.
+   *
+   * @generated from field: map<string, string> parameters = 3;
+   */
+  parameters: { [key: string]: string };
+};
+
+/**
+ * Describes the message chronicle.v1.RerunWorkflowRequest.
+ * Use `create(RerunWorkflowRequestSchema)` to create a new message.
+ */
+export const RerunWorkflowRequestSchema: GenMessage<RerunWorkflowRequest> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_workflow, 20);
+
+/**
+ * @generated from message chronicle.v1.RerunWorkflowResponse
+ */
+export type RerunWorkflowResponse = Message<"chronicle.v1.RerunWorkflowResponse"> & {
+  /**
+   * @generated from field: chronicle.v1.WorkflowSummary summary = 1;
+   */
+  summary?: WorkflowSummary | undefined;
+};
+
+/**
+ * Describes the message chronicle.v1.RerunWorkflowResponse.
+ * Use `create(RerunWorkflowResponseSchema)` to create a new message.
+ */
+export const RerunWorkflowResponseSchema: GenMessage<RerunWorkflowResponse> = /*@__PURE__*/
+  messageDesc(file_chronicle_v1_workflow, 21);
+
+/**
  * @generated from message chronicle.v1.DeleteWorkflowRequest
  */
 export type DeleteWorkflowRequest = Message<"chronicle.v1.DeleteWorkflowRequest"> & {
@@ -550,7 +642,7 @@ export type DeleteWorkflowRequest = Message<"chronicle.v1.DeleteWorkflowRequest"
  * Use `create(DeleteWorkflowRequestSchema)` to create a new message.
  */
 export const DeleteWorkflowRequestSchema: GenMessage<DeleteWorkflowRequest> = /*@__PURE__*/
-  messageDesc(file_chronicle_v1_workflow, 18);
+  messageDesc(file_chronicle_v1_workflow, 22);
 
 /**
  * @generated from message chronicle.v1.DeleteWorkflowResponse
@@ -563,7 +655,7 @@ export type DeleteWorkflowResponse = Message<"chronicle.v1.DeleteWorkflowRespons
  * Use `create(DeleteWorkflowResponseSchema)` to create a new message.
  */
 export const DeleteWorkflowResponseSchema: GenMessage<DeleteWorkflowResponse> = /*@__PURE__*/
-  messageDesc(file_chronicle_v1_workflow, 19);
+  messageDesc(file_chronicle_v1_workflow, 23);
 
 /**
  * WorkflowService lists, gets, submits and controls workflow runs.
@@ -650,6 +742,26 @@ export const WorkflowService: GenService<{
     methodKind: "unary";
     input: typeof ApproveNodeRequestSchema;
     output: typeof ApproveNodeResponseSchema;
+  },
+  /**
+   * RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
+   *
+   * @generated from rpc chronicle.v1.WorkflowService.RetryWorkflow
+   */
+  retryWorkflow: {
+    methodKind: "unary";
+    input: typeof RetryWorkflowRequestSchema;
+    output: typeof RetryWorkflowResponseSchema;
+  },
+  /**
+   * RerunWorkflow starts a new run with the spec of a run, optionally with changed parameters.
+   *
+   * @generated from rpc chronicle.v1.WorkflowService.RerunWorkflow
+   */
+  rerunWorkflow: {
+    methodKind: "unary";
+    input: typeof RerunWorkflowRequestSchema;
+    output: typeof RerunWorkflowResponseSchema;
   },
   /**
    * DeleteWorkflow deletes a run and its Pods.

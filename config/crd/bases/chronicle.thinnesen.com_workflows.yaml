@@ -239,6 +239,24 @@ spec:
                 required:
                 - strategy
                 type: object
+              restart:
+                description: restart asks for a retry of a finished run. Raise generation
+                  to retry again.
+                properties:
+                  fromNode:
+                    description: fromNode is the ID or the name of the node to retry
+                      from. Empty retries the nodes that failed.
+                    maxLength: 1024
+                    type: string
+                  generation:
+                    description: generation counts the retries. The controller retries
+                      when it is higher than status.restarts.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                required:
+                - generation
+                type: object
               serviceAccountName:
                 description: serviceAccountName is the service account of the workflow
                   Pods.
@@ -1729,6 +1747,11 @@ spec:
                 - Error
                 - Suspended
                 type: string
+              restarts:
+                description: restarts is the number of retries that the controller
+                  made.
+                format: int32
+                type: integer
               startedAt:
                 description: startedAt is the time when the workflow started.
                 format: date-time

@@ -1,4 +1,11 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+
+import { workflows } from "../api/client";
+import { actionError } from "../lib/errors";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { useCanEdit } from "./RunActions";
+import { useToast } from "./Toast";
 
 import { clock, duration } from "../lib/time";
 import { nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
@@ -60,11 +67,45 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
         ))}
       </div>
       <div role="tabpanel" id={`view-${tab}`} aria-labelledby={`tab-${tab}`} className="tab-view">
-        {tab === "details" && <Details node={node} />}
+        {tab === "details" && (
+          <>
+            <RetryFromNode wf={wf} node={node} />
+            <Details node={node} />
+          </>
+        )}
         {tab === "logs" && <LogView namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
         {tab === "attempts" && retry && <Attempts retry={retry} nodes={nodes} current={node.id} onSelect={onSelect} />}
       </div>
     </aside>
+  );
+}
+
+// RetryFromNode runs a node and all nodes after it again, in a finished run.
+function RetryFromNode({ wf, node }: { wf: Workflow; node: NodeStatus }) {
+  const { name, namespace } = wf.metadata;
+  const canEdit = useCanEdit(namespace);
+  const toast = useToast();
+  const client = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const retry = useMutation({
+    mutationFn: () => workflows.retryWorkflow({ namespace, name, node: node.id }),
+    onSuccess: () => {
+      toast(`Retrying ${name} from ${nodeLabel(node)}`);
+      void client.invalidateQueries({ queryKey: ["run", namespace, name] });
+    },
+    onError: (err) => toast(actionError("retry runs", namespace, err), "error"),
+  });
+  const done = ["Succeeded", "Failed", "Error"].includes(wf.status?.phase ?? "");
+  if (!canEdit || !done) return null;
+  return (
+    <>
+      <button type="button" className="button" onClick={() => setOpen(true)} disabled={retry.isPending}>
+        Retry from this node
+      </button>
+      <ConfirmDialog open={open} onOpenChange={setOpen} title={`Retry from ${nodeLabel(node)}?`} confirm="Retry" onConfirm={() => retry.mutate()}>
+        This node and all nodes after it run again. The nodes before it keep their results.
+      </ConfirmDialog>
+    </>
   );
 }
 

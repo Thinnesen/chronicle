@@ -194,6 +194,46 @@ templates:
 		Expect(wf.Status.Message).To(ContainSubstring(`ClusterWorkflowTemplate "nope"`))
 	})
 
+	It("retries the failed nodes of a finished run", func() {
+		key := create("entrypoint: main\ntemplates:\n- {name: main, dag: {tasks: [{name: a, template: c}, {name: b, template: c, depends: a}]}}\n- {name: c, container: {image: alpine, command: ['true']}}")
+		wf := reconcileOnce(key)
+		first := pods(wf)[0]
+		finish(&first, 1, executor.Message{})
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowFailed))
+
+		By("asking for a retry")
+		wf.Spec.Restart = &chroniclev1alpha1.Restart{Generation: 1}
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Restarts).To(Equal(int32(1)))
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		list := pods(wf)
+		Expect(list).To(HaveLen(1))
+		Expect(list[0].Name).To(HaveSuffix("-r1"))
+
+		retried := list[0]
+		finish(&retried, 0, executor.Message{})
+		wf = reconcileOnce(key)
+		next := pods(wf)
+		Expect(next).To(HaveLen(2))
+		for i := range next {
+			if next[i].Name != retried.Name {
+				finish(&next[i], 0, executor.Message{})
+			}
+		}
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+
+		By("refusing a retry without a failed node")
+		wf.Spec.Restart = &chroniclev1alpha1.Restart{Generation: 2}
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Restarts).To(Equal(int32(2)))
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+		Expect(wf.Status.Conditions).To(ContainElement(HaveField("Message", ContainSubstring("no node failed"))))
+	})
+
 	It("runs a container without a command directly", func() {
 		key := create("entrypoint: c\ntemplates:\n- {name: c, container: {image: alpine, args: [x]}}")
 		wf := reconcileOnce(key)

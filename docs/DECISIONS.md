@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-18: A retry is the spec field `restart` with a generation, and retried Pods get a generation suffix in their name. Reason: the same mechanism for kubectl, GitOps, the CLI and the UI; the status stays controller-owned; and a new Pod can never be confused with a terminating Pod of the same node. Argo resets the nodes through its own API and reuses Pod names.
+
 - 2026-10-18: The API carries Workflows as JSON objects (`google.protobuf.Struct`), not as protobuf copies of the CRD types. SDK workflow types come from the CRD schema. Reason: one definition of a workflow (the Go types and the CRD). Section 2 said "SDKs generated from the protobuf API"; now only the API clients are.
 - 2026-10-18: The server impersonates the caller for every Kubernetes call, reads included, and has no unauthenticated mode. Reason: the threat model (no server-side privilege for user actions). The cost is one API client per request.
 

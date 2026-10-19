@@ -22,12 +22,29 @@ type WorkflowSpec struct {
 	// +optional
 	Shutdown ShutdownMode `json:"shutdown,omitempty"`
 
+	// restart asks for a retry of a finished run. Raise generation to retry again.
+	// +optional
+	Restart *Restart `json:"restart,omitempty"`
+
 	// approvals are the decisions for suspend nodes.
 	// +listType=map
 	// +listMapKey=node
 	// +kubebuilder:validation:MaxItems=500
 	// +optional
 	Approvals []Approval `json:"approvals,omitempty"`
+}
+
+// Restart is a request to retry a finished run.
+type Restart struct {
+	// generation counts the retries. The controller retries when it is higher than status.restarts.
+	// +kubebuilder:validation:Minimum=1
+	// +required
+	Generation int32 `json:"generation"`
+
+	// fromNode is the ID or the name of the node to retry from. Empty retries the nodes that failed.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	FromNode string `json:"fromNode,omitempty"`
 }
 
 // ShutdownMode is a way to stop a workflow.
@@ -119,6 +136,10 @@ type WorkflowStatus struct {
 	// message tells why the workflow is in this phase.
 	// +optional
 	Message string `json:"message,omitempty"`
+
+	// restarts is the number of retries that the controller made.
+	// +optional
+	Restarts int32 `json:"restarts,omitempty"`
 
 	// storedSpec is the resolved spec of a workflow that uses workflowTemplateRef or templateRef.
 	// The controller resolves the references once, so later template changes do not change the run.

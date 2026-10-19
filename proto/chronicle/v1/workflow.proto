@@ -30,6 +30,10 @@ service WorkflowService {
   rpc TerminateWorkflow(TerminateWorkflowRequest) returns (TerminateWorkflowResponse);
   // ApproveNode approves or rejects a suspend node.
   rpc ApproveNode(ApproveNodeRequest) returns (ApproveNodeResponse);
+  // RetryWorkflow runs the failed nodes of a finished run again, or a node and all nodes after it.
+  rpc RetryWorkflow(RetryWorkflowRequest) returns (RetryWorkflowResponse);
+  // RerunWorkflow starts a new run with the spec of a run, optionally with changed parameters.
+  rpc RerunWorkflow(RerunWorkflowRequest) returns (RerunWorkflowResponse);
   // DeleteWorkflow deletes a run and its Pods.
   rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse);
 }
@@ -156,6 +160,28 @@ message ApproveNodeRequest {
 }
 
 message ApproveNodeResponse {
+  WorkflowSummary summary = 1;
+}
+
+message RetryWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+  // node is the ID or the name of the node to retry from. Empty retries the nodes that failed.
+  string node = 3;
+}
+
+message RetryWorkflowResponse {
+  WorkflowSummary summary = 1;
+}
+
+message RerunWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+  // parameters change workflow parameters by name. The others keep their values.
+  map<string, string> parameters = 3;
+}
+
+message RerunWorkflowResponse {
   WorkflowSummary summary = 1;
 }
 

@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,13 +49,17 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	observed := wf.Status.DeepCopy()
+	if err := r.restart(ctx, &wf, spec); err != nil {
+		return ctrl.Result{}, err
+	}
 	pods, err := r.observePods(ctx, &wf)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	res := engine.Run(engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
-		Spec: spec, Status: wf.Status, Pods: pods, Now: metav1.Now(),
+		Spec: spec, Status: wf.Status, Pods: pods, Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,
 	})
 	for _, a := range res.Actions {
@@ -63,10 +68,10 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
-	if equality.Semantic.DeepEqual(wf.Status, res.Status) {
+	if equality.Semantic.DeepEqual(*observed, res.Status) {
 		return r.applyTTL(ctx, &wf, result)
 	}
-	if res.Status.Phase != wf.Status.Phase {
+	if res.Status.Phase != observed.Phase {
 		log.Info("Workflow phase changed", "phase", res.Status.Phase)
 	}
 	wf.Status = res.Status
@@ -101,6 +106,38 @@ func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1
 		return ctrl.Result{}, fmt.Errorf("delete the workflow after its TTL: %w", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+// restart applies a new retry request of a finished run: it resets the nodes and deletes their Pods.
+// A refused retry becomes the condition Restarted=False, so that it does not repeat.
+func (r *WorkflowReconciler) restart(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec) error {
+	rs := wf.Spec.Restart
+	if rs == nil || rs.Generation <= wf.Status.Restarts || !finished(wf.Status.Phase) {
+		return nil
+	}
+	st, pods, err := engine.Restart(spec, wf.Status, wf.Name, rs.FromNode)
+	if err != nil {
+		wf.Status.Restarts = rs.Generation
+		meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: "Restarted", Status: metav1.ConditionFalse,
+			Reason: "Refused", Message: err.Error(), ObservedGeneration: wf.Generation})
+		return nil
+	}
+	for _, name := range pods {
+		pod := &corev1.Pod{Name: name, Namespace: wf.Namespace}
+		if err := r.Delete(ctx, pod); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("delete the Pod %s for the retry: %w", name, err)
+		}
+	}
+	st.Restarts = rs.Generation
+	meta.SetStatusCondition(&st.Conditions, metav1.Condition{Type: "Restarted", Status: metav1.ConditionTrue,
+		Reason: "Retried", Message: fmt.Sprintf("retry %d", rs.Generation), ObservedGeneration: wf.Generation})
+	logf.FromContext(ctx).Info("Retrying the workflow", "generation", rs.Generation, "fromNode", rs.FromNode)
+	wf.Status = st
+	return nil
+}
+
+func finished(p chroniclev1alpha1.WorkflowPhase) bool {
+	return p == chroniclev1alpha1.WorkflowSucceeded || p == chroniclev1alpha1.WorkflowFailed || p == chroniclev1alpha1.WorkflowError
 }
 
 // spec returns the spec to run. It resolves the template references once and keeps the result in the status.
@@ -140,7 +177,7 @@ func (g templateGetter) Get(ctx context.Context, name string, clusterScope bool)
 	return &t.Spec, nil
 }
 
-// observePods returns the state of the Pods of a workflow by node ID.
+// observePods returns the state of the Pods of a workflow by Pod name.
 func (r *WorkflowReconciler) observePods(ctx context.Context, wf *chroniclev1alpha1.Workflow) (map[string]engine.PodResult, error) {
 	var list corev1.PodList
 	if err := r.List(ctx, &list, client.InNamespace(wf.Namespace), client.MatchingLabels{LabelWorkflowUID: string(wf.UID)}); err != nil {
@@ -148,7 +185,7 @@ func (r *WorkflowReconciler) observePods(ctx context.Context, wf *chroniclev1alp
 	}
 	pods := make(map[string]engine.PodResult, len(list.Items))
 	for i := range list.Items {
-		pods[list.Items[i].Labels[LabelNodeID]] = podResult(&list.Items[i])
+		pods[list.Items[i].Name] = podResult(&list.Items[i])
 	}
 	return pods, nil
 }

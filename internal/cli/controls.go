@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
@@ -152,4 +153,91 @@ func (a *app) namespacesCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func (a *app) retryCommand() *cobra.Command {
+	var node string
+	var watch bool
+	cmd := &cobra.Command{
+		Use:     "retry <name>",
+		Short:   "Run the failed nodes of a finished run again, or a node and all nodes after it",
+		Example: "  chronicle retry build-x7k2p --watch\n  chronicle retry build-x7k2p --node build-x7k2p.test",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ns, err := a.ns()
+			if err != nil {
+				return err
+			}
+			c, err := a.workflows(cmd.Context())
+			if err != nil {
+				return err
+			}
+			if _, err := c.RetryWorkflow(cmd.Context(), connect.NewRequest(&chroniclev1.RetryWorkflowRequest{Namespace: ns, Name: args[0], Node: node})); err != nil {
+				return err
+			}
+			if err := done(a.out, "Retrying", ns, args[0]); err != nil || !watch {
+				return err
+			}
+			return a.watchAfterRetry(cmd, c, ns, args[0])
+		},
+	}
+	cmd.Flags().StringVar(&node, "node", "", "The ID or the name of the node to retry from.")
+	cmd.Flags().BoolVarP(&watch, "watch", "w", false, "Watch the run until it ends.")
+	return cmd
+}
+
+// watchAfterRetry waits until the controller has applied the retry, then watches the run.
+func (a *app) watchAfterRetry(cmd *cobra.Command, c chroniclev1connect.WorkflowServiceClient, ns, name string) error {
+	for {
+		resp, err := c.GetWorkflow(cmd.Context(), connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: name}))
+		if err != nil {
+			return err
+		}
+		if !finished(resp.Msg.Summary.Phase) {
+			return a.watch(cmd.Context(), ns, name)
+		}
+		select {
+		case <-cmd.Context().Done():
+			return cmd.Context().Err()
+		case <-time.After(pollInterval):
+		}
+	}
+}
+
+func (a *app) rerunCommand() *cobra.Command {
+	var params []string
+	var watch bool
+	cmd := &cobra.Command{
+		Use:     "rerun <name>",
+		Short:   "Start a new run with the spec of a run, optionally with changed parameters",
+		Example: "  chronicle rerun build-x7k2p -p version=1.4.3 --watch",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			p, err := keyValues(params)
+			if err != nil {
+				return err
+			}
+			ns, err := a.ns()
+			if err != nil {
+				return err
+			}
+			c, err := a.workflows(cmd.Context())
+			if err != nil {
+				return err
+			}
+			resp, err := c.RerunWorkflow(cmd.Context(), connect.NewRequest(&chroniclev1.RerunWorkflowRequest{Namespace: ns, Name: args[0], Parameters: p}))
+			if err != nil {
+				return err
+			}
+			name := resp.Msg.Summary.Name
+			_, _ = fmt.Fprintf(a.out, "Started %s/%s\n", ns, name)
+			if watch {
+				return a.watch(cmd.Context(), ns, name)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringArrayVarP(&params, "parameter", "p", nil, "A changed workflow parameter as name=value.")
+	cmd.Flags().BoolVarP(&watch, "watch", "w", false, "Watch the new run until it ends.")
+	return cmd
 }
