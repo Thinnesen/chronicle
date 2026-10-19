@@ -24,6 +24,8 @@ type Options struct {
 	Authenticators []auth.Authenticator
 	// Archive holds finished runs whose Workflow was deleted, or is nil.
 	Archive ArchiveReader
+	// Interceptors run around each API call after the audit, for example for traces.
+	Interceptors []connect.Interceptor
 	// Tasks is the task queue of the task workers, or nil without the archive database.
 	Tasks TaskStore
 	// Artifacts opens the artifact repositories. The default reads the ConfigMap and the Secret of each namespace.
@@ -45,7 +47,8 @@ func NewHandler(opts Options) (http.Handler, error) {
 	}
 	mux := http.NewServeMux()
 	audit := &auditor{log: ctrl.Log.WithName("audit"), events: own}
-	limit := connect.WithHandlerOptions(connect.WithReadMaxBytes(4<<20), connect.WithInterceptors(audit.interceptor()))
+	interceptors := append([]connect.Interceptor{audit.interceptor()}, opts.Interceptors...)
+	limit := connect.WithHandlerOptions(connect.WithReadMaxBytes(4<<20), connect.WithInterceptors(interceptors...))
 	workflows := &workflowService{clients: clients, archive: opts.Archive}
 	path, h := chroniclev1connect.NewWorkflowServiceHandler(workflows, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))

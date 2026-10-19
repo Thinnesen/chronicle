@@ -1,4 +1,4 @@
-// Command chronicle-server serves the chronicle API (gRPC and HTTP/JSON) and, later, the web UI.
+// Command chronicle-server serves the chronicle API (gRPC and HTTP/JSON) and the web UI.
 package main
 
 import (
@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/otelconnect"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -23,6 +24,7 @@ import (
 	"github.com/Thinnesen/chronicle/internal/archive"
 	"github.com/Thinnesen/chronicle/internal/auth"
 	"github.com/Thinnesen/chronicle/internal/server"
+	"github.com/Thinnesen/chronicle/internal/telemetry"
 	"github.com/Thinnesen/chronicle/ui"
 )
 
@@ -46,6 +48,12 @@ func main() {
 	utilruntime.Must(chroniclev1alpha1.AddToScheme(scheme))
 
 	restConfig := ctrl.GetConfigOrDie()
+	shutdownTraces, err := telemetry.Setup(context.Background(), "chronicle-server")
+	if err != nil {
+		log.Error(err, "Failed to set up the traces")
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownTraces(context.Background()) }()
 	mux := http.NewServeMux()
 	var authn []auth.Authenticator
 	if _, err := os.Stat(authConfig); authConfig != "" && errors.Is(err, os.ErrNotExist) {
@@ -83,6 +91,14 @@ func main() {
 		defer store.Close()
 		apiOpts.Archive = store
 		apiOpts.Tasks = store
+	}
+	if telemetry.Enabled() {
+		tracing, err := otelconnect.NewInterceptor()
+		if err != nil {
+			log.Error(err, "Failed to set up the traces")
+			os.Exit(1)
+		}
+		apiOpts.Interceptors = append(apiOpts.Interceptors, tracing)
 	}
 	api, err := server.NewHandler(apiOpts)
 	if err != nil {
