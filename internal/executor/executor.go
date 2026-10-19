@@ -184,15 +184,20 @@ func collect(captured *limitedBuffer) Message {
 	return msg
 }
 
-// fitMessage makes the message fit in MaxMessage. It drops the result first, then reports an error.
+// fitMessage makes the message fit in MaxMessage. It drops the result first, then the parameters.
+// It keeps the saved artifacts and the log, because their objects are already in the repository.
 func fitMessage(msg Message) Message {
 	if data, _ := json.Marshal(msg); len(data) > MaxMessage && msg.Result != nil {
 		msg.Result, msg.ResultTooLarge = nil, true
 	}
-	if data, _ := json.Marshal(msg); len(data) > MaxMessage {
-		return Message{Error: "the output parameters are larger than 4 KiB: use an artifact"}
+	if data, _ := json.Marshal(msg); len(data) <= MaxMessage {
+		return msg
 	}
-	return msg
+	small := Message{Error: "the output parameters are larger than 4 KiB: use an artifact", Artifacts: msg.Artifacts, Log: msg.Log}
+	if data, _ := json.Marshal(small); len(data) > MaxMessage {
+		return Message{Error: "the names of the output artifacts are larger than 4 KiB: use fewer artifacts", Log: msg.Log}
+	}
+	return small
 }
 
 // writeMessage writes the message as JSON to the termination message file.

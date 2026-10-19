@@ -73,6 +73,7 @@ Rules:
 - Use a path that the container user (65532) can write, for example below `/tmp`.
 - Set `optional: true` on an output that a step does not always make, or on an input that a caller does not always give.
 - A fan-out (`withItems`, `withParam`) has no artifact outputs.
+- An input artifact can unpack to at most 8 GiB.
 
 ## 3. Download an artifact
 

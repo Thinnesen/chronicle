@@ -88,3 +88,11 @@ func TestInstall(t *testing.T) {
 		t.Errorf("installed file: %v %v", fi, err)
 	}
 }
+
+func TestFitMessageKeepsSavedArtifacts(t *testing.T) {
+	big := map[string]string{"p": strings.Repeat("x", MaxMessage)}
+	got := fitMessage(Message{Parameters: big, Artifacts: []string{"data"}, Log: true})
+	if got.Parameters != nil || len(got.Artifacts) != 1 || !got.Log || got.Error == "" {
+		t.Errorf("message = %+v", got)
+	}
+}

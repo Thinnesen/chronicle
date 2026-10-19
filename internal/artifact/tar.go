@@ -62,8 +62,12 @@ func copyFile(w io.Writer, name string) error {
 	return err
 }
 
-// Unpack extracts a tar.gz archive from Pack to dst. It accepts only files and directories inside dst.
-func Unpack(r io.Reader, dst string) error {
+// ErrTooLarge means that an archive unpacks to more bytes than the limit.
+var ErrTooLarge = errors.New("the artifact is larger than the limit")
+
+// Unpack extracts a tar.gz archive from Pack to dst. It accepts only files and directories inside dst,
+// and at most limit bytes of file contents, so that a small archive cannot fill the disk.
+func Unpack(r io.Reader, dst string, limit int64) error {
 	gz, err := gzip.NewReader(r)
 	if err != nil {
 		return fmt.Errorf("unpack: %w", err)
@@ -81,6 +85,10 @@ func Unpack(r io.Reader, dst string) error {
 		if err != nil {
 			return err
 		}
+		if hdr.Size > limit {
+			return fmt.Errorf("unpack %s: %w", hdr.Name, ErrTooLarge)
+		}
+		limit -= hdr.Size
 		if err := extract(tr, hdr, target); err != nil {
 			return fmt.Errorf("unpack %s: %w", hdr.Name, err)
 		}

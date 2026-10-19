@@ -27,6 +27,9 @@ const (
 // maxLog is the largest log that the executor archives. Kubernetes keeps less by default (10 MiB).
 const maxLog = 32 << 20
 
+// maxArtifact is the largest unpacked size of an input artifact.
+const maxArtifact = 8 << 30
+
 // transferTimeout limits all downloads, and then all uploads, of one Pod.
 const transferTimeout = 30 * time.Minute
 
@@ -108,7 +111,7 @@ func (f *files) download() error {
 		if err != nil {
 			return fmt.Errorf("input artifact %q: %w", in.Name, err)
 		}
-		err = artifact.Unpack(r, in.Path)
+		err = artifact.Unpack(r, in.Path, maxArtifact)
 		_ = r.Close()
 		if err != nil {
 			return fmt.Errorf("input artifact %q: %w", in.Name, err)
