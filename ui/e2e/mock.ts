@@ -179,3 +179,10 @@ function envelopes(messages: object[]): Buffer {
   };
   return Buffer.concat([...messages.map((m) => frame(0, m)), frame(2, {})]);
 }
+
+// openMenu opens the sidebar on a phone, where it is a drawer. On a wide screen the sidebar is always open.
+export async function openMenu(page: Page): Promise<void> {
+  await page.getByRole("banner").waitFor();
+  const button = page.getByRole("button", { name: "Open the menu" });
+  if (await button.isVisible()) await button.click();
+}

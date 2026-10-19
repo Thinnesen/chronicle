@@ -15,8 +15,8 @@ test("retries a failed run", async ({ page }) => {
 test("retries a finished run from a node", async ({ page }) => {
   const calls = await mockAPI(page, { runPhase: "Succeeded" });
   await page.goto(`${runURL}?node=n2`);
-  const panel = page.getByRole("complementary", { name: "Node validate" });
-  await panel.getByRole("tab", { name: "Details" }).click();
+  const panel = page.getByRole("complementary", { name: "Step validate" });
+  await panel.getByRole("tab", { name: "Summary" }).click();
   await panel.getByRole("button", { name: "Retry from this node" }).click();
   await expect(page.getByRole("dialog")).toContainText("The nodes before it keep their results.");
   await page.getByRole("dialog").getByRole("button", { name: "Retry" }).click();

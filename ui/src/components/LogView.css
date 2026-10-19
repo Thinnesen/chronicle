@@ -4,6 +4,7 @@
 }
 
 .logview-bar {
+  font-size: var(--text-sm);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -12,22 +13,26 @@
 }
 
 .logview-filter input {
+  height: 2rem;
   font: inherit;
   font-size: var(--text-sm);
-  padding: var(--space-1) var(--space-2);
+  padding: 0 var(--space-2);
   color: var(--ink);
-  background: var(--panel);
+  background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
 
 .logview-lines {
   margin: 0;
-  height: 24rem;
+  min-height: 8rem;
+  max-height: min(60vh, 36rem);
   overflow: auto;
   padding: var(--space-2) 0;
-  background: var(--panel);
+  color: #d5dae1;
+  background: #0d1117;
   border: 1px solid var(--rule);
+  border-radius: var(--radius);
   font-size: var(--text-xs);
   line-height: 1.6;
 }
@@ -38,13 +43,13 @@
 }
 
 .logline:hover {
-  background: var(--surface);
+  background: rgb(255 255 255 / 6%);
 }
 
 .logline-n {
   padding-right: var(--space-3);
   text-align: right;
-  color: var(--ink-muted);
+  color: #6b7686;
   user-select: none;
 }
 

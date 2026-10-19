@@ -1,17 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Clock, FileCode2, GanttChart, Network } from "lucide-react";
 import { lazy, Suspense, useMemo } from "react";
 
 import { workflows } from "../api/client";
-import { Lamp } from "../components/Lamp";
-import { NodePanel } from "../components/NodePanel";
+import { Status } from "../components/Lamp";
+import { NodeDrawer } from "../components/NodeDrawer";
 import { ProgressTrack } from "../components/ProgressTrack";
 import { RunActions } from "../components/RunActions";
 import { Timeline } from "../components/Timeline";
-import { clock, duration, toDate } from "../lib/time";
+import { YamlView } from "../components/YamlView";
+import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import type { Workflow } from "../lib/workflow";
-import { runRoute } from "../router";
+import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
 
 // The graph library is large, so it loads only on this page.
@@ -19,10 +21,17 @@ const RunGraph = lazy(() => import("../components/RunGraph").then((m) => ({ defa
 
 const finished = new Set(["Succeeded", "Failed", "Error"]);
 
-// RunPage shows one run: the track diagram, the timeline and the selected node. It updates while the run is active.
+const tabs: { id: RunSearch["tab"]; label: string; icon: typeof Network }[] = [
+  { id: undefined, label: "Graph", icon: Network },
+  { id: "timeline", label: "Timeline", icon: GanttChart },
+  { id: "spec", label: "Spec", icon: FileCode2 },
+];
+
+// RunPage shows one run: the header with the actions, the graph, the timeline or the spec, and the selected node
+// in a drawer. It updates while the run is active.
 export function RunPage() {
   const { namespace, name } = runRoute.useParams();
-  const { node: selected } = runRoute.useSearch();
+  const { node: selected, tab } = runRoute.useSearch();
   const navigate = useNavigate({ from: runRoute.fullPath });
   const { data, error } = useQuery({
     queryKey: ["run", namespace, name],
@@ -36,70 +45,91 @@ export function RunPage() {
   const s = data.summary;
   const phase = s.phase || "Pending";
   const started = toDate(s.startedAt);
-  const nodes = Object.values(wf.status?.nodes ?? {});
-  const select = (id: string) => void navigate({ search: { node: id }, replace: true });
+  const nodes = wf.status?.nodes ?? {};
+  const node = selected ? nodes[selected] : undefined;
+  const select = (id?: string) => void navigate({ search: (q) => ({ ...q, node: id }), replace: true });
   return (
     <section className="run">
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to="/ns/$namespace" params={{ namespace }}>
-          Runs in {namespace}
-        </Link>
-      </nav>
       <header className="run-head">
         <div className="run-title">
-          <h1>
-            <Lamp phase={phase} size={18} />
-            <span>{s.name}</span>
-          </h1>
+          <div className="run-name">
+            <h1>{s.name}</h1>
+            <Status phase={phase} />
+          </div>
           <RunActions wf={wf} phase={phase} archived={s.archived} />
         </div>
         <dl className="run-facts">
-          <div>
-            <dt>Phase</dt>
-            <dd>{phase}</dd>
-          </div>
+          {s.template && (
+            <div>
+              <dt>Template</dt>
+              <dd>
+                <Link to="/ns/$namespace/templates/$name" params={{ namespace, name: s.template }}>
+                  {s.template}
+                </Link>
+              </dd>
+            </div>
+          )}
           {started && (
             <div>
               <dt>Started</dt>
-              <dd>{clock(started)}</dd>
+              <dd>
+                <time title={started.toLocaleString()}>{ago(started, new Date(now))}</time>
+              </dd>
             </div>
           )}
           {started && (
             <div>
               <dt>Duration</dt>
-              <dd>{duration((toDate(s.finishedAt)?.getTime() ?? now) - started.getTime())}</dd>
-            </div>
-          )}
-          {s.template && (
-            <div>
-              <dt>Template</dt>
-              <dd>{s.template}</dd>
+              <dd>
+                <Clock aria-hidden="true" />
+                {duration((toDate(s.finishedAt)?.getTime() ?? now) - started.getTime())}
+              </dd>
             </div>
           )}
           <div>
-            <dt>Progress</dt>
+            <dt>Steps</dt>
             <dd>
               <ProgressTrack done={s.nodesDone} total={s.nodesTotal} phase={phase} />
+              <span className="quiet">
+                {s.nodesDone} of {s.nodesTotal}
+              </span>
             </dd>
           </div>
         </dl>
-        {s.message && <p className="run-message">{s.message}</p>}
+        {s.message && (
+          <p className="run-message" data-phase={phase}>
+            {s.message}
+          </p>
+        )}
         {s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted. Logs are available only when the namespace archives them.</p>}
       </header>
-      <Suspense fallback={<div className="run-graph-placeholder" />}>
-        <RunGraph wf={wf} now={now} selected={selected} onSelect={select} />
-      </Suspense>
-      <div className="run-lower">
-        <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />
-        <NodePanel
-          wf={wf}
-          node={selected ? wf.status?.nodes?.[selected] : undefined}
-          nodes={wf.status?.nodes ?? {}}
-          namespace={namespace}
-          workflow={name}
-          onSelect={select}
-        />
+      <div className="run-tabs" role="tablist" aria-label="Run views">
+        {tabs.map((t) => (
+          <button
+            key={t.label}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => void navigate({ search: (q) => ({ ...q, tab: t.id }), replace: true })}
+          >
+            <t.icon aria-hidden="true" />
+            {t.label}
+          </button>
+        ))}
       </div>
+      <div className="run-body" data-drawer={node ? "" : undefined}>
+        <div className="run-view card" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
+          {tab === undefined && (
+            <Suspense fallback={<div className="run-graph-placeholder" />}>
+              <RunGraph wf={wf} now={now} selected={selected} onSelect={select} />
+            </Suspense>
+          )}
+          {tab === "timeline" && <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />}
+          {tab === "spec" && <YamlView value={wf.spec} label="The spec of the run" />}
+        </div>
+        {node && <NodeDrawer wf={wf} node={node} nodes={nodes} namespace={namespace} workflow={name} onSelect={select} onClose={() => select(undefined)} />}
+      </div>
+      {!node && tab !== "spec" && <p className="run-hint quiet">Select a step to see its details and logs.</p>}
     </section>
   );
 }

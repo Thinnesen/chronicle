@@ -3,8 +3,9 @@
   max-height: 32rem;
   overflow: auto;
   padding: var(--space-3) var(--space-4);
-  background: var(--panel);
+  background: var(--surface-2);
   border: 1px solid var(--rule);
+  border-radius: var(--radius);
   font-size: var(--text-xs);
   line-height: 1.6;
 }

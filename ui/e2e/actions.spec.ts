@@ -38,7 +38,7 @@ test("a viewer sees no controls", async ({ page }) => {
 test("an editor approves a node with a parameter", async ({ page }) => {
   const calls = await mockAPI(page, { gate: true });
   await page.goto(`${runURL}?node=n5`);
-  const form = page.getByRole("complementary", { name: "Node gate" });
+  const form = page.getByRole("complementary", { name: "Step gate" });
   await expect(form.getByRole("textbox", { name: "env" })).toHaveValue("staging");
   await form.getByRole("textbox", { name: "env" }).fill("prod");
   await form.getByRole("textbox", { name: "Comment for the run history" }).fill("checked");

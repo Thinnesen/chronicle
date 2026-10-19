@@ -1,4 +1,3 @@
-import "./Badge.css";
 
 // ManagedBadge marks an object that a GitOps tool manages. Such an object changes only through Git.
 export function ManagedBadge({ tool }: { tool: string }) {

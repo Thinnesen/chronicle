@@ -31,14 +31,21 @@ export function HomePage() {
   }
   return (
     <section>
-      <h1 className="page-title">Choose a namespace</h1>
-      <ul className="ns-list">
+      <header className="page-head">
+        <div>
+          <h1>Choose a namespace</h1>
+          <p className="quiet">You can see the runs of these namespaces.</p>
+        </div>
+      </header>
+      <ul className="item-list">
         {list.map((n) => (
           <li key={n.name}>
-            <Link to="/ns/$namespace" params={{ namespace: n.name }}>
-              {n.name}
-            </Link>
-            <span className="quiet">{n.canSubmit ? "You can run workflows" : "You can view runs"}</span>
+            <span className="item-title">
+              <Link to="/ns/$namespace" params={{ namespace: n.name }}>
+                {n.name}
+              </Link>
+            </span>
+            <span className="item-side">{n.canSubmit ? "You can run workflows" : "You can view runs"}</span>
           </li>
         ))}
       </ul>

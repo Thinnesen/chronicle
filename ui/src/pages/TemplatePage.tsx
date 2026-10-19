@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 
 import { templates } from "../api/client";
 import { ClusterBadge, ManagedBadge } from "../components/Badge";
@@ -22,18 +21,13 @@ export function TemplatePage() {
   const t = data.summary;
   return (
     <section>
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to="/ns/$namespace/templates" params={{ namespace }}>
-          Templates in {namespace}
-        </Link>
-      </nav>
-      <div className="page-head">
-        <h1 className="page-title">{t.name}</h1>
-        <span className="item-title">
+      <header className="page-head">
+        <div className="item-title">
+          <h1 className="mono">{t.name}</h1>
           {t.clusterScope && <ClusterBadge />}
           <ManagedBadge tool={t.managedBy} />
-        </span>
-      </div>
+        </div>
+      </header>
       {t.description && <p className="lead">{t.description}</p>}
       <div className="two-columns">
         {canRun ? <RunForm namespace={namespace} template={t} /> : <p className="panel quiet">Only editors of {namespace} can start runs.</p>}

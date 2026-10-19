@@ -42,15 +42,12 @@ export function CronPage() {
   const last = toDate(c.lastScheduledAt);
   return (
     <section>
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to="/ns/$namespace/cron" params={{ namespace }}>
-          Cron workflows in {namespace}
-        </Link>
-      </nav>
-      <div className="page-head">
-        <h1 className="page-title">{c.name}</h1>
-        <span className="item-title">
+      <header className="page-head">
+        <div className="item-title">
+          <h1 className="mono">{c.name}</h1>
           <ManagedBadge tool={c.managedBy} />
+        </div>
+        <span className="item-title">
           {canEdit && (
             <button
               type="button"
@@ -63,7 +60,7 @@ export function CronPage() {
             </button>
           )}
         </span>
-      </div>
+      </header>
       {c.description && <p className="lead">{c.description}</p>}
       <div className="two-columns">
         <div className="panel">

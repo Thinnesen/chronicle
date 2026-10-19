@@ -202,15 +202,17 @@ A `task` template sends a task to a queue. A worker that an SDK runs takes the t
 
 ### 8.1 Visual direction
 
-The UI is a signal-box panel for runs. A run is a train on a track, a node is a station, and a phase is a signal lamp. The run graph carries the identity; everything else stays quiet.
+The UI is an ops console. It combines the strong parts of the Argo Workflows, Argo CD, Temporal and Dagster UIs (see docs/RESEARCH.md) and leaves out their extra controls.
 
-- Palette (light / dark): panel `#E6EAED` / `#171C23`, surface `#F6F7F8` / `#1F2630`, ink `#1B2430` / `#E3E8EE`, track `#5A6576` / `#8C97A7`. Lamps: proceed green `#1C8A57`, caution amber `#B97E00`, danger red `#C4332A`, running blue `#1F6FD6`, idle `#9AA4B2`. Each lamp also has a shape (filled, ring, half, cross), so the phase never depends on color alone (WCAG AA).
-- Type: Overpass (signage, from US highway lettering) for the whole UI, with a tight scale (12, 14, 16, 20, 28). JetBrains Mono only for logs, YAML and IDs that people copy. Fonts are self-hosted (pnpm packages), never from a CDN.
-- Run graph: orthogonal track lines, station dots, lamps that light up live. The Gantt timeline sits under the graph and shares its selection: select a station, and its bar and its logs open.
-- Runs list: a departure board. Dense rows with the start time, the name, a lamp, and a progress track (a line with one dot per node).
-- No card grid, no drop shadows as decoration, no gradient washes. Hierarchy comes from the type scale, spacing and thin rules. Motion only answers an action or shows a live phase change.
-- Copy is short, plain and in sentence case. Empty screens tell the next action (for example "No runs yet. Submit one from a template.").
-- Command palette (Ctrl+K) for navigation and actions. Every action has a keyboard path.
+- Frame: a sidebar with the namespace, the sections (Runs, Templates, Cron, Tasks) and the theme switch. A top bar with breadcrumbs, the search (Cmd+K or Ctrl+K) and the user menu. On a phone the sidebar is a drawer.
+- Palette (light / dark): page `#F4F5F7` / `#11161D`, surface `#FFFFFF` / `#171D26`, ink `#111827` / `#E6EAF0`, accent `#2F5BD3` / `#7C9CF5`. Status colors: succeeded green, failed red, running blue, suspended amber, pending gray. Each status also has a shape (check, cross, spinner, pause, dashed ring), so a phase never depends on color alone (WCAG AA). Text on a soft status background uses a darker ink of the same hue.
+- Type: Overpass for the UI. JetBrains Mono for run names, logs, YAML and IDs that people copy. Fonts are self-hosted (pnpm packages), never from a CDN.
+- Runs list: the totals and a 24 h activity strip, status chips with counts, a search field, and a dense table (status, run, template, progress, start, duration). The filters are in the URL.
+- Run page: a header with the status, the facts and the actions, then the tabs Graph, Timeline and Spec. The selected step opens a drawer on the right with the tabs Summary, Logs and Attempts. The user can drag the drawer edge. The tab and the selected node are in the URL.
+- Graph: cards of 192 x 44 px for steps that do work, small pills for groups. The layout uses the drawn size of each shape, so the edges touch the shapes. The root node is not drawn, because the header shows the run.
+- Timeline: one row for each step. A bar is an attempt, and a dashed line is the wait between two attempts.
+- Motion only shows a live state (a running spinner, halo or bar) or answers an action.
+- Copy is short, plain and in sentence case. Empty screens tell the next action.
 
 ## 9. Security and supply chain
 

@@ -1,4 +1,5 @@
 import "@fontsource/overpass/400.css";
+import "@fontsource/overpass/600.css";
 import "@fontsource/overpass/700.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "./styles/tokens.css";

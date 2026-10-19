@@ -20,3 +20,12 @@ export function clock(d: Date, now = new Date()): string {
   if (d.toDateString() === now.toDateString()) return time;
   return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${time}`;
 }
+
+// ago formats a past time like "now", "4 min ago" or "3 h ago", and older times like clock.
+export function ago(d: Date, now = new Date()): string {
+  const s = Math.round((now.getTime() - d.getTime()) / 1000);
+  if (s < 45) return "now";
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86_400) return `${Math.floor(s / 3600)} h ago`;
+  return clock(d, now);
+}

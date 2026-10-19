@@ -19,7 +19,12 @@ export function CronsPage() {
   });
   return (
     <section>
-      <h1 className="page-title">Cron workflows in {namespace}</h1>
+      <header className="page-head">
+        <div>
+          <h1>Cron</h1>
+          <p className="quiet">Schedules that start runs in {namespace}.</p>
+        </div>
+      </header>
       {isPending && <p className="quiet">Loading the cron workflows…</p>}
       {error && <p role="alert">Could not load the cron workflows: {error.message}</p>}
       {data?.cronWorkflows.length === 0 && <p className="quiet">No cron workflows yet. Add a CronWorkflow to run a template on a schedule.</p>}

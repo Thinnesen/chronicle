@@ -52,11 +52,20 @@ export const runsRoute = createRoute({
   }),
 });
 
+// RunSearch is the state of the run page in the URL: the selected node and the tab. The default tab is the graph.
+export interface RunSearch {
+  node?: string;
+  tab?: "timeline" | "spec";
+}
+
 export const runRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/ns/$namespace/runs/$name",
   component: RunPage,
-  validateSearch: (s: Record<string, unknown>): { node?: string } => ({ node: typeof s.node === "string" ? s.node : undefined }),
+  validateSearch: (s: Record<string, unknown>): RunSearch => ({
+    node: typeof s.node === "string" ? s.node : undefined,
+    tab: s.tab === "timeline" || s.tab === "spec" ? s.tab : undefined,
+  }),
 });
 
 export const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace/templates", component: TemplatesPage });

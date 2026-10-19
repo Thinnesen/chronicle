@@ -1,57 +1,139 @@
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet, useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, Outlet, useLocation, useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
+import { CalendarClock, ChevronRight, Cpu, FileCode2, LogOut, Menu as MenuIcon, Monitor, Moon, Search, Sun, Workflow, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { namespaces } from "../api/client";
+import { namespaces, workflows } from "../api/client";
 import { logout } from "../api/session";
 import { applyTheme, readTheme, type Theme } from "../theme";
+import { CommandPalette } from "./CommandPalette";
 import "./Shell.css";
 
-// Shell is the frame of all pages: the brand, the namespace, the theme and the user.
+// Shell is the frame of all pages: a sidebar with the namespace and the sections, and a top bar with the
+// breadcrumbs, the search and the user. On a narrow screen the sidebar is a drawer.
 export function Shell() {
   const { session } = useRouteContext({ from: "/app" });
+  const [palette, setPalette] = useState(false);
+  // The drawer stays open only on the page where the user opened it, so a link in it closes it.
+  const { pathname } = useLocation();
+  const [drawerAt, setDrawerAt] = useState<string | null>(null);
+  const drawer = drawerAt === pathname;
+  const setDrawer = (open: boolean) => setDrawerAt(open ? pathname : null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPalette((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   return (
-    <div className="shell">
-      <header className="shell-bar">
-        <Link to="/" className="brand" aria-label="chronicle home">
-          <BrandMark />
-          <span>chronicle</span>
-        </Link>
-        <NamespacePicker />
-        <div className="shell-end">
-          <ThemeSwitch />
-          <UserMenu user={session.user} groups={session.groups ?? []} />
+    <div className="shell" data-drawer={drawer || undefined}>
+      <aside className="sidebar" aria-label="Sidebar">
+        <div className="sidebar-head">
+          <Link to="/" className="brand" aria-label="chronicle home">
+            <BrandMark />
+            <span>chronicle</span>
+          </Link>
+          <button type="button" className="icon-button drawer-close" aria-label="Close the menu" onClick={() => setDrawer(false)}>
+            <X />
+          </button>
         </div>
-      </header>
-      <SectionNav />
-      <main className="shell-main">
-        <Outlet />
-      </main>
+        <NamespacePicker />
+        <SectionNav />
+        <div className="sidebar-foot">
+          <ThemeSwitch />
+        </div>
+      </aside>
+      <button type="button" className="scrim" aria-label="Close the menu" tabIndex={-1} onClick={() => setDrawer(false)} />
+      <div className="workspace">
+        <header className="topbar">
+          <button type="button" className="icon-button drawer-open" aria-label="Open the menu" onClick={() => setDrawer(true)}>
+            <MenuIcon />
+          </button>
+          <Breadcrumbs />
+          <button type="button" className="search-button" onClick={() => setPalette(true)}>
+            <Search aria-hidden="true" />
+            <span>Search</span>
+            <kbd>⌘K</kbd>
+          </button>
+          <UserMenu user={session.user} groups={session.groups ?? []} />
+        </header>
+        <main className="shell-main">
+          <Outlet />
+        </main>
+      </div>
+      <CommandPalette open={palette} onOpenChange={setPalette} />
     </div>
   );
 }
 
+const sections = [
+  { to: "/ns/$namespace", label: "Runs", icon: Workflow, exact: true },
+  { to: "/ns/$namespace/templates", label: "Templates", icon: FileCode2, exact: false },
+  { to: "/ns/$namespace/cron", label: "Cron", icon: CalendarClock, exact: false },
+  { to: "/ns/$namespace/tasks", label: "Tasks", icon: Cpu, exact: false },
+] as const;
+
 // SectionNav switches between the runs, the templates, the cron workflows and the tasks of the namespace.
 function SectionNav() {
   const params = useParams({ strict: false }) as { namespace?: string };
+  const running = useRunningCount(params.namespace);
   if (!params.namespace) return null;
   const namespace = params.namespace;
-  const link = { className: "section-link", activeProps: { "aria-current": "page" as const } };
   return (
     <nav className="section-nav" aria-label="Sections">
-      <Link to="/ns/$namespace" params={{ namespace }} activeOptions={{ exact: true }} {...link}>
-        Runs
-      </Link>
-      <Link to="/ns/$namespace/templates" params={{ namespace }} {...link}>
-        Templates
-      </Link>
-      <Link to="/ns/$namespace/cron" params={{ namespace }} {...link}>
-        Cron
-      </Link>
-      <Link to="/ns/$namespace/tasks" params={{ namespace }} {...link}>
-        Tasks
-      </Link>
+      {sections.map(({ to, label, icon: Icon, exact }) => (
+        <Link
+          key={to}
+          to={to}
+          params={{ namespace }}
+          activeOptions={{ exact }}
+          className="section-link"
+          activeProps={{ "aria-current": "page" as const }}
+        >
+          <Icon aria-hidden="true" />
+          <span>{label}</span>
+          {label === "Runs" && running > 0 && (
+            <span className="section-count" aria-label={`${running} running`}>
+              {running}
+            </span>
+          )}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+// useRunningCount returns the number of running runs of a namespace for the sidebar.
+function useRunningCount(namespace?: string): number {
+  const { data } = useQuery({
+    queryKey: ["running", namespace],
+    queryFn: () => workflows.listWorkflows({ namespace: namespace ?? "", phases: ["Running"], limit: 100 }),
+    enabled: !!namespace,
+    refetchInterval: 15_000,
+  });
+  return data?.workflows.length ?? 0;
+}
+
+// Breadcrumbs show where the user is: the namespace, the section and the object.
+function Breadcrumbs() {
+  const params = useParams({ strict: false }) as { namespace?: string; name?: string };
+  const { pathname } = useLocation();
+  const parts = pathname.split("/").filter(Boolean);
+  const section = parts[2] === "runs" || parts.length === 2 ? "Runs" : (sections.find((s) => s.to.endsWith(`/${parts[2]}`))?.label ?? "");
+  const crumbs = [params.namespace, params.namespace && section, params.name].filter((c): c is string => !!c);
+  return (
+    <nav className="breadcrumbs" aria-label="Breadcrumbs">
+      {crumbs.map((c, i) => (
+        <span key={`${i}-${c}`} className="crumb" aria-current={i === crumbs.length - 1 ? "page" : undefined}>
+          {i > 0 && <ChevronRight aria-hidden="true" />}
+          {c}
+        </span>
+      ))}
     </nav>
   );
 }
@@ -59,9 +141,11 @@ function SectionNav() {
 function BrandMark() {
   return (
     <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M4 16h24M10 16V8h12v8" fill="none" stroke="var(--track)" strokeWidth="3" />
-      <circle cx="10" cy="16" r="4" fill="var(--lamp-proceed)" />
-      <circle cx="22" cy="16" r="4" fill="var(--lamp-running)" />
+      <rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)" />
+      <path d="M10 16h4c2 0 3-6 8-6M14 16c2 0 3 6 8 6" fill="none" stroke="var(--accent-ink)" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="9" cy="16" r="3.2" fill="var(--accent-ink)" />
+      <circle cx="23" cy="10" r="3.2" fill="var(--accent-ink)" />
+      <circle cx="23" cy="22" r="3.2" fill="var(--accent-ink)" />
     </svg>
   );
 }
@@ -76,11 +160,8 @@ function NamespacePicker() {
   }
   return (
     <label className="ns-picker">
-      <span className="visually-hidden">Namespace</span>
-      <select
-        value={params.namespace ?? ""}
-        onChange={(e) => void navigate({ to: "/ns/$namespace", params: { namespace: e.target.value } })}
-      >
+      <span className="ns-label">Namespace</span>
+      <select value={params.namespace ?? ""} onChange={(e) => void navigate({ to: "/ns/$namespace", params: { namespace: e.target.value } })}>
         {!params.namespace && <option value="">Choose a namespace</option>}
         {list.map((n) => (
           <option key={n.name} value={n.name}>
@@ -92,28 +173,30 @@ function NamespacePicker() {
   );
 }
 
-const themes: { value: Theme; label: string }[] = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
+const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
 ];
 
 function ThemeSwitch() {
   const [theme, setTheme] = useState(readTheme);
   return (
     <div className="theme-switch" role="radiogroup" aria-label="Theme">
-      {themes.map((t) => (
+      {themes.map(({ value, label, icon: Icon }) => (
         <button
-          key={t.value}
+          key={value}
           type="button"
           role="radio"
-          aria-checked={theme === t.value}
+          aria-checked={theme === value}
+          aria-label={label}
+          title={label}
           onClick={() => {
-            applyTheme(t.value);
-            setTheme(t.value);
+            applyTheme(value);
+            setTheme(value);
           }}
         >
-          {t.label}
+          <Icon aria-hidden="true" />
         </button>
       ))}
     </div>
@@ -121,9 +204,15 @@ function ThemeSwitch() {
 }
 
 function UserMenu({ user, groups }: { user: string; groups: string[] }) {
+  const initial = (user.split(":").pop() ?? user).slice(0, 1).toUpperCase();
   return (
     <Menu.Root>
-      <Menu.Trigger className="user-button">{user}</Menu.Trigger>
+      <Menu.Trigger className="user-button" aria-label={`User ${user}`}>
+        <span className="avatar" aria-hidden="true">
+          {initial}
+        </span>
+        <span className="user-name">{user}</span>
+      </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content className="menu" align="end" sideOffset={6}>
           <Menu.Label className="menu-note">Kubernetes user: {user}</Menu.Label>
@@ -135,7 +224,7 @@ function UserMenu({ user, groups }: { user: string; groups: string[] }) {
               void logout().then(() => window.location.assign("/login"));
             }}
           >
-            Log out
+            <LogOut aria-hidden="true" /> Log out
           </Menu.Item>
         </Menu.Content>
       </Menu.Portal>

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { mockAPI } from "./mock";
+import { mockAPI, openMenu } from "./mock";
 
 test("sends a visitor without a session to the login page", async ({ page }) => {
   await mockAPI(page, { loggedIn: false });
@@ -16,7 +16,7 @@ test("lets the user choose a namespace and shows its runs", async ({ page }) => 
   await mockAPI(page);
   await page.goto("/");
   await page.getByRole("link", { name: "team-a" }).click();
-  await expect(page.getByRole("heading", { name: "Runs in team-a" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runs", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "etl-nightly-8k2pq" })).toBeVisible();
   await expect(page.getByRole("img", { name: "3 of 7 nodes done" })).toBeVisible();
   expect(violations).toEqual([]);
@@ -31,6 +31,7 @@ test("opens the only namespace at once", async ({ page }) => {
 test("switches the theme and keeps it", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
+  await openMenu(page);
   await page.getByRole("radio", { name: "Dark" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
@@ -46,3 +47,13 @@ for (const scheme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/screens/runs-${info.project.name}-${scheme}.png`, fullPage: true });
   });
 }
+
+test("finds a run with the command palette", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("link", { name: "backfill-2026-10" })).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox").fill("train");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/runs\/train-model-4rq9z$/);
+});

@@ -40,11 +40,23 @@ export function TasksPage() {
   });
   return (
     <section>
-      <h1 className="page-title">Tasks in {namespace}</h1>
-      <div className="phase-filter" role="radiogroup" aria-label="State">
+      <header className="page-head">
+        <div>
+          <h1>Tasks</h1>
+          <p className="quiet">Work that task templates send to the workers of an SDK, newest first.</p>
+        </div>
+      </header>
+      <div className="chips list-filters" role="radiogroup" aria-label="State">
         {[undefined, ...Object.keys(stateFilters)].map((s) => (
-          <button key={s ?? "all"} type="button" role="radio" aria-checked={state === s}
-            onClick={() => void navigate({ search: { state: s }, replace: true })}>
+          <button
+            key={s ?? "all"}
+            type="button"
+            role="radio"
+            className="chip"
+            aria-checked={state === s}
+            onClick={() => void navigate({ search: { state: s }, replace: true })}
+          >
+            {s && <Lamp phase={phaseOf(s)} size={12} />}
             {s ? stateFilters[s as keyof typeof stateFilters] : "All"}
           </button>
         ))}
@@ -61,8 +73,9 @@ export function TasksPage() {
             return (
               <li key={t.id}>
                 <span className="item-title">
-                  <Lamp phase={phaseOf(t.state)} /> {t.name}
-                  <span className="quiet"> in queue {t.queue}</span>
+                  <Lamp phase={phaseOf(t.state)} />
+                  <span className="mono">{t.name}</span>
+                  <span className="badge">queue {t.queue}</span>
                 </span>
                 <p className="item-note">
                   <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: t.workflow }}>

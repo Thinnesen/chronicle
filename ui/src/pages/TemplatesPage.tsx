@@ -11,7 +11,12 @@ export function TemplatesPage() {
   const { data, error, isPending } = useQuery({ queryKey: ["templates", namespace], queryFn: () => templates.listTemplates({ namespace }) });
   return (
     <section>
-      <h1 className="page-title">Templates in {namespace}</h1>
+      <header className="page-head">
+        <div>
+          <h1>Templates</h1>
+          <p className="quiet">Workflow templates that you can run in {namespace}, and cluster templates.</p>
+        </div>
+      </header>
       {isPending && <p className="quiet">Loading the templates…</p>}
       {error && <p role="alert">Could not load the templates: {error.message}</p>}
       {data?.templates.length === 0 && <p className="quiet">No templates yet. Add a WorkflowTemplate to the namespace, for example through Git.</p>}

@@ -12,12 +12,14 @@ test("shows the run as a graph and a timeline, and selects a node in both", asyn
 
   await graph.getByText("validate", { exact: true }).click();
   await expect(page).toHaveURL(/node=n2/);
-  const panel = page.getByRole("complementary", { name: "Node validate" });
+  const panel = page.getByRole("complementary", { name: "Step validate" });
   await expect(panel.getByText("1204 rows")).toBeVisible();
-  await expect(page.getByRole("listitem", { name: /validate, Succeeded/ })).toHaveClass(/is-selected/);
 
-  await page.getByRole("listitem", { name: /fetch, Succeeded/ }).click();
-  await expect(page.getByRole("complementary", { name: "Node fetch" })).toBeVisible();
+  await page.getByRole("tab", { name: "Timeline" }).click();
+  await expect(page).toHaveURL(/tab=timeline/);
+  await expect(page.getByRole("listitem").filter({ has: page.getByRole("button", { name: /validate, Succeeded/ }) })).toHaveClass(/is-selected/);
+  await page.getByRole("button", { name: /fetch, Succeeded/ }).click();
+  await expect(page.getByRole("complementary", { name: "Step fetch" })).toBeVisible();
 });
 
 test("finds runs by name and by phase", async ({ page }) => {

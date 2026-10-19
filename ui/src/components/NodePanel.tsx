@@ -16,7 +16,7 @@ import "./NodePanel.css";
 
 interface PanelProps {
   wf: Workflow;
-  node?: NodeStatus;
+  node: NodeStatus;
   nodes: Record<string, NodeStatus>;
   namespace: string;
   workflow: string;
@@ -33,30 +33,20 @@ function retryOf(node: NodeStatus, nodes: Record<string, NodeStatus>): NodeStatu
 
 // NodePanel shows one node: its facts, its log and its attempts. Each node opens with its own tabs.
 export function NodePanel(props: PanelProps) {
-  return <NodePanelInner key={props.node?.id ?? "none"} {...props} />;
+  return <NodePanelInner key={props.node.id} {...props} />;
 }
 
 function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: PanelProps) {
-  const [tab, setTab] = useState<Tab>(node?.podName ? "logs" : "details");
-  if (!node) {
-    return (
-      <aside className="node-panel">
-        <p className="quiet">Select a node in the graph or the timeline to see its details.</p>
-      </aside>
-    );
-  }
+  const [tab, setTab] = useState<Tab>(node.podName ? "logs" : "details");
   const phase = node.phase || "Pending";
   const retry = retryOf(node, nodes);
   const tabs: { id: Tab; label: string }[] = [
-    { id: "details", label: "Details" },
+    { id: "details", label: "Summary" },
     ...(node.podName ? [{ id: "logs" as const, label: "Logs" }] : []),
     ...(retry ? [{ id: "attempts" as const, label: `Attempts (${retry.children?.length ?? 0})` }] : []),
   ];
   return (
-    <aside className="node-panel" aria-label={`Node ${nodeLabel(node)}`}>
-      <h2>
-        <Lamp phase={phase} size={14} /> {nodeLabel(node)}
-      </h2>
+    <div className="node-panel">
       {node.message && <p className="node-message">{node.message}</p>}
       <ApprovalForm wf={wf} node={node} />
       <div className="tabs" role="tablist" aria-label="Node views">
@@ -77,7 +67,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
         {tab === "logs" && <LogView namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
         {tab === "attempts" && retry && <Attempts retry={retry} nodes={nodes} current={node.id} onSelect={onSelect} />}
       </div>
-    </aside>
+    </div>
   );
 }
 

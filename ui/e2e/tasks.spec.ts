@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import { mockAPI } from "./mock";
+import { mockAPI, openMenu } from "./mock";
 
 test("lists the tasks of the queue and filters them by state", async ({ page }, info) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
+  await openMenu(page);
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Tasks" }).click();
-  await expect(page.getByRole("heading", { name: "Tasks in team-a" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tasks", exact: true })).toBeVisible();
   await expect(page.getByText("score-model")).toBeVisible();
   await expect(page.getByRole("link", { name: "etl-nightly-8k2pq.notify" })).toHaveAttribute("href", "/ns/team-a/runs/etl-nightly-8k2pq");
   await page.screenshot({ path: `test-results/screens/tasks-${info.project.name}.png`, fullPage: true });

@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { mockAPI } from "./mock";
+import { mockAPI, openMenu } from "./mock";
 
 test("starts a run from a template with parameters", async ({ page }) => {
   const calls = await mockAPI(page);
   await page.goto("/ns/team-a");
+  await openMenu(page);
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Templates" }).click();
   await expect(page.getByText("Managed by Argo CD")).toBeVisible();
   await page.getByRole("link", { name: "deploy-api" }).click();

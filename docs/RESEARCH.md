@@ -50,6 +50,28 @@ What we do:
 - Hatchet computes the DAG edges from the task "shape". chronicle has a node tree in the status, so the UI computes the edges from the stored spec (template, then tasks, then node names `<boundary>.<task>`).
 - Ideas for chronicle (M4): a DAG graph and a Gantt timeline of the same run, side by side with the logs. A command palette. Readable cron text and the next runs. A YAML view with schema completion. Study the real pages before M4 starts and record the result here.
 
+## UI overhaul: the ops console (Argo WF, Argo CD, Temporal, Dagster, Hatchet)
+
+We read the UI source of each project (`ui/src/app` of Argo Workflows and Argo CD, `src/lib` of the Temporal UI, `js_modules/ui-core` of Dagster, `frontend/app` of Hatchet).
+
+| Project | What it does well | Where it falls short |
+|---|---|---|
+| Argo Workflows | The selected node, the tab and the side panel are in the URL. A resizable node panel has the tabs summary, containers, inputs and outputs, events and logs. The graph has a node search, phase and type filters, a horizontal or vertical layout, and folds more than 3 siblings into "N hidden nodes". | Round 32 px icons with the name below: long names are cut and the graph is hard to read. The timeline is a separate, basic tab. The options panel is crowded. The runs list has few filters. |
+| Argo CD | A filter sidebar with counts for each facet (health, sync, labels, namespaces). Wide tree cards (282 x 52 px) with an icon, the kind, the name and two status icons. It groups similar nodes. | Large trees become noise. The tiles view wastes space. Many icons have no labels. |
+| Temporal | Header tabs (Timeline, Event History, Relationships). A virtualized timeline in "lines and dots": one row for each activity, a dashed line while it waits, a solid line while it runs, and the attempt count ("attempt 2 / 5") in the row. A filter bar with saved views. A configurable runs table. Pending activities are visible at the top. | The event history is low level for a person who wants to know which step broke. There is no graph of the steps. |
+| Dagster | A run page split in two: a waterfall Gantt chart on top and the structured logs below, with a draggable split. A status panel lists the steps by state (Preparing, Executing, Errored, Succeeded). Step boxes are 200 x 34 px with a status dot. A click on a step filters the logs. | Many controls (zoom slider, mode switch, selection query) before the user sees the result. The chart needs a wide screen. |
+| Hatchet | Compact node cards (30 px) with a status dot, the name and the duration on the right. Running nodes have an animated border. A command palette (`cmdk`). | Few details on the card. The run page has no timeline that shows the waiting time. |
+
+What chronicle takes, and how it stays simple:
+
+- Frame: a left sidebar with the namespace and the sections (Argo CD, Dagster, Temporal), a top bar with breadcrumbs, and a command palette on Cmd+K (Hatchet, Dagster).
+- Runs list: one filter row with status chips that show counts (the Argo CD facets, but inline), a search field, and a 24 h activity strip above a dense table. No saved views and no configurable columns: the filters are in the URL, so a link is a saved view.
+- Run page: a header with the status, the facts and the actions (Temporal), then the tabs Graph, Timeline and Spec. The selected node opens a resizable drawer on the right with the tabs Summary, Logs, Inputs and outputs, and Events (Argo WF). The node and the tab are in the URL.
+- Graph: wide cards of 192 x 44 px with a status icon, the name and the duration (Argo CD, Dagster, Hatchet), not round icons. Steps and DAG boundaries are small pills that fit their drawn shape, so the edges touch the shapes. A running card has a pulsing halo (Hatchet uses a moving border). An edge is colored after its source succeeded.
+- Timeline: one row for each pod node in the Temporal "lines and dots" style. A dashed line shows the wait before the start, a solid bar shows the run, and the row shows the attempt number. It uses the same selection as the graph, so a click selects the node and opens the drawer (Dagster).
+- Logs: in the node drawer, so the user does not lose the graph (Argo WF, Dagster).
+- We do not copy: zoom sliders, selection query languages, layout options panels, tiles views and event-level history.
+
 ## SDKs: workflows as code (Hera, Hatchet, Dagster)
 
 - Hera (the Python SDK of Argo Workflows) builds Argo YAML with context managers (`with DAG(...)`), decorators for script templates, and `a >> b` for dependencies. The result is a normal Workflow object, so GitOps and kubectl keep working.

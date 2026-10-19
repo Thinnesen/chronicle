@@ -3,117 +3,191 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
-  margin-bottom: var(--space-4);
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 
-.search input {
-  font: inherit;
-  font-size: var(--text-sm);
-  width: min(22rem, 100%);
-  padding: var(--space-1) var(--space-3);
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-
-.search {
-  flex: 1 1 14rem;
-}
-
-.phase-filter {
+.chips {
   display: flex;
   flex-wrap: wrap;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: var(--space-2);
 }
 
-.phase-filter button {
-  border: 0;
-  background: none;
-  padding: var(--space-1) var(--space-3);
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 2rem;
+  padding: 0 var(--space-3);
   font-size: var(--text-sm);
+  font-weight: 600;
   color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
   cursor: pointer;
+  transition: border-color var(--duration), background var(--duration);
 }
 
-.phase-filter button[aria-checked="true"] {
+.chip:hover {
   color: var(--ink);
-  font-weight: 700;
-  box-shadow: inset 0 -2px 0 var(--ink);
+  border-color: var(--rule-strong);
+}
+
+.chip[aria-checked="true"] {
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.chip-count {
+  min-width: 1.25rem;
+  padding: 0 var(--space-1);
+  font-size: var(--text-xs);
+  line-height: 1.25rem;
+  text-align: center;
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip[aria-checked="true"] .chip-count {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.board-wrap {
+  overflow: hidden;
 }
 
 .board {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
-  background: var(--surface);
-  border: 1px solid var(--rule);
 }
 
 .board th {
-  text-align: left;
-  font-weight: 400;
-  color: var(--ink-muted);
+  height: 2.25rem;
+  padding: 0 var(--space-4);
   font-size: var(--text-xs);
-  padding: var(--space-2) var(--space-3);
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink-muted);
+  background: var(--surface-2);
   border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
 }
 
 .board td {
-  padding: var(--space-2) var(--space-3);
+  height: 3rem;
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--rule);
   vertical-align: middle;
 }
 
+.board tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.board tbody tr {
+  transition: background var(--duration);
+}
+
 .board tbody tr:hover {
-  background: var(--panel);
-}
-
-.board-time {
-  width: 9rem;
-}
-
-.board-duration {
-  width: 7rem;
-}
-
-.board-time,
-.board-duration {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  background: var(--surface-hover);
 }
 
 .board-run {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 700;
+  max-width: 0;
+  width: 40%;
 }
 
-.board-run a {
+.board-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.board-name a {
+  overflow: hidden;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-decoration: none;
 }
 
-.board-run a:hover {
+.board-name a:hover {
+  color: var(--accent);
   text-decoration: underline;
 }
 
-.board-template {
-  display: block;
-  margin-left: calc(12px + var(--space-2));
-  color: var(--ink-muted);
-  font-size: var(--text-xs);
+/* The whole row is a target for the run link. */
+.board tbody tr {
+  position: relative;
+}
+
+.board-name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .board-message {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: var(--text-xs);
   color: var(--ink-muted);
-  max-width: 28rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* On a phone, each run is a two-line row: the lamp and the name, then the time and the track. */
+.board-template {
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.board-time,
+.board-num {
+  color: var(--ink-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-num {
+  text-align: right;
+}
+
+.board th.board-num {
+  text-align: right;
+}
+
+/* On a phone, each run is a card of two lines: the status and the name, then the time and the progress. */
 @media (max-width: 48rem) {
+  .board-filters {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .board-filters .search-field {
+    flex: none;
+  }
+
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .chip {
+    flex: none;
+  }
+
   .board thead {
     display: none;
   }
@@ -125,51 +199,35 @@
 
   .board tr {
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: var(--space-1) var(--space-3);
-    padding: var(--space-3);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--rule);
+  }
+
+  .board tbody tr:last-child {
+    border-bottom: 0;
   }
 
   .board td {
     display: block;
+    height: auto;
     padding: 0;
     border: 0;
-    width: auto;
   }
 
-  .board td:nth-child(2) {
+  .board td.board-run {
     grid-column: 1 / -1;
     grid-row: 1;
-    min-width: 0;
-  }
-
-  .board-run {
-    display: flex;
-    min-width: 0;
-  }
-
-  .board-run a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .board-time {
-    color: var(--ink-muted);
-  }
-
-  .board td.board-duration,
-  .board-template {
-    display: none;
-  }
-
-  .board td.board-message {
-    grid-column: 1 / -1;
+    width: auto;
     max-width: none;
   }
 
-  .board td.board-message:empty {
+  .board td.board-template {
     display: none;
+  }
+
+  .board td.board-num {
+    text-align: right;
   }
 }
