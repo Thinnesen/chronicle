@@ -8,6 +8,7 @@ import { useCanEdit } from "./RunActions";
 import { useToast } from "./Toast";
 
 import { clock, duration } from "../lib/time";
+import { useNow } from "../lib/useNow";
 import { artifactURL, nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
 import { ApprovalForm } from "./ApprovalForm";
 import { CopyButton } from "./CopyButton";
@@ -130,6 +131,7 @@ function Details({ node }: { node: NodeStatus }) {
   const phase = node.phase || "Pending";
   const started = node.startedAt ? new Date(node.startedAt) : undefined;
   const finished = node.finishedAt ? new Date(node.finishedAt) : undefined;
+  const now = useNow(!!started && !finished);
   return (
     <>
       <dl className="facts">
@@ -148,7 +150,7 @@ function Details({ node }: { node: NodeStatus }) {
             <dt>Started</dt>
             <dd>{clock(started)}</dd>
             <dt>Duration</dt>
-            <dd>{finished ? duration(finished.getTime() - started.getTime()) : "Running"}</dd>
+            <dd>{duration((finished?.getTime() ?? now) - started.getTime())}</dd>
           </>
         )}
         {node.podName && (
