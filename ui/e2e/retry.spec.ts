@@ -50,3 +50,13 @@ test("a viewer cannot retry", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "etl-nightly-8k2pq" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Retry|Re-run/ })).toHaveCount(0);
 });
+
+test("an archived run offers only a re-run", async ({ page }) => {
+  await mockAPI(page, { runPhase: "Failed", archived: true });
+  await page.goto(runURL);
+  await expect(page.getByText("This run is in the archive.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Re-run" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^(Retry|Delete)$/ })).toHaveCount(0);
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("row", { name: /backfill-2026-10/ }).getByText("Archived")).toBeVisible();
+});

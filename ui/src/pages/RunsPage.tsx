@@ -81,6 +81,7 @@ export function RunsPage() {
                         {w.name}
                       </Link>
                       <span className="visually-hidden">{phase}</span>
+                      {w.archived && <span className="badge">Archived</span>}
                     </span>
                     {w.template && <span className="board-template">{w.template}</span>}
                   </td>

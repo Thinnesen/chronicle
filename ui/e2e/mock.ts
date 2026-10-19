@@ -9,15 +9,15 @@ export const runs = [
   { namespace: "team-a", name: "etl-nightly-8k2pq", uid: "u1", phase: "Running", createdAt: ts(-300), startedAt: ts(-290), template: "etl-nightly", nodesDone: 3, nodesTotal: 7 },
   { namespace: "team-a", name: "deploy-api-x7c1m", uid: "u2", phase: "Suspended", message: "Waiting for an approval", createdAt: ts(-900), startedAt: ts(-890), nodesDone: 2, nodesTotal: 4 },
   { namespace: "team-a", name: "train-model-4rq9z", uid: "u3", phase: "Failed", message: 'task "evaluate" failed', createdAt: ts(-4000), startedAt: ts(-3990), finishedAt: ts(-1200), nodesDone: 5, nodesTotal: 6 },
-  { namespace: "team-a", name: "backfill-2026-10", uid: "u4", phase: "Succeeded", createdAt: ts(-86400), startedAt: ts(-86390), finishedAt: ts(-80000), template: "backfill", nodesDone: 40, nodesTotal: 40 },
+  { namespace: "team-a", name: "backfill-2026-10", uid: "u4", phase: "Succeeded", archived: true, createdAt: ts(-86400), startedAt: ts(-86390), finishedAt: ts(-80000), template: "backfill", nodesDone: 40, nodesTotal: 40 },
 ];
 
 // run is a DAG run: fetch and validate ran, train runs, report waits.
-export function run(phase: string, gate = false) {
+export function run(phase: string, gate = false, archived = false) {
   const done = phase === "Succeeded";
   const node = (id: string, name: string, extra: object) => ({ id, name: `etl-nightly-8k2pq${name}`, ...extra });
   return {
-    summary: { namespace: "team-a", name: "etl-nightly-8k2pq", uid: "u1", phase, startedAt: ts(-290), template: "etl-nightly", nodesDone: done ? 4 : 2, nodesTotal: 4 },
+    summary: { namespace: "team-a", name: "etl-nightly-8k2pq", uid: "u1", phase, archived, startedAt: ts(-290), template: "etl-nightly", nodesDone: done ? 4 : 2, nodesTotal: 4 },
     workflow: {
       metadata: { name: "etl-nightly-8k2pq", namespace: "team-a" },
       spec: {},
@@ -73,6 +73,8 @@ export interface MockOptions {
   deny?: string[];
   // gate adds a suspend node that waits for an approval.
   gate?: boolean;
+  // archived makes the run come from the archive.
+  archived?: boolean;
 }
 
 // calls records the actions that the UI sent, by RPC name.
@@ -99,7 +101,7 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
     r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node)) });
   });
-  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate) }));
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate, opts.archived) }));
   await page.route("**/chronicle.v1.TemplateService/ListTemplates", (r) => r.fulfill({ json: { templates: templateList } }));
   await page.route("**/chronicle.v1.TemplateService/GetTemplate", (r) => {
     const name: string = r.request().postDataJSON()?.name;

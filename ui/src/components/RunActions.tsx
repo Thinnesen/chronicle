@@ -28,7 +28,7 @@ export function useCanEdit(namespace: string): boolean {
 }
 
 // RunActions are the controls of a run. Only the actions that fit the phase show.
-export function RunActions({ wf, phase }: { wf: Workflow; phase: string }) {
+export function RunActions({ wf, phase, archived = false }: { wf: Workflow; phase: string; archived?: boolean }) {
   const { name, namespace } = wf.metadata;
   const canEdit = useCanEdit(namespace);
   const toast = useToast();
@@ -67,6 +67,17 @@ export function RunActions({ wf, phase }: { wf: Workflow; phase: string }) {
     onError: (err, a) => toast(actionError(`${a} runs`, namespace, err), "error"),
   });
   if (!canEdit) return null;
+  if (archived) {
+    // An archived run has no Workflow anymore. Only a re-run makes sense.
+    return (
+      <div className="run-actions" role="group" aria-label="Run actions">
+        <button type="button" className="button" onClick={() => setRerunning(true)}>
+          Re-run
+        </button>
+        {rerunning && <RerunDialog wf={wf} open={rerunning} onOpenChange={setRerunning} onRerun={(p) => rerun.mutate(p)} />}
+      </div>
+    );
+  }
   const active = !["Succeeded", "Failed", "Error"].includes(phase);
   const stopping = !!wf.spec.shutdown;
   return (

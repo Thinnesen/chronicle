@@ -51,7 +51,7 @@ export function RunPage() {
             <Lamp phase={phase} size={18} />
             <span>{s.name}</span>
           </h1>
-          <RunActions wf={wf} phase={phase} />
+          <RunActions wf={wf} phase={phase} archived={s.archived} />
         </div>
         <dl className="run-facts">
           <div>
@@ -84,6 +84,7 @@ export function RunPage() {
           </div>
         </dl>
         {s.message && <p className="run-message">{s.message}</p>}
+        {s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted, so live logs are gone.</p>}
       </header>
       <Suspense fallback={<div className="run-graph-placeholder" />}>
         <RunGraph wf={wf} now={now} selected={selected} onSelect={select} />
