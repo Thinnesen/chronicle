@@ -10,6 +10,7 @@ import { ProgressTrack } from "../components/ProgressTrack";
 import { RunActions } from "../components/RunActions";
 import { Timeline } from "../components/Timeline";
 import { YamlView } from "../components/YamlView";
+import { RefreshError } from "../components/RefreshError";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { runParameters, type Workflow } from "../lib/workflow";
@@ -40,7 +41,7 @@ export function RunPage() {
   });
   const wf = useMemo(() => (data?.workflow ? (data.workflow as unknown as Workflow) : undefined), [data]);
   const now = useNow(!finished.has(data?.summary?.phase ?? ""));
-  if (error) return <p role="alert">Could not load the run: {error.message}</p>;
+  if (error && !data) return <p role="alert">Could not load the run: {error.message}</p>;
   if (!data?.summary || !wf) return <p className="quiet">Loading the run…</p>;
   const s = data.summary;
   const phase = s.phase || "Pending";
@@ -50,6 +51,7 @@ export function RunPage() {
   const select = (id?: string) => void navigate({ search: (q) => ({ ...q, node: id }), replace: true });
   return (
     <section className="run">
+      <RefreshError error={error} />
       <header className="run-head">
         <div className="run-title">
           <div className="run-name">

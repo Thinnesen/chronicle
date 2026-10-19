@@ -47,6 +47,15 @@ test("finds runs by name and by phase", async ({ page }) => {
   await expect(page.getByText("No run matches the filter.")).toBeVisible();
 });
 
+test("keeps the run on the page when a refresh fails", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/ns/team-a/runs/etl-nightly-8k2pq");
+  await expect(page.getByRole("heading", { name: "etl-nightly-8k2pq" })).toBeVisible();
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ status: 503, json: { code: "unavailable", message: "the server restarts" } }));
+  await expect(page.getByText("Could not refresh: ")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "etl-nightly-8k2pq" })).toBeVisible();
+});
+
 test("loads older runs on request", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");

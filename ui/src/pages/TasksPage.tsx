@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 import { tasks } from "../api/client";
 import { Lamp } from "../components/Lamp";
+import { RefreshError } from "../components/RefreshError";
 import { ago, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { tasksRoute } from "../router";
@@ -61,7 +62,8 @@ export function TasksPage() {
         ))}
       </div>
       {isPending && <p className="quiet">Loading the tasks…</p>}
-      {error && <p role="alert">Could not load the tasks: {error.message}</p>}
+      {error && !data && <p role="alert">Could not load the tasks: {error.message}</p>}
+      {data && <RefreshError error={error} />}
       {data?.tasks.length === 0 && (
         <div className="empty card">
           <p>{state ? "No task matches the filter." : "No tasks yet."}</p>

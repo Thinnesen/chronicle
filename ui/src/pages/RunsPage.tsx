@@ -6,6 +6,7 @@ import { workflows } from "../api/client";
 import { ActivityStrip } from "../components/ActivityStrip";
 import { Lamp, lampKind, Status } from "../components/Lamp";
 import { ProgressTrack } from "../components/ProgressTrack";
+import { RefreshError } from "../components/RefreshError";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { runsRoute } from "../router";
@@ -90,7 +91,8 @@ export function RunsPage() {
         </div>
       </div>
       {table.isPending && <p className="quiet">Loading the runs…</p>}
-      {table.error && <p role="alert">Could not load the runs: {table.error.message}</p>}
+      {table.error && !table.data && <p role="alert">Could not load the runs: {table.error.message}</p>}
+      {table.data && <RefreshError error={table.error} />}
       {shown && shown.length === 0 && (
         <div className="empty card">
           <p>{q || phase ? "No run matches the filter." : "No runs yet."}</p>

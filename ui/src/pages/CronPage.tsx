@@ -35,7 +35,7 @@ export function CronPage() {
     },
     onError: (err) => toast(actionError("change cron workflows", namespace, err), "error"),
   });
-  if (error) return <p role="alert">Could not load the cron workflow: {error.message}</p>;
+  if (error && !data) return <p role="alert">Could not load the cron workflow: {error.message}</p>;
   if (!data?.summary) return <p className="quiet">Loading the cron workflow…</p>;
   const c = data.summary;
   const next = toDate(c.nextScheduledAt);

@@ -22,6 +22,8 @@ export interface LogState {
   done: boolean;
   // archived is true when the lines come from the log archive.
   archived?: boolean;
+  // reconnecting is true while a broken stream waits to connect again.
+  reconnecting?: boolean;
 }
 
 // useLogStream streams the log of one node. It follows new lines while follow is true.
@@ -53,7 +55,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
       } catch (e) {
         if (abort.signal.aborted) return;
         if (follow && healable(e)) {
-          setState((s) => ({ ...s, error: "The log stream stopped. Connecting again…" }));
+          setState((s) => ({ ...s, reconnecting: true }));
           retry = setTimeout(() => setAttempt((a) => a + 1), 2000);
           return;
         }

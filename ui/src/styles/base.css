@@ -311,3 +311,12 @@ kbd {
   width: 1.125rem;
   height: 1.125rem;
 }
+
+.refresh-error {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--caution-ink);
+  background: var(--caution-soft);
+  border-radius: var(--radius);
+}

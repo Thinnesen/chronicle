@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 import { crons } from "../api/client";
 import { ManagedBadge } from "../components/Badge";
+import { RefreshError } from "../components/RefreshError";
 import { readable, relative } from "../lib/cron";
 import { toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
@@ -26,7 +27,8 @@ export function CronsPage() {
         </div>
       </header>
       {isPending && <p className="quiet">Loading the cron workflows…</p>}
-      {error && <p role="alert">Could not load the cron workflows: {error.message}</p>}
+      {error && !data && <p role="alert">Could not load the cron workflows: {error.message}</p>}
+      {data && <RefreshError error={error} />}
       {data?.cronWorkflows.length === 0 && <p className="quiet">No cron workflows yet. Add a CronWorkflow to run a template on a schedule.</p>}
       {data && data.cronWorkflows.length > 0 && (
         <ul className="item-list">
