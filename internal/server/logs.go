@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"errors"
 	"io"
@@ -51,6 +52,15 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 		mu.Lock()
 		defer mu.Unlock()
 		return stream.Send(r)
+	}
+	// Without follow, the nodes come one after the other in the order of their start, so the output reads like the run.
+	// With follow, all nodes stream at the same time, because a running node never ends its stream.
+	if !m.Follow {
+		var errs []error
+		for _, n := range nodes {
+			errs = append(errs, s.streamNode(ctx, m.Namespace, n, opts, send))
+		}
+		return toConnect(errors.Join(errs...))
 	}
 	errs := make([]error, len(nodes))
 	var wg sync.WaitGroup
@@ -118,7 +128,7 @@ func (s *logService) streamArchived(ctx context.Context, namespace string, n v1a
 	return nil
 }
 
-// podNodes returns the Pod nodes of a run, or the one node with the ID or name, sorted by name.
+// podNodes returns the Pod nodes of a run, or the one node with the ID or name, in the order of their start.
 func podNodes(wf *v1alpha1.Workflow, node string) []v1alpha1.NodeStatus {
 	var out []v1alpha1.NodeStatus
 	for _, n := range wf.Status.Nodes {
@@ -126,8 +136,18 @@ func podNodes(wf *v1alpha1.Workflow, node string) []v1alpha1.NodeStatus {
 			out = append(out, n)
 		}
 	}
-	slices.SortFunc(out, func(a, b v1alpha1.NodeStatus) int { return strings.Compare(a.Name, b.Name) })
+	slices.SortFunc(out, func(a, b v1alpha1.NodeStatus) int {
+		return cmp.Or(startTime(a).Compare(startTime(b)), strings.Compare(a.Name, b.Name))
+	})
 	return out
+}
+
+// startTime is the start of a node, or the zero time for a node that has not started.
+func startTime(n v1alpha1.NodeStatus) time.Time {
+	if n.StartedAt == nil {
+		return time.Time{}
+	}
+	return n.StartedAt.Time
 }
 
 // splitTimestamp splits the RFC 3339 time that Kubernetes puts before each line with Timestamps.

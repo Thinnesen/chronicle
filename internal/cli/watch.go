@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"connectrpc.com/connect"
@@ -48,11 +50,16 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 		if err != nil {
 			return err
 		}
+		var changed []v1alpha1.NodeStatus
 		for _, n := range nodes(resp.Msg) {
 			if n.Phase != "" && seen[n.ID] != n.Phase {
 				seen[n.ID] = n.Phase
-				_, _ = fmt.Fprintf(a.out, "%s  %-10s %s%s\n", time.Now().Format(time.TimeOnly), n.Phase, n.Name, suffix(n.Message))
+				changed = append(changed, n)
 			}
+		}
+		slices.SortStableFunc(changed, changeOrder)
+		for _, n := range changed {
+			_, _ = fmt.Fprintf(a.out, "%s  %-10s %s%s\n", time.Now().Format(time.TimeOnly), n.Phase, n.Name, suffix(n.Message))
 		}
 		s := resp.Msg.Summary
 		if finished(s.Phase) {
@@ -68,6 +75,35 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 		case <-time.After(pollInterval):
 		}
 	}
+}
+
+// changeOrder sorts the node changes of one poll by the time of the change. At the same time, an end comes
+// before a start, a child ends before its parent, and a parent starts before its child.
+func changeOrder(a, b v1alpha1.NodeStatus) int {
+	at, aEnd := changeTime(a)
+	bt, bEnd := changeTime(b)
+	if c := at.Compare(bt); c != 0 {
+		return c
+	}
+	switch {
+	case aEnd && !bEnd:
+		return -1
+	case !aEnd && bEnd:
+		return 1
+	case aEnd:
+		return cmp.Compare(len(b.Name), len(a.Name))
+	}
+	return cmp.Compare(len(a.Name), len(b.Name))
+}
+
+func changeTime(n v1alpha1.NodeStatus) (time.Time, bool) {
+	if n.FinishedAt != nil {
+		return n.FinishedAt.Time, true
+	}
+	if n.StartedAt != nil {
+		return n.StartedAt.Time, false
+	}
+	return time.Time{}, false
 }
 
 func finished(phase string) bool {

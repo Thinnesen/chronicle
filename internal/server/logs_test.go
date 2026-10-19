@@ -8,9 +8,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -29,9 +31,10 @@ func TestStreamLogs(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = admin.Delete(ctx, wf) })
 	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{
-		"logs":   {ID: "logs", Name: "logs", Type: v1alpha1.NodeDAG},
-		"logs-1": {ID: "logs-1", Name: "logs.a", Type: v1alpha1.NodePod, PodName: "logs-1"},
-		"logs-2": {ID: "logs-2", Name: "logs.b", Type: v1alpha1.NodePod, PodName: "logs-2"},
+		"logs": {ID: "logs", Name: "logs", Type: v1alpha1.NodeDAG},
+		// logs.b started first, so its lines come first.
+		"logs-1": {ID: "logs-1", Name: "logs.a", Type: v1alpha1.NodePod, PodName: "logs-1", StartedAt: &metav1.Time{Time: time.Unix(20, 0)}},
+		"logs-2": {ID: "logs-2", Name: "logs.b", Type: v1alpha1.NodePod, PodName: "logs-2", StartedAt: &metav1.Time{Time: time.Unix(10, 0)}},
 	}
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)
@@ -75,6 +78,9 @@ func TestStreamLogs(t *testing.T) {
 	all, err := stream("alice", "")
 	if err != nil || len(all) != 4 {
 		t.Fatalf("all nodes: %v, %d lines", err, len(all))
+	}
+	if all[0].NodeName != "logs.b" {
+		t.Errorf("the first line is from %s, want the node that started first", all[0].NodeName)
 	}
 	one, err := stream("alice", "logs.b")
 	if err != nil || len(one) != 2 || one[0].Line != "hello from logs-2" || one[0].Time.AsTime().Nanosecond() != 5e8 || one[1].Time != nil {

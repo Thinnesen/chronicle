@@ -7,11 +7,16 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/structpb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Thinnesen/chronicle/api/v1alpha1"
 
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
@@ -182,5 +187,23 @@ func TestLoginWithToken(t *testing.T) {
 	}
 	if fi, _ := os.Stat(cfgPath); fi.Mode().Perm() != 0o600 {
 		t.Errorf("config mode = %v", fi.Mode().Perm())
+	}
+}
+
+func TestChangeOrder(t *testing.T) {
+	at := func(s int64) *metav1.Time { return &metav1.Time{Time: time.Unix(s, 0)} }
+	changes := []v1alpha1.NodeStatus{
+		{Name: "r", FinishedAt: at(20)},
+		{Name: "r.load", StartedAt: at(10), FinishedAt: at(20)},
+		{Name: "r.b", StartedAt: at(10)},
+		{Name: "r.a", StartedAt: at(5), FinishedAt: at(10)},
+	}
+	slices.SortStableFunc(changes, changeOrder)
+	got := make([]string, 0, len(changes))
+	for _, n := range changes {
+		got = append(got, n.Name)
+	}
+	if want := []string{"r.a", "r.b", "r.load", "r"}; !slices.Equal(got, want) {
+		t.Errorf("order = %v, want %v", got, want)
 	}
 }
