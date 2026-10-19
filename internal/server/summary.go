@@ -29,15 +29,7 @@ func summary(wf *v1alpha1.Workflow) *chroniclev1.WorkflowSummary {
 	if ref := wf.Spec.WorkflowTemplateRef; ref != nil {
 		s.Template = ref.Name
 	}
-	for _, n := range wf.Status.Nodes {
-		switch n.Type {
-		case v1alpha1.NodePod, v1alpha1.NodeSuspend:
-			s.NodesTotal++
-			if n.FinishedAt != nil {
-				s.NodesDone++
-			}
-		}
-	}
+	s.NodesDone, s.NodesTotal = wf.Status.Progress()
 	return s
 }
 

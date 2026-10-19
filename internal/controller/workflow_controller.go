@@ -135,26 +135,13 @@ func (r *WorkflowReconciler) archive(ctx context.Context, wf *chroniclev1alpha1.
 	if r.Archive == nil || !finished(wf.Status.Phase) || meta.IsStatusConditionTrue(wf.Status.Conditions, conditionArchived) {
 		return nil
 	}
-	done, total := nodeCounts(wf)
-	if err := r.Archive.Save(ctx, wf, done, total); err != nil {
+	done, total := wf.Status.Progress()
+	if err := r.Archive.Save(ctx, wf, int(done), int(total)); err != nil {
 		return fmt.Errorf("archive the run: %w", err)
 	}
 	meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: conditionArchived, Status: metav1.ConditionTrue,
 		Reason: "Saved", Message: "the archive has the run", ObservedGeneration: wf.Generation})
 	return nil
-}
-
-// nodeCounts counts the Pod and suspend nodes, and those that finished.
-func nodeCounts(wf *chroniclev1alpha1.Workflow) (done, total int) {
-	for _, n := range wf.Status.Nodes {
-		if n.Type == chroniclev1alpha1.NodePod || n.Type == chroniclev1alpha1.NodeSuspend {
-			total++
-			if n.FinishedAt != nil {
-				done++
-			}
-		}
-	}
-	return done, total
 }
 
 // applyTTL deletes a finished workflow when its TTL is over, or runs again when it will be over.

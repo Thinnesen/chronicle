@@ -103,3 +103,17 @@ type NodeStatus struct {
 	// +optional
 	Outputs *Outputs `json:"outputs,omitempty"`
 }
+
+// Progress counts the nodes that do work (Pod, suspend and task nodes), and those that finished.
+func (s *WorkflowStatus) Progress() (done, total int32) {
+	for _, n := range s.Nodes {
+		switch n.Type {
+		case NodePod, NodeSuspend, NodeTask:
+			total++
+			if n.FinishedAt != nil {
+				done++
+			}
+		}
+	}
+	return done, total
+}
