@@ -1,14 +1,21 @@
 package chronicle_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"os"
+	"testing"
 	"time"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/Thinnesen/chronicle/sdk/go/chronicle"
 )
 
-// This example builds a DAG: fetch saves a file, two tasks use it in parallel, and report runs last.
-func Example() {
+// etl builds a DAG: fetch saves a directory, count uses it, and report runs last.
+// The Python and Rust SDK tests build the same workflow and compare it with sdk/testdata/etl.json.
+func etl() *chronicle.Workflow {
 	w := chronicle.New("etl-").Label("team", "data")
 	day := w.Param("day", "2026-10-17")
 
@@ -25,8 +32,39 @@ func Example() {
 	f := main.Task("fetch", fetch)
 	c := main.Task("count", count).After(f).ArtifactArg("rows", f.Artifact("rows"))
 	main.Task("report", echo).After(c).Arg("msg", "fetched "+f.Result()+" rows")
-	w.Entrypoint(main)
+	return w.Entrypoint(main)
+}
 
+// TestSharedFixture keeps sdk/testdata/etl.json current. Run it with UPDATE=1 to write the file.
+func TestSharedFixture(t *testing.T) {
+	out, err := etl().YAML()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := yaml.YAMLToJSON(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, got, "", "  "); err != nil {
+		t.Fatal(err)
+	}
+	buf.WriteByte('\n')
+	const path = "../../testdata/etl.json"
+	if os.Getenv("UPDATE") != "" {
+		if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(want, buf.Bytes()) {
+		t.Errorf("%s is not current (%v): run the test with UPDATE=1", path, err)
+	}
+}
+
+// This example renders the workflow of etl as YAML.
+func Example() {
+	w := etl()
 	out, err := w.YAML()
 	if err != nil {
 		fmt.Println(err)

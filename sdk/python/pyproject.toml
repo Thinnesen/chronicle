@@ -1,0 +1,34 @@
+[project]
+name = "chronicle-sdk"
+version = "0.1.0"
+description = "Define chronicle workflows as Python code, render them and submit them."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ruff==0.17.0"]
+
+[build-system]
+requires = ["uv_build==0.12.18"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "chronicle"
+
+[tool.uv]
+# Supply chain: do not resolve releases that are newer than seven days.
+exclude-newer = "7 days"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Paths below /tmp in tests and examples are paths in the container, not files on this host.
+"tests/*" = ["S101", "S108"]
+"examples/*" = ["S108"]

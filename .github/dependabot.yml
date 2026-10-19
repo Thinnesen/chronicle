@@ -32,3 +32,9 @@ updates:
     groups:
       ui:
         patterns: ["*"]
+  - package-ecosystem: uv
+    directory: /sdk/python
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
