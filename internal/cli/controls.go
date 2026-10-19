@@ -8,6 +8,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
@@ -186,14 +188,22 @@ func (a *app) retryCommand() *cobra.Command {
 	return cmd
 }
 
-// watchAfterRetry waits until the controller has applied the retry, then watches the run.
+// watchAfterRetry waits until the controller has applied or refused the retry, then watches the run.
+// A short retry can finish between two polls, so the phase alone does not tell that it was applied.
 func (a *app) watchAfterRetry(cmd *cobra.Command, c chroniclev1connect.WorkflowServiceClient, ns, name string) error {
 	for {
 		resp, err := c.GetWorkflow(cmd.Context(), connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: name}))
 		if err != nil {
 			return err
 		}
-		if !finished(resp.Msg.Summary.Phase) {
+		wf, err := toWorkflow(resp.Msg)
+		if err != nil {
+			return err
+		}
+		if rs := wf.Spec.Restart; rs != nil && wf.Status.Restarts >= rs.Generation {
+			if cond := meta.FindStatusCondition(wf.Status.Conditions, "Restarted"); cond != nil && cond.Status == metav1.ConditionFalse {
+				return fmt.Errorf("the controller refused the retry: %s", cond.Message)
+			}
 			return a.watch(cmd.Context(), ns, name)
 		}
 		select {

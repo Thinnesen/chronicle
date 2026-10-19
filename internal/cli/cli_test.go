@@ -24,6 +24,8 @@ type stub struct {
 	phase    string
 	requests []any
 	auth     string
+	// restarted is the Restarted condition status of an applied retry ("True" or "False"), or empty.
+	restarted string
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -32,13 +34,18 @@ func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.
 }
 
 func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
-	wf, _ := structpb.NewStruct(map[string]any{
-		"metadata": map[string]any{"name": r.Msg.Name},
-		"status": map[string]any{"nodes": map[string]any{
-			r.Msg.Name: map[string]any{"id": r.Msg.Name, "name": r.Msg.Name, "type": "DAG", "phase": s.phase, "children": []any{"n1"}},
-			"n1":       map[string]any{"id": "n1", "name": r.Msg.Name + ".a", "displayName": "a", "type": "Pod", "phase": s.phase},
-		}},
-	})
+	status := map[string]any{"nodes": map[string]any{
+		r.Msg.Name: map[string]any{"id": r.Msg.Name, "name": r.Msg.Name, "type": "DAG", "phase": s.phase, "children": []any{"n1"}},
+		"n1":       map[string]any{"id": "n1", "name": r.Msg.Name + ".a", "displayName": "a", "type": "Pod", "phase": s.phase},
+	}}
+	spec := map[string]any{}
+	if s.restarted != "" {
+		spec["restart"] = map[string]any{"generation": 1}
+		status["restarts"] = 1
+		status["conditions"] = []any{map[string]any{"type": "Restarted", "status": s.restarted, "reason": "Test",
+			"message": `the run has no node "x"`, "lastTransitionTime": "2026-01-01T00:00:00Z"}}
+	}
+	wf, _ := structpb.NewStruct(map[string]any{"metadata": map[string]any{"name": r.Msg.Name}, "spec": spec, "status": status})
 	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf,
 		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: s.phase, NodesTotal: 1}}), nil
 }
@@ -107,6 +114,18 @@ func TestSubmitAndWatch(t *testing.T) {
 	s.phase = "Failed"
 	if _, err := run(t, s, "watch", "x"); err != errRunFailed {
 		t.Errorf("watch of a failed run: %v", err)
+	}
+}
+
+// TestRetryWatch checks that a retry that finished between two polls, or that the controller refused, ends the watch.
+func TestRetryWatch(t *testing.T) {
+	s := &stub{phase: "Succeeded", restarted: "True"}
+	if out, err := run(t, s, "retry", "x", "--node", "x.a", "--watch"); err != nil || !strings.Contains(out, "x Succeeded") {
+		t.Errorf("applied retry: %v\n%s", err, out)
+	}
+	s.restarted = "False"
+	if _, err := run(t, s, "retry", "x", "--node", "x.b", "--watch"); err == nil || !strings.Contains(err.Error(), "refused the retry") {
+		t.Errorf("refused retry: %v", err)
 	}
 }
 
