@@ -1,0 +1,21 @@
+---
+# The chronicle metrics for the generated dashboard grafana/custom-metrics/custom-metrics-dashboard.json.
+# Run "kubebuilder edit --plugins grafana/v1-alpha" after a change.
+customMetrics:
+  - metric: chronicle_workflows_finished_total
+    type: counter
+    unit: none
+    expr: sum by(phase) (rate(chronicle_workflows_finished_total{job=\"$job\", namespace=\"$namespace\"}[5m]))
+  - metric: chronicle_workflow_duration_seconds
+    type: histogram
+    unit: s
+    expr: histogram_quantile(0.90, sum by(le, phase) (rate(chronicle_workflow_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])))
+  - metric: chronicle_pods_created_total
+    type: counter
+    unit: none
+  - metric: chronicle_tasks_enqueued_total
+    type: counter
+    unit: none
+  - metric: chronicle_workflow_retries_total
+    type: counter
+    unit: none
