@@ -1,4 +1,4 @@
-import { stringify } from "yaml";
+import { stringify, type Pair } from "yaml";
 
 import "./YamlView.css";
 
@@ -19,11 +19,23 @@ export function withoutServerFields(value: unknown): unknown {
   return copy;
 }
 
+// The server sends the keys in alphabetical order. These keys come first, as in the YAML that users write.
+const firstKeys = ["apiVersion", "kind", "metadata", "name"];
+const rank = (p: Pair) => {
+  const i = firstKeys.indexOf(String(p.key));
+  return i < 0 ? firstKeys.length : i;
+};
+
+// toYaml writes an object as YAML with the usual Kubernetes key order.
+export function toYaml(value: unknown): string {
+  return stringify(value, { lineWidth: 0, sortMapEntries: (a, b) => rank(a) - rank(b) || String(a.key).localeCompare(String(b.key)) });
+}
+
 // YamlView shows an object as read-only YAML, the format that users write.
 export function YamlView({ value, label }: { value: unknown; label: string }) {
   return (
     <pre className="yaml" tabIndex={0} aria-label={label}>
-      {stringify(withoutServerFields(value), { lineWidth: 0 })}
+      {toYaml(withoutServerFields(value))}
     </pre>
   );
 }
