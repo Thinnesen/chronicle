@@ -66,8 +66,10 @@ impl Client {
             .to_value()
             .map_err(|e| api_error("invalid_argument", e))?;
         let answer = self.call(
+            "WorkflowService",
             "SubmitWorkflow",
             json!({"namespace": namespace, "workflow": wf}),
+            None,
         )?;
         Ok(answer["summary"]["name"]
             .as_str()
@@ -77,18 +79,32 @@ impl Client {
 
     /// Returns the phase of a run: Pending, Running, Succeeded, Failed, Error or Suspended.
     pub fn phase(&self, namespace: &str, name: &str) -> Result<String, ApiError> {
-        let answer = self.call("GetWorkflow", json!({"namespace": namespace, "name": name}))?;
+        let answer = self.call(
+            "WorkflowService",
+            "GetWorkflow",
+            json!({"namespace": namespace, "name": name}),
+            None,
+        )?;
         Ok(answer["summary"]["phase"]
             .as_str()
             .unwrap_or_default()
             .to_string())
     }
 
-    fn call(&self, method: &str, body: Value) -> Result<Value, ApiError> {
-        let url = format!("{}/chronicle.v1.WorkflowService/{method}", self.server);
-        let mut resp = self
-            .agent
-            .post(&url)
+    /// Calls a method of the API. timeout replaces the default of 30 s, for example for a long poll.
+    pub(crate) fn call(
+        &self,
+        service: &str,
+        method: &str,
+        body: Value,
+        timeout: Option<Duration>,
+    ) -> Result<Value, ApiError> {
+        let url = format!("{}/chronicle.v1.{service}/{method}", self.server);
+        let mut req = self.agent.post(&url);
+        if let Some(t) = timeout {
+            req = req.config().timeout_global(Some(t)).build();
+        }
+        let mut resp = req
             .header("Authorization", format!("Bearer {}", self.token))
             .send_json(&body)
             .map_err(|e| api_error("unavailable", e))?;

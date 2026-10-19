@@ -9,7 +9,9 @@ use std::fmt;
 use serde_json::{Map, Value, json};
 
 mod client;
+mod worker;
 pub use client::{ApiError, Client};
+pub use worker::{TaskError, TaskFn, TaskInfo, Worker};
 
 /// The API version of chronicle Workflow objects.
 pub const API_VERSION: &str = "chronicle.thinnesen.com/v1alpha1";
@@ -41,6 +43,7 @@ enum Kind {
     Container,
     Script,
     Dag,
+    Task,
 }
 
 /// A step definition: a container, a script or a DAG of tasks.
@@ -103,13 +106,50 @@ impl Template {
         Template::new(name, Kind::Dag, Map::new())
     }
 
+    /// Returns a template that sends its input parameters to a worker that runs the task type task_type.
+    pub fn task_template(name: &str, task_type: &str) -> Self {
+        let mut body = Map::new();
+        body.insert("name".into(), task_type.into());
+        Template::new(name, Kind::Task, body)
+    }
+
+    fn task_field(mut self, key: &str, value: &str) -> Self {
+        if self.kind != Kind::Task {
+            self.error = Some(format!("template {:?} is not a task template", self.name));
+            return self;
+        }
+        self.body.insert(key.into(), value.into());
+        self
+    }
+
+    /// Sets the queue of a task template.
+    pub fn queue(self, queue: &str) -> Self {
+        self.task_field("queue", queue)
+    }
+
+    /// Fails an attempt of a task template when the worker sends no heartbeat for duration, for example "30s".
+    pub fn heartbeat_timeout(self, duration: &str) -> Self {
+        self.task_field("heartbeatTimeout", duration)
+    }
+
+    /// Fails an attempt of a task template when no worker takes the task in duration.
+    pub fn schedule_to_start_timeout(self, duration: &str) -> Self {
+        self.task_field("scheduleToStartTimeout", duration)
+    }
+
+    /// Declares an output parameter of a task template. It gets the field of the result with the same name.
+    pub fn output_field(mut self, name: &str) -> Self {
+        Self::push(&mut self.outputs, "parameters", json!({"name": name}));
+        self
+    }
+
     /// Returns the name of the template.
     pub fn name(&self) -> &str {
         &self.name
     }
 
     fn container_field(mut self, key: &str, value: Value) -> Self {
-        if self.kind == Kind::Dag {
+        if self.kind == Kind::Dag || self.kind == Kind::Task {
             self.error = Some(format!("template {:?} has no container", self.name));
             return self;
         }
@@ -231,6 +271,9 @@ impl Template {
             }
             Kind::Script => {
                 out.insert("script".into(), Value::Object(self.body.clone()));
+            }
+            Kind::Task => {
+                out.insert("task".into(), Value::Object(self.body.clone()));
             }
         }
         if !self.inputs.is_empty() {
