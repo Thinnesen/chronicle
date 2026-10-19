@@ -10,6 +10,10 @@ test("starts a run from a template with parameters", async ({ page }) => {
   await expect(page.getByText("Managed by Argo CD")).toBeVisible();
   await page.getByRole("link", { name: "deploy-api" }).click();
   await expect(page.getByLabel("The YAML of deploy-api")).toContainText("entrypoint: main");
+  await expect(page.getByLabel("The YAML of deploy-api")).not.toContainText("last-applied-configuration");
+  const plan = page.getByRole("region", { name: "Steps of the template" });
+  await expect(plan.getByText("roll-out", { exact: true })).toBeVisible();
+  await expect(plan.getByText("deploy", { exact: true })).toBeVisible();
 
   await page.getByRole("combobox", { name: "env" }).selectOption("prod");
   await page.getByRole("button", { name: "Start the run" }).click();

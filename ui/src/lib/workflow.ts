@@ -194,3 +194,17 @@ export function templateOf(wf: Workflow, n: NodeStatus): Template | undefined {
 export function runParameters(wf: Workflow): Parameter[] {
   return wf.status?.storedSpec?.arguments?.parameters ?? wf.spec.arguments?.parameters ?? [];
 }
+
+// previewOf returns a run without status for a template object whose entrypoint is a DAG, so that the graph can
+// show the plan of the template before it runs. It returns undefined for other templates.
+export function previewOf(template: { metadata?: { name?: string; namespace?: string }; spec?: Workflow["spec"] & { entrypoint?: string } }): Workflow | undefined {
+  const spec = template.spec;
+  const entry = spec?.templates?.find((t) => t.name === spec.entrypoint);
+  if (!spec || !entry?.dag) return undefined;
+  const name = template.metadata?.name ?? "preview";
+  return {
+    metadata: { name, namespace: template.metadata?.namespace ?? "" },
+    spec,
+    status: { nodes: { [name]: { id: name, name, type: "DAG", templateName: entry.name } } },
+  };
+}

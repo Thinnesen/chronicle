@@ -11,7 +11,7 @@ import { duration } from "../lib/time";
 import { buildGraph, isStation, nodeLabel, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Lamp } from "./Lamp";
 
-type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number> };
+type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number>; preview?: boolean };
 
 function nodeDuration(n: NodeStatus, now: number): string {
   if (!n.startedAt) return "";
@@ -43,7 +43,7 @@ function StationNode({ data }: NodeProps<Node<NodeData>>) {
         <span className="station-name" title={nodeLabel(n)}>
           {nodeLabel(n)}
         </span>
-        <span className="station-meta">{n.planned ? "Not started" : nodeDuration(n, data.now) || phase}</span>
+        <span className="station-meta">{data.preview ? (n.templateName !== nodeLabel(n) ? n.templateName : "") : n.planned ? "Not started" : nodeDuration(n, data.now) || phase}</span>
       </span>
       <Icon className="station-kind" aria-hidden="true" />
     </div>
@@ -109,7 +109,9 @@ function useNarrow(): boolean {
 }
 
 // RunGraph draws the nodes of a run. An edge is colored after its source succeeded, and moves while its target runs.
-export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: number; selected?: string; onSelect: (id: string) => void }) {
+// With preview, it shows the plan of a template: the steps are not dashed, and each card names its template.
+export function RunGraph(props: { wf: Workflow; now: number; selected?: string; onSelect: (id: string) => void; preview?: boolean }) {
+  const { wf, now, selected, onSelect, preview } = props;
   const narrow = useNarrow();
   const box = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -139,7 +141,7 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
           position: { x: p.x, y: p.y },
           width: p.width,
           height: p.height,
-          data: { status: p.node, selected: p.node.id === selected, now, vertical: narrow, width: p.width, hidden: folded.hidden[p.node.id] },
+          data: { status: p.node, selected: p.node.id === selected, now, vertical: narrow, width: p.width, hidden: folded.hidden[p.node.id], preview },
           ariaLabel: `${nodeLabel(p.node)}, ${p.node.planned ? "not started" : p.node.phase || "Pending"}`,
         }),
       ),
@@ -160,9 +162,9 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
       }),
       height,
     };
-  }, [wf, selected, now, narrow, expanded]);
+  }, [wf, selected, now, narrow, expanded, preview]);
   return (
-    <div className="run-graph" ref={box} style={{ height: `clamp(18rem, ${height + 48}px, 70vh)` }}>
+    <div className={preview ? "run-graph is-preview" : "run-graph"} ref={box} style={{ height: `clamp(18rem, ${height + 48}px, 70vh)` }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}

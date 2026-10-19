@@ -165,3 +165,8 @@
 .list-filters {
   margin-bottom: var(--space-3);
 }
+
+.template-plan {
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}

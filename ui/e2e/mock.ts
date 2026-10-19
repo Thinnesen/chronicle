@@ -55,6 +55,11 @@ export function run(phase: string, gate = false, archived = false) {
   };
 }
 
+const templateSpec = {
+  entrypoint: "main",
+  templates: [{ name: "main", dag: { tasks: [{ name: "build", template: "build" }, { name: "roll-out", template: "deploy", depends: "build" }] } }],
+};
+
 export const templateList = [
   {
     namespace: "team-a", name: "deploy-api", description: "Builds and deploys the API to an environment.", entrypoint: "main",
@@ -123,7 +128,7 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
   await page.route("**/chronicle.v1.TemplateService/GetTemplate", (r) => {
     const name: string = r.request().postDataJSON()?.name;
     const t = templateList.find((x) => x.name === name);
-    r.fulfill({ json: { summary: t, template: { apiVersion: "chronicle.thinnesen.com/v1alpha1", kind: "WorkflowTemplate", metadata: { name }, spec: { entrypoint: "main" } } } });
+    r.fulfill({ json: { summary: t, template: { apiVersion: "chronicle.thinnesen.com/v1alpha1", kind: "WorkflowTemplate", metadata: { name, uid: "t1", annotations: { "kubectl.kubernetes.io/last-applied-configuration": "{}" } }, spec: templateSpec } } });
   });
   await page.route("**/chronicle.v1.CronService/ListCronWorkflows", (r) => r.fulfill({ json: { cronWorkflows: cronList } }));
   await page.route("**/chronicle.v1.TaskService/ListTasks", (r) => {

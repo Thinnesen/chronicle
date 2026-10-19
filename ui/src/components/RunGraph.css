@@ -191,3 +191,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The plan of a template: every step is planned, so the planned look would only add noise. */
+.run-graph.is-preview .station-node.is-planned,
+.run-graph.is-preview .junction-node.is-planned {
+  color: var(--ink);
+  background: var(--surface);
+  border-style: solid;
+}
+
+.run-graph.is-preview .track.is-planned path {
+  stroke-dasharray: none;
+}
