@@ -130,6 +130,7 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
     const { placed, height } = place(all, graphEdges, narrow ? "TB" : "LR");
     const phase = new Map(all.map((n) => [n.id, n.phase]));
     const groups = new Set(all.filter((n) => !isStation(n)).map((n) => n.id));
+    const planned = new Set(all.filter((n) => n.planned).map((n) => n.id));
     return {
       nodes: placed.map(
         (p): Node<NodeData> => ({
@@ -146,7 +147,7 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
         const to = phase.get(e.to);
         // An edge out of a group shows the state of its target; an edge out of a step shows the state of the step.
         const from = groups.has(e.from) ? to : phase.get(e.from);
-        const state = from === "Failed" || from === "Error" ? " is-failed" : from === "Succeeded" ? " is-lit" : "";
+        const state = planned.has(e.to) ? " is-planned" : from === "Failed" || from === "Error" ? " is-failed" : from === "Succeeded" ? " is-lit" : "";
         return {
           id: `${e.from}-${e.to}`,
           source: e.from,

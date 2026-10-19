@@ -42,6 +42,10 @@
   stroke: var(--lamp-danger);
 }
 
+.run-graph .track.is-planned path {
+  stroke-dasharray: 4 4;
+}
+
 .run-graph .react-flow__edge.animated path {
   stroke-dasharray: 5 4;
 }
