@@ -49,16 +49,26 @@ type Message struct {
 }
 
 // Install copies the running binary to dst, so that the main container can run it.
+// It streams the copy, because the binary is large and the init container has a small memory limit.
 func Install(dst string) error {
 	src, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("find the executable: %w", err)
 	}
-	data, err := os.ReadFile(src)
+	in, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", src, err)
 	}
-	if err := os.WriteFile(dst, data, 0o555); err != nil {
+	defer func() { _ = in.Close() }()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o555)
+	if err != nil {
+		return fmt.Errorf("write %s: %w", dst, err)
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		return fmt.Errorf("write %s: %w", dst, err)
+	}
+	if err := out.Close(); err != nil {
 		return fmt.Errorf("write %s: %w", dst, err)
 	}
 	return nil

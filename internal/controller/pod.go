@@ -176,9 +176,10 @@ func initContainer(image string) corev1.Container {
 		Command:         []string{"/chronicle-exec", "install", execPath},
 		SecurityContext: restricted(),
 		VolumeMounts:    []corev1.VolumeMount{{Name: execVolume, MountPath: execDir}},
+		// The copy of the executor (about 40 MB) fills the page cache, which counts against the limit.
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("10m"), corev1.ResourceMemory: resource.MustParse("16Mi")},
-			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("64Mi")},
+			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")},
 		},
 	}
 }
