@@ -203,3 +203,10 @@
 .run-graph.is-preview .track.is-planned path {
   stroke-dasharray: none;
 }
+
+/* xyflow removes the outline of a focused node, so the card shows the focus. */
+.run-graph .react-flow__node:focus-visible > .station-node,
+.run-graph .react-flow__node:focus-visible > .junction-node {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}

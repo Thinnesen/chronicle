@@ -16,6 +16,12 @@ test("shows the run as a graph and a timeline, and selects a node in both", asyn
   const panel = page.getByRole("complementary", { name: "Step validate" });
   await expect(panel.getByText("1204 rows")).toBeVisible();
 
+  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/node=/);
+  await graph.locator(".react-flow__node").filter({ hasText: "validate" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/node=n2/);
+
   await page.getByRole("tab", { name: "Timeline" }).click();
   await expect(page).toHaveURL(/tab=timeline/);
   await expect(page.getByRole("listitem").filter({ has: page.getByRole("button", { name: /validate, Succeeded/ }) })).toHaveClass(/is-selected/);

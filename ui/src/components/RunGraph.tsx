@@ -163,16 +163,27 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
       height,
     };
   }, [wf, selected, now, narrow, expanded, preview]);
+  // activate opens a step, or shows the hidden items of a "more" card. A click and Enter or Space on a focused card do this.
+  const activate = (n: Node<NodeData>) => {
+    if (n.data.hidden) setExpanded((e) => new Set([...e, n.id.replace(/\/more$/, "")]));
+    else if (!n.data.status.planned) onSelect(n.id);
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const id = (e.target as HTMLElement).closest(".react-flow__node")?.getAttribute("data-id");
+    const n = nodes.find((x) => x.id === id);
+    if (n && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      activate(n);
+    }
+  };
   return (
-    <div className={preview ? "run-graph is-preview" : "run-graph"} ref={box} style={{ height: `clamp(18rem, ${height + 48}px, 70vh)` }}>
+    // The keys reach the graph from its focused cards. The cards themselves are the focus targets.
+    <div className={preview ? "run-graph is-preview" : "run-graph"} ref={box} onKeyDown={onKeyDown} style={{ height: `clamp(18rem, ${height + 48}px, 70vh)` }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodeClick={(_, n) => {
-          if (n.data.hidden) setExpanded((e) => new Set([...e, n.id.replace(/\/more$/, "")]));
-          else if (!n.data.status.planned) onSelect(n.id);
-        }}
+        onNodeClick={(_, n) => activate(n)}
         nodesDraggable={false}
         nodesConnectable={false}
         fitView
