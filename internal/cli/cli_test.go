@@ -141,7 +141,7 @@ func TestCommands(t *testing.T) {
 		want string
 	}{
 		{[]string{"list"}, "run-1  Running  1/3"},
-		{[]string{"get", "hello"}, "● hello\n  ● a"},
+		{[]string{"get", "hello"}, "  ● a"},
 		{[]string{"logs", "hello"}, "hello.a: hi"},
 		{[]string{"approve", "hello", "hello.gate", "--reject", "-m", "no"}, "Rejected hello.gate in team-a/hello"},
 		{[]string{"retry", "hello", "--node", "hello.a"}, "Retrying team-a/hello"},

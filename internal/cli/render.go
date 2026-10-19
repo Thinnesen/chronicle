@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -84,18 +85,37 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 	if s.Message != "" {
 		_, _ = fmt.Fprintf(out, "Message:   %s\n", s.Message)
 	}
+	if s.StartedAt != nil {
+		started := s.StartedAt.AsTime().Local().Format(time.DateTime)
+		_, _ = fmt.Fprintf(out, "Started:   %s\nDuration:  %s\n", started, took(wf.Status.StartedAt, wf.Status.FinishedAt))
+	}
 	_, _ = fmt.Fprintf(out, "Progress:  %d/%d\n\n", s.NodesDone, s.NodesTotal)
 	if root, ok := wf.Status.Nodes[wf.Name]; ok {
-		printNode(out, wf.Status.Nodes, root, "")
+		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+		_, _ = fmt.Fprintln(tw, "STEP\tDURATION\tMESSAGE")
+		printNode(tw, wf.Status.Nodes, root, "")
+		return tw.Flush()
 	}
 	return nil
 }
 
 func printNode(out io.Writer, all map[string]v1alpha1.NodeStatus, n v1alpha1.NodeStatus, indent string) {
-	_, _ = fmt.Fprintf(out, "%s%s %s%s\n", indent, symbol(n.Phase), cmpOr(n.DisplayName, n.Name), suffix(n.Message))
+	_, _ = fmt.Fprintf(out, "%s%s %s\t%s\t%s\n", indent, symbol(n.Phase), cmpOr(n.DisplayName, n.Name), took(n.StartedAt, n.FinishedAt), n.Message)
 	for _, id := range n.Children {
 		printNode(out, all, all[id], indent+"  ")
 	}
+}
+
+// took is the time from start to end, or to now while the node runs. It is empty before the start.
+func took(start, end *metav1.Time) string {
+	if start == nil {
+		return ""
+	}
+	stop := time.Now()
+	if end != nil {
+		stop = end.Time
+	}
+	return stop.Sub(start.Time).Round(time.Second).String()
 }
 
 func symbol(p v1alpha1.NodePhase) string {
