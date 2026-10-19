@@ -14,7 +14,8 @@ describe("duration", () => {
 describe("ago", () => {
   it("formats recent times relative to now", () => {
     const now = new Date("2026-10-19T12:00:00Z");
-    expect(ago(new Date("2026-10-19T11:59:30Z"), now)).toBe("now");
+    expect(ago(new Date("2026-10-19T11:59:55Z"), now)).toBe("just now");
+    expect(ago(new Date("2026-10-19T11:59:30Z"), now)).toBe("30 s ago");
     expect(ago(new Date("2026-10-19T11:56:00Z"), now)).toBe("4 min ago");
     expect(ago(new Date("2026-10-19T08:30:00Z"), now)).toBe("3 h ago");
   });

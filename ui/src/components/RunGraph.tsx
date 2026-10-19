@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 
 import { place } from "../lib/layout";
 import { duration } from "../lib/time";
-import { buildGraph, isStation, nodeLabel, type NodeStatus, type Workflow } from "../lib/workflow";
+import { buildGraph, isStation, nodeLabel, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Lamp } from "./Lamp";
 
 type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number };
@@ -35,14 +35,14 @@ function StationNode({ data }: NodeProps<Node<NodeData>>) {
   const phase = n.phase || "Pending";
   const Icon = kindIcon[n.type as keyof typeof kindIcon] ?? Box;
   return (
-    <div className={`station-node${data.selected ? " is-selected" : ""}`} data-phase={phase}>
+    <div className={`station-node${data.selected ? " is-selected" : ""}${n.planned ? " is-planned" : ""}`} data-phase={phase}>
       <Handles vertical={data.vertical} />
       <Lamp phase={phase} size={16} />
       <span className="station-text">
         <span className="station-name" title={nodeLabel(n)}>
           {nodeLabel(n)}
         </span>
-        <span className="station-meta">{nodeDuration(n, data.now) || phase}</span>
+        <span className="station-meta">{n.planned ? "Not started" : nodeDuration(n, data.now) || phase}</span>
       </span>
       <Icon className="station-kind" aria-hidden="true" />
     </div>
@@ -53,7 +53,7 @@ function StationNode({ data }: NodeProps<Node<NodeData>>) {
 function JunctionNode({ data }: NodeProps<Node<NodeData>>) {
   const n = data.status;
   return (
-    <div className={`junction-node${data.selected ? " is-selected" : ""}`} data-phase={n.phase || "Pending"} style={{ width: data.width }}>
+    <div className={`junction-node${data.selected ? " is-selected" : ""}${n.planned ? " is-planned" : ""}`} data-phase={n.phase || "Pending"} style={{ width: data.width }}>
       <Handles vertical={data.vertical} />
       <Lamp phase={n.phase || "Pending"} size={11} />
       <span className="junction-name" title={nodeLabel(n)}>
@@ -102,8 +102,10 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
     // The root node is the run itself, which the header shows. Without it the graph is one column narrower.
     const root = wf.status?.nodes?.[wf.metadata.name];
     const hide = root && !isStation(root) ? root.id : undefined;
-    const all = Object.values(wf.status?.nodes ?? {}).filter((n) => n.id !== hide);
-    const graphEdges = buildGraph(wf).filter((e) => e.from !== hide && e.to !== hide);
+    const active = !["Succeeded", "Failed", "Error"].includes(wf.status?.phase ?? "");
+    const source = active ? withPlan(wf) : (wf.status?.nodes ?? {});
+    const all = Object.values(source).filter((n) => n.id !== hide);
+    const graphEdges = buildGraph(wf, source).filter((e) => e.from !== hide && e.to !== hide);
     const { placed, height } = place(all, graphEdges, narrow ? "TB" : "LR");
     const phase = new Map(all.map((n) => [n.id, n.phase]));
     return {
@@ -115,7 +117,7 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
           width: p.width,
           height: p.height,
           data: { status: p.node, selected: p.node.id === selected, now, vertical: narrow, width: p.width },
-          ariaLabel: `${nodeLabel(p.node)}, ${p.node.phase || "Pending"}`,
+          ariaLabel: `${nodeLabel(p.node)}, ${p.node.planned ? "not started" : p.node.phase || "Pending"}`,
         }),
       ),
       edges: graphEdges.map((e): BuiltInEdge => {
@@ -141,7 +143,7 @@ export function RunGraph({ wf, now, selected, onSelect }: { wf: Workflow; now: n
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodeClick={(_, n) => onSelect(n.id)}
+        onNodeClick={(_, n) => !n.data.status.planned && onSelect(n.id)}
         nodesDraggable={false}
         nodesConnectable={false}
         fitView

@@ -43,8 +43,11 @@
 }
 
 .run-graph .react-flow__edge.animated path {
-  stroke: var(--lamp-running);
   stroke-dasharray: 5 4;
+}
+
+.run-graph .react-flow__edge.animated:not(.is-lit) path {
+  stroke: var(--lamp-running);
 }
 
 .station-node {
@@ -102,6 +105,16 @@
 .station-node.is-selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow-md);
+}
+
+/* A planned card is a task that has not started yet. */
+.station-node.is-planned,
+.junction-node.is-planned {
+  color: var(--ink-muted);
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  cursor: default;
 }
 
 .station-text {

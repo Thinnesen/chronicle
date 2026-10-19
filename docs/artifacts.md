@@ -77,7 +77,7 @@ Rules:
 
 ## 3. Download an artifact
 
-Open the run in the UI, select the node and open **Details**. Each output artifact has a download link. The file is a tar.gz archive. You need `get` permission on Workflows in the namespace.
+Open the run in the UI, select the step and open **Summary**. Each output artifact has a download link. The file is a tar.gz archive. You need `get` permission on Workflows in the namespace.
 
 ## 4. Read archived logs
 

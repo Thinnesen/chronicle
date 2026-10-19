@@ -18,6 +18,8 @@ export interface NodeStatus {
   children?: string[];
   podName?: string;
   logKey?: string;
+  // planned is true for a DAG task that has not started yet. Only the graph draws it.
+  planned?: boolean;
   inputs?: { parameters?: Parameter[]; artifacts?: Artifact[] };
   outputs?: { parameters?: Parameter[]; result?: string; artifacts?: Artifact[] };
 }
@@ -34,6 +36,7 @@ export function artifactURL(namespace: string, workflow: string, node: string, n
 
 interface DAGTask {
   name: string;
+  template?: string;
   dependencies?: string[];
   depends?: string;
 }
@@ -69,8 +72,7 @@ export function isStation(n: NodeStatus): boolean {
 // buildGraph returns the edges between the nodes of a run. The status has a tree (parent to children);
 // the edges between DAG tasks come from the dependencies in the spec. A dependency starts at the exits
 // of a node (see exits), so that a later task never looks like a part of a retry or a fan-out.
-export function buildGraph(wf: Workflow): GraphEdge[] {
-  const nodes = wf.status?.nodes ?? {};
+export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.status?.nodes ?? {}): GraphEdge[] {
   const byName = new Map(Object.values(nodes).map((n) => [n.name, n]));
   const templates = new Map((wf.status?.storedSpec?.templates ?? wf.spec.templates ?? []).map((t) => [t.name, t]));
   const edges: GraphEdge[] = [];
@@ -119,6 +121,26 @@ export function buildGraph(wf: Workflow): GraphEdge[] {
     }
   }
   return edges;
+}
+
+// withPlan returns the nodes of a run and a planned node for each task of a started DAG that has no node yet,
+// so that the graph shows the whole plan while the run is active (as Dagster does).
+export function withPlan(wf: Workflow): Record<string, NodeStatus> {
+  const nodes = wf.status?.nodes ?? {};
+  const names = new Set(Object.values(nodes).map((n) => n.name));
+  const templates = new Map((wf.status?.storedSpec?.templates ?? wf.spec.templates ?? []).map((t) => [t.name, t]));
+  const out = { ...nodes };
+  for (const n of Object.values(nodes)) {
+    const tasks = (n.type === "DAG" && n.templateName && templates.get(n.templateName)?.dag?.tasks) || [];
+    for (const task of tasks) {
+      const name = `${n.name}.${task.name}`;
+      if (names.has(name)) continue;
+      const id = `${n.id}/planned/${task.name}`;
+      const group = !!(task.template && templates.get(task.template)?.dag);
+      out[id] = { id, name, displayName: task.name, type: group ? "DAG" : "Pod", templateName: task.template, planned: true };
+    }
+  }
+  return out;
 }
 
 // exits returns the nodes where the work of a node ends: the node itself, the last attempt of a retry,

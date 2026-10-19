@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildGraph, taskDependencies, type Workflow } from "./workflow";
+import { buildGraph, taskDependencies, withPlan, type Workflow } from "./workflow";
 
 const wf: Workflow = {
   metadata: { name: "wf", namespace: "ns" },
@@ -52,6 +52,19 @@ describe("buildGraph", () => {
   it("uses the stored spec of a template reference", () => {
     const ref: Workflow = { ...wf, spec: {}, status: { ...wf.status, storedSpec: wf.spec } };
     expect(buildGraph(ref)).toHaveLength(9);
+  });
+});
+
+describe("withPlan", () => {
+  it("adds the tasks that have not started and connects them", () => {
+    const started: Workflow = {
+      metadata: { name: "p", namespace: "ns" },
+      spec: { templates: [{ name: "main", dag: { tasks: [{ name: "a" }, { name: "b", depends: "a" }] } }] },
+      status: { nodes: { p: { id: "p", name: "p", type: "DAG", templateName: "main", children: ["A"] }, A: { id: "A", name: "p.a", type: "Pod" } } },
+    };
+    const nodes = withPlan(started);
+    expect(nodes["p/planned/b"]).toMatchObject({ name: "p.b", type: "Pod", planned: true });
+    expect(buildGraph(started, nodes).map((e) => `${e.from}>${e.to}`)).toContain("A>p/planned/b");
   });
 });
 
