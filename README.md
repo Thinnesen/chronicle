@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <em>Workflows for Kubernetes that remember every run: DAGs, cron and durable tasks, a UI you want to use, and GitOps from day one.</em>
+  <em>Kubernetes-native workflow engine: DAG, step and cron workflows as CRDs, retry and re-run from any step, run archive in PostgreSQL, S3 artifacts, OIDC with Kubernetes RBAC, and SDKs for Go, Python and Rust.</em>
 </p>
 
 <p align="center">
@@ -20,11 +20,11 @@
 
 > **chronicle is in development.** The plan is in [`docs/DESIGN.md`](docs/DESIGN.md), and the work is tracked in the [issues](https://github.com/Thinnesen/chronicle/issues) and [milestones](https://github.com/Thinnesen/chronicle/milestones). Demos from real runs come with the first usable version.
 
-## Why chronicle
+## What chronicle is
 
-Argo Workflows made Kubernetes workflows popular. Teams also know its weak spots: a hard SSO and RBAC setup, a UI that gets in the way, and few ways to re-run work safely. Temporal and Dagster are great for workflows as code, but they live beside Kubernetes, not in it.
+chronicle runs workflows on Kubernetes. Each step runs as a Pod. Workflows, templates and schedules are custom resources, so `kubectl`, Argo CD and Flux manage them like other Kubernetes objects. The controller keeps the history of each run, so you can retry or re-run any part of it later.
 
-chronicle takes the good parts of each:
+Features:
 
 - **Runs** DAGs, step lists and cron workflows as Kubernetes Pods, with retries, timeouts, exit handlers, approvals and fan-out.
 - **Remembers** every run, every attempt, its logs and its outputs. Retry the failed steps, retry from any step, or re-run with changed parameters.
