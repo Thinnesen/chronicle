@@ -70,7 +70,10 @@ func TestWorker(t *testing.T) {
 		return &chroniclev1.Task{Id: id, Name: name, InputJson: `{"who":"world"}`, Lease: "l-" + id, IdempotencyKey: "k"}
 	}
 	stub := &taskStub{
-		tasks:   []*chroniclev1.Task{task("ok", "greet"), task("retry", "flaky"), task("final", "broken"), task("panic", "panics"), task("cancel", "slow")},
+		tasks: []*chroniclev1.Task{
+			task("ok", "greet"), task("retry", "flaky"), task("final", "broken"),
+			task("panic", "panics"), task("cancel", "slow"),
+		},
 		results: map[string]*chroniclev1.CompleteTaskRequest{}, cancel: map[string]bool{"cancel": true},
 	}
 	mux := http.NewServeMux()
@@ -82,7 +85,8 @@ func TestWorker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := NewWorker(client, "team-a", WorkerOptions{Concurrency: 3, Heartbeat: 20 * time.Millisecond, GracePeriod: time.Second})
+	opts := WorkerOptions{Concurrency: 3, Heartbeat: 20 * time.Millisecond, GracePeriod: time.Second}
+	w := NewWorker(client, "team-a", opts)
 	w.Register("greet", func(_ context.Context, info TaskInfo, in map[string]string) (any, error) {
 		return map[string]string{"greeting": "hello " + in["who"], "key": info.IdempotencyKey}, nil
 	})
