@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,6 +32,9 @@ type stub struct {
 	auth     string
 	// restarted is the Restarted condition status of an applied retry ("True" or "False"), or empty.
 	restarted string
+	// breakLogs makes the first log stream fail after two lines, as during a server restart.
+	breakLogs bool
+	streams   int
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -75,7 +79,21 @@ func (s *stub) RerunWorkflow(_ context.Context, r *connect.Request[chroniclev1.R
 }
 
 func (s *stub) StreamLogs(_ context.Context, _ *connect.Request[chroniclev1.StreamLogsRequest], st *connect.ServerStream[chroniclev1.StreamLogsResponse]) error {
-	return st.Send(&chroniclev1.StreamLogsResponse{NodeName: "hello.a", Line: "hi"})
+	if !s.breakLogs {
+		return st.Send(&chroniclev1.StreamLogsResponse{NodeName: "hello.a", Line: "hi"})
+	}
+	s.streams++
+	lines := []string{"one", "two", "three"}
+	if s.streams == 1 {
+		for _, l := range lines[:2] {
+			_ = st.Send(&chroniclev1.StreamLogsResponse{NodeName: "hello.a", Line: l})
+		}
+		return connect.NewError(connect.CodeUnavailable, errors.New("the server restarts"))
+	}
+	for _, l := range lines {
+		_ = st.Send(&chroniclev1.StreamLogsResponse{NodeName: "hello.a", Line: l})
+	}
+	return nil
 }
 
 // run runs the CLI with arguments against the stub and returns the output and the error.
@@ -230,5 +248,15 @@ func TestReadObjectYAML12(t *testing.T) {
 	}
 	if img := obj.Fields["image"].GetStructValue().Fields["image"].GetStringValue(); img != "busybox" {
 		t.Errorf("the merge key gave image %q", img)
+	}
+}
+
+// TestLogsReconnect checks that a followed log connects again after a broken stream and prints no line twice.
+func TestLogsReconnect(t *testing.T) {
+	reconnectWait = time.Millisecond
+	s := &stub{phase: "Running", breakLogs: true}
+	out, err := run(t, s, "logs", "hello", "-f")
+	if err != nil || out != "hello.a: one\nhello.a: two\nhello.a: three\n" || s.streams != 2 {
+		t.Fatalf("out %q, err %v, %d streams", out, err, s.streams)
 	}
 }
