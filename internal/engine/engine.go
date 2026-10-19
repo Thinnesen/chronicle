@@ -20,6 +20,9 @@ const maxDepth = 50
 type Input struct {
 	// Name, Namespace and UID identify the Workflow.
 	Name, Namespace, UID string
+	// CreatedAt is the creation time of the Workflow. ScheduledTime is the schedule time of a cron run, or empty.
+	CreatedAt     metav1.Time
+	ScheduledTime string
 	// Spec is the resolved workflow definition.
 	Spec *v1alpha1.WorkflowTemplateSpec
 	// Status is the status from the last run of the engine.

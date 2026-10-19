@@ -24,7 +24,7 @@ templates:
 - name: echo
   inputs: {parameters: [{name: msg}, {name: color, default: blue}]}
   outputs: {parameters: [{name: p, valueFrom: {path: /tmp/p}}]}
-  container: {image: "alpine:{{inputs.parameters.color}}", command: [echo], args: ["{{inputs.parameters.msg}}"], env: [{name: WF, value: "{{workflow.name}}"}]}
+  container: {image: "alpine:{{inputs.parameters.color}}", command: [echo], args: ["{{inputs.parameters.msg}}"], env: [{name: WF, value: "{{workflow.name}}"}, {name: AT, value: "{{workflow.scheduledTime}}"}]}
 `, nil)
 	s.outputs["wf.a"] = &v1alpha1.Outputs{Result: new("A-OUT")}
 	s.outputs["wf.b"] = &v1alpha1.Outputs{Parameters: []v1alpha1.Parameter{{Name: "p", Value: new("pb")}}}
@@ -33,7 +33,8 @@ templates:
 		t.Fatalf("phase = %s: %s", st.Phase, st.Message)
 	}
 	a := s.pods["wf.a"].Template.Container
-	if !reflect.DeepEqual(a.Args, []string{"hi world in ns"}) || a.Image != "alpine:blue" || a.Env[0].Value != wfName {
+	if !reflect.DeepEqual(a.Args, []string{"hi world in ns"}) || a.Image != "alpine:blue" || a.Env[0].Value != wfName ||
+		a.Env[1].Value != "0001-01-01T00:00:00Z" {
 		t.Errorf("Pod a = %+v", a)
 	}
 	if got := s.pods["wf.b"].Template.Container.Args; !reflect.DeepEqual(got, []string{"A-OUT"}) {

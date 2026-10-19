@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -14,9 +15,14 @@ import (
 
 // globals returns the workflow placeholders: workflow.name, workflow.parameters.x and others.
 func (e *engine) globals() map[string]string {
+	created := e.in.CreatedAt.UTC().Format(time.RFC3339)
+	scheduled := e.in.ScheduledTime
+	if scheduled == "" {
+		scheduled = created
+	}
 	g := map[string]string{
 		"workflow.name": e.in.Name, "workflow.namespace": e.in.Namespace, "workflow.uid": e.in.UID,
-		"workflow.status": e.status,
+		"workflow.status": e.status, "workflow.creationTimestamp": created, "workflow.scheduledTime": scheduled,
 	}
 	for _, p := range e.in.Spec.Arguments.Parameters {
 		if v := paramValue(p); v != nil {
