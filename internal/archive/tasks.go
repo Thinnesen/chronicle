@@ -162,7 +162,7 @@ func randomLease() string {
 // ListTasks returns the newest tasks of a namespace, optionally only with the given states.
 func (s *Store) ListTasks(ctx context.Context, namespace string, states []string, limit int) ([]Task, error) {
 	rows, err := s.pool.Query(ctx, `SELECT `+taskColumns+` FROM tasks
-		WHERE namespace = $1 AND (cardinality($2::text[]) = 0 OR state = ANY($2)) ORDER BY created_at DESC LIMIT $3`,
+		WHERE namespace = $1 AND (COALESCE(cardinality($2::text[]), 0) = 0 OR state = ANY($2)) ORDER BY created_at DESC LIMIT $3`,
 		namespace, states, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list the tasks: %w", err)

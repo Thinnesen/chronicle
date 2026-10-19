@@ -86,6 +86,10 @@ func TestTaskQueue(t *testing.T) {
 	if failed, err := s.ListTasks(ctx, "team-a", []string{TaskFailed, TaskCancelled}, 10); err != nil || len(failed) != 2 {
 		t.Errorf("list failed and cancelled tasks: %v %d", err, len(failed))
 	}
+	// The API gives nil for "all states".
+	if all, err := s.ListTasks(ctx, "team-a", nil, 10); err != nil || len(all) != 3 {
+		t.Errorf("list all tasks: %v %d", err, len(all))
+	}
 	tasks, err := s.ForWorkflow(ctx, "11111111-0000-0000-0000-000000000001")
 	if err != nil || len(tasks) != 3 {
 		t.Fatalf("tasks: %v %d", err, len(tasks))
