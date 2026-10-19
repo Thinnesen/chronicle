@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Clock, FileCode2, GanttChart, Network } from "lucide-react";
+import { Clock, FileCode2, GanttChart, Hand, Network } from "lucide-react";
 import { lazy, Suspense, useMemo } from "react";
 
 import { workflows } from "../api/client";
@@ -13,7 +13,7 @@ import { YamlView } from "../components/YamlView";
 import { RefreshError } from "../components/RefreshError";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { runParameters, type Workflow } from "../lib/workflow";
+import { nodeLabel, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
 import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
 
@@ -104,6 +104,7 @@ export function RunPage() {
             {s.message}
           </p>
         )}
+        {!finished.has(phase) && <WaitingApprovals nodes={nodes} onReview={select} />}
         {s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted. Logs are available only when the namespace archives them.</p>}
       </header>
       <div className="run-tabs" role="tablist" aria-label="Run views">
@@ -167,6 +168,23 @@ function SpecView({ wf }: { wf: Workflow }) {
           <YamlView value={stored} label="The spec that the run uses" />
         </>
       )}
+    </div>
+  );
+}
+
+// WaitingApprovals tells that steps wait for an approval, because the phase of such a run stays Running.
+// Review opens the first waiting step, where the approval form is.
+function WaitingApprovals({ nodes, onReview }: { nodes: Record<string, NodeStatus>; onReview: (id: string) => void }) {
+  const waiting = Object.values(nodes).filter((n) => n.type === "Suspend" && n.phase === "Running");
+  const first = waiting[0];
+  if (!first) return null;
+  return (
+    <div className="run-notice run-approval">
+      <Hand aria-hidden="true" />
+      <span>{waiting.length === 1 ? `The step ${nodeLabel(first)} waits for an approval.` : `${waiting.length} steps wait for an approval.`}</span>
+      <button type="button" className="button" onClick={() => onReview(first.id)}>
+        Review
+      </button>
     </div>
   );
 }

@@ -18,7 +18,7 @@ export interface NodeStatus {
   children?: string[];
   podName?: string;
   logKey?: string;
-  // planned is true for a DAG task that has not started yet. Only the graph draws it.
+  // planned is true for a DAG task or a step that has not started yet. Only the graph draws it.
   planned?: boolean;
   inputs?: { parameters?: Parameter[]; artifacts?: Artifact[] };
   outputs?: { parameters?: Parameter[]; result?: string; artifacts?: Artifact[] };
@@ -46,7 +46,7 @@ export interface Template {
   suspend?: { duration?: string };
   outputs?: { parameters?: { name: string; default?: string; description?: string }[] };
   dag?: { tasks: DAGTask[] };
-  steps?: { name: string }[][];
+  steps?: { name: string; template?: string }[][];
 }
 
 export interface Workflow {
@@ -123,21 +123,43 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
   return edges;
 }
 
-// withPlan returns the nodes of a run and a planned node for each task of a started DAG that has no node yet,
-// so that the graph shows the whole plan while the run is active (as Dagster does).
+// withPlan returns the nodes of a run and planned nodes for the parts of a started DAG or steps node that
+// have no node yet, so that the graph shows the whole plan while the run is active (as Dagster does).
 export function withPlan(wf: Workflow): Record<string, NodeStatus> {
   const nodes = wf.status?.nodes ?? {};
   const names = new Set(Object.values(nodes).map((n) => n.name));
   const templates = new Map((wf.status?.storedSpec?.templates ?? wf.spec.templates ?? []).map((t) => [t.name, t]));
+  const typeOf = (template?: string): NodeStatus["type"] => {
+    const t = template ? templates.get(template) : undefined;
+    return t?.dag ? "DAG" : t?.steps ? "Steps" : "Pod";
+  };
   const out = { ...nodes };
   for (const n of Object.values(nodes)) {
-    const tasks = (n.type === "DAG" && n.templateName && templates.get(n.templateName)?.dag?.tasks) || [];
-    for (const task of tasks) {
-      const name = `${n.name}.${task.name}`;
-      if (names.has(name)) continue;
-      const id = `${n.id}/planned/${task.name}`;
-      const group = !!(task.template && templates.get(task.template)?.dag);
-      out[id] = { id, name, displayName: task.name, type: group ? "DAG" : "Pod", templateName: task.template, planned: true };
+    const t = n.templateName ? templates.get(n.templateName) : undefined;
+    if (n.type === "DAG") {
+      for (const task of t?.dag?.tasks ?? []) {
+        const name = `${n.name}.${task.name}`;
+        if (names.has(name)) continue;
+        const id = `${n.id}/planned/${task.name}`;
+        out[id] = { id, name, displayName: task.name, type: typeOf(task.template), templateName: task.template, planned: true };
+      }
+    }
+    if (n.type === "Steps" && t?.steps) {
+      // The groups after the last started group, each with its steps.
+      const groups: string[] = [];
+      t.steps.forEach((group, i) => {
+        if (i < (n.children?.length ?? 0)) return;
+        const id = `${n.id}/planned/${i}`;
+        const name = `${n.name}[${i}]`;
+        const steps = group.map((step) => {
+          const sid = `${id}/${step.name}`;
+          out[sid] = { id: sid, name: `${name}.${step.name}`, displayName: step.name, type: typeOf(step.template), templateName: step.template, planned: true };
+          return sid;
+        });
+        out[id] = { id, name, displayName: `[${i}]`, type: "StepGroup", children: steps, planned: true };
+        groups.push(id);
+      });
+      if (groups.length) out[n.id] = { ...n, children: [...(n.children ?? []), ...groups] };
     }
   }
   return out;

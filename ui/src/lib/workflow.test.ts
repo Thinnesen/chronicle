@@ -66,6 +66,26 @@ describe("withPlan", () => {
     expect(nodes["p/planned/b"]).toMatchObject({ name: "p.b", type: "Pod", planned: true });
     expect(buildGraph(started, nodes).map((e) => `${e.from}>${e.to}`)).toContain("A>p/planned/b");
   });
+
+  it("adds the step groups that have not started after the last group", () => {
+    const started: Workflow = {
+      metadata: { name: "s", namespace: "ns" },
+      spec: { templates: [{ name: "main", steps: [[{ name: "build" }], [{ name: "ship", template: "main" }, { name: "mail" }]] }] },
+      status: {
+        nodes: {
+          s: { id: "s", name: "s", type: "Steps", templateName: "main", children: ["G0"] },
+          G0: { id: "G0", name: "s[0]", type: "StepGroup", children: ["B"] },
+          B: { id: "B", name: "s[0].build", type: "Pod" },
+        },
+      },
+    };
+    const nodes = withPlan(started);
+    expect(nodes["s/planned/1"]).toMatchObject({ name: "s[1]", displayName: "[1]", type: "StepGroup", planned: true });
+    expect(nodes["s/planned/1/ship"]).toMatchObject({ name: "s[1].ship", type: "Steps", planned: true });
+    expect(buildGraph(started, nodes).map((e) => `${e.from}>${e.to}`)).toEqual(
+      expect.arrayContaining(["B>s/planned/1", "s/planned/1>s/planned/1/ship", "s/planned/1>s/planned/1/mail"]),
+    );
+  });
 });
 
 describe("taskDependencies", () => {
