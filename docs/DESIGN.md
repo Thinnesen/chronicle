@@ -50,7 +50,7 @@ The spec follows the Argo Workflows concepts, so that the converter is simple:
 - Template types: `container`, `script`, `dag` (tasks with `dependencies` and `depends` expressions), `steps` (lists of parallel steps), `suspend` (wait or manual approval), `resource` (create a Kubernetes object), `task` (call a task worker, section 7).
 - `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions, `withItems` and `withParam` fan-out.
 - Inputs and outputs: parameters (from a file, from stdout, from a JSON path) and artifacts (S3-compatible store).
-- `podGC`, `ttlStrategy`, `serviceAccountName`, `podSpecPatch` (limited and validated).
+- `podGC`, `ttlStrategy`, `serviceAccountName`. There is no `podSpecPatch`: a patch of the Pod spec could undo the Pod security settings.
 
 - The container of a `container` or `script` template is a small chronicle type, not the full Kubernetes container. It has no security context, ports or probes. The controller sets a restricted security context.
 - A `script` source cannot have `{{...}}` placeholders. The script reads its parameters from environment variables.
@@ -172,7 +172,7 @@ Security is the first priority. The main risks and the controls:
 | Risk | Control |
 |---|---|
 | A user runs work in a namespace of another team | SubjectAccessReview and impersonation for each call. No server-side privilege for user actions. |
-| A workflow escapes its Pod | Pod security standard "restricted" by default, no host mounts, `podSpecPatch` limited to an allow list, per-namespace service accounts. |
+| A workflow escapes its Pod | Pod security standard "restricted" by default, no host mounts, no `podSpecPatch`, per-namespace service accounts. |
 | Session theft or CSRF | Server-side sessions, `HttpOnly`, `Secure`, `SameSite=Lax` cookies, CSRF tokens, short session life, logout revokes the session. |
 | Token leaks | Tokens never go to the browser or to logs. Secrets come from Kubernetes Secrets. |
 | Supply chain | Pinned versions and lockfiles, SHA-pinned Actions, digest-pinned images, signed releases, SBOM, scans in CI. |
@@ -220,7 +220,7 @@ The project follows these standards:
 
 - Pin exact versions (Go, pnpm, Cargo, uv). Commit the lockfiles. Pin images by digest, GitHub Actions by SHA, tools in the Makefile with SHA-256.
 - pnpm: `minimumReleaseAge`, no install scripts unless allowed by name.
-- Non-root Pods, read-only root file system, no privilege escalation, no capabilities, seccomp `RuntimeDefault`.
+- Non-root Pods, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. The chronicle containers (controller, server, executor init and resource steps) have a read-only root file system. The container of a user step keeps a writable root file system, because many images write to it.
 - Least-privilege RBAC. The server never stores OIDC tokens in the browser. Secrets come from Kubernetes Secrets.
 - CI: lint, unit tests, envtest, e2e on Kind (with Dex for OIDC), Playwright, govulncheck, `pnpm audit`, `cargo audit`, Trivy, actionlint.
 

@@ -98,6 +98,7 @@ templates:
 		Expect(*pod.Spec.SecurityContext.RunAsNonRoot).To(BeTrue())
 		Expect(*pod.Spec.AutomountServiceAccountToken).To(BeFalse())
 		Expect(pod.Spec.InitContainers[0].Image).To(Equal(testExecutorImage))
+		Expect(*pod.Spec.InitContainers[0].SecurityContext.ReadOnlyRootFilesystem).To(BeTrue())
 		main := pod.Spec.Containers[0]
 		Expect(main.Command).To(Equal([]string{execPath, "run", "--", "sh"}))
 		Expect(*main.SecurityContext.AllowPrivilegeEscalation).To(BeFalse())

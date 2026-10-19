@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-19: The containers of the chronicle image in workflow Pods (the executor init container and resource steps) have a read-only root file system; the container of a user step does not. Reason: many user images write to their root file system, for example to `/tmp` or a cache. The step still runs as non-root without capabilities. There is no `podSpecPatch` (section 3.2 promised a limited one), because a patch could undo the Pod security settings. Found by the security review (#36).
+
 - 2026-10-19: The web UI is an ops console (sidebar, Cmd+K search, tabs Graph, Timeline and Spec, a node drawer), not the signal-box panel of section 8.1. Status icons replace the signal lamps, and the graph does not draw the root node. Reason: the owner found the first UI "vibecoded" and chose the ops console direction. The design combines Argo Workflows, Argo CD, Temporal and Dagster (docs/RESEARCH.md).
 
 - 2026-10-19: A dependency version must be at least seven days old, except for a release that fixes a known vulnerability: then the fix wins (first case: rustls 0.23.46). Trivy scans the image and all lockfiles in CI and every week; the Makefile pins Trivy with a SHA-256 instead of the trivy-action, whose tags were once hijacked.

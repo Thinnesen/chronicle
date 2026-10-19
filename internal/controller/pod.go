@@ -147,7 +147,7 @@ func resourceContainer(wf *v1alpha1.Workflow, t *v1alpha1.Template, executorImag
 		Command:                  []string{"/chronicle-exec", "resource"},
 		Env:                      []corev1.EnvVar{{Name: executor.EnvResource, Value: string(data)}},
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-		SecurityContext:          restricted(),
+		SecurityContext:          readOnly(restricted()),
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("10m"), corev1.ResourceMemory: resource.MustParse("32Mi")},
 			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")},
@@ -174,7 +174,7 @@ func initContainer(image string) corev1.Container {
 		Name:            "init",
 		Image:           image,
 		Command:         []string{"/chronicle-exec", "install", execPath},
-		SecurityContext: restricted(),
+		SecurityContext: readOnly(restricted()),
 		VolumeMounts:    []corev1.VolumeMount{{Name: execVolume, MountPath: execDir}},
 		// The copy of the executor (about 40 MB) fills the page cache, which counts against the limit.
 		Resources: corev1.ResourceRequirements{
@@ -182,6 +182,13 @@ func initContainer(image string) corev1.Container {
 			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")},
 		},
 	}
+}
+
+// readOnly adds a read-only root file system. Only the containers of the chronicle image get it: the image of a user
+// step often writes to its root file system (see docs/DECISIONS.md).
+func readOnly(sc *corev1.SecurityContext) *corev1.SecurityContext {
+	sc.ReadOnlyRootFilesystem = new(true)
+	return sc
 }
 
 func restricted() *corev1.SecurityContext {
