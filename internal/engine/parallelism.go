@@ -14,6 +14,9 @@ const waitingForSlot = "waiting for a free slot"
 // noSlot tells if a new Pod for node n would exceed a parallelism limit: of the workflow, or of a DAG or steps node
 // above n. It returns the first full limit, the workflow first and then from the inside out.
 func (e *engine) noSlot(n v1alpha1.NodeStatus) (int32, bool) {
+	if !e.limited() {
+		return 0, false
+	}
 	type scope struct {
 		root  string // the name of the node; "" is the whole workflow
 		limit int32
@@ -35,6 +38,20 @@ func (e *engine) noSlot(n v1alpha1.NodeStatus) (int32, bool) {
 		}
 	}
 	return 0, false
+}
+
+// limited tells if the workflow or one of its templates has a parallelism limit. Without one, the engine skips the
+// count of the slots, which would cost a pass over all nodes for each new Pod.
+func (e *engine) limited() bool {
+	if e.in.Spec.Parallelism != nil {
+		return true
+	}
+	for _, t := range e.templates {
+		if t.Parallelism != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // slotHolders counts the unfinished Pod nodes below root, other than except, that hold a slot: their Pod exists,
