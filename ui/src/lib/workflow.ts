@@ -67,7 +67,8 @@ export function isStation(n: NodeStatus): boolean {
 }
 
 // buildGraph returns the edges between the nodes of a run. The status has a tree (parent to children);
-// the edges between DAG tasks come from the dependencies in the spec.
+// the edges between DAG tasks come from the dependencies in the spec. A dependency starts at the exits
+// of a node (see exits), so that a later task never looks like a part of a retry or a fan-out.
 export function buildGraph(wf: Workflow): GraphEdge[] {
   const nodes = wf.status?.nodes ?? {};
   const byName = new Map(Object.values(nodes).map((n) => [n.name, n]));
@@ -76,6 +77,7 @@ export function buildGraph(wf: Workflow): GraphEdge[] {
   const add = (from?: NodeStatus, to?: NodeStatus) => {
     if (from && to) edges.push({ from: from.id, to: to.id });
   };
+  const exitsOf = (n: NodeStatus) => exits(n, nodes, byName, templates);
   for (const n of Object.values(nodes)) {
     const t = n.templateName ? templates.get(n.templateName) : undefined;
     if (n.type === "DAG" && t?.dag) {
@@ -83,7 +85,10 @@ export function buildGraph(wf: Workflow): GraphEdge[] {
         const child = byName.get(`${n.name}.${task.name}`);
         const deps = taskDependencies(task);
         if (deps.length === 0) add(n, child);
-        for (const d of deps) add(byName.get(`${n.name}.${d}`), child);
+        for (const d of deps) {
+          const dep = byName.get(`${n.name}.${d}`);
+          for (const e of dep ? exitsOf(dep) : []) add(e, child);
+        }
       }
       continue;
     }
@@ -94,16 +99,53 @@ export function buildGraph(wf: Workflow): GraphEdge[] {
         const group = nodes[groupID];
         if (!group) continue;
         for (const p of prev) add(p, group);
-        prev = (group.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c);
-        for (const step of prev) add(group, step);
+        const steps = (group.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c);
+        for (const step of steps) add(group, step);
+        prev = steps.flatMap(exitsOf);
       }
       continue;
     }
-    if (n.type === "TaskGroup" || n.type === "Retry") {
+    if (n.type === "Retry") {
+      // Attempts run one after the other.
+      let prev = n;
+      for (const id of n.children ?? []) {
+        add(prev, nodes[id]);
+        prev = nodes[id] ?? prev;
+      }
+      continue;
+    }
+    if (n.type === "TaskGroup") {
       for (const id of n.children ?? []) add(n, nodes[id]);
     }
   }
   return edges;
+}
+
+// exits returns the nodes where the work of a node ends: the node itself, the last attempt of a retry,
+// the items of a fan-out, the leaf tasks of a DAG or the last group of steps.
+function exits(
+  n: NodeStatus,
+  nodes: Record<string, NodeStatus>,
+  byName: Map<string, NodeStatus>,
+  templates: Map<string, Template>,
+): NodeStatus[] {
+  const kids = (n.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c);
+  const sub = (list: NodeStatus[]) => (list.length ? list.flatMap((c) => exits(c, nodes, byName, templates)) : [n]);
+  switch (n.type) {
+    case "Retry":
+      return sub(kids.slice(-1));
+    case "TaskGroup":
+      return sub(kids);
+    case "Steps":
+      return sub((kids.at(-1)?.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c));
+    case "DAG": {
+      const tasks = (n.templateName && templates.get(n.templateName)?.dag?.tasks) || [];
+      const needed = new Set(tasks.flatMap(taskDependencies));
+      const leaves = tasks.filter((t) => !needed.has(t.name)).map((t) => byName.get(`${n.name}.${t.name}`));
+      return sub(leaves.filter((c): c is NodeStatus => !!c));
+    }
+  }
+  return [n];
 }
 
 // taskDependencies returns the task names in "dependencies" or in a "depends" expression.

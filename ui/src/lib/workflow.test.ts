@@ -31,6 +31,24 @@ describe("buildGraph", () => {
     expect(edges).toEqual(["A>B", "A>C", "B>C", "C>G0", "G0>X", "G1>Y", "X>G1", "Y>Y0", "wf>A"].sort());
   });
 
+  it("chains retry attempts and starts a dependency at the last attempt", () => {
+    const retried: Workflow = {
+      metadata: { name: "r", namespace: "ns" },
+      spec: { templates: [{ name: "main", dag: { tasks: [{ name: "t" }, { name: "load", depends: "t" }] } }] },
+      status: {
+        nodes: {
+          r: { id: "r", name: "r", type: "DAG", templateName: "main", children: ["T", "L"] },
+          T: { id: "T", name: "r.t", type: "Retry", children: ["T0", "T1"] },
+          T0: { id: "T0", name: "r.t(0)", type: "Pod" },
+          T1: { id: "T1", name: "r.t(1)", type: "Pod" },
+          L: { id: "L", name: "r.load", type: "Pod" },
+        },
+      },
+    };
+    const edges = buildGraph(retried).map((e) => `${e.from}>${e.to}`).sort();
+    expect(edges).toEqual(["T0>T1", "T1>L", "T>T0", "r>T"].sort());
+  });
+
   it("uses the stored spec of a template reference", () => {
     const ref: Workflow = { ...wf, spec: {}, status: { ...wf.status, storedSpec: wf.spec } };
     expect(buildGraph(ref)).toHaveLength(9);
