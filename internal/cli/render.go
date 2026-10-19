@@ -98,9 +98,18 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "STEP\tDURATION\tMESSAGE")
 		printNode(tw, wf.Status.Nodes, root, "")
-		return tw.Flush()
+		if err := tw.Flush(); err != nil {
+			return err
+		}
 	}
-	return nil
+	if s.ApprovalsWaiting > 0 {
+		node := ""
+		if s.ApprovalsWaiting > 1 {
+			node = " <node>"
+		}
+		_, err = fmt.Fprintf(out, "\nApprove with: chronicle approve %s%s --namespace %s\n", s.Name, node, s.Namespace)
+	}
+	return err
 }
 
 func printNode(out io.Writer, all map[string]v1alpha1.NodeStatus, n v1alpha1.NodeStatus, indent string) {

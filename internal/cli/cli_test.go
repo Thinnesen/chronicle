@@ -72,7 +72,8 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 	}
 	wf, _ := structpb.NewStruct(map[string]any{"metadata": map[string]any{"name": r.Msg.Name}, "spec": spec, "status": status})
 	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf,
-		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: s.phase, NodesTotal: 1}}), nil
+		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: s.phase, NodesTotal: 1,
+			ApprovalsWaiting: int32(s.gates)}}), nil
 }
 
 func (s *stub) ListWorkflows(context.Context, *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {

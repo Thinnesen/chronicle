@@ -22,3 +22,10 @@ func TestApproveTheWaitingNode(t *testing.T) {
 		}
 	}
 }
+
+func TestGetNamesTheApproveCommand(t *testing.T) {
+	out, err := run(t, &stub{phase: "Running", gates: 1}, "get", "deploy")
+	if err != nil || !strings.Contains(out, "chronicle approve deploy --namespace team-a") {
+		t.Errorf("get: %q %v", out, err)
+	}
+}
