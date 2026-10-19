@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: read
     name: Run on Ubuntu
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Clone the code
@@ -43,7 +43,7 @@ jobs:
     permissions:
       contents: read
     name: Helm chart on Kind
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Clone the code
