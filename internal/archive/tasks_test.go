@@ -83,13 +83,8 @@ func TestTaskQueue(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if failed, err := s.ListTasks(ctx, "team-a", []string{TaskFailed, TaskCancelled}, 10); err != nil || len(failed) != 2 {
-		t.Errorf("list failed and cancelled tasks: %v %d", err, len(failed))
-	}
-	// The API gives nil for "all states".
-	if all, err := s.ListTasks(ctx, "team-a", nil, 10); err != nil || len(all) != 3 {
-		t.Errorf("list all tasks: %v %d", err, len(all))
-	}
+	checkList(t, s, []string{TaskFailed, TaskCancelled}, 2)
+	checkList(t, s, nil, 3) // The API gives nil for "all states".
 	tasks, err := s.ForWorkflow(ctx, "11111111-0000-0000-0000-000000000001")
 	if err != nil || len(tasks) != 3 {
 		t.Fatalf("tasks: %v %d", err, len(tasks))
@@ -103,5 +98,12 @@ func TestTaskQueue(t *testing.T) {
 		if states[id] != w {
 			t.Errorf("task %s = %q, want %q", id, states[id], w)
 		}
+	}
+}
+
+func checkList(t *testing.T, s *Store, states []string, want int) {
+	t.Helper()
+	if tasks, err := s.ListTasks(context.Background(), "team-a", states, 10); err != nil || len(tasks) != want {
+		t.Errorf("list the tasks in %v: %v, %d tasks, want %d", states, err, len(tasks), want)
 	}
 }

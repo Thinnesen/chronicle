@@ -60,6 +60,8 @@ func TestTemplatesAndCrons(t *testing.T) {
 	}
 	if got, err := templates.GetTemplate(ctx, connect.NewRequest(&chroniclev1.GetTemplateRequest{Namespace: "team-a", Name: "deploy"})); err != nil || got.Msg.Template.Fields["spec"] == nil {
 		t.Errorf("get: %v", err)
+	} else {
+		checkKind(t, got.Msg.Template, "WorkflowTemplate")
 	}
 	if _, err := chroniclev1connect.NewTemplateServiceClient(srv.Client(), srv.URL, userHeader("carol", "oidc:viewers")).ListTemplates(ctx,
 		connect.NewRequest(&chroniclev1.ListTemplatesRequest{Namespace: "team-a"})); code(err) != connect.CodePermissionDenied {
