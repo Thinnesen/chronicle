@@ -30,7 +30,8 @@ func TestListNodeEvents(t *testing.T) {
 	t0 := time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
 	for i, e := range []struct{ pod, reason string }{{"events-1", "Pulled"}, {"events-1", "FailedScheduling"}, {"other", "Pulled"}} {
 		ev := &corev1.Event{
-			ObjectMeta:     metav1.ObjectMeta{Name: "ev-" + e.reason + "-" + e.pod, Namespace: "team-a"},
+			Name:           "ev-" + e.reason + "-" + e.pod,
+			Namespace:      "team-a",
 			InvolvedObject: corev1.ObjectReference{Kind: "Pod", Name: e.pod, Namespace: "team-a"},
 			Type:           corev1.EventTypeWarning, Reason: e.reason, Message: "msg", Count: 3,
 			LastTimestamp: metav1.NewTime(t0.Add(time.Duration(i) * time.Minute)),
