@@ -16,24 +16,12 @@ Each item ends with a green gate run and a commit on `dev`.
 
 ## M4 Web UI
 
-19. #18 UI foundation
-20. #19 Runs list and run details with a live DAG graph
-21. #20 Logs, node details and attempt history in the UI
-22. #21 Actions in the UI
-23. #22 Templates, cron and task queue pages
 
 ## M5 History and re-runs
 
-24. #23 Archive in PostgreSQL
-25. #24 Retry, retry from node and re-run with changed parameters
-26. #25 Artifacts and log archive in an S3-compatible store
 
 ## M6 SDKs and Argo migration
 
-27. #26 Go SDK
-28. #27 Python SDK
-29. #28 Rust SDK
-30. #29 Argo Workflows converter and compatibility guide
 
 ## M7 Durable task workers
 
