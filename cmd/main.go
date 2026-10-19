@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/archive"
 	"github.com/Thinnesen/chronicle/internal/controller"
 	webhookv1alpha1 "github.com/Thinnesen/chronicle/internal/webhook/v1alpha1"
 	// +kubebuilder:scaffold:imports
@@ -75,7 +77,9 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
-	var executorImage string
+	var executorImage, archiveDSNFile string
+	flag.StringVar(&archiveDSNFile, "archive-dsn-file", "",
+		"A file with the PostgreSQL DSN of the archive. Without it, runs are not archived.")
 	flag.StringVar(&executorImage, "executor-image", os.Getenv("CHRONICLE_EXECUTOR_IMAGE"),
 		"The image with the chronicle-exec binary for workflow Pods. The default is $CHRONICLE_EXECUTOR_IMAGE.")
 	opts.BindFlags(flag.CommandLine)
@@ -183,11 +187,21 @@ func main() {
 		setupLog.Error(nil, "Set --executor-image or CHRONICLE_EXECUTOR_IMAGE")
 		os.Exit(1)
 	}
-	if err := (&controller.WorkflowReconciler{
+	workflows := &controller.WorkflowReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		ExecutorImage: executorImage,
-	}).SetupWithManager(mgr); err != nil {
+	}
+	if archiveDSNFile != "" {
+		store, err := archive.OpenFile(context.Background(), archiveDSNFile)
+		if err != nil {
+			setupLog.Error(err, "Failed to open the archive")
+			os.Exit(1)
+		}
+		defer store.Close()
+		workflows.Archive = store
+	}
+	if err := workflows.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "workflow")
 		os.Exit(1)
 	}

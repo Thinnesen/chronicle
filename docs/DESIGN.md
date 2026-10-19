@@ -127,6 +127,9 @@ The controller applies the actions. This makes the engine testable with table te
 - Re-run (resubmit): a new Workflow with the same spec and parameters, optionally with changed parameters. It has the label `chronicle.thinnesen.com/rerun-of` and no run controls.
 - Resume and suspend. Stop (graceful, runs exit handlers). Terminate (immediate).
 - History: each run, each node attempt, its logs and its outputs stay in the archive. The UI and the API show them.
+- Archive (optional, `--archive-dsn-file` on the controller and the server): the controller saves each finished run to PostgreSQL (summary columns and the full Workflow with its nodes, keyed by UID) and marks it with the condition `Archived`. A retried run is saved again. With an archive, the TTL deletes a run only after the archive has it.
+- The server merges archived runs into the run list and falls back to the archive for get and re-run. The archive is outside the Kubernetes RBAC, so the server first checks with an access review as the caller (list or get Workflows in the namespace). The archive filters labels by equality only; other selectors show live runs only.
+- Migrations are embedded SQL files with a version table and an advisory lock, without a migration library.
 
 ## 6. Server, login and permissions
 

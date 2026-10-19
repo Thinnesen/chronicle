@@ -20,13 +20,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/archive"
 	"github.com/Thinnesen/chronicle/internal/auth"
 	"github.com/Thinnesen/chronicle/internal/server"
 	"github.com/Thinnesen/chronicle/ui"
 )
 
 func main() {
-	var listen, authConfig, tokenAudience string
+	var listen, authConfig, tokenAudience, archiveDSNFile string
+	flag.StringVar(&archiveDSNFile, "archive-dsn-file", "",
+		"A file with the PostgreSQL DSN of the archive. Without it, deleted runs are gone.")
 	flag.StringVar(&listen, "listen", ":8080", "The address of the API. TLS ends at the ingress or the service mesh.")
 	flag.StringVar(&authConfig, "auth-config", "",
 		"The login configuration file. Without it, only service account tokens work.")
@@ -70,7 +73,17 @@ func main() {
 	if len(authn) == 0 {
 		log.Info("No login and no service account tokens: the API refuses all calls")
 	}
-	api, err := server.NewHandler(server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn})
+	apiOpts := server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn}
+	if archiveDSNFile != "" {
+		store, err := archive.OpenFile(context.Background(), archiveDSNFile)
+		if err != nil {
+			log.Error(err, "Failed to open the archive")
+			os.Exit(1)
+		}
+		defer store.Close()
+		apiOpts.Archive = store
+	}
+	api, err := server.NewHandler(apiOpts)
 	if err != nil {
 		log.Error(err, "Failed to create the API")
 		os.Exit(1)

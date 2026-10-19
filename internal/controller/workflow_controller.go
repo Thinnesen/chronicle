@@ -27,7 +27,17 @@ type WorkflowReconciler struct {
 	Scheme *runtime.Scheme
 	// ExecutorImage is the image with the chronicle-exec binary.
 	ExecutorImage string
+	// Archive keeps finished runs, or is nil without an archive.
+	Archive Archiver
 }
+
+// Archiver saves a finished run with its node counts.
+type Archiver interface {
+	Save(ctx context.Context, wf *chroniclev1alpha1.Workflow, nodesDone, nodesTotal int) error
+}
+
+// conditionArchived tells that the archive has the finished run.
+const conditionArchived = "Archived"
 
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/status,verbs=get;update;patch
@@ -68,13 +78,17 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
-	if equality.Semantic.DeepEqual(*observed, res.Status) {
+	wf.Status = res.Status
+	archiveErr := r.archive(ctx, &wf)
+	if equality.Semantic.DeepEqual(*observed, wf.Status) {
+		if archiveErr != nil {
+			return ctrl.Result{}, archiveErr
+		}
 		return r.applyTTL(ctx, &wf, result)
 	}
-	if res.Status.Phase != observed.Phase {
-		log.Info("Workflow phase changed", "phase", res.Status.Phase)
+	if wf.Status.Phase != observed.Phase {
+		log.Info("Workflow phase changed", "phase", wf.Status.Phase)
 	}
-	wf.Status = res.Status
 	if err := r.Status().Update(ctx, &wf); err != nil {
 		if apierrors.IsConflict(err) {
 			// The cache had an old Workflow. Run again with the new one.
@@ -82,7 +96,37 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		return ctrl.Result{}, fmt.Errorf("update the workflow status: %w", err)
 	}
+	if archiveErr != nil {
+		return ctrl.Result{}, archiveErr
+	}
 	return r.applyTTL(ctx, &wf, result)
+}
+
+// archive saves a finished run once and marks it with the condition Archived.
+func (r *WorkflowReconciler) archive(ctx context.Context, wf *chroniclev1alpha1.Workflow) error {
+	if r.Archive == nil || !finished(wf.Status.Phase) || meta.IsStatusConditionTrue(wf.Status.Conditions, conditionArchived) {
+		return nil
+	}
+	done, total := nodeCounts(wf)
+	if err := r.Archive.Save(ctx, wf, done, total); err != nil {
+		return fmt.Errorf("archive the run: %w", err)
+	}
+	meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: conditionArchived, Status: metav1.ConditionTrue,
+		Reason: "Saved", Message: "the archive has the run", ObservedGeneration: wf.Generation})
+	return nil
+}
+
+// nodeCounts counts the Pod and suspend nodes, and those that finished.
+func nodeCounts(wf *chroniclev1alpha1.Workflow) (done, total int) {
+	for _, n := range wf.Status.Nodes {
+		if n.Type == chroniclev1alpha1.NodePod || n.Type == chroniclev1alpha1.NodeSuspend {
+			total++
+			if n.FinishedAt != nil {
+				done++
+			}
+		}
+	}
+	return done, total
 }
 
 // applyTTL deletes a finished workflow when its TTL is over, or runs again when it will be over.
@@ -92,7 +136,8 @@ func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1
 		spec = wf.Status.StoredSpec
 	}
 	when, ok := engine.TTL(spec, wf.Status)
-	if !ok {
+	// With an archive, the TTL deletes a run only after the archive has it.
+	if !ok || r.Archive != nil && !meta.IsStatusConditionTrue(wf.Status.Conditions, conditionArchived) {
 		return result, nil
 	}
 	if wait := time.Until(when); wait > 0 {
@@ -129,6 +174,7 @@ func (r *WorkflowReconciler) restart(ctx context.Context, wf *chroniclev1alpha1.
 		}
 	}
 	st.Restarts = rs.Generation
+	meta.RemoveStatusCondition(&st.Conditions, conditionArchived)
 	meta.SetStatusCondition(&st.Conditions, metav1.Condition{Type: "Restarted", Status: metav1.ConditionTrue,
 		Reason: "Retried", Message: fmt.Sprintf("retry %d", rs.Generation), ObservedGeneration: wf.Generation})
 	logf.FromContext(ctx).Info("Retrying the workflow", "generation", rs.Generation, "fromNode", rs.FromNode)

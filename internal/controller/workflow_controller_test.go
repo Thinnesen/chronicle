@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -234,6 +235,31 @@ templates:
 		Expect(wf.Status.Conditions).To(ContainElement(HaveField("Message", ContainSubstring("no node failed"))))
 	})
 
+	It("archives a finished run before its TTL deletes it", func() {
+		fake := &fakeArchive{failures: 1}
+		withArchive := func() *WorkflowReconciler { rec := r(); rec.Archive = fake; return rec }
+		key := create("entrypoint: c\nttlStrategy: {secondsAfterCompletion: 0}\ntemplates:\n- {name: c, container: {image: alpine, command: ['true']}}")
+		_, err := withArchive().Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		wf := &chroniclev1alpha1.Workflow{}
+		Expect(k8sClient.Get(ctx, key, wf)).To(Succeed())
+		pod := pods(wf)[0]
+		finish(&pod, 0, executor.Message{})
+
+		By("failing the first save: the run stays")
+		_, err = withArchive().Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).To(MatchError(ContainSubstring("archive the run")))
+		Expect(k8sClient.Get(ctx, key, wf)).To(Succeed())
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+
+		By("saving on the next try, then deleting the run")
+		_, err = withArchive().Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fake.saved).To(HaveLen(1))
+		Expect(fake.saved[0]).To(Equal([2]int{1, 1}))
+		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, key, wf))).To(BeTrue())
+	})
+
 	It("runs a container without a command directly", func() {
 		key := create("entrypoint: c\ntemplates:\n- {name: c, container: {image: alpine, args: [x]}}")
 		wf := reconcileOnce(key)
@@ -243,3 +269,18 @@ templates:
 		Expect(pod.Spec.Containers[0].Args).To(Equal([]string{"x"}))
 	})
 })
+
+// fakeArchive fails the first saves, then records the node counts of each save.
+type fakeArchive struct {
+	failures int
+	saved    [][2]int
+}
+
+func (f *fakeArchive) Save(_ context.Context, _ *chroniclev1alpha1.Workflow, done, total int) error {
+	if f.failures > 0 {
+		f.failures--
+		return errors.New("the database is down")
+	}
+	f.saved = append(f.saved, [2]int{done, total})
+	return nil
+}

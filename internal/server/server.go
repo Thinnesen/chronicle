@@ -21,6 +21,8 @@ type Options struct {
 	Scheme *runtime.Scheme
 	// Authenticators find the identity of a request, in order.
 	Authenticators []auth.Authenticator
+	// Archive holds finished runs whose Workflow was deleted, or is nil.
+	Archive ArchiveReader
 }
 
 // NewHandler returns the HTTP handler of the API.
@@ -36,7 +38,7 @@ func NewHandler(opts Options) (http.Handler, error) {
 	mux := http.NewServeMux()
 	audit := &auditor{log: ctrl.Log.WithName("audit"), events: own}
 	limit := connect.WithHandlerOptions(connect.WithReadMaxBytes(4<<20), connect.WithInterceptors(audit.interceptor()))
-	workflows := &workflowService{clients: clients}
+	workflows := &workflowService{clients: clients, archive: opts.Archive}
 	path, h := chroniclev1connect.NewWorkflowServiceHandler(workflows, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs}, limit)

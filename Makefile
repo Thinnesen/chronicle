@@ -87,6 +87,18 @@ KIND_CLUSTER ?= chronicle-e2e
 # The e2e tests use their own kubeconfig, so they never touch another cluster or context.
 E2E_KUBECONFIG ?= $(LOCALBIN)/$(KIND_CLUSTER).kubeconfig
 
+# PostgreSQL for the archive tests. make test uses it when CHRONICLE_TEST_POSTGRES is set.
+POSTGRES_IMAGE ?= postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+POSTGRES_TEST_DSN ?= postgres://postgres:test@127.0.0.1:55432/postgres?sslmode=disable
+
+.PHONY: postgres-up
+postgres-up: ## Start PostgreSQL for the tests. Then run: export CHRONICLE_TEST_POSTGRES='$(POSTGRES_TEST_DSN)'
+	$(CONTAINER_TOOL) run -d --rm --name chronicle-test-postgres -e POSTGRES_PASSWORD=test -p 127.0.0.1:55432:5432 $(POSTGRES_IMAGE)
+
+.PHONY: postgres-down
+postgres-down: ## Stop the PostgreSQL of the tests.
+	$(CONTAINER_TOOL) rm -f chronicle-test-postgres
+
 .PHONY: setup-test-e2e
 setup-test-e2e: kind kubectl ## Set up a Kind cluster for e2e tests if it does not exist
 	@case "$$("$(KIND)" get clusters)" in \

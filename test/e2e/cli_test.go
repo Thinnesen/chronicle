@@ -41,16 +41,21 @@ func cliSpecs() {
 			_, _ = utils.Run(exec.Command("kubectl", "delete", "ns", cliNS, "--wait=false"))
 		})
 
+		// server is a port-forward of the current spec. A port-forward ends with its spec.
+		var server string
+		BeforeEach(func() {
+			_, err := utils.Run(exec.Command("kubectl", "rollout", "status", "-n", "chronicle-system", "deploy/chronicle-server", "--timeout=3m"))
+			Expect(err).NotTo(HaveOccurred())
+			server = "http://" + portForward("chronicle-system", "chronicle-server", 8080)
+		})
+
 		chronicle := func(args ...string) (string, error) {
-			return utils.Run(exec.Command(cli, append([]string{"--config", config}, args...)...))
+			return utils.Run(exec.Command(cli, append([]string{"--config", config, "--server", server}, args...)...))
 		}
 
 		It("logs in with a service account token and runs a workflow", func() {
-			_, err := utils.Run(exec.Command("kubectl", "rollout", "status", "-n", "chronicle-system", "deploy/chronicle-server", "--timeout=3m"))
-			Expect(err).NotTo(HaveOccurred())
 			token, err := utils.Run(exec.Command("kubectl", "create", "token", "ci", "-n", cliNS, "--audience=chronicle"))
 			Expect(err).NotTo(HaveOccurred())
-			server := "http://" + portForward("chronicle-system", "chronicle-server", 8080)
 
 			login := exec.Command(cli, "--config", config, "login", "--server", server, "-n", cliNS, "--token-file", "-")
 			login.Stdin = strings.NewReader(token)
@@ -69,6 +74,38 @@ func cliSpecs() {
 			out, err = chronicle("list")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(MatchRegexp(`dag-succeeds\s+Succeeded`))
+		})
+
+		It("keeps a deleted run in the archive", func() {
+			_, err := utils.Run(exec.Command("kubectl", "apply", "-f", "test/e2e/testdata/postgres.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			_, err = utils.Run(exec.Command("kubectl", "rollout", "status", "-n", "chronicle-db", "deploy/postgres", "--timeout=3m"))
+			Expect(err).NotTo(HaveOccurred())
+			patch := `[{"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"archive","secret":{"secretName":"chronicle-archive"}}},` +
+				`{"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"archive","mountPath":"/etc/chronicle/archive","readOnly":true}},` +
+				`{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--archive-dsn-file=/etc/chronicle/archive/dsn"}]`
+			for _, d := range []string{"chronicle-controller-manager", "chronicle-server"} {
+				_, err = utils.Run(exec.Command("kubectl", "patch", "deployment", d, "-n", "chronicle-system", "--type", "json", "-p", patch))
+				Expect(err).NotTo(HaveOccurred())
+				_, err = utils.Run(exec.Command("kubectl", "rollout", "status", "-n", "chronicle-system", "deploy/"+d, "--timeout=3m"))
+				Expect(err).NotTo(HaveOccurred())
+			}
+			// The server restarted: forward its port again.
+			server = "http://" + portForward("chronicle-system", "chronicle-server", 8080)
+
+			_, err = utils.Run(exec.Command("kubectl", "apply", "-n", cliNS, "-f", "test/e2e/testdata/archived.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() bool {
+				_, err := utils.Run(exec.Command("kubectl", "get", "workflow", "archived", "-n", cliNS))
+				return err != nil
+			}).WithTimeout(3*time.Minute).WithPolling(3*time.Second).Should(BeTrue(), "the TTL must delete the run")
+
+			out, err := chronicle("get", "archived")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("Phase:     Succeeded"))
+			out, err = chronicle("list")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(MatchRegexp(`archived\s+Succeeded`))
 		})
 
 		It("retries and re-runs a run", func() {

@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -22,6 +23,8 @@ const maxPage = 500
 // workflowService implements the WorkflowService API.
 type workflowService struct {
 	clients *clientFactory
+	// archive holds finished runs whose Workflow was deleted, or is nil.
+	archive ArchiveReader
 }
 
 func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
@@ -32,35 +35,44 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 	}
 	opts := []client.ListOption{client.InNamespace(m.Namespace)}
 	if m.LabelSelector != "" {
-		sel, err := metav1.ParseToLabelSelector(m.LabelSelector)
+		sel, err := labels.Parse(m.LabelSelector)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
-		ls, err := metav1.LabelSelectorAsSelector(sel)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
-		opts = append(opts, client.MatchingLabelsSelector{Selector: ls})
+		opts = append(opts, client.MatchingLabelsSelector{Selector: sel})
 	}
 	var list v1alpha1.WorkflowList
 	if err := c.List(ctx, &list, opts...); err != nil {
 		return nil, toConnect(err)
 	}
-	items := slices.DeleteFunc(list.Items, func(wf v1alpha1.Workflow) bool {
+	live := slices.DeleteFunc(list.Items, func(wf v1alpha1.Workflow) bool {
 		return len(m.Phases) > 0 && !slices.Contains(m.Phases, string(wf.Status.Phase))
 	})
-	slices.SortFunc(items, func(a, b v1alpha1.Workflow) int {
-		return cmp.Or(b.CreationTimestamp.Compare(a.CreationTimestamp.Time), cmp.Compare(a.Name, b.Name))
+	items := make([]*chroniclev1.WorkflowSummary, 0, len(live))
+	for i := range live {
+		items = append(items, summary(&live[i]))
+	}
+	archived, err := s.archivedRuns(ctx, m, live)
+	if err != nil {
+		return nil, err
+	}
+	items = append(items, archived...)
+	slices.SortFunc(items, func(a, b *chroniclev1.WorkflowSummary) int {
+		return cmp.Or(b.CreatedAt.AsTime().Compare(a.CreatedAt.AsTime()), cmp.Compare(a.Name, b.Name))
 	})
 	page, next, err := paginate(items, m.Limit, m.PageToken)
 	if err != nil {
 		return nil, err
 	}
-	resp := &chroniclev1.ListWorkflowsResponse{NextPageToken: next}
-	for i := range page {
-		resp.Workflows = append(resp.Workflows, summary(&page[i]))
+	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: page, NextPageToken: next}), nil
+}
+
+func pageOffset(token string) (int, error) {
+	offset, err := strconv.Atoi(token)
+	if err != nil || offset < 0 {
+		return 0, connect.NewError(connect.CodeInvalidArgument, errors.New("bad page token"))
 	}
-	return connect.NewResponse(resp), nil
+	return offset, nil
 }
 
 // paginate returns one page. The page token is the offset of the page.
@@ -71,8 +83,8 @@ func paginate[T any](items []T, limit int32, token string) ([]T, string, error) 
 	offset := 0
 	if token != "" {
 		var err error
-		if offset, err = strconv.Atoi(token); err != nil || offset < 0 {
-			return nil, "", connect.NewError(connect.CodeInvalidArgument, errors.New("bad page token"))
+		if offset, err = pageOffset(token); err != nil {
+			return nil, "", err
 		}
 	}
 	if offset >= len(items) {
@@ -87,7 +99,7 @@ func paginate[T any](items []T, limit int32, token string) ([]T, string, error) 
 }
 
 func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
-	wf, err := s.get(ctx, req.Msg.Namespace, req.Msg.Name)
+	wf, archived, err := s.getAny(ctx, req.Msg.Namespace, req.Msg.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +108,23 @@ func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Summary: summary(wf), Workflow: obj}), nil
+	sum := summary(wf)
+	sum.Archived = archived
+	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Summary: sum, Workflow: obj}), nil
+}
+
+// getAny returns a live run, or the archived run when the Workflow was deleted.
+func (s *workflowService) getAny(ctx context.Context, namespace, name string) (*v1alpha1.Workflow, bool, error) {
+	wf, err := s.get(ctx, namespace, name)
+	if connect.CodeOf(err) != connect.CodeNotFound {
+		return wf, false, err
+	}
+	c, cerr := s.client(ctx, namespace)
+	if cerr != nil {
+		return nil, false, cerr
+	}
+	wf, err = s.archivedWorkflow(ctx, c, namespace, name)
+	return wf, true, err
 }
 
 func (s *workflowService) DeleteWorkflow(ctx context.Context, req *connect.Request[chroniclev1.DeleteWorkflowRequest]) (*connect.Response[chroniclev1.DeleteWorkflowResponse], error) {

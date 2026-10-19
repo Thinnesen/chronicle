@@ -1,0 +1,46 @@
+# PostgreSQL for the archive e2e test. It runs as root, so it is in a namespace without the restricted standard.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chronicle-db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: chronicle-db
+spec:
+  selector:
+    matchLabels: {app: postgres}
+  template:
+    metadata:
+      labels: {app: postgres}
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+        - {name: POSTGRES_PASSWORD, value: e2e}
+        ports:
+        - {name: pg, containerPort: 5432}
+        readinessProbe:
+          exec:
+            command: [pg_isready, -U, postgres]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: chronicle-db
+spec:
+  selector: {app: postgres}
+  ports:
+  - {name: pg, port: 5432, targetPort: pg}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chronicle-archive
+  namespace: chronicle-system
+stringData:
+  dsn: postgres://postgres:e2e@postgres.chronicle-db.svc.cluster.local:5432/postgres?sslmode=disable

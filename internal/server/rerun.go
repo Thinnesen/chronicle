@@ -38,7 +38,7 @@ func (s *workflowService) RetryWorkflow(ctx context.Context, req *connect.Reques
 
 func (s *workflowService) RerunWorkflow(ctx context.Context, req *connect.Request[chroniclev1.RerunWorkflowRequest]) (*connect.Response[chroniclev1.RerunWorkflowResponse], error) {
 	m := req.Msg
-	old, err := s.get(ctx, m.Namespace, m.Name)
+	old, _, err := s.getAny(ctx, m.Namespace, m.Name)
 	if err != nil {
 		return nil, err
 	}
