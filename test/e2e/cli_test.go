@@ -124,6 +124,27 @@ func cliSpecs() {
 			Expect(out).To(ContainSubstring(name + " Succeeded"))
 		})
 
+		It("converts Argo examples and runs them", func() {
+			const busybox = "busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
+			for _, example := range []string{"hello-world", "steps", "dag-diamond", "output-parameter"} {
+				data, err := os.ReadFile("internal/convert/testdata/argo/" + example + ".yaml")
+				Expect(err).NotTo(HaveOccurred())
+				// The examples use an image tag; the tests pin images by digest.
+				pinned := strings.ReplaceAll(string(data), "image: busybox\n", "image: "+busybox+"\n")
+				in := filepath.Join(GinkgoT().TempDir(), example+".yaml")
+				Expect(os.WriteFile(in, []byte(pinned), 0o600)).To(Succeed())
+				converted, err := utils.Run(exec.Command(cli, "convert", "--strict", "-f", in))
+				Expect(err).NotTo(HaveOccurred(), converted)
+				create := exec.Command("kubectl", "create", "-n", cliNS, "-o", "name", "-f", "-")
+				create.Stdin = strings.NewReader(converted)
+				out, err := utils.Run(create)
+				Expect(err).NotTo(HaveOccurred(), out)
+				name := strings.TrimPrefix(strings.TrimSpace(out), "workflow.chronicle.thinnesen.com/")
+				out, err = chronicle("watch", name)
+				Expect(err).NotTo(HaveOccurred(), "%s: %s", example, out)
+			}
+		})
+
 		It("passes an artifact between steps and archives the logs", func() {
 			_, err := utils.Run(exec.Command("kubectl", "apply", "-f", "test/e2e/testdata/seaweedfs.yaml"))
 			Expect(err).NotTo(HaveOccurred())

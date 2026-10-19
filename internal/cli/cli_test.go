@@ -142,6 +142,7 @@ func TestCommands(t *testing.T) {
 		{[]string{"retry", "hello", "--node", "hello.a"}, "Retrying team-a/hello"},
 		{[]string{"rerun", "hello", "-p", "x=1"}, "Started team-a/hello-new"},
 		{[]string{"submit", "--from", "cluster/base"}, "Started team-a/hello-abc"},
+		{[]string{"convert", "-f", "../convert/testdata/argo/hello-world.yaml"}, "apiVersion: chronicle.thinnesen.com/v1alpha1"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.args[0], func(t *testing.T) {
