@@ -219,6 +219,8 @@ server:
   enabled: true
   ## The login sessions are in the archive database, so more than one replica needs archive.existingSecret.
   replicas: 1
+  ## Environment variables of the server, for example OTEL_EXPORTER_OTLP_ENDPOINT for traces.
+  env: []
   service:
     ## ClusterIP behind an ingress, or LoadBalancer.
     type: ClusterIP

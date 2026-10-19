@@ -48,6 +48,10 @@ spec:
         {{- if .Values.archive.existingSecret }}
         - --archive-dsn-file=/etc/chronicle/archive/{{ .Values.archive.key }}
         {{- end }}
+        {{- with .Values.server.env }}
+        env:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         - name: http
           containerPort: 8080
