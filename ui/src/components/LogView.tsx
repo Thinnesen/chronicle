@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useLogStream } from "../lib/useLogStream";
@@ -25,6 +26,10 @@ export function LogView({ namespace, workflow, node, live }: { namespace: string
           {live && !done ? "Following new lines" : `${lines.length} lines`}
           {dropped > 0 && `, the first ${dropped} are not shown`}
         </span>
+        <button type="button" className="button button-ghost" disabled={lines.length === 0} onClick={() => download(`${workflow}-${node}.log`, lines.map((l) => l.text))}>
+          <Download aria-hidden="true" />
+          Download
+        </button>
       </div>
       {archived && <p className="logview-note">The Pod was deleted. This log comes from the log archive.</p>}
       {error && <p role="alert">Could not read the log: {error}</p>}
@@ -50,4 +55,14 @@ export function LogView({ namespace, workflow, node, live }: { namespace: string
       </pre>
     </div>
   );
+}
+
+// download saves the lines of the log as a text file.
+function download(name: string, lines: string[]) {
+  const url = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/plain" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -16,8 +16,16 @@ test("shows the live log of a node and filters it", async ({ page }, info) => {
   await expect(log.getByText("epoch 1/3 loss=0.41")).toBeVisible();
   await expect(log.getByText("loaded 1204 rows")).toBeHidden();
 
+  const saved = page.waitForEvent("download");
+  await panel.getByRole("button", { name: "Download" }).click();
+  const file = await saved;
+  expect(file.suggestedFilename()).toBe("etl-nightly-8k2pq-n1.log");
+
   await panel.getByRole("tab", { name: "Summary" }).click();
   await expect(panel.getByText("1204 rows")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(page).not.toHaveURL(/node=/);
 });
 
 test("lists the attempts of a retried node", async ({ page }) => {

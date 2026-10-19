@@ -10,6 +10,7 @@ import { useToast } from "./Toast";
 import { clock, duration } from "../lib/time";
 import { artifactURL, nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
 import { ApprovalForm } from "./ApprovalForm";
+import { CopyButton } from "./CopyButton";
 import { Lamp } from "./Lamp";
 import { LogView } from "./LogView";
 import "./NodePanel.css";
@@ -151,14 +152,16 @@ function Details({ node }: { node: NodeStatus }) {
         {node.podName && (
           <>
             <dt>Pod</dt>
-            <dd>
+            <dd className="copyable">
               <code>{node.podName}</code>
+              <CopyButton text={node.podName} label="Copy the Pod name" />
             </dd>
           </>
         )}
         <dt>ID</dt>
-        <dd>
+        <dd className="copyable">
           <code>{node.id}</code>
+          <CopyButton text={node.id} label="Copy the node ID" />
         </dd>
       </dl>
       <Params title="Inputs" params={node.inputs?.parameters} />

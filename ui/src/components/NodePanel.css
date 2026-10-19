@@ -180,3 +180,20 @@
   font-weight: 700;
   text-underline-offset: 3px;
 }
+
+.copyable {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.copy-button {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+
+.copy-button svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}

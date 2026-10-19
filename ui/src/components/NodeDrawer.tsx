@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 
 import { nodeLabel, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Status } from "./Lamp";
@@ -30,6 +30,14 @@ interface DrawerProps {
 // NodeDrawer shows the selected node next to the graph. The user can drag its left edge to change the width.
 export function NodeDrawer({ onClose, ...props }: DrawerProps) {
   const [width, setWidth] = useState(readWidth);
+  // Escape closes the panel, but not while a dialog or the command palette is open: Escape closes those first.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented && !document.querySelector('[role="dialog"]')) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
   const drag = useRef<{ x: number; width: number } | null>(null);
   const onMove = (e: PointerEvent) => {
     if (!drag.current) return;
