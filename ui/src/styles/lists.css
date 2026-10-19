@@ -60,6 +60,10 @@
 }
 
 .item-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
@@ -162,6 +166,7 @@
   .item-side {
     grid-column: 1;
     grid-row: auto;
+    align-items: flex-start;
     text-align: left;
   }
 
@@ -177,4 +182,8 @@
 .template-plan {
   overflow: hidden;
   margin-bottom: var(--space-4);
+}
+
+.item-meta {
+  font-size: var(--text-xs);
 }

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 import { crons } from "../api/client";
 import { ManagedBadge } from "../components/Badge";
+import { RecentRuns, useRecentRuns } from "../components/RecentRuns";
 import { RefreshError } from "../components/RefreshError";
 import { readable, relative } from "../lib/cron";
 import { toDate } from "../lib/time";
@@ -13,6 +14,7 @@ import { cronsRoute } from "../router";
 export function CronsPage() {
   const { namespace } = cronsRoute.useParams();
   const now = useNow();
+  const recent = useRecentRuns(namespace);
   const { data, error, isPending } = useQuery({
     queryKey: ["crons", namespace],
     queryFn: () => crons.listCronWorkflows({ namespace }),
@@ -46,7 +48,10 @@ export function CronsPage() {
                   {c.schedules.map(readable).join("; ")}
                   {c.timezone && ` (${c.timezone})`}
                 </p>
-                <span className="item-side">{c.suspend ? "Suspended" : next ? `Next run ${relative(next, now)}` : "No run planned"}</span>
+                <span className="item-side">
+                  <RecentRuns runs={recent.data?.workflows.filter((w) => w.labels["chronicle.thinnesen.com/cron-workflow"] === c.name) ?? []} />
+                  <span className="item-meta">{c.suspend ? "Suspended" : next ? `Next run ${relative(next, now)}` : "No run planned"}</span>
+                </span>
               </li>
             );
           })}

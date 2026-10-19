@@ -8,6 +8,7 @@ test("starts a run from a template with parameters", async ({ page }) => {
   await openMenu(page);
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Templates" }).click();
   await expect(page.getByText("Managed by Argo CD")).toBeVisible();
+  await expect(page.getByRole("img", { name: "1 recent run, 0 of 0 finished succeeded" })).toBeVisible();
   await page.getByRole("link", { name: "deploy-api" }).click();
   await expect(page.getByLabel("The YAML of deploy-api")).toContainText("entrypoint: main");
   await expect(page.getByLabel("The YAML of deploy-api")).not.toContainText("last-applied-configuration");
