@@ -142,7 +142,7 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
   const box = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   // Below this zoom the names are too small to read. A wide graph then needs a pan.
-  const fit = useMemo(() => ({ maxZoom: 1, minZoom: 0.5, padding: 0.08 }), []);
+  const fit = useMemo(() => ({ maxZoom: 1, minZoom: 0.8, padding: 0.08 }), []);
   const { nodes, edges, height } = useMemo(() => {
     // The root node is the run itself, which the header shows. Without it the graph is one column narrower.
     const root = wf.status?.nodes?.[wf.metadata.name];
