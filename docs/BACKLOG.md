@@ -28,11 +28,7 @@ Each item ends with a green gate run and a commit on `dev`.
 
 ## M8 Release readiness
 
-33. #32 Helm chart and GitOps examples
-34. #33 Observability
-35. #34 E2E on Kind with Dex, Playwright and security scans in CI
-36. #35 README with logo and demos
-37. #36 Security review and fixes
+35. #34 E2E on Kind with Dex, Playwright and security scans in CI (waits for a green CI run; all checks pass locally)
 
 ## Later (do not start in this run)
 
