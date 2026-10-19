@@ -8,7 +8,7 @@ One entry for each design change. Newest first.
 
 - 2026-10-19: The web UI is an ops console (sidebar, Cmd+K search, tabs Graph, Timeline and Spec, a node drawer), not the signal-box panel of section 8.1. Status icons replace the signal lamps, and the graph does not draw the root node. Reason: the owner found the first UI "vibecoded" and chose the ops console direction. The design combines Argo Workflows, Argo CD, Temporal and Dagster (docs/RESEARCH.md).
 
-- 2026-10-19: A dependency version must be at least seven days old, except for a release that fixes a known vulnerability: then the fix wins (first case: rustls 0.23.46). Trivy scans the image and all lockfiles in CI and every week; the Makefile pins Trivy with a SHA-256 instead of the trivy-action, whose tags were once hijacked.
+- 2026-10-19: A dependency version must be at least seven days old, except for a release that fixes a known vulnerability: then the fix wins (first case: rustls 0.23.46). Dependabot enforces the seven days with a cool-down; pnpm (`minimumReleaseAge`) is a hard floor of one day for every install, also by hand. Trivy scans the image and all lockfiles in CI and every week; the Makefile pins Trivy with a SHA-256 instead of the trivy-action, whose tags were once hijacked.
 
 - 2026-10-19: Task workers: the queue is a table in the archive database, a timeout fails the attempt (no silent redelivery), and retries come only from `retryStrategy`. Reason: one retry mechanism for Pods and tasks, and a result that arrives after a timeout can never change a finished node. Temporal also fails an activity attempt on a heartbeat timeout and retries by policy.
 

@@ -1,5 +1,5 @@
 # Supply chain settings of pnpm.
-# Install only versions that are at least one day old.
+# Install only versions that are at least one day old. Dependabot waits seven days (docs/DECISIONS.md).
 minimumReleaseAge: 1440
 # No dependency runs an install script.
 onlyBuiltDependencies: []

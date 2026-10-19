@@ -56,7 +56,7 @@ export function Shell() {
             <MenuIcon />
           </button>
           <Breadcrumbs />
-          <button type="button" className="search-button" onClick={() => setPalette(true)}>
+          <button type="button" className="search-button" aria-label="Search" aria-keyshortcuts="Control+K Meta+K" onClick={() => setPalette(true)}>
             <Search aria-hidden="true" />
             <span>Search</span>
             <kbd>⌘K</kbd>

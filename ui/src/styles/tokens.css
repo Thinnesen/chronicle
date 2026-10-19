@@ -8,7 +8,7 @@
   --surface-hover: #eef1f5;
   --ink: #111827;
   --ink-muted: #5b6474;
-  --ink-faint: #8a93a3;
+  --ink-faint: #667085;
   --track: #8a93a3; /* graph edges that wait */
   --rule: #e2e5ea;
   --rule-strong: #cfd4dc;
@@ -67,7 +67,7 @@
     --surface-hover: #222a36;
     --ink: #e6eaf0;
     --ink-muted: #a3adbb;
-    --ink-faint: #727d8d;
+    --ink-faint: #8a95a5;
     --track: #6c7787;
     --rule: #262e3a;
     --rule-strong: #334051;
@@ -104,7 +104,7 @@
   --surface-hover: #222a36;
   --ink: #e6eaf0;
   --ink-muted: #a3adbb;
-  --ink-faint: #727d8d;
+  --ink-faint: #8a95a5;
   --track: #6c7787;
   --rule: #262e3a;
   --rule-strong: #334051;

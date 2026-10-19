@@ -45,7 +45,7 @@
 .ns-label {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--ink-faint);
+  color: var(--ink-muted);
 }
 
 .ns-picker select {
