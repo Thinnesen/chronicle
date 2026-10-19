@@ -25,8 +25,6 @@ Each item ends with a green gate run and a commit on `dev`.
 
 ## M7 Durable task workers
 
-31. #30 Task queue and the task template
-32. #31 Task workers in the Go, Python and Rust SDKs
 
 ## M8 Release readiness
 
