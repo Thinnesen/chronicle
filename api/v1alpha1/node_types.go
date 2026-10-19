@@ -83,7 +83,12 @@ type NodeStatus struct {
 	// +optional
 	PodName string `json:"podName,omitempty"`
 
-	// inputs are the resolved input parameters of the node.
+	// logKey is the key of the archived log of the main container in the artifact repository.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	LogKey string `json:"logKey,omitempty"`
+
+	// inputs are the resolved input parameters and artifacts of the node.
 	// +optional
 	Inputs *Inputs `json:"inputs,omitempty"`
 

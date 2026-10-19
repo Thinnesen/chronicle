@@ -28,6 +28,7 @@ func (e *engine) runPod(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1a
 func (e *engine) applyPod(n *v1alpha1.NodeStatus, pod PodResult) {
 	if isTerminal(pod.Phase) {
 		n.Outputs = pod.Outputs
+		n.LogKey = pod.LogKey
 		n.FinishedAt = pod.FinishedAt
 	}
 	if pod.Phase == n.Phase && !isTerminal(n.Phase) {

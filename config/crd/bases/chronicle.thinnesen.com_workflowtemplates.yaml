@@ -52,6 +52,46 @@ spec:
               arguments:
                 description: arguments are the workflow parameters.
                 properties:
+                  artifacts:
+                    description: artifacts to give.
+                    items:
+                      description: Artifact is a file or a directory in the artifact
+                        repository of the namespace.
+                      properties:
+                        from:
+                          description: from is the artifact that an argument gives,
+                            as one placeholder, for example "{{tasks.make.outputs.artifacts.data}}".
+                          maxLength: 1024
+                          type: string
+                        key:
+                          description: key of the object in the artifact repository.
+                            Only the status sets it.
+                          maxLength: 1024
+                          type: string
+                        name:
+                          description: name of the artifact.
+                          maxLength: 128
+                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                          type: string
+                        optional:
+                          description: optional makes a missing output file or a missing
+                            argument not an error.
+                          type: boolean
+                        path:
+                          description: path in the main container. The executor puts
+                            an input artifact there and saves an output artifact from
+                            there.
+                          maxLength: 4096
+                          pattern: ^/
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                   parameters:
                     description: parameters to give.
                     items:
@@ -471,6 +511,47 @@ spec:
                               arguments:
                                 description: arguments to give to the template.
                                 properties:
+                                  artifacts:
+                                    description: artifacts to give.
+                                    items:
+                                      description: Artifact is a file or a directory
+                                        in the artifact repository of the namespace.
+                                      properties:
+                                        from:
+                                          description: from is the artifact that an
+                                            argument gives, as one placeholder, for
+                                            example "{{tasks.make.outputs.artifacts.data}}".
+                                          maxLength: 1024
+                                          type: string
+                                        key:
+                                          description: key of the object in the artifact
+                                            repository. Only the status sets it.
+                                          maxLength: 1024
+                                          type: string
+                                        name:
+                                          description: name of the artifact.
+                                          maxLength: 128
+                                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                          type: string
+                                        optional:
+                                          description: optional makes a missing output
+                                            file or a missing argument not an error.
+                                          type: boolean
+                                        path:
+                                          description: path in the main container.
+                                            The executor puts an input artifact there
+                                            and saves an output artifact from there.
+                                          maxLength: 4096
+                                          pattern: ^/
+                                          type: string
+                                      required:
+                                      - name
+                                      type: object
+                                    maxItems: 32
+                                    type: array
+                                    x-kubernetes-list-map-keys:
+                                    - name
+                                    x-kubernetes-list-type: map
                                   parameters:
                                     description: parameters to give.
                                     items:
@@ -619,6 +700,46 @@ spec:
                     inputs:
                       description: inputs are the parameters that the template accepts.
                       properties:
+                        artifacts:
+                          description: artifacts that the template accepts.
+                          items:
+                            description: Artifact is a file or a directory in the
+                              artifact repository of the namespace.
+                            properties:
+                              from:
+                                description: from is the artifact that an argument
+                                  gives, as one placeholder, for example "{{tasks.make.outputs.artifacts.data}}".
+                                maxLength: 1024
+                                type: string
+                              key:
+                                description: key of the object in the artifact repository.
+                                  Only the status sets it.
+                                maxLength: 1024
+                                type: string
+                              name:
+                                description: name of the artifact.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              optional:
+                                description: optional makes a missing output file
+                                  or a missing argument not an error.
+                                type: boolean
+                              path:
+                                description: path in the main container. The executor
+                                  puts an input artifact there and saves an output
+                                  artifact from there.
+                                maxLength: 4096
+                                pattern: ^/
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          maxItems: 32
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         parameters:
                           description: parameters that the template accepts.
                           items:
@@ -684,6 +805,46 @@ spec:
                     outputs:
                       description: outputs are the parameters that the template produces.
                       properties:
+                        artifacts:
+                          description: artifacts that the template produces.
+                          items:
+                            description: Artifact is a file or a directory in the
+                              artifact repository of the namespace.
+                            properties:
+                              from:
+                                description: from is the artifact that an argument
+                                  gives, as one placeholder, for example "{{tasks.make.outputs.artifacts.data}}".
+                                maxLength: 1024
+                                type: string
+                              key:
+                                description: key of the object in the artifact repository.
+                                  Only the status sets it.
+                                maxLength: 1024
+                                type: string
+                              name:
+                                description: name of the artifact.
+                                maxLength: 128
+                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                type: string
+                              optional:
+                                description: optional makes a missing output file
+                                  or a missing argument not an error.
+                                type: boolean
+                              path:
+                                description: path in the main container. The executor
+                                  puts an input artifact there and saves an output
+                                  artifact from there.
+                                maxLength: 4096
+                                pattern: ^/
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          maxItems: 32
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         parameters:
                           description: parameters that the template produces.
                           items:
@@ -1153,6 +1314,47 @@ spec:
                             arguments:
                               description: arguments to give to the template.
                               properties:
+                                artifacts:
+                                  description: artifacts to give.
+                                  items:
+                                    description: Artifact is a file or a directory
+                                      in the artifact repository of the namespace.
+                                    properties:
+                                      from:
+                                        description: from is the artifact that an
+                                          argument gives, as one placeholder, for
+                                          example "{{tasks.make.outputs.artifacts.data}}".
+                                        maxLength: 1024
+                                        type: string
+                                      key:
+                                        description: key of the object in the artifact
+                                          repository. Only the status sets it.
+                                        maxLength: 1024
+                                        type: string
+                                      name:
+                                        description: name of the artifact.
+                                        maxLength: 128
+                                        pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                        type: string
+                                      optional:
+                                        description: optional makes a missing output
+                                          file or a missing argument not an error.
+                                        type: boolean
+                                      path:
+                                        description: path in the main container. The
+                                          executor puts an input artifact there and
+                                          saves an output artifact from there.
+                                        maxLength: 4096
+                                        pattern: ^/
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  maxItems: 32
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
                                 parameters:
                                   description: parameters to give.
                                   items:

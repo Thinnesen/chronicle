@@ -45,9 +45,12 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 					fmt.Sprintf("parameter %q of the entrypoint template", in.Name)))
 			}
 		}
+		c.checkNoArtifactInputs(t, path.Child("entrypoint"))
 	}
-	if _, ok := c.templates[spec.OnExit]; spec.OnExit != "" && !ok {
+	if t, ok := c.templates[spec.OnExit]; spec.OnExit != "" && !ok {
 		c.errs = append(c.errs, field.NotFound(path.Child("onExit"), spec.OnExit))
+	} else if ok {
+		c.checkNoArtifactInputs(t, path.Child("onExit"))
 	}
 	for i := range spec.Templates {
 		c.checkTemplate(&spec.Templates[i], path.Child("templates").Index(i))
@@ -101,6 +104,10 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 			c.checkText(*p.Default, pp.Child("default"), c.globals, nil)
 		}
 	}
+	for _, a := range t.Inputs.Artifacts {
+		sc = sc.with("inputs.artifacts." + a.Name)
+	}
+	c.checkArtifacts(t, path)
 	c.checkOutputs(t, path.Child("outputs", "parameters"), sc.with(c.childOutputs(t)...))
 	switch {
 	case t.Container != nil:
@@ -200,8 +207,12 @@ func (c *checker) checkCall(call v1alpha1.Call, path *field.Path, sc scope, hint
 				c.checkText(*a.Value, path.Child("arguments", "parameters").Index(i).Child("value"), sc, hint)
 			}
 		}
+		for i, a := range args.Artifacts {
+			c.checkFrom(a.From, path.Child("arguments", "artifacts").Index(i).Child("from"), sc, hint)
+		}
 		return
 	}
+	c.checkArtifactArgs(t, call, path.Child("arguments", "artifacts"), sc, hint)
 	argsPath := path.Child("arguments", "parameters")
 	for i, a := range args.Parameters {
 		ap := argsPath.Index(i)
@@ -266,6 +277,10 @@ func (c *checker) checkText(s string, path *field.Path, sc scope, hint func(stri
 
 func (c *checker) checkNames(s string, names []string, path *field.Path, sc scope, hint func(string) string) {
 	for _, n := range names {
+		if isArtifact(n) {
+			c.errs = append(c.errs, field.Invalid(path, s, "an artifact placeholder can be used only in arguments.artifacts[].from"))
+			continue
+		}
 		if sc.has(n) {
 			continue
 		}

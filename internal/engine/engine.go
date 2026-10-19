@@ -43,6 +43,8 @@ type PodResult struct {
 	Message    string
 	FinishedAt *metav1.Time
 	Outputs    *v1alpha1.Outputs
+	// LogKey is the key of the archived log.
+	LogKey string
 }
 
 // Result is the new status and the actions that the controller must apply.
@@ -198,6 +200,8 @@ type call struct {
 	nodeName string
 	// args are the resolved argument values.
 	args map[string]string
+	// artifacts are the keys of the argument artifacts.
+	artifacts map[string]string
 	// attempt is true for one attempt of a retry node.
 	attempt bool
 }
@@ -280,7 +284,7 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 	if t.RetryStrategy != nil && !c.attempt {
 		n.Type = v1alpha1.NodeRetry
 	}
-	inputs, err := e.resolveInputs(t, c.args)
+	inputs, err := e.resolveInputs(t, c)
 	n.StartedAt = &e.in.Now
 	switch {
 	case depth > maxDepth:

@@ -50,6 +50,27 @@ templates:
 	}
 }
 
+// TestEngineArtifacts passes an artifact key from one task to the next, also into each retry attempt.
+func TestEngineArtifacts(t *testing.T) {
+	s := newSim(t, dagSpec(`
+    - {name: make, template: make}
+    - {name: use, template: use, depends: make, arguments: {artifacts: [{name: data, from: "{{tasks.make.outputs.artifacts.data}}"}, {name: extra, from: "{{tasks.make.outputs.artifacts.none}}"}]}}`)+`
+- {name: make, outputs: {artifacts: [{name: data, path: /out}, {name: none, path: /none, optional: true}]}, container: {image: alpine, command: [run]}}
+- name: use
+  retryStrategy: {limit: 1}
+  inputs: {artifacts: [{name: data, path: /in}, {name: extra, path: /extra, optional: true}]}
+  container: {image: alpine, command: [run]}`, map[string]v1alpha1.NodePhase{"wf.use(0)": failed})
+	s.outputs["wf.make"] = &v1alpha1.Outputs{Artifacts: []v1alpha1.Artifact{{Name: "data", Path: "/out", Key: "k/data.tgz"}}}
+	st := s.run()
+	if st.Phase != v1alpha1.WorkflowSucceeded {
+		t.Fatalf("phase = %s: %s", st.Phase, st.Message)
+	}
+	want := []v1alpha1.Artifact{{Name: "data", Path: "/in", Key: "k/data.tgz"}}
+	if got := s.pods["wf.use(1)"].Inputs.Artifacts; !reflect.DeepEqual(got, want) {
+		t.Errorf("attempt 1 artifacts = %+v, want %+v", got, want)
+	}
+}
+
 func TestEngineFanOut(t *testing.T) {
 	s := newSim(t, dagSpec(`
     - {name: gen, template: c}
@@ -88,7 +109,8 @@ func TestEngineFanOut(t *testing.T) {
 }
 
 func TestEngineRuntimeErrors(t *testing.T) {
-	const p = "\n- {name: p, inputs: {parameters: [{name: x, enum: [a, b]}]}, container: {image: alpine}}"
+	const p = "\n- {name: p, inputs: {parameters: [{name: x, enum: [a, b]}]}, container: {image: alpine}}" +
+		"\n- {name: a, inputs: {artifacts: [{name: in, path: /in}]}, container: {image: alpine, command: [run]}}"
 	tests := []struct {
 		name, task, want string
 	}{
@@ -96,11 +118,12 @@ func TestEngineRuntimeErrors(t *testing.T) {
 		{"value not in enum", `{name: t, template: p, depends: gen, arguments: {parameters: [{name: x, value: "{{tasks.gen.outputs.result}}"}]}}`, `is not one of`},
 		{"too many items", `{name: t, template: c, depends: gen, withParam: "{{tasks.gen.outputs.parameters.many}}"}`, "more than the limit of 1000"},
 		{"when is not a condition", `{name: t, template: c, depends: gen, when: "{{tasks.gen.outputs.result}}"}`, "is not true or false"},
+		{"missing artifact", `{name: t, template: a, depends: gen, arguments: {artifacts: [{name: in, from: "{{tasks.gen.outputs.artifacts.none}}"}]}}`, `artifact "in" has no value`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spec := dagSpec("    - {name: gen, template: g}\n    - "+tt.task) + p +
-				"\n- {name: g, outputs: {parameters: [{name: many, valueFrom: {path: /m}}]}, container: {image: x, command: [run]}}"
+				"\n- {name: g, outputs: {parameters: [{name: many, valueFrom: {path: /m}}], artifacts: [{name: none, path: /n, optional: true}]}, container: {image: x, command: [run]}}"
 			s := newSim(t, spec, nil)
 			s.outputs["wf.gen"] = &v1alpha1.Outputs{Result: new("not-json"),
 				Parameters: []v1alpha1.Parameter{{Name: "many", Value: new("[" + strings.Repeat("1,", 1000) + "1]")}}}

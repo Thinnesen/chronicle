@@ -2,6 +2,9 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-19: Artifacts use one S3-compatible repository for each namespace, from a ConfigMap and a Secret with a fixed name. An artifact value is its key, and the archived log is the node field `logKey`, not an artifact. Reason: a team owns its storage and credentials; the fixed name lets the server read only these Secrets; keys reuse the parameter flow of the engine. Argo has more storage drivers and a default repository in the controller ConfigMap; chronicle supports only S3 for now.
+- 2026-10-19: The e2e tests use SeaweedFS, not MinIO, as the S3 store. Reason: MinIO no longer publishes container images. Issue #25 named MinIO.
+
 - 2026-10-18: A retry is the spec field `restart` with a generation, and retried Pods get a generation suffix in their name. Reason: the same mechanism for kubectl, GitOps, the CLI and the UI; the status stays controller-owned; and a new Pod can never be confused with a terminating Pod of the same node. Argo resets the nodes through its own API and reuses Pod names.
 
 - 2026-10-18: The API carries Workflows as JSON objects (`google.protobuf.Struct`), not as protobuf copies of the CRD types. SDK workflow types come from the CRD schema. Reason: one definition of a workflow (the Go types and the CRD). Section 2 said "SDKs generated from the protobuf API"; now only the API clients are.

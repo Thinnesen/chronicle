@@ -34,13 +34,16 @@ func (e *engine) runRetry(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, d
 }
 
 func (e *engine) runAttempt(c call, n v1alpha1.NodeStatus, i, depth int) v1alpha1.NodeStatus {
-	args := map[string]string{}
+	args, artifacts := map[string]string{}, map[string]string{}
 	if n.Inputs != nil {
 		for _, p := range n.Inputs.Parameters {
 			args[p.Name] = *p.Value
 		}
+		for _, a := range n.Inputs.Artifacts {
+			artifacts[a.Name] = a.Key
+		}
 	}
-	a := e.execute(call{template: c.template, nodeName: fmt.Sprintf("%s(%d)", c.nodeName, i), args: args, attempt: true}, depth)
+	a := e.execute(call{template: c.template, nodeName: fmt.Sprintf("%s(%d)", c.nodeName, i), args: args, artifacts: artifacts, attempt: true}, depth)
 	e.addChild(n.ID, a.ID)
 	return a
 }

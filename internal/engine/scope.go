@@ -42,6 +42,9 @@ func (e *engine) inputScope(inputs *v1alpha1.Inputs) expr.Resolver {
 				vals["inputs.parameters."+p.Name] = *p.Value
 			}
 		}
+		for _, a := range inputs.Artifacts {
+			vals["inputs.artifacts."+a.Name] = a.Key
+		}
 	}
 	return func(name string) (string, bool) {
 		v, ok := vals[name]
@@ -51,11 +54,22 @@ func (e *engine) inputScope(inputs *v1alpha1.Inputs) expr.Resolver {
 
 // resolveInputs gives each input parameter of a template its value: the fixed value, the argument or the default.
 // A fixed value or a default can use the workflow placeholders. An argument is used as it is.
-func (e *engine) resolveInputs(t *v1alpha1.Template, args map[string]string) (*v1alpha1.Inputs, error) {
-	if len(t.Inputs.Parameters) == 0 {
+// Each input artifact gets the key of its argument.
+func (e *engine) resolveInputs(t *v1alpha1.Template, c call) (*v1alpha1.Inputs, error) {
+	if len(t.Inputs.Parameters) == 0 && len(t.Inputs.Artifacts) == 0 {
 		return nil, nil
 	}
 	out := &v1alpha1.Inputs{}
+	for _, in := range t.Inputs.Artifacts {
+		key, ok := c.artifacts[in.Name]
+		switch {
+		case ok:
+			out.Artifacts = append(out.Artifacts, v1alpha1.Artifact{Name: in.Name, Path: in.Path, Key: key})
+		case !in.Optional:
+			return nil, fmt.Errorf("artifact %q has no value", in.Name)
+		}
+	}
+	args := c.args
 	for _, in := range t.Inputs.Parameters {
 		v, fromTemplate := in.Value, true
 		if v == nil {
@@ -99,11 +113,27 @@ func resolveArgs(args v1alpha1.Arguments, resolve expr.Resolver) (map[string]str
 	return out, nil
 }
 
+// resolveArtifacts returns the keys of the argument artifacts. An artifact that does not resolve is left out:
+// it can be optional, and resolveInputs reports a missing artifact.
+func resolveArtifacts(args v1alpha1.Arguments, resolve expr.Resolver) map[string]string {
+	out := map[string]string{}
+	for _, a := range args.Artifacts {
+		if key, err := expr.Substitute(a.From, resolve); err == nil && key != "" {
+			out[a.Name] = key
+		}
+	}
+	return out
+}
+
 // nodeOutput returns an output of a node: "outputs.result" or "outputs.parameters.x".
 // For a task group, it returns a JSON list with the output of each item.
 func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
 	if n.Type != v1alpha1.NodeTaskGroup {
 		return outputOf(n.Outputs, key)
+	}
+	if strings.HasPrefix(key, "outputs.artifacts.") {
+		// A list of keys is not one artifact.
+		return "", false
 	}
 	list := []string{}
 	for _, id := range n.Children {
@@ -130,6 +160,14 @@ func outputOf(o *v1alpha1.Outputs, key string) (string, bool) {
 			return "", false
 		}
 		return *o.Result, true
+	}
+	if name, ok := strings.CutPrefix(key, "outputs.artifacts."); ok {
+		for _, a := range o.Artifacts {
+			if a.Name == name && a.Key != "" {
+				return a.Key, true
+			}
+		}
+		return "", false
 	}
 	name, ok := strings.CutPrefix(key, "outputs.parameters.")
 	if !ok {

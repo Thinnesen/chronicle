@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -149,11 +150,16 @@ func (c *checker) checkSteps(groups [][]v1alpha1.WorkflowStep, path *field.Path,
 }
 
 // callOutputs returns the output placeholders of a call. The outputs of a templateRef are not known yet.
+// A fan-out has no artifact outputs, because a list of artifacts is not one artifact.
 func (c *checker) callOutputs(prefix string, call v1alpha1.Call) []string {
 	if call.TemplateRef != nil {
 		return []string{prefix + ".outputs.*"}
 	}
-	return c.outputNames(prefix, call.Template)
+	names := c.outputNames(prefix, call.Template)
+	if len(call.WithItems) > 0 || call.WithParam != "" {
+		names = slices.DeleteFunc(names, isArtifact)
+	}
+	return names
 }
 
 // outputNames returns the placeholder names for the outputs of a node that runs a template.
@@ -165,6 +171,9 @@ func (c *checker) outputNames(prefix, template string) []string {
 	var names []string
 	for _, p := range t.Outputs.Parameters {
 		names = append(names, prefix+".outputs.parameters."+p.Name)
+	}
+	for _, a := range t.Outputs.Artifacts {
+		names = append(names, prefix+".outputs.artifacts."+a.Name)
 	}
 	// Only the executor can capture the standard output. It runs when the template has a command.
 	if t.Container != nil && len(t.Container.Command) > 0 || t.Script != nil {

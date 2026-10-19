@@ -340,3 +340,36 @@ func TestSpecWorkflowArguments(t *testing.T) {
 	runCases(t, []specCase{{name: "template needs no value", spec: spec}}, false)
 	runCases(t, []specCase{{name: "workflow needs a value", spec: spec, want: []string{`arguments.parameters[0].value: Required value`}}}, true)
 }
+
+func TestSpecArtifacts(t *testing.T) {
+	const tmpl = "\n- {name: make, outputs: {artifacts: [{name: data, path: /out}]}, container: {image: x, command: [run]}}" +
+		"\n- {name: use, inputs: {artifacts: [{name: data, path: /in}]}, script: {image: x, source: cat /in}}"
+	dag := func(task string) string {
+		return "entrypoint: m\ntemplates:\n- {name: m, dag: {tasks: [{name: a, template: make}, {name: b, template: use, depends: a, " + task + "}]}}" + tmpl
+	}
+	runCases(t, []specCase{
+		{name: "pass an artifact", spec: dag(`arguments: {artifacts: [{name: data, from: "{{tasks.a.outputs.artifacts.data}}"}]}`)},
+		{name: "missing argument", spec: dag(""), want: []string{`artifact "data" of template "use"`}},
+		{name: "from is text", spec: dag(`arguments: {artifacts: [{name: data, from: "x{{tasks.a.outputs.artifacts.data}}"}]}`), want: []string{"from must be one artifact placeholder"}},
+		{name: "unknown artifact", spec: dag(`arguments: {artifacts: [{name: data, from: "{{tasks.a.outputs.artifacts.nope}}"}]}`), want: []string{`unknown placeholder "tasks.a.outputs.artifacts.nope"`}},
+		{
+			name: "artifact placeholder in text",
+			spec: dag(`arguments: {artifacts: [{name: data, from: "{{tasks.a.outputs.artifacts.data}}"}]}`) +
+				"\n- {name: echo, container: {image: x, command: [echo, '{{workflow.name}}'], args: ['{{inputs.artifacts.data}}']}, inputs: {artifacts: [{name: data, path: /d}]}}",
+			want: []string{"an artifact placeholder can be used only in arguments.artifacts[].from"},
+		},
+		{
+			name: "fan-out has no artifact outputs",
+			spec: "entrypoint: m\ntemplates:\n- {name: m, dag: {tasks: [{name: a, template: make, withItems: [x]}, {name: b, template: use, depends: a, arguments: {artifacts: [{name: data, from: '{{tasks.a.outputs.artifacts.data}}'}]}}]}}" + tmpl,
+			want: []string{`unknown placeholder "tasks.a.outputs.artifacts.data"`},
+		},
+		{
+			name: "templates that cannot use files",
+			spec: "entrypoint: m\ntemplates:\n- {name: m, outputs: {artifacts: [{name: o, path: /o}]}, dag: {tasks: [{name: a, template: c}]}}" +
+				"\n- {name: c, inputs: {artifacts: [{name: i, path: /i, optional: true}]}, outputs: {artifacts: [{name: o}]}, container: {image: x}}",
+			want: []string{"only a container or script template can save an artifact", "needs a command to download", "needs a command to save"},
+			n:    3,
+		},
+		{name: "entrypoint needs an artifact", spec: "entrypoint: use\ntemplates:" + tmpl, want: []string{"a workflow cannot give artifacts"}},
+	}, true)
+}

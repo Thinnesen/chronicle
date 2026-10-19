@@ -119,6 +119,16 @@ The controller applies the actions. This makes the engine testable with table te
 - `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on (#25).
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
+### 4.2 Artifacts and the log archive
+
+- Each namespace can have one S3-compatible artifact repository: the ConfigMap `chronicle-artifact-repository` (endpoint, bucket, region, insecure, keyPrefix, archiveLogs) and the Secret with the same name (accessKey, secretKey). A team owns the repository of its namespaces. Guide: `docs/artifacts.md`.
+- A container or script template with a command declares `outputs.artifacts` (name, path, optional) and `inputs.artifacts` (name, path). A caller gives an artifact with `arguments.artifacts[].from`, which is exactly one placeholder such as `{{tasks.make.outputs.artifacts.data}}`. The webhook rejects an artifact placeholder in any other field.
+- The value of an artifact is its key. The engine passes keys like parameters. A fan-out has no artifact outputs.
+- The executor downloads the inputs before the main command and saves the outputs after it, as tar.gz archives of a file or a directory. It skips symbolic links and refuses archive entries outside the path. Keys: `<keyPrefix>/<namespace>/<workflow UID>/<Pod name>/<name>.tgz`. The Pod annotation `chronicle.thinnesen.com/artifact-prefix` keeps the prefix, so the termination message carries only the names.
+- With `archiveLogs: "true"`, the executor also saves the log of the main command (up to 32 MiB) as `main.log`, and the node gets `logKey`. The log API sends the archived log when the Pod is gone.
+- The controller reads only the ConfigMap. The Pod gets the credentials from the Secret through `secretKeyRef`, and the executor removes them from the environment of the main command. Workflow code in the namespace can still read them: the repository credentials belong to the namespace, as in Argo.
+- The server reads the ConfigMap and the Secret with that one name (RBAC `resourceNames`), and only after an access check as the caller: `get` on the Workflow for a download (`GET /artifacts/{namespace}/{workflow}/{node}/{name}`), and `get pods/log` for an archived log.
+
 ## 5. Re-run, retry and history
 
 - Retry: start the failed nodes again. Keep the succeeded nodes and their outputs.
@@ -166,6 +176,7 @@ Security is the first priority. The main risks and the controls:
 | Session theft or CSRF | Server-side sessions, `HttpOnly`, `Secure`, `SameSite=Lax` cookies, CSRF tokens, short session life, logout revokes the session. |
 | Token leaks | Tokens never go to the browser or to logs. Secrets come from Kubernetes Secrets. |
 | Supply chain | Pinned versions and lockfiles, SHA-pinned Actions, digest-pinned images, signed releases, SBOM, scans in CI. |
+| A user reads artifacts of another team | One repository per namespace. Downloads and archived logs need an access check as the caller. The server can read only the Secret named `chronicle-artifact-repository`. |
 | Injection through parameters | Parameters are never passed to a shell by the engine. Script templates get parameters as environment variables or files, not by string concatenation. |
 
 ## 7. Durable task workers
