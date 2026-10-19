@@ -31,6 +31,15 @@
   color: var(--ink-muted);
 }
 
+.facts a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.facts a:hover {
+  text-decoration: underline;
+}
+
 .facts code {
   font-size: var(--text-xs);
 }

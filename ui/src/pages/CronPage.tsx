@@ -9,7 +9,7 @@ import { useToast } from "../components/Toast";
 import { YamlView } from "../components/YamlView";
 import { readable, relative } from "../lib/cron";
 import { actionError } from "../lib/errors";
-import { clock, toDate } from "../lib/time";
+import { ago, clock, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { cronRoute } from "../router";
 
@@ -89,7 +89,7 @@ export function CronPage() {
             {last && (
               <>
                 <dt>Last run</dt>
-                <dd>{relative(last, now)}</dd>
+                <dd>{ago(last, new Date(now))}</dd>
               </>
             )}
             {c.template && (
@@ -112,6 +112,7 @@ export function CronPage() {
                 <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: w.name }}>
                   {w.name}
                 </Link>
+                <RunTime started={toDate(w.startedAt)} finished={toDate(w.finishedAt)} now={now} />
               </li>
             ))}
           </ul>
@@ -119,5 +120,16 @@ export function CronPage() {
         <YamlView value={data.cronWorkflow} label={`The YAML of ${c.name}`} />
       </div>
     </section>
+  );
+}
+
+// RunTime shows when a run started and how long it took.
+function RunTime({ started, finished, now }: { started?: Date; finished?: Date; now: number }) {
+  if (!started) return null;
+  return (
+    <span className="recent-meta">
+      {ago(started, new Date(now))}
+      {finished && `, ${duration(finished.getTime() - started.getTime())}`}
+    </span>
   );
 }

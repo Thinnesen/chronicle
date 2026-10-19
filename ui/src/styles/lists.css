@@ -146,6 +146,14 @@
   text-decoration: underline;
 }
 
+.recent-meta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 48rem) {
   .item-list > li {
     grid-template-columns: minmax(0, 1fr);

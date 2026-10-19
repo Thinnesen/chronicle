@@ -3,8 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 import { tasks } from "../api/client";
 import { Lamp } from "../components/Lamp";
-import { relative } from "../lib/cron";
-import { toDate } from "../lib/time";
+import { ago, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { tasksRoute } from "../router";
 
@@ -64,7 +63,10 @@ export function TasksPage() {
       {isPending && <p className="quiet">Loading the tasks…</p>}
       {error && <p role="alert">Could not load the tasks: {error.message}</p>}
       {data?.tasks.length === 0 && (
-        <p className="quiet">{state ? "No task matches the filter." : "No tasks yet. A task template sends work to the workers of an SDK."}</p>
+        <div className="empty card">
+          <p>{state ? "No task matches the filter." : "No tasks yet."}</p>
+          <p className="quiet">{state ? "Choose All to see every task." : "A task template sends work to the workers of an SDK. See docs/task-workers.md."}</p>
+        </div>
       )}
       {data && data.tasks.length > 0 && (
         <ul className="item-list">
@@ -86,7 +88,7 @@ export function TasksPage() {
                 </p>
                 <span className="item-side">
                   {t.state}
-                  {created && `, ${relative(created, now)}`}
+                  {created && `, ${ago(created, new Date(now))}`}
                 </span>
               </li>
             );
