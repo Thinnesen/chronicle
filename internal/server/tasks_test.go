@@ -1,0 +1,102 @@
+package server
+
+import (
+	"context"
+	"net/http/httptest"
+	"testing"
+
+	"connectrpc.com/connect"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
+	"github.com/Thinnesen/chronicle/internal/archive"
+	"github.com/Thinnesen/chronicle/internal/auth"
+)
+
+// fakeTasks has one pending task and records the calls.
+type fakeTasks struct {
+	pending   *archive.Task
+	completed string
+}
+
+func (f *fakeTasks) Poll(_ context.Context, namespace, _ string, names []string, _ string) (*archive.Task, string, error) {
+	t := f.pending
+	f.pending = nil
+	return t, "lease-1", nil
+}
+
+func (f *fakeTasks) Heartbeat(_ context.Context, _, _, lease string) (bool, error) {
+	if lease != "lease-1" {
+		return false, archive.ErrLeaseLost
+	}
+	return false, nil
+}
+
+func (f *fakeTasks) Complete(_ context.Context, _, id, lease, output, _ string, _ bool) error {
+	if lease != "lease-1" {
+		return archive.ErrLeaseLost
+	}
+	f.completed = id + " " + output
+	return nil
+}
+
+func TestTaskService(t *testing.T) {
+	setup(t)
+	ctx := context.Background()
+	for _, o := range []client.Object{
+		&rbacv1.Role{Name: "task-worker", Namespace: "team-a", Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{"chronicle.thinnesen.com"}, Resources: []string{"workflows/tasks"}, Verbs: []string{"update"},
+		}}},
+		&rbacv1.RoleBinding{Name: "worker", Namespace: "team-a",
+			RoleRef:  rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "Role", Name: "task-worker"},
+			Subjects: []rbacv1.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: "worker"}}},
+	} {
+		if err := admin.Create(ctx, o); client.IgnoreAlreadyExists(err) != nil {
+			t.Fatal(err)
+		}
+	}
+	store := &fakeTasks{pending: &archive.Task{ID: "u/n1", Name: "greet", Input: `{"who":"x"}`, IdempotencyKey: "u/wf.a"}}
+	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}, Tasks: store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	c := chroniclev1connect.NewTaskServiceClient(srv.Client(), srv.URL)
+	as := func(user string, req connect.AnyRequest) { req.Header().Set("X-Test-User", user) }
+
+	poll := connect.NewRequest(&chroniclev1.PollTaskRequest{Namespace: "team-a", Names: []string{"greet"}, Worker: "w1"})
+	as("worker", poll)
+	got, err := c.PollTask(ctx, poll)
+	if err != nil || got.Msg.Task.GetLease() != "lease-1" || got.Msg.Task.InputJson != `{"who":"x"}` || got.Msg.Task.IdempotencyKey != "u/wf.a" {
+		t.Fatalf("poll: %v %+v", err, got)
+	}
+	beat := connect.NewRequest(&chroniclev1.HeartbeatTaskRequest{Namespace: "team-a", Id: "u/n1", Lease: "lease-1"})
+	as("worker", beat)
+	if _, err := c.HeartbeatTask(ctx, beat); err != nil {
+		t.Fatal(err)
+	}
+	stale := connect.NewRequest(&chroniclev1.CompleteTaskRequest{Namespace: "team-a", Id: "u/n1", Lease: "old", OutputJson: `{}`})
+	as("worker", stale)
+	if _, err := c.CompleteTask(ctx, stale); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("a stale lease: %v", err)
+	}
+	done := connect.NewRequest(&chroniclev1.CompleteTaskRequest{Namespace: "team-a", Id: "u/n1", Lease: "lease-1", OutputJson: `{"ok":true}`})
+	as("worker", done)
+	if _, err := c.CompleteTask(ctx, done); err != nil || store.completed != `u/n1 {"ok":true}` {
+		t.Fatalf("complete: %v %q", err, store.completed)
+	}
+
+	denied := connect.NewRequest(&chroniclev1.PollTaskRequest{Namespace: "team-a", Names: []string{"greet"}})
+	as("bob", denied)
+	if _, err := c.PollTask(ctx, denied); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("bob: %v", err)
+	}
+	empty := connect.NewRequest(&chroniclev1.PollTaskRequest{Namespace: "team-a"})
+	as("worker", empty)
+	if _, err := c.PollTask(ctx, empty); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("no names: %v", err)
+	}
+}

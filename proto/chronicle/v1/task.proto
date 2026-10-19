@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package chronicle.v1;
+
+option go_package = "github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1";
+
+// TaskService gives the tasks of task templates to task workers. A worker needs "update" on "workflows/tasks"
+// in the namespace. Delivery is at-least-once: use the idempotency key to detect a repeated task.
+service TaskService {
+  // PollTask waits up to 30 seconds for a task. The answer has no task when there is none.
+  rpc PollTask(PollTaskRequest) returns (PollTaskResponse);
+  // HeartbeatTask tells that the worker still runs the task. The answer tells when the task was cancelled.
+  rpc HeartbeatTask(HeartbeatTaskRequest) returns (HeartbeatTaskResponse);
+  // CompleteTask sends the result or the error of a task.
+  rpc CompleteTask(CompleteTaskRequest) returns (CompleteTaskResponse);
+}
+
+message PollTaskRequest {
+  string namespace = 1;
+  // queue is the queue to poll. The default is "default".
+  string queue = 2;
+  // names are the task types that the worker can run.
+  repeated string names = 3;
+  // worker identifies the worker in the task status, for example the host name.
+  string worker = 4;
+}
+
+message Task {
+  string id = 1;
+  string name = 2;
+  // input_json is a JSON object with the input parameters of the node.
+  string input_json = 3;
+  // idempotency_key is the same for all attempts of a node.
+  string idempotency_key = 4;
+  string workflow = 5;
+  string node_name = 6;
+  // lease is the secret of this delivery. Give it with each heartbeat and with the result.
+  string lease = 7;
+}
+
+message PollTaskResponse {
+  Task task = 1;
+}
+
+message HeartbeatTaskRequest {
+  string namespace = 1;
+  string id = 2;
+  string lease = 3;
+}
+
+message HeartbeatTaskResponse {
+  // cancelled is true when the workflow does not need the result any more. Stop the work.
+  bool cancelled = 1;
+}
+
+message CompleteTaskRequest {
+  string namespace = 1;
+  string id = 2;
+  string lease = 3;
+  // output_json is the JSON result. It is not used when error is set.
+  string output_json = 4;
+  // error fails the task.
+  string error = 5;
+  // retryable makes the error a failure that the retry strategy of the template retries.
+  bool retryable = 6;
+}
+
+message CompleteTaskResponse {}

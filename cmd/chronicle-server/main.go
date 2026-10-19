@@ -82,6 +82,7 @@ func main() {
 		}
 		defer store.Close()
 		apiOpts.Archive = store
+		apiOpts.Tasks = store
 	}
 	api, err := server.NewHandler(apiOpts)
 	if err != nil {

@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,6 +24,8 @@ type Options struct {
 	Authenticators []auth.Authenticator
 	// Archive holds finished runs whose Workflow was deleted, or is nil.
 	Archive ArchiveReader
+	// Tasks is the task queue of the task workers, or nil without the archive database.
+	Tasks TaskStore
 	// Artifacts opens the artifact repositories. The default reads the ConfigMap and the Secret of each namespace.
 	Artifacts ArtifactStores
 }
@@ -48,6 +51,10 @@ func NewHandler(opts Options) (http.Handler, error) {
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs, stores: opts.Artifacts}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
+	if opts.Tasks != nil {
+		path, h = chroniclev1connect.NewTaskServiceHandler(&taskService{workflows: workflows, store: opts.Tasks, allowed: map[string]time.Time{}}, limit)
+		mux.Handle(path, authenticate(opts.Authenticators, h))
+	}
 	mux.Handle("GET "+ArtifactPath+"{namespace}/{workflow}/{node}/{name}",
 		authenticate(opts.Authenticators, &artifactHandler{workflows: workflows, stores: opts.Artifacts}))
 	path, h = chroniclev1connect.NewTemplateServiceHandler(&templateService{clients: clients}, limit)

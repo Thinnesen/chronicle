@@ -61,4 +61,16 @@ rules:
   resources: [clusterroles]
   resourceNames: [chronicle-viewer, chronicle-editor, chronicle-admin]
   verbs: [bind]
+---
+# chronicle-task-worker lets the service account of a task worker take tasks in a namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chronicle-task-worker
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+rules:
+- apiGroups: [chronicle.thinnesen.com]
+  resources: [workflows/tasks]
+  verbs: [update]
 {{- end }}
