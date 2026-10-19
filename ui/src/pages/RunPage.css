@@ -174,10 +174,17 @@
   overflow: hidden;
 }
 
-.run-view > .yaml {
-  max-height: 70vh;
+.spec-view .yaml {
+  max-height: none;
   border: 0;
   border-radius: 0;
+}
+
+.spec-title {
+  padding: var(--space-3) var(--space-4) 0;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  border-top: 1px solid var(--rule);
 }
 
 .run-graph-placeholder {

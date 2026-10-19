@@ -128,7 +128,7 @@ export function RunPage() {
             </Suspense>
           )}
           {tab === "timeline" && <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />}
-          {tab === "spec" && <YamlView value={wf.spec} label="The spec of the run" />}
+          {tab === "spec" && <SpecView wf={wf} />}
         </div>
         {node && <NodeDrawer wf={wf} node={node} nodes={nodes} namespace={namespace} workflow={name} onSelect={select} onClose={() => select(undefined)} />}
       </div>
@@ -152,5 +152,21 @@ function Parameters({ wf }: { wf: Workflow }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+// SpecView shows the run as its author wrote it and, for a run of a template, the spec that the run uses.
+function SpecView({ wf }: { wf: Workflow }) {
+  const stored = wf.spec.workflowTemplateRef ? wf.status?.storedSpec : undefined;
+  return (
+    <div className="spec-view">
+      <YamlView value={{ metadata: wf.metadata, spec: wf.spec }} label="The run" />
+      {stored && (
+        <>
+          <h2 className="spec-title">Spec from the template {wf.spec.workflowTemplateRef?.name}</h2>
+          <YamlView value={stored} label="The spec that the run uses" />
+        </>
+      )}
+    </div>
   );
 }
