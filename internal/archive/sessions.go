@@ -56,20 +56,30 @@ func (s *Sessions) Create(id auth.Identity) (string, *auth.Session, error) {
 	return sid, &auth.Session{Identity: id, CSRF: csrf, ExpiresAt: expires}, nil
 }
 
+// touchEvery is the resolution of the last use of a session. Get writes it at most this often, not on each request.
+const touchEvery = time.Minute
+
 // Get implements auth.Store. It marks a live session as used.
 func (s *Sessions) Get(sessionID string) (*auth.Session, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), sessionTimeout)
 	defer cancel()
 	now := s.now()
+	key := auth.SessionKey(sessionID)
 	var identity []byte
+	var lastUsed time.Time
 	sess := &auth.Session{}
-	err := s.store.pool.QueryRow(ctx, `UPDATE sessions SET last_used = $2 WHERE key = $1 AND expires_at > $2 AND last_used > $3
-RETURNING identity, csrf, expires_at`, auth.SessionKey(sessionID), now, now.Add(-s.idle)).Scan(&identity, &sess.CSRF, &sess.ExpiresAt)
+	err := s.store.pool.QueryRow(ctx, `SELECT identity, csrf, expires_at, last_used FROM sessions WHERE key = $1 AND expires_at > $2 AND last_used > $3`,
+		key, now, now.Add(-s.idle)).Scan(&identity, &sess.CSRF, &sess.ExpiresAt, &lastUsed)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, auth.ErrNoSession
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read the session: %w", err)
+	}
+	if now.Sub(lastUsed) >= touchEvery {
+		if _, err := s.store.pool.Exec(ctx, `UPDATE sessions SET last_used = $2 WHERE key = $1`, key, now); err != nil {
+			return nil, fmt.Errorf("mark the session as used: %w", err)
+		}
 	}
 	if err := json.Unmarshal(identity, &sess.Identity); err != nil {
 		return nil, fmt.Errorf("decode the identity: %w", err)

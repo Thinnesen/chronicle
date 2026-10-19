@@ -30,6 +30,16 @@ func TestSessions(t *testing.T) {
 		t.Fatalf("the other replica: %v %+v", err, got)
 	}
 
+	// A use within a minute does not write the row.
+	now = now.Add(10 * time.Second)
+	if _, err := a.Get(sid); err != nil {
+		t.Fatal(err)
+	}
+	var used time.Time
+	if err := s.pool.QueryRow(t.Context(), `SELECT last_used FROM sessions`).Scan(&used); err != nil || !used.Equal(now.Add(-10*time.Second)) {
+		t.Fatalf("last_used = %v, %v", used, err)
+	}
+
 	// Each use moves the idle timeout.
 	now = now.Add(50 * time.Minute)
 	if _, err := a.Get(sid); err != nil {
