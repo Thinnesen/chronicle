@@ -22,7 +22,7 @@ import (
 
 const argoAPIVersion = "argoproj.io/v1alpha1"
 
-var kinds = []string{"Workflow", "WorkflowTemplate", "ClusterWorkflowTemplate", "CronWorkflow"}
+var kinds = []string{kindWorkflow, "WorkflowTemplate", "ClusterWorkflowTemplate", kindCron}
 
 // Result is one converted document.
 type Result struct {
@@ -62,7 +62,7 @@ func Convert(data []byte) ([]Result, error) {
 
 func name(doc obj) string {
 	m := asObj(doc["metadata"])
-	if n, ok := m["name"].(string); ok {
+	if n, ok := m[fName].(string); ok {
 		return n
 	}
 	n, _ := m["generateName"].(string)
@@ -82,10 +82,10 @@ func convertDocument(doc obj) (Result, error) {
 	}
 	var err error
 	spec := asObj(doc["spec"])
-	if kind == "CronWorkflow" {
+	if kind == kindCron {
 		out["spec"], err = c.cronSpec(spec, "spec")
 	} else {
-		out["spec"], err = c.spec(spec, "spec", kind == "Workflow")
+		out["spec"], err = c.spec(spec, "spec", kind == kindWorkflow)
 	}
 	if err != nil {
 		return Result{}, err
@@ -105,7 +105,7 @@ func (c *converter) metadata(in obj) obj {
 	out := obj{}
 	for k, v := range in {
 		switch k {
-		case "name", "generateName", "namespace", "labels", "annotations":
+		case fName, "generateName", "namespace", "labels", "annotations":
 			out[k] = v
 		case "uid", "resourceVersion", "creationTimestamp", "generation", "managedFields", "selfLink":
 		default:
@@ -132,7 +132,7 @@ func check(kind string, out obj) error {
 	}
 	var errs field.ErrorList
 	switch kind {
-	case "Workflow":
+	case kindWorkflow:
 		var wf v1alpha1.Workflow
 		if err := strict(&wf); err != nil {
 			return err
@@ -146,7 +146,7 @@ func check(kind string, out obj) error {
 			return err
 		}
 		errs = validate.Spec(&t.Spec, false)
-	case "CronWorkflow":
+	case kindCron:
 		var cw v1alpha1.CronWorkflow
 		if err := strict(&cw); err != nil {
 			return err

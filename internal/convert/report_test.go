@@ -3,7 +3,6 @@ package convert
 import (
 	"os"
 	"path/filepath"
-	"sort"
 	"testing"
 )
 
@@ -14,8 +13,8 @@ func TestArgoExamplesReport(t *testing.T) {
 	if dir == "" {
 		t.Skip("set ARGO_EXAMPLES to the examples directory of an Argo Workflows clone")
 	}
+	// Glob returns the files in lexical order.
 	files, _ := filepath.Glob(filepath.Join(dir, "*.yaml"))
-	sort.Strings(files)
 	clean, warned, failed := 0, 0, 0
 	for _, f := range files {
 		data, err := os.ReadFile(f)

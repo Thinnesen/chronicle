@@ -9,7 +9,7 @@ import (
 
 // template converts one Argo template.
 func (c *converter) template(in obj, path string) (obj, error) {
-	out := c.pick(in, path, []string{"name", "dag", "steps"},
+	out := c.pick(in, path, []string{fName, "dag", "steps"},
 		"inputs", "outputs", "container", "script", "suspend", "resource", "retryStrategy", "timeout", "activeDeadlineSeconds")
 	var err error
 	if v, ok := in["inputs"]; ok {
@@ -102,7 +102,7 @@ func (c *converter) script(in obj, path string) (obj, error) {
 		name := envName(m[1])
 		if !seen[name] {
 			seen[name] = true
-			env = append(env, obj{"name": name, "value": "{{" + m[1] + "}}"})
+			env = append(env, obj{fName: name, fValue: "{{" + m[1] + "}}"})
 		}
 	}
 	out["source"] = placeholder.ReplaceAllStringFunc(source, func(s string) string {
@@ -202,7 +202,7 @@ func (c *converter) inputs(in obj, path string) obj {
 func (c *converter) outputs(in obj, path string) obj {
 	out := c.pick(in, path, nil, "parameters", "artifacts", "result")
 	if ps, ok := in["parameters"]; ok {
-		list := []any{}
+		list := make([]any, 0, len(asList(ps)))
 		for i, p := range asList(ps) {
 			list = append(list, c.outputParameter(asObj(p), index(join(path, "parameters"), i)))
 		}
@@ -216,7 +216,7 @@ func (c *converter) outputs(in obj, path string) obj {
 
 // outputParameter converts valueFrom. An Argo suspend output with valueFrom.supplied gets its value from the approval.
 func (c *converter) outputParameter(in obj, path string) obj {
-	out := c.pick(in, path, []string{"name", "value", "default", "description", "enum"}, "valueFrom", "globalName")
+	out := c.pick(in, path, []string{fName, fValue, "default", "description", "enum"}, "valueFrom", "globalName")
 	if _, ok := in["globalName"]; ok {
 		c.warn(join(path, "globalName"), "chronicle has no global outputs: the field is dropped")
 	}
@@ -235,18 +235,18 @@ func (c *converter) outputParameter(in obj, path string) obj {
 }
 
 func (c *converter) parameters(list []any, path string) []any {
-	out := []any{}
+	out := make([]any, 0, len(list))
 	for i, p := range list {
-		out = append(out, c.pick(asObj(p), index(path, i), []string{"name", "value", "default", "enum", "description"}))
+		out = append(out, c.pick(asObj(p), index(path, i), []string{fName, fValue, "default", "enum", "description"}))
 	}
 	return out
 }
 
 // artifacts keeps the name and the given fields. The data always comes from the repository of the namespace.
 func (c *converter) artifacts(list []any, path string, fields ...string) []any {
-	out := []any{}
+	out := make([]any, 0, len(list))
 	for i, a := range list {
-		out = append(out, c.pick(asObj(a), index(path, i), append([]string{"name"}, fields...), "archive"))
+		out = append(out, c.pick(asObj(a), index(path, i), append([]string{fName}, fields...), "archive"))
 	}
 	return out
 }

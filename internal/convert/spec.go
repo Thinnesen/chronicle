@@ -56,10 +56,10 @@ func (c *converter) dropUnknownArgs(templates []any, path string) {
 	inputs := map[string][]string{}
 	for _, t := range templates {
 		tm := asObj(t)
-		name, _ := tm["name"].(string)
+		name, _ := tm[fName].(string)
 		inputs[name] = []string{}
 		for _, p := range asList(asObj(tm["inputs"])["parameters"]) {
-			n, _ := asObj(p)["name"].(string)
+			n, _ := asObj(p)[fName].(string)
 			inputs[name] = append(inputs[name], n)
 		}
 	}
@@ -71,7 +71,7 @@ func (c *converter) dropUnknownArgs(templates []any, path string) {
 		}
 		kept := []any{}
 		for _, p := range asList(args["parameters"]) {
-			n, _ := asObj(p)["name"].(string)
+			n, _ := asObj(p)[fName].(string)
 			if slices.Contains(declared, n) {
 				kept = append(kept, p)
 			} else {
@@ -115,7 +115,7 @@ func (c *converter) cronSpec(in obj, path string) (obj, error) {
 	return out, nil
 }
 
-var callFields = []string{"name", "template", "templateRef", "when", "withItems", "withParam"}
+var callFields = []string{fName, "template", "templateRef", "when", "withItems", "withParam"}
 
 // call converts the parts that a DAG task and a step share.
 func (c *converter) call(in obj, path string, extra ...string) (obj, error) {

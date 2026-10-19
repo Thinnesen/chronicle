@@ -11,6 +11,14 @@ import (
 
 type obj = map[string]any
 
+// Field names and kinds that the converter uses often.
+const (
+	fName        = "name"
+	fValue       = "value"
+	kindCron     = "CronWorkflow"
+	kindWorkflow = "Workflow"
+)
+
 // converter collects the warnings of one document.
 type converter struct {
 	warnings []Warning
