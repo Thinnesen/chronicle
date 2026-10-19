@@ -9,6 +9,9 @@
 !**/*.go
 **/*_test.go
 
+# Re-include the files that Go embeds
+!internal/archive/migrations/*.sql
+
 # Re-include Go module files
 !go.mod
 !go.sum
