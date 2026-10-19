@@ -5,8 +5,9 @@ import { defineConfig } from "vitest/config";
 const api = process.env.CHRONICLE_SERVER ?? "http://localhost:8080";
 
 // The same Content Security Policy as the Go server (internal/server/static.go), so that tests find violations.
+// The Go server puts a random nonce in place of __CSP_NONCE__ on each page; the preview keeps the placeholder.
 const csp =
-  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; " +
+  "default-src 'self'; script-src 'self'; style-src 'self' 'nonce-__CSP_NONCE__'; img-src 'self' data:; font-src 'self'; " +
   "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'";
 
 export default defineConfig({

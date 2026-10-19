@@ -10,7 +10,7 @@ import (
 
 func TestUIHandler(t *testing.T) {
 	files := fstest.MapFS{
-		"index.html":      {Data: []byte("<html>app</html>")},
+		"index.html":      {Data: []byte(`<html><meta name="csp-nonce" content="__CSP_NONCE__">app</html>`)},
 		"assets/app-1.js": {Data: []byte("js")},
 		"favicon.svg":     {Data: []byte("<svg/>")},
 	}
@@ -33,9 +33,30 @@ func TestUIHandler(t *testing.T) {
 			t.Errorf("%s: no CSP", tt.path)
 		}
 	}
+	checkNonce(t, h)
 	rec := httptest.NewRecorder()
 	UIHandler(nil).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("no UI: %d", rec.Code)
+	}
+}
+
+// checkNonce checks that each page has a new style nonce, and that the page and the CSP have the same one.
+func checkNonce(t *testing.T, h http.Handler) {
+	t.Helper()
+	seen := map[string]bool{}
+	for range 2 {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+		body := rec.Body.String()
+		start := strings.Index(body, `content="`) + len(`content="`)
+		nonce := body[start : start+strings.Index(body[start:], `"`)]
+		if len(nonce) < 16 || nonce == "__CSP_NONCE__" || seen[nonce] {
+			t.Fatalf("nonce %q in %q", nonce, body)
+		}
+		seen[nonce] = true
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "style-src 'self' 'nonce-"+nonce+"'") {
+			t.Errorf("CSP %q has no nonce %q", csp, nonce)
+		}
 	}
 }

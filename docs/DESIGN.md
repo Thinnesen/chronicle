@@ -227,6 +227,7 @@ The project follows these standards:
 - pnpm: `minimumReleaseAge`, no install scripts unless allowed by name.
 - Non-root Pods, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. The chronicle containers (controller, server, executor init and resource steps) have a read-only root file system. The container of a user step keeps a writable root file system, because many images write to it.
 - Least-privilege RBAC. The server never stores OIDC tokens in the browser. Secrets come from Kubernetes Secrets.
+- The UI has a strict Content Security Policy: scripts, styles, fonts and images come only from the server. No inline script. An injected style (for example the scroll lock of a dialog) needs the nonce that the server puts into each page. Playwright fails a test when the browser reports a violation.
 - CI: lint, unit tests, envtest, e2e on Kind (with Dex for OIDC), Playwright, govulncheck, `pnpm audit`, `cargo audit`, Trivy, actionlint.
 
 ## 10. Later (not in the first version)

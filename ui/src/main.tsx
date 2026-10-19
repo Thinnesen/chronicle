@@ -8,6 +8,7 @@ import "./styles/lists.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
+import { setNonce } from "get-nonce";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -16,6 +17,9 @@ import { newRouter } from "./router";
 import { applyTheme, readTheme } from "./theme";
 
 applyTheme(readTheme());
+// The server puts a new nonce into each page and into its CSP. The styles that dialogs inject carry it.
+const nonce = document.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]')?.content;
+if (nonce) setNonce(nonce);
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } } });
 const router = newRouter(queryClient);
