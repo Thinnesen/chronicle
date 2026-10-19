@@ -55,6 +55,7 @@ for (const scheme of ["light", "dark"] as const) {
     await mockAPI(page);
     await page.goto("/ns/team-a/templates/deploy-api");
     await expect(page.getByRole("button", { name: "Start the run" })).toBeVisible();
+    await expect(page.locator(".run-graph").getByText("roll-out")).toBeVisible();
     await page.screenshot({ path: `test-results/screens/template-${info.project.name}-${scheme}.png`, fullPage: true });
     await page.goto("/ns/team-a/cron/etl-nightly");
     await expect(page.getByText("Recent runs")).toBeVisible();
