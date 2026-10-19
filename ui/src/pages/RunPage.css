@@ -64,6 +64,40 @@
   text-decoration: underline;
 }
 
+.run-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-params li {
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+
+.run-param-name {
+  padding: 2px var(--space-2);
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  border-right: 1px solid var(--rule);
+}
+
+.run-param-value {
+  overflow: hidden;
+  padding: 2px var(--space-2);
+  background: var(--surface);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .run-message,
 .run-notice {
   margin: var(--space-4) 0 0;

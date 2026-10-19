@@ -12,7 +12,7 @@ import { Timeline } from "../components/Timeline";
 import { YamlView } from "../components/YamlView";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import type { Workflow } from "../lib/workflow";
+import { runParameters, type Workflow } from "../lib/workflow";
 import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
 
@@ -96,6 +96,7 @@ export function RunPage() {
             </dd>
           </div>
         </dl>
+        <Parameters wf={wf} />
         {s.message && (
           <p className="run-message" data-phase={phase}>
             {s.message}
@@ -131,5 +132,23 @@ export function RunPage() {
       </div>
       {!node && tab !== "spec" && <p className="run-hint quiet">Select a step to see its details and logs.</p>}
     </section>
+  );
+}
+
+// Parameters shows the parameters of a run as name and value.
+function Parameters({ wf }: { wf: Workflow }) {
+  const params = runParameters(wf);
+  if (params.length === 0) return null;
+  return (
+    <ul className="run-params" aria-label="Parameters">
+      {params.map((p) => (
+        <li key={p.name}>
+          <span className="run-param-name">{p.name}</span>
+          <span className="run-param-value" title={p.value}>
+            {p.value}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

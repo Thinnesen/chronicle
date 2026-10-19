@@ -6,6 +6,7 @@ test("shows the run as a graph and a timeline, and selects a node in both", asyn
   await mockAPI(page);
   await page.goto("/ns/team-a/runs/etl-nightly-8k2pq");
   await expect(page.getByRole("heading", { name: "etl-nightly-8k2pq" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Parameters" })).toContainText("day2026-10-17");
   const graph = page.locator(".run-graph");
   await expect(graph.getByText("fetch", { exact: true })).toBeVisible();
   await expect(graph.locator(".track.is-lit")).toHaveCount(2);
