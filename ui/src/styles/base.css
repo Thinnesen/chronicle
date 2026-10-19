@@ -233,6 +233,12 @@ button {
   white-space: nowrap;
 }
 
+.badge-caution {
+  color: var(--caution-ink);
+  background: var(--caution-soft);
+  border-color: transparent;
+}
+
 /* Shared parts: menus, keyboard keys and icon buttons. */
 kbd {
   padding: 0 var(--space-1);

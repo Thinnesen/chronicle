@@ -30,6 +30,11 @@ func summary(wf *v1alpha1.Workflow) *chroniclev1.WorkflowSummary {
 		s.Template = ref.Name
 	}
 	s.NodesDone, s.NodesTotal = wf.Status.Progress()
+	for _, n := range wf.Status.Nodes {
+		if n.Type == v1alpha1.NodeSuspend && n.Phase == v1alpha1.NodeRunning {
+			s.ApprovalsWaiting++
+		}
+	}
 	return s
 }
 

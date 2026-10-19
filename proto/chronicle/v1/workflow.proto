@@ -61,6 +61,8 @@ message WorkflowSummary {
   int32 nodes_total = 12;
   // archived is true for a run that is only in the archive: the Workflow was deleted.
   bool archived = 13;
+  // approvals_waiting counts the suspend nodes that wait for an approval.
+  int32 approvals_waiting = 14;
 }
 
 message ListWorkflowsRequest {

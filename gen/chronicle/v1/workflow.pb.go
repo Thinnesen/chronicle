@@ -44,9 +44,11 @@ type WorkflowSummary struct {
 	NodesDone  int32 `protobuf:"varint,11,opt,name=nodes_done,json=nodesDone,proto3" json:"nodes_done,omitempty"`
 	NodesTotal int32 `protobuf:"varint,12,opt,name=nodes_total,json=nodesTotal,proto3" json:"nodes_total,omitempty"`
 	// archived is true for a run that is only in the archive: the Workflow was deleted.
-	Archived      bool `protobuf:"varint,13,opt,name=archived,proto3" json:"archived,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Archived bool `protobuf:"varint,13,opt,name=archived,proto3" json:"archived,omitempty"`
+	// approvals_waiting counts the suspend nodes that wait for an approval.
+	ApprovalsWaiting int32 `protobuf:"varint,14,opt,name=approvals_waiting,json=approvalsWaiting,proto3" json:"approvals_waiting,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *WorkflowSummary) Reset() {
@@ -168,6 +170,13 @@ func (x *WorkflowSummary) GetArchived() bool {
 		return x.Archived
 	}
 	return false
+}
+
+func (x *WorkflowSummary) GetApprovalsWaiting() int32 {
+	if x != nil {
+		return x.ApprovalsWaiting
+	}
+	return 0
 }
 
 type ListWorkflowsRequest struct {
@@ -1624,7 +1633,7 @@ var File_chronicle_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xae\x04\n" +
+	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdb\x04\n" +
 	"\x0fWorkflowSummary\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
@@ -1644,7 +1653,8 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"nodes_done\x18\v \x01(\x05R\tnodesDone\x12\x1f\n" +
 	"\vnodes_total\x18\f \x01(\x05R\n" +
 	"nodesTotal\x12\x1a\n" +
-	"\barchived\x18\r \x01(\bR\barchived\x1a9\n" +
+	"\barchived\x18\r \x01(\bR\barchived\x12+\n" +
+	"\x11approvals_waiting\x18\x0e \x01(\x05R\x10approvalsWaiting\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x01\n" +

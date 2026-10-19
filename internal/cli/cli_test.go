@@ -68,7 +68,7 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 }
 
 func (s *stub) ListWorkflows(context.Context, *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
-	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: []*chroniclev1.WorkflowSummary{{Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3}}}), nil
+	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: []*chroniclev1.WorkflowSummary{{Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3, ApprovalsWaiting: 1}}}), nil
 }
 
 func (s *stub) ApproveNode(_ context.Context, r *connect.Request[chroniclev1.ApproveNodeRequest]) (*connect.Response[chroniclev1.ApproveNodeResponse], error) {
@@ -169,6 +169,7 @@ func TestCommands(t *testing.T) {
 		want string
 	}{
 		{[]string{"list"}, "run-1  Running  1/3"},
+		{[]string{"list"}, "waiting for an approval"},
 		{[]string{"get", "hello"}, "  ● a"},
 		{[]string{"logs", "hello"}, "hello.a: hi"},
 		{[]string{"approve", "hello", "hello.gate", "--reject", "-m", "no"}, "Rejected hello.gate in team-a/hello"},

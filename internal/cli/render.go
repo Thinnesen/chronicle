@@ -29,7 +29,11 @@ func printList(out io.Writer, runs []*chroniclev1.WorkflowSummary) {
 			}
 			duration = end.Sub(r.StartedAt.AsTime()).Round(time.Second).String()
 		}
-		_, _ = fmt.Fprintf(w, "%s\t%s\t%d/%d\t%s\t%s\t%s\n", r.Name, cmpOr(r.Phase, "Pending"), r.NodesDone, r.NodesTotal, started, duration, r.Message)
+		message := r.Message
+		if message == "" && r.ApprovalsWaiting > 0 {
+			message = "waiting for an approval"
+		}
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%d/%d\t%s\t%s\t%s\n", r.Name, cmpOr(r.Phase, "Pending"), r.NodesDone, r.NodesTotal, started, duration, message)
 	}
 	_ = w.Flush()
 }

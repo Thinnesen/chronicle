@@ -32,6 +32,7 @@ test("shows the run as a graph and a timeline, and selects a node in both", asyn
 test("finds runs by name and by phase", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
+  await expect(page.getByRole("row", { name: /deploy-api-x7c1m/ }).getByText("Needs approval")).toBeVisible();
   await page.getByRole("searchbox", { name: "Search runs" }).fill("model");
   await expect(page).toHaveURL(/q=model/);
   await expect(page.getByRole("link", { name: "train-model-4rq9z" })).toBeVisible();
