@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# helm-crds.sh copies the generated CRDs into the Helm chart. It escapes "{{" for Helm and adds the keep policy.
+# helm-sync.sh copies the generated CRDs and the rules of the controller role into the Helm chart.
+# It escapes "{{" for Helm and adds the keep policy to the CRDs.
 set -euo pipefail
 for f in config/crd/bases/*.yaml; do
   base=${f##*_}
@@ -17,3 +18,11 @@ for f in config/crd/bases/*.yaml; do
     echo '{{- end }}'
   } > "$out"
 done
+
+# The rules of the controller role: keep the templated header of the chart, take the rules from controller-gen.
+role=dist/chart/templates/rbac/manager-role.yaml
+{
+  sed '/^rules:$/q' "$role"
+  sed '1,/^rules:$/d' config/rbac/role.yaml
+} > "$role.new"
+mv "$role.new" "$role"

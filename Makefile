@@ -389,8 +389,8 @@ HELM_CHART_DIR ?= dist/chart
 HELM_EXTRA_ARGS ?=
 
 .PHONY: helm-crds
-helm-crds: manifests ## Copy the generated CRDs into the Helm chart.
-	hack/helm-crds.sh
+helm-crds: manifests ## Copy the generated CRDs and the controller role into the Helm chart.
+	hack/helm-sync.sh
 
 .PHONY: helm-lint
 helm-lint: helm ## Lint the Helm chart and render it with an OIDC and an Entra ID configuration.

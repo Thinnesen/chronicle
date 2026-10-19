@@ -192,6 +192,7 @@ func main() {
 		Scheme:        mgr.GetScheme(),
 		ExecutorImage: executorImage,
 		APIReader:     mgr.GetAPIReader(),
+		Recorder:      mgr.GetEventRecorder("chronicle-controller"),
 	}
 	if archiveDSNFile != "" {
 		store, err := archive.OpenFile(context.Background(), archiveDSNFile)

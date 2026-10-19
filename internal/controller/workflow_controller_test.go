@@ -7,11 +7,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
@@ -26,8 +28,9 @@ const testExecutorImage = "example.com/chronicle:test"
 
 var _ = Describe("Workflow Controller", func() {
 	ctx := context.Background()
+	recorder := events.NewFakeRecorder(100)
 	r := func() *WorkflowReconciler {
-		return &WorkflowReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), ExecutorImage: testExecutorImage}
+		return &WorkflowReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), ExecutorImage: testExecutorImage, Recorder: recorder}
 	}
 
 	create := func(spec string) types.NamespacedName {
@@ -82,6 +85,8 @@ templates:
   inputs: {parameters: [{name: x}]}
   container: {image: alpine, command: [echo], args: ["{{inputs.parameters.x}}"]}
 `)
+		finishedBefore := testutil.ToFloat64(workflowsFinished.WithLabelValues("default", "Succeeded"))
+		podsBefore := testutil.ToFloat64(podsCreated)
 		wf := reconcileOnce(key)
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
 		list := pods(wf)
@@ -115,6 +120,11 @@ templates:
 		wf = reconcileOnce(key)
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
 		Expect(wf.Status.FinishedAt).NotTo(BeNil())
+
+		By("checking the metrics and the Event")
+		Expect(testutil.ToFloat64(workflowsFinished.WithLabelValues("default", "Succeeded")) - finishedBefore).To(Equal(1.0))
+		Expect(testutil.ToFloat64(podsCreated) - podsBefore).To(Equal(2.0))
+		Eventually(recorder.Events).Should(Receive(ContainSubstring("Normal Succeeded the run Succeeded")))
 	})
 
 	It("runs a failing DAG to Failed", func() {

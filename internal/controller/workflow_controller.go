@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -32,6 +33,8 @@ type WorkflowReconciler struct {
 	Archive Archiver
 	// Tasks is the task queue of the task templates, or nil without the archive database.
 	Tasks TaskQueue
+	// Recorder writes Kubernetes Events about runs, or is nil.
+	Recorder events.EventRecorder
 	// APIReader reads objects that the manager does not cache, such as the artifact repository ConfigMap.
 	APIReader client.Reader
 }
@@ -48,6 +51,7 @@ const conditionArchived = "Archived"
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflowtemplates;clusterworkflowtemplates,verbs=get;list;watch
 
 // Reconcile runs one step of the engine for a Workflow.
@@ -87,6 +91,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.apply(ctx, &wf, spec, a); err != nil {
 			return ctrl.Result{}, err
 		}
+		countAction(a)
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
 	wf.Status = res.Status
@@ -106,6 +111,9 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("update the workflow status: %w", err)
+	}
+	if finished(wf.Status.Phase) && wf.Status.Phase != observed.Phase {
+		r.finishedRun(&wf)
 	}
 	if archiveErr != nil {
 		return ctrl.Result{}, archiveErr
@@ -189,6 +197,7 @@ func (r *WorkflowReconciler) restart(ctx context.Context, wf *chroniclev1alpha1.
 	meta.SetStatusCondition(&st.Conditions, metav1.Condition{Type: "Restarted", Status: metav1.ConditionTrue,
 		Reason: "Retried", Message: fmt.Sprintf("retry %d", rs.Generation), ObservedGeneration: wf.Generation})
 	logf.FromContext(ctx).Info("Retrying the workflow", "generation", rs.Generation, "fromNode", rs.FromNode)
+	workflowRetries.Inc()
 	wf.Status = st
 	return nil
 }
