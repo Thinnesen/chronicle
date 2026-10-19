@@ -30,8 +30,9 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 		return engine.PodResult{Phase: v1alpha1.NodeRunning}
 	}
 	r := engine.PodResult{Phase: v1alpha1.NodePending}
-	if w := main.State.Waiting; w != nil && w.Reason != "ContainerCreating" {
-		r.Message = w.Reason + ": " + w.Message
+	// ContainerCreating and PodInitializing are normal steps of a start, not news for the user.
+	if w := main.State.Waiting; w != nil && w.Reason != "ContainerCreating" && w.Reason != "PodInitializing" {
+		r.Message = reasonMessage(w.Reason, w.Message)
 	}
 	return r
 }
@@ -88,11 +89,19 @@ func outputs(msg executor.Message, prefix string) *v1alpha1.Outputs {
 }
 
 func podMessage(pod *corev1.Pod) string {
-	if pod.Status.Message != "" {
-		return pod.Status.Reason + ": " + pod.Status.Message
-	}
-	if pod.Status.Reason != "" {
-		return pod.Status.Reason
+	if m := reasonMessage(pod.Status.Reason, pod.Status.Message); m != "" {
+		return m
 	}
 	return "the Pod ended without a result"
+}
+
+// reasonMessage joins a Kubernetes reason and message, and leaves out a part that is empty.
+func reasonMessage(reason, message string) string {
+	switch {
+	case reason == "":
+		return message
+	case message == "":
+		return reason
+	}
+	return reason + ": " + message
 }

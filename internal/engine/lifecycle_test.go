@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ func TestEngineRetries(t *testing.T) {
 		message  string
 	}{
 		{"succeeds on the third attempt", "{limit: 2}", map[string]v1alpha1.NodePhase{"wf(0)": failed, "wf(1)": failed}, v1alpha1.WorkflowSucceeded, 3, ""},
-		{"limit reached", "{limit: 1}", map[string]v1alpha1.NodePhase{"wf(0)": failed, "wf(1)": failed}, v1alpha1.WorkflowFailed, 2, "(after 2 attempts)"},
+		{"limit reached", "{limit: 1}", map[string]v1alpha1.NodePhase{"wf(0)": failed, "wf(1)": failed}, v1alpha1.WorkflowFailed, 2, "after 2 attempts"},
 		{"OnError does not retry a failure", "{limit: 3, retryPolicy: OnError}", map[string]v1alpha1.NodePhase{"wf(0)": failed}, v1alpha1.WorkflowFailed, 1, "exit"},
 		{"Always retries an error", "{limit: 3, retryPolicy: Always}", map[string]v1alpha1.NodePhase{"wf(0)": errored}, v1alpha1.WorkflowSucceeded, 2, ""},
 	}
@@ -37,6 +38,9 @@ func TestEngineRetries(t *testing.T) {
 			}
 			if tt.message != "exit" && !strings.Contains(st.Message, tt.message) {
 				t.Errorf("message = %q", st.Message)
+			}
+			if want := fmt.Sprintf("after %d attempts", tt.attempts); st.Phase == v1alpha1.WorkflowSucceeded && tt.attempts > 1 && root.Message != want {
+				t.Errorf("root message = %q, want %q", root.Message, want)
 			}
 		})
 	}

@@ -25,7 +25,10 @@ func (e *engine) runRetry(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, d
 	if isTerminal(last.Phase) && !retryable(rs, last.Phase, len(n.Children)) {
 		n.Outputs = last.Outputs
 		msg := last.Message
-		if len(n.Children) > 1 {
+		switch {
+		case len(n.Children) > 1 && msg == "":
+			msg = fmt.Sprintf("after %d attempts", len(n.Children))
+		case len(n.Children) > 1:
 			msg = fmt.Sprintf("%s (after %d attempts)", msg, len(n.Children))
 		}
 		e.setPhase(&n, last.Phase, msg)

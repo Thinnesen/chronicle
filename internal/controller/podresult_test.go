@@ -22,6 +22,12 @@ func TestPodResult(t *testing.T) {
 		{"image pull", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
 			Waiting: &corev1.ContainerStateWaiting{Reason: "ImagePullBackOff", Message: "no such image"}})},
 			v1alpha1.NodePending, "ImagePullBackOff: no such image"},
+		{"initializing", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
+			Waiting: &corev1.ContainerStateWaiting{Reason: "PodInitializing"}})},
+			v1alpha1.NodePending, ""},
+		{"waiting without a message", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
+			Waiting: &corev1.ContainerStateWaiting{Reason: "CreateContainerConfigError"}})},
+			v1alpha1.NodePending, "CreateContainerConfigError"},
 		{"running", corev1.PodStatus{Phase: corev1.PodRunning, ContainerStatuses: main(corev1.ContainerState{Running: &corev1.ContainerStateRunning{}})},
 			v1alpha1.NodeRunning, ""},
 		{"out of memory", corev1.PodStatus{Phase: corev1.PodFailed, ContainerStatuses: main(corev1.ContainerState{
