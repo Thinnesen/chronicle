@@ -3,13 +3,13 @@ import { Link } from "@tanstack/react-router";
 
 import { crons, workflows } from "../api/client";
 import { ManagedBadge } from "../components/Badge";
-import { Lamp } from "../components/Lamp";
 import { useCanEdit } from "../components/RunActions";
+import { RunBars } from "../components/TemplateRuns";
 import { useToast } from "../components/Toast";
 import { YamlView } from "../components/YamlView";
 import { readable, relative } from "../lib/cron";
 import { actionError } from "../lib/errors";
-import { ago, clock, duration, toDate } from "../lib/time";
+import { ago, clock, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { cronRoute } from "../router";
 
@@ -105,31 +105,10 @@ export function CronPage() {
           </dl>
           <h2 className="recent-title">Recent runs</h2>
           {runs.data?.workflows.length === 0 && <p className="quiet">No runs yet.</p>}
-          <ul className="recent-runs">
-            {runs.data?.workflows.map((w) => (
-              <li key={w.uid}>
-                <Lamp phase={w.phase || "Pending"} />
-                <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: w.name }}>
-                  {w.name}
-                </Link>
-                <RunTime started={toDate(w.startedAt)} finished={toDate(w.finishedAt)} now={now} />
-              </li>
-            ))}
-          </ul>
+          <RunBars namespace={namespace} runs={runs.data?.workflows ?? []} now={now} />
         </div>
         <YamlView value={data.cronWorkflow} label={`The YAML of ${c.name}`} />
       </div>
     </section>
-  );
-}
-
-// RunTime shows when a run started and how long it took.
-function RunTime({ started, finished, now }: { started?: Date; finished?: Date; now: number }) {
-  if (!started) return null;
-  return (
-    <span className="recent-meta">
-      {ago(started, new Date(now))}
-      {finished && `, ${duration(finished.getTime() - started.getTime())}`}
-    </span>
   );
 }

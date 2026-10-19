@@ -1,5 +1,5 @@
 /* The rows share the columns of the list (subgrid), so the names, times and bars line up. */
-.template-runs ol {
+.run-bars {
   display: grid;
   grid-template-columns: auto minmax(0, max-content) auto minmax(2rem, 1fr) 3.5rem;
   gap: var(--space-2);
@@ -9,14 +9,14 @@
   font-size: var(--text-sm);
 }
 
-.template-runs li {
+.run-bars li {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   align-items: center;
 }
 
-.template-runs a {
+.run-bars a {
   overflow: hidden;
   font-family: var(--font-code);
   text-overflow: ellipsis;
@@ -24,11 +24,11 @@
   text-decoration: none;
 }
 
-.template-runs a:hover {
+.run-bars a:hover {
   text-decoration: underline;
 }
 
-.template-runs .quiet {
+.run-bars .quiet {
   font-size: var(--text-xs);
   white-space: nowrap;
 }
@@ -72,20 +72,20 @@
 
 /* On a phone the name has its own line, so it is not cut. */
 @media (max-width: 40rem) {
-  .template-runs ol {
+  .run-bars {
     grid-template-columns: auto auto minmax(0, 1fr) 3.5rem;
     row-gap: var(--space-3);
   }
 
-  .template-runs li {
+  .run-bars li {
     row-gap: var(--space-1);
   }
 
-  .template-runs a {
+  .run-bars a {
     grid-column: 2 / -1;
   }
 
-  .template-runs .quiet {
+  .run-bars .quiet {
     grid-column: 2;
   }
 }
