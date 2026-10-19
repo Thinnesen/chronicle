@@ -211,6 +211,10 @@ The UI is an ops console. It combines the strong parts of the Argo Workflows, Ar
 - Run page: a header with the status, the facts and the actions, then the tabs Graph, Timeline and Spec. The selected step opens a drawer on the right with the tabs Summary, Logs and Attempts. The user can drag the drawer edge. The tab and the selected node are in the URL.
 - Graph: cards of 192 x 44 px for steps that do work, small pills for groups. The layout uses the drawn size of each shape, so the edges touch the shapes. The root node is not drawn, because the header shows the run.
 - Timeline: one row for each step. A bar is an attempt, and a dashed line is the wait between two attempts.
+- While a run is active, the graph also draws the steps that have not started (dashed). A fan-out with more than 8 items shows 5 and one "N more" card; failed and running items stay visible.
+- The step drawer has the tabs Summary, Logs, Events (the Kubernetes events of the Pod) and Attempts. A followed log connects again after a broken stream.
+- A template page shows the graph of the template before it runs. The template and cron lists show the last ten runs of each definition as health marks.
+- Keyboard: Cmd+K or Ctrl+K opens the search, Enter or Space opens a focused step, Escape closes the drawer. Playwright checks the pages with the WCAG 2 A and AA rules of axe.
 - Motion only shows a live state (a running spinner, halo or bar) or answers an action.
 - Copy is short, plain and in sentence case. Empty screens tell the next action.
 
