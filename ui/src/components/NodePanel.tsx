@@ -13,6 +13,7 @@ import { ApprovalForm } from "./ApprovalForm";
 import { CopyButton } from "./CopyButton";
 import { Lamp } from "./Lamp";
 import { LogView } from "./LogView";
+import { NodeEvents } from "./NodeEvents";
 import "./NodePanel.css";
 
 interface PanelProps {
@@ -24,7 +25,7 @@ interface PanelProps {
   onSelect: (id: string) => void;
 }
 
-type Tab = "details" | "logs" | "attempts";
+type Tab = "details" | "logs" | "events" | "attempts";
 
 // retryOf returns the retry node of a node: the node itself, or its parent when the node is an attempt.
 function retryOf(node: NodeStatus, nodes: Record<string, NodeStatus>): NodeStatus | undefined {
@@ -43,7 +44,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
   const retry = retryOf(node, nodes);
   const tabs: { id: Tab; label: string }[] = [
     { id: "details", label: "Summary" },
-    ...(node.podName ? [{ id: "logs" as const, label: "Logs" }] : []),
+    ...(node.podName ? [{ id: "logs" as const, label: "Logs" }, { id: "events" as const, label: "Events" }] : []),
     ...(retry ? [{ id: "attempts" as const, label: `Attempts (${retry.children?.length ?? 0})` }] : []),
   ];
   return (
@@ -66,6 +67,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
           </>
         )}
         {tab === "logs" && <LogView namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
+        {tab === "events" && <NodeEvents namespace={namespace} workflow={workflow} node={node.id} live={phase === "Running" || phase === "Pending"} />}
         {tab === "attempts" && retry && <Attempts retry={retry} nodes={nodes} current={node.id} onSelect={onSelect} />}
       </div>
     </div>

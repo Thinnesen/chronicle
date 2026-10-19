@@ -80,6 +80,8 @@ func setup(t *testing.T) *httptest.Server {
 			Verbs: []string{"get", "list", "update"},
 		}, {
 			APIGroups: []string{""}, Resources: []string{"pods/log"}, Verbs: []string{"get"},
+		}, {
+			APIGroups: []string{""}, Resources: []string{"events"}, Verbs: []string{"list"},
 		}}},
 		&rbacv1.RoleBinding{Name: "alice", Namespace: "team-a",
 			RoleRef:  rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "Role", Name: "edit"},

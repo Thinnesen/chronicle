@@ -1436,6 +1436,190 @@ func (*DeleteWorkflowResponse) Descriptor() ([]byte, []int) {
 	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{23}
 }
 
+type ListNodeEventsRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Namespace string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Workflow  string                 `protobuf:"bytes,2,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	// node is the ID of the node.
+	Node          string `protobuf:"bytes,3,opt,name=node,proto3" json:"node,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListNodeEventsRequest) Reset() {
+	*x = ListNodeEventsRequest{}
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListNodeEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListNodeEventsRequest) ProtoMessage() {}
+
+func (x *ListNodeEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListNodeEventsRequest.ProtoReflect.Descriptor instead.
+func (*ListNodeEventsRequest) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ListNodeEventsRequest) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *ListNodeEventsRequest) GetWorkflow() string {
+	if x != nil {
+		return x.Workflow
+	}
+	return ""
+}
+
+func (x *ListNodeEventsRequest) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
+}
+
+type ListNodeEventsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// events are newest last. A node without a Pod, or a run in the archive, has none.
+	Events        []*NodeEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListNodeEventsResponse) Reset() {
+	*x = ListNodeEventsResponse{}
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListNodeEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListNodeEventsResponse) ProtoMessage() {}
+
+func (x *ListNodeEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListNodeEventsResponse.ProtoReflect.Descriptor instead.
+func (*ListNodeEventsResponse) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListNodeEventsResponse) GetEvents() []*NodeEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+// NodeEvent is one Kubernetes event of the Pod of a node.
+type NodeEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// type is Normal or Warning.
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Count         int32                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	LastSeen      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeEvent) Reset() {
+	*x = NodeEvent{}
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeEvent) ProtoMessage() {}
+
+func (x *NodeEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeEvent.ProtoReflect.Descriptor instead.
+func (*NodeEvent) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *NodeEvent) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *NodeEvent) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *NodeEvent) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *NodeEvent) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *NodeEvent) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
 var File_chronicle_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_workflow_proto_rawDesc = "" +
@@ -1555,7 +1739,19 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x15DeleteWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"\x18\n" +
-	"\x16DeleteWorkflowResponse2\x85\b\n" +
+	"\x16DeleteWorkflowResponse\"e\n" +
+	"\x15ListNodeEventsRequest\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x1a\n" +
+	"\bworkflow\x18\x02 \x01(\tR\bworkflow\x12\x12\n" +
+	"\x04node\x18\x03 \x01(\tR\x04node\"I\n" +
+	"\x16ListNodeEventsResponse\x12/\n" +
+	"\x06events\x18\x01 \x03(\v2\x17.chronicle.v1.NodeEventR\x06events\"\xa0\x01\n" +
+	"\tNodeEvent\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x14\n" +
+	"\x05count\x18\x04 \x01(\x05R\x05count\x127\n" +
+	"\tlast_seen\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen2\xe7\b\n" +
 	"\x0fWorkflowService\x12]\n" +
 	"\rListWorkflows\x12\".chronicle.v1.ListWorkflowsRequest\x1a#.chronicle.v1.ListWorkflowsResponse\"\x03\x90\x02\x01\x12W\n" +
 	"\vGetWorkflow\x12 .chronicle.v1.GetWorkflowRequest\x1a!.chronicle.v1.GetWorkflowResponse\"\x03\x90\x02\x01\x12[\n" +
@@ -1567,7 +1763,8 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\vApproveNode\x12 .chronicle.v1.ApproveNodeRequest\x1a!.chronicle.v1.ApproveNodeResponse\x12X\n" +
 	"\rRetryWorkflow\x12\".chronicle.v1.RetryWorkflowRequest\x1a#.chronicle.v1.RetryWorkflowResponse\x12X\n" +
 	"\rRerunWorkflow\x12\".chronicle.v1.RerunWorkflowRequest\x1a#.chronicle.v1.RerunWorkflowResponse\x12[\n" +
-	"\x0eDeleteWorkflow\x12#.chronicle.v1.DeleteWorkflowRequest\x1a$.chronicle.v1.DeleteWorkflowResponseB=Z;github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1b\x06proto3"
+	"\x0eDeleteWorkflow\x12#.chronicle.v1.DeleteWorkflowRequest\x1a$.chronicle.v1.DeleteWorkflowResponse\x12`\n" +
+	"\x0eListNodeEvents\x12#.chronicle.v1.ListNodeEventsRequest\x1a$.chronicle.v1.ListNodeEventsResponse\"\x03\x90\x02\x01B=Z;github.com/Thinnesen/chronicle/gen/chronicle/v1;chroniclev1b\x06proto3"
 
 var (
 	file_chronicle_v1_workflow_proto_rawDescOnce sync.Once
@@ -1581,7 +1778,7 @@ func file_chronicle_v1_workflow_proto_rawDescGZIP() []byte {
 	return file_chronicle_v1_workflow_proto_rawDescData
 }
 
-var file_chronicle_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_chronicle_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_chronicle_v1_workflow_proto_goTypes = []any{
 	(*WorkflowSummary)(nil),           // 0: chronicle.v1.WorkflowSummary
 	(*ListWorkflowsRequest)(nil),      // 1: chronicle.v1.ListWorkflowsRequest
@@ -1607,63 +1804,70 @@ var file_chronicle_v1_workflow_proto_goTypes = []any{
 	(*RerunWorkflowResponse)(nil),     // 21: chronicle.v1.RerunWorkflowResponse
 	(*DeleteWorkflowRequest)(nil),     // 22: chronicle.v1.DeleteWorkflowRequest
 	(*DeleteWorkflowResponse)(nil),    // 23: chronicle.v1.DeleteWorkflowResponse
-	nil,                               // 24: chronicle.v1.WorkflowSummary.LabelsEntry
-	nil,                               // 25: chronicle.v1.SubmitWorkflowRequest.ParametersEntry
-	nil,                               // 26: chronicle.v1.SubmitWorkflowRequest.LabelsEntry
-	nil,                               // 27: chronicle.v1.ApproveNodeRequest.ParametersEntry
-	nil,                               // 28: chronicle.v1.RerunWorkflowRequest.ParametersEntry
-	(*timestamppb.Timestamp)(nil),     // 29: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),           // 30: google.protobuf.Struct
+	(*ListNodeEventsRequest)(nil),     // 24: chronicle.v1.ListNodeEventsRequest
+	(*ListNodeEventsResponse)(nil),    // 25: chronicle.v1.ListNodeEventsResponse
+	(*NodeEvent)(nil),                 // 26: chronicle.v1.NodeEvent
+	nil,                               // 27: chronicle.v1.WorkflowSummary.LabelsEntry
+	nil,                               // 28: chronicle.v1.SubmitWorkflowRequest.ParametersEntry
+	nil,                               // 29: chronicle.v1.SubmitWorkflowRequest.LabelsEntry
+	nil,                               // 30: chronicle.v1.ApproveNodeRequest.ParametersEntry
+	nil,                               // 31: chronicle.v1.RerunWorkflowRequest.ParametersEntry
+	(*timestamppb.Timestamp)(nil),     // 32: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),           // 33: google.protobuf.Struct
 }
 var file_chronicle_v1_workflow_proto_depIdxs = []int32{
-	29, // 0: chronicle.v1.WorkflowSummary.created_at:type_name -> google.protobuf.Timestamp
-	29, // 1: chronicle.v1.WorkflowSummary.started_at:type_name -> google.protobuf.Timestamp
-	29, // 2: chronicle.v1.WorkflowSummary.finished_at:type_name -> google.protobuf.Timestamp
-	24, // 3: chronicle.v1.WorkflowSummary.labels:type_name -> chronicle.v1.WorkflowSummary.LabelsEntry
+	32, // 0: chronicle.v1.WorkflowSummary.created_at:type_name -> google.protobuf.Timestamp
+	32, // 1: chronicle.v1.WorkflowSummary.started_at:type_name -> google.protobuf.Timestamp
+	32, // 2: chronicle.v1.WorkflowSummary.finished_at:type_name -> google.protobuf.Timestamp
+	27, // 3: chronicle.v1.WorkflowSummary.labels:type_name -> chronicle.v1.WorkflowSummary.LabelsEntry
 	0,  // 4: chronicle.v1.ListWorkflowsResponse.workflows:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 5: chronicle.v1.GetWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	30, // 6: chronicle.v1.GetWorkflowResponse.workflow:type_name -> google.protobuf.Struct
-	30, // 7: chronicle.v1.SubmitWorkflowRequest.workflow:type_name -> google.protobuf.Struct
+	33, // 6: chronicle.v1.GetWorkflowResponse.workflow:type_name -> google.protobuf.Struct
+	33, // 7: chronicle.v1.SubmitWorkflowRequest.workflow:type_name -> google.protobuf.Struct
 	6,  // 8: chronicle.v1.SubmitWorkflowRequest.template:type_name -> chronicle.v1.TemplateSource
-	25, // 9: chronicle.v1.SubmitWorkflowRequest.parameters:type_name -> chronicle.v1.SubmitWorkflowRequest.ParametersEntry
-	26, // 10: chronicle.v1.SubmitWorkflowRequest.labels:type_name -> chronicle.v1.SubmitWorkflowRequest.LabelsEntry
+	28, // 9: chronicle.v1.SubmitWorkflowRequest.parameters:type_name -> chronicle.v1.SubmitWorkflowRequest.ParametersEntry
+	29, // 10: chronicle.v1.SubmitWorkflowRequest.labels:type_name -> chronicle.v1.SubmitWorkflowRequest.LabelsEntry
 	0,  // 11: chronicle.v1.SubmitWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 12: chronicle.v1.SuspendWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 13: chronicle.v1.ResumeWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 14: chronicle.v1.StopWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 15: chronicle.v1.TerminateWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	27, // 16: chronicle.v1.ApproveNodeRequest.parameters:type_name -> chronicle.v1.ApproveNodeRequest.ParametersEntry
+	30, // 16: chronicle.v1.ApproveNodeRequest.parameters:type_name -> chronicle.v1.ApproveNodeRequest.ParametersEntry
 	0,  // 17: chronicle.v1.ApproveNodeResponse.summary:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 18: chronicle.v1.RetryWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	28, // 19: chronicle.v1.RerunWorkflowRequest.parameters:type_name -> chronicle.v1.RerunWorkflowRequest.ParametersEntry
+	31, // 19: chronicle.v1.RerunWorkflowRequest.parameters:type_name -> chronicle.v1.RerunWorkflowRequest.ParametersEntry
 	0,  // 20: chronicle.v1.RerunWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	1,  // 21: chronicle.v1.WorkflowService.ListWorkflows:input_type -> chronicle.v1.ListWorkflowsRequest
-	3,  // 22: chronicle.v1.WorkflowService.GetWorkflow:input_type -> chronicle.v1.GetWorkflowRequest
-	5,  // 23: chronicle.v1.WorkflowService.SubmitWorkflow:input_type -> chronicle.v1.SubmitWorkflowRequest
-	8,  // 24: chronicle.v1.WorkflowService.SuspendWorkflow:input_type -> chronicle.v1.SuspendWorkflowRequest
-	10, // 25: chronicle.v1.WorkflowService.ResumeWorkflow:input_type -> chronicle.v1.ResumeWorkflowRequest
-	12, // 26: chronicle.v1.WorkflowService.StopWorkflow:input_type -> chronicle.v1.StopWorkflowRequest
-	14, // 27: chronicle.v1.WorkflowService.TerminateWorkflow:input_type -> chronicle.v1.TerminateWorkflowRequest
-	16, // 28: chronicle.v1.WorkflowService.ApproveNode:input_type -> chronicle.v1.ApproveNodeRequest
-	18, // 29: chronicle.v1.WorkflowService.RetryWorkflow:input_type -> chronicle.v1.RetryWorkflowRequest
-	20, // 30: chronicle.v1.WorkflowService.RerunWorkflow:input_type -> chronicle.v1.RerunWorkflowRequest
-	22, // 31: chronicle.v1.WorkflowService.DeleteWorkflow:input_type -> chronicle.v1.DeleteWorkflowRequest
-	2,  // 32: chronicle.v1.WorkflowService.ListWorkflows:output_type -> chronicle.v1.ListWorkflowsResponse
-	4,  // 33: chronicle.v1.WorkflowService.GetWorkflow:output_type -> chronicle.v1.GetWorkflowResponse
-	7,  // 34: chronicle.v1.WorkflowService.SubmitWorkflow:output_type -> chronicle.v1.SubmitWorkflowResponse
-	9,  // 35: chronicle.v1.WorkflowService.SuspendWorkflow:output_type -> chronicle.v1.SuspendWorkflowResponse
-	11, // 36: chronicle.v1.WorkflowService.ResumeWorkflow:output_type -> chronicle.v1.ResumeWorkflowResponse
-	13, // 37: chronicle.v1.WorkflowService.StopWorkflow:output_type -> chronicle.v1.StopWorkflowResponse
-	15, // 38: chronicle.v1.WorkflowService.TerminateWorkflow:output_type -> chronicle.v1.TerminateWorkflowResponse
-	17, // 39: chronicle.v1.WorkflowService.ApproveNode:output_type -> chronicle.v1.ApproveNodeResponse
-	19, // 40: chronicle.v1.WorkflowService.RetryWorkflow:output_type -> chronicle.v1.RetryWorkflowResponse
-	21, // 41: chronicle.v1.WorkflowService.RerunWorkflow:output_type -> chronicle.v1.RerunWorkflowResponse
-	23, // 42: chronicle.v1.WorkflowService.DeleteWorkflow:output_type -> chronicle.v1.DeleteWorkflowResponse
-	32, // [32:43] is the sub-list for method output_type
-	21, // [21:32] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	26, // 21: chronicle.v1.ListNodeEventsResponse.events:type_name -> chronicle.v1.NodeEvent
+	32, // 22: chronicle.v1.NodeEvent.last_seen:type_name -> google.protobuf.Timestamp
+	1,  // 23: chronicle.v1.WorkflowService.ListWorkflows:input_type -> chronicle.v1.ListWorkflowsRequest
+	3,  // 24: chronicle.v1.WorkflowService.GetWorkflow:input_type -> chronicle.v1.GetWorkflowRequest
+	5,  // 25: chronicle.v1.WorkflowService.SubmitWorkflow:input_type -> chronicle.v1.SubmitWorkflowRequest
+	8,  // 26: chronicle.v1.WorkflowService.SuspendWorkflow:input_type -> chronicle.v1.SuspendWorkflowRequest
+	10, // 27: chronicle.v1.WorkflowService.ResumeWorkflow:input_type -> chronicle.v1.ResumeWorkflowRequest
+	12, // 28: chronicle.v1.WorkflowService.StopWorkflow:input_type -> chronicle.v1.StopWorkflowRequest
+	14, // 29: chronicle.v1.WorkflowService.TerminateWorkflow:input_type -> chronicle.v1.TerminateWorkflowRequest
+	16, // 30: chronicle.v1.WorkflowService.ApproveNode:input_type -> chronicle.v1.ApproveNodeRequest
+	18, // 31: chronicle.v1.WorkflowService.RetryWorkflow:input_type -> chronicle.v1.RetryWorkflowRequest
+	20, // 32: chronicle.v1.WorkflowService.RerunWorkflow:input_type -> chronicle.v1.RerunWorkflowRequest
+	22, // 33: chronicle.v1.WorkflowService.DeleteWorkflow:input_type -> chronicle.v1.DeleteWorkflowRequest
+	24, // 34: chronicle.v1.WorkflowService.ListNodeEvents:input_type -> chronicle.v1.ListNodeEventsRequest
+	2,  // 35: chronicle.v1.WorkflowService.ListWorkflows:output_type -> chronicle.v1.ListWorkflowsResponse
+	4,  // 36: chronicle.v1.WorkflowService.GetWorkflow:output_type -> chronicle.v1.GetWorkflowResponse
+	7,  // 37: chronicle.v1.WorkflowService.SubmitWorkflow:output_type -> chronicle.v1.SubmitWorkflowResponse
+	9,  // 38: chronicle.v1.WorkflowService.SuspendWorkflow:output_type -> chronicle.v1.SuspendWorkflowResponse
+	11, // 39: chronicle.v1.WorkflowService.ResumeWorkflow:output_type -> chronicle.v1.ResumeWorkflowResponse
+	13, // 40: chronicle.v1.WorkflowService.StopWorkflow:output_type -> chronicle.v1.StopWorkflowResponse
+	15, // 41: chronicle.v1.WorkflowService.TerminateWorkflow:output_type -> chronicle.v1.TerminateWorkflowResponse
+	17, // 42: chronicle.v1.WorkflowService.ApproveNode:output_type -> chronicle.v1.ApproveNodeResponse
+	19, // 43: chronicle.v1.WorkflowService.RetryWorkflow:output_type -> chronicle.v1.RetryWorkflowResponse
+	21, // 44: chronicle.v1.WorkflowService.RerunWorkflow:output_type -> chronicle.v1.RerunWorkflowResponse
+	23, // 45: chronicle.v1.WorkflowService.DeleteWorkflow:output_type -> chronicle.v1.DeleteWorkflowResponse
+	25, // 46: chronicle.v1.WorkflowService.ListNodeEvents:output_type -> chronicle.v1.ListNodeEventsResponse
+	35, // [35:47] is the sub-list for method output_type
+	23, // [23:35] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_chronicle_v1_workflow_proto_init() }
@@ -1681,7 +1885,7 @@ func file_chronicle_v1_workflow_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chronicle_v1_workflow_proto_rawDesc), len(file_chronicle_v1_workflow_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -64,3 +64,13 @@ test("connects the log of a running node again after a broken stream", async ({ 
   await expect(panel.getByLabel("Log", { exact: true }).getByText("starting n3b")).toBeVisible();
   expect(calls).toBeGreaterThan(1);
 });
+
+test("shows the Kubernetes events of a node", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n3b");
+  const panel = page.getByRole("complementary", { name: "Step train(1)" });
+  await panel.getByRole("tab", { name: "Events" }).click();
+  await expect(panel.getByText("BackOff")).toBeVisible();
+  await expect(panel.getByText("4 times")).toBeVisible();
+  await expect(panel.getByLabel("Warning")).toBeVisible();
+});

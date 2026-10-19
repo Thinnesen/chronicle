@@ -67,6 +67,9 @@ const (
 	// WorkflowServiceDeleteWorkflowProcedure is the fully-qualified name of the WorkflowService's
 	// DeleteWorkflow RPC.
 	WorkflowServiceDeleteWorkflowProcedure = "/chronicle.v1.WorkflowService/DeleteWorkflow"
+	// WorkflowServiceListNodeEventsProcedure is the fully-qualified name of the WorkflowService's
+	// ListNodeEvents RPC.
+	WorkflowServiceListNodeEventsProcedure = "/chronicle.v1.WorkflowService/ListNodeEvents"
 )
 
 // WorkflowServiceClient is a client for the chronicle.v1.WorkflowService service.
@@ -93,6 +96,8 @@ type WorkflowServiceClient interface {
 	RerunWorkflow(context.Context, *connect.Request[v1.RerunWorkflowRequest]) (*connect.Response[v1.RerunWorkflowResponse], error)
 	// DeleteWorkflow deletes a run and its Pods.
 	DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error)
+	// ListNodeEvents returns the Kubernetes events of the Pod of a node, for example why it waits to be scheduled.
+	ListNodeEvents(context.Context, *connect.Request[v1.ListNodeEventsRequest]) (*connect.Response[v1.ListNodeEventsResponse], error)
 }
 
 // NewWorkflowServiceClient constructs a client for the chronicle.v1.WorkflowService service. By
@@ -174,6 +179,13 @@ func NewWorkflowServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(workflowServiceMethods.ByName("DeleteWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
+		listNodeEvents: connect.NewClient[v1.ListNodeEventsRequest, v1.ListNodeEventsResponse](
+			httpClient,
+			baseURL+WorkflowServiceListNodeEventsProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("ListNodeEvents")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -190,6 +202,7 @@ type workflowServiceClient struct {
 	retryWorkflow     *connect.Client[v1.RetryWorkflowRequest, v1.RetryWorkflowResponse]
 	rerunWorkflow     *connect.Client[v1.RerunWorkflowRequest, v1.RerunWorkflowResponse]
 	deleteWorkflow    *connect.Client[v1.DeleteWorkflowRequest, v1.DeleteWorkflowResponse]
+	listNodeEvents    *connect.Client[v1.ListNodeEventsRequest, v1.ListNodeEventsResponse]
 }
 
 // ListWorkflows calls chronicle.v1.WorkflowService.ListWorkflows.
@@ -247,6 +260,11 @@ func (c *workflowServiceClient) DeleteWorkflow(ctx context.Context, req *connect
 	return c.deleteWorkflow.CallUnary(ctx, req)
 }
 
+// ListNodeEvents calls chronicle.v1.WorkflowService.ListNodeEvents.
+func (c *workflowServiceClient) ListNodeEvents(ctx context.Context, req *connect.Request[v1.ListNodeEventsRequest]) (*connect.Response[v1.ListNodeEventsResponse], error) {
+	return c.listNodeEvents.CallUnary(ctx, req)
+}
+
 // WorkflowServiceHandler is an implementation of the chronicle.v1.WorkflowService service.
 type WorkflowServiceHandler interface {
 	// ListWorkflows returns the runs in a namespace, newest first.
@@ -271,6 +289,8 @@ type WorkflowServiceHandler interface {
 	RerunWorkflow(context.Context, *connect.Request[v1.RerunWorkflowRequest]) (*connect.Response[v1.RerunWorkflowResponse], error)
 	// DeleteWorkflow deletes a run and its Pods.
 	DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error)
+	// ListNodeEvents returns the Kubernetes events of the Pod of a node, for example why it waits to be scheduled.
+	ListNodeEvents(context.Context, *connect.Request[v1.ListNodeEventsRequest]) (*connect.Response[v1.ListNodeEventsResponse], error)
 }
 
 // NewWorkflowServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -348,6 +368,13 @@ func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.Handl
 		connect.WithSchema(workflowServiceMethods.ByName("DeleteWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workflowServiceListNodeEventsHandler := connect.NewUnaryHandler(
+		WorkflowServiceListNodeEventsProcedure,
+		svc.ListNodeEvents,
+		connect.WithSchema(workflowServiceMethods.ByName("ListNodeEvents")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/chronicle.v1.WorkflowService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WorkflowServiceListWorkflowsProcedure:
@@ -372,6 +399,8 @@ func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.Handl
 			workflowServiceRerunWorkflowHandler.ServeHTTP(w, r)
 		case WorkflowServiceDeleteWorkflowProcedure:
 			workflowServiceDeleteWorkflowHandler.ServeHTTP(w, r)
+		case WorkflowServiceListNodeEventsProcedure:
+			workflowServiceListNodeEventsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -423,4 +452,8 @@ func (UnimplementedWorkflowServiceHandler) RerunWorkflow(context.Context, *conne
 
 func (UnimplementedWorkflowServiceHandler) DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[v1.DeleteWorkflowResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.WorkflowService.DeleteWorkflow is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) ListNodeEvents(context.Context, *connect.Request[v1.ListNodeEventsRequest]) (*connect.Response[v1.ListNodeEventsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.WorkflowService.ListNodeEvents is not implemented"))
 }

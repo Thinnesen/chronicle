@@ -15,9 +15,9 @@ rules:
 - apiGroups: [chronicle.thinnesen.com]
   resources: [clusterworkflowtemplates]
   verbs: [get, list, watch]
-# The UI and the CLI show the logs of the workflow Pods.
+# The UI and the CLI show the logs and the events of the workflow Pods.
 - apiGroups: [""]
-  resources: [pods, pods/log]
+  resources: [pods, pods/log, events]
   verbs: [get, list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -34,7 +34,7 @@ rules:
   resources: [clusterworkflowtemplates]
   verbs: [get, list, watch]
 - apiGroups: [""]
-  resources: [pods, pods/log]
+  resources: [pods, pods/log, events]
   verbs: [get, list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -51,7 +51,7 @@ rules:
   resources: [clusterworkflowtemplates]
   verbs: [get, list, watch]
 - apiGroups: [""]
-  resources: [pods, pods/log]
+  resources: [pods, pods/log, events]
   verbs: [get, list]
 - apiGroups: [rbac.authorization.k8s.io]
   resources: [rolebindings]

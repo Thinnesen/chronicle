@@ -36,6 +36,10 @@ service WorkflowService {
   rpc RerunWorkflow(RerunWorkflowRequest) returns (RerunWorkflowResponse);
   // DeleteWorkflow deletes a run and its Pods.
   rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse);
+  // ListNodeEvents returns the Kubernetes events of the Pod of a node, for example why it waits to be scheduled.
+  rpc ListNodeEvents(ListNodeEventsRequest) returns (ListNodeEventsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 // WorkflowSummary is the short form of a run, for lists.
@@ -193,3 +197,25 @@ message DeleteWorkflowRequest {
 }
 
 message DeleteWorkflowResponse {}
+
+message ListNodeEventsRequest {
+  string namespace = 1;
+  string workflow = 2;
+  // node is the ID of the node.
+  string node = 3;
+}
+
+message ListNodeEventsResponse {
+  // events are newest last. A node without a Pod, or a run in the archive, has none.
+  repeated NodeEvent events = 1;
+}
+
+// NodeEvent is one Kubernetes event of the Pod of a node.
+message NodeEvent {
+  // type is Normal or Warning.
+  string type = 1;
+  string reason = 2;
+  string message = 3;
+  int32 count = 4;
+  google.protobuf.Timestamp last_seen = 5;
+}

@@ -121,6 +121,16 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     if (body.pageToken === "p2") return r.fulfill({ json: { workflows: [oldRun] } });
     r.fulfill({ json: { workflows: runs.filter((w) => phases.length === 0 || phases.includes(w.phase)), nextPageToken: phases.length === 0 ? "p2" : "" } });
   });
+  await page.route("**/chronicle.v1.WorkflowService/ListNodeEvents", (r) =>
+    r.fulfill({
+      json: {
+        events: [
+          { type: "Normal", reason: "Scheduled", message: "Successfully assigned team-a/n3b to node-1", count: 1, lastSeen: ts(-150) },
+          { type: "Warning", reason: "BackOff", message: "Back-off pulling image", count: 4, lastSeen: ts(-60) },
+        ],
+      },
+    }),
+  );
   await page.route("**/chronicle.v1.LogService/StreamLogs", (r) => {
     // A streaming request is one envelope: 5 bytes of header, then the JSON message.
     const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
