@@ -57,17 +57,7 @@ func (s *templateService) GetTemplate(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
-	var obj client.Object
-	var spec *v1alpha1.WorkflowTemplateSpec
-	if m.ClusterScope {
-		t := &v1alpha1.ClusterWorkflowTemplate{}
-		obj, spec = t, &t.Spec
-		err = c.Get(ctx, client.ObjectKey{Name: m.Name}, t)
-	} else {
-		t := &v1alpha1.WorkflowTemplate{}
-		obj, spec = t, &t.Spec
-		err = c.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, t)
-	}
+	obj, spec, err := readTemplate(ctx, c, m.Namespace, m.Name, m.ClusterScope)
 	if err != nil {
 		return nil, toConnect(err)
 	}
@@ -77,6 +67,16 @@ func (s *templateService) GetTemplate(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 	return connect.NewResponse(&chroniclev1.GetTemplateResponse{Summary: templateSummary(obj, spec, m.ClusterScope), Template: st}), nil
+}
+
+// readTemplate reads a WorkflowTemplate, or a ClusterWorkflowTemplate when cluster is true.
+func readTemplate(ctx context.Context, c client.Client, namespace, name string, cluster bool) (client.Object, *v1alpha1.WorkflowTemplateSpec, error) {
+	if cluster {
+		t := &v1alpha1.ClusterWorkflowTemplate{}
+		return t, &t.Spec, c.Get(ctx, client.ObjectKey{Name: name}, t)
+	}
+	t := &v1alpha1.WorkflowTemplate{}
+	return t, &t.Spec, c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, t)
 }
 
 func templateSummary(obj client.Object, spec *v1alpha1.WorkflowTemplateSpec, cluster bool) *chroniclev1.TemplateSummary {

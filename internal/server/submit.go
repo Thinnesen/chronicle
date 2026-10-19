@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 
 	"connectrpc.com/connect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -21,6 +23,11 @@ func (s *workflowService) SubmitWorkflow(ctx context.Context, req *connect.Reque
 	wf, err := newSubmission(m)
 	if err != nil {
 		return nil, err
+	}
+	if t := m.GetTemplate(); t != nil {
+		if err := checkTemplateEnums(ctx, c, m.Namespace, t, m.Parameters); err != nil {
+			return nil, err
+		}
 	}
 	if err := c.Create(ctx, wf); err != nil {
 		return nil, toConnect(err)
@@ -80,4 +87,19 @@ func cmpOr(a, b string) string {
 		return a
 	}
 	return b
+}
+
+// checkTemplateEnums refuses a parameter value that the template does not allow, before the run starts. When the
+// caller cannot read the template, the controller checks the value when it resolves the template.
+func checkTemplateEnums(ctx context.Context, c client.Client, namespace string, t *chroniclev1.TemplateSource, params map[string]string) error {
+	_, spec, err := readTemplate(ctx, c, namespace, t.Name, t.ClusterScope)
+	if err != nil {
+		return nil
+	}
+	for _, p := range spec.Arguments.Parameters {
+		if v, ok := params[p.Name]; ok && len(p.Enum) > 0 && !slices.Contains(p.Enum, v) {
+			return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parameter %q: value %q is not one of %q", p.Name, v, p.Enum))
+		}
+	}
+	return nil
 }
