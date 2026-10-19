@@ -170,4 +170,9 @@ button.timeline-label {
   .timeline-attempts {
     display: none;
   }
+
+  /* The lane is narrow: every second time label would touch its neighbors. The grid lines stay. */
+  .timeline-tick:nth-child(even) {
+    visibility: hidden;
+  }
 }
