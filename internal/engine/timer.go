@@ -24,7 +24,7 @@ func (e *engine) requeueAfter() time.Duration {
 	return max(e.wakeAt.Sub(e.in.Now.Time), time.Second)
 }
 
-// stop fails a node and all its running descendants, and deletes their Pods.
+// stop fails a node and all its running descendants, deletes their Pods and cancels their tasks.
 func (e *engine) stop(id, msg string) {
 	n, ok := e.nodes[id]
 	if !ok || isTerminal(n.Phase) {
@@ -36,6 +36,9 @@ func (e *engine) stop(id, msg string) {
 	n = e.nodes[id]
 	if n.PodName != "" {
 		e.actions = append(e.actions, DeletePod{PodName: n.PodName})
+	}
+	if n.TaskID != "" {
+		e.actions = append(e.actions, CancelTask{TaskID: n.TaskID, Reason: msg})
 	}
 	e.setPhase(&n, v1alpha1.NodeFailed, msg)
 	e.save(n)

@@ -73,7 +73,10 @@ func (s *sim) step(i int) Result {
 			delete(s.in.Pods, d.PodName)
 			continue
 		}
-		cp := a.(CreatePod)
+		cp, ok := a.(CreatePod)
+		if !ok {
+			continue // The simulator has no task queue.
+		}
 		s.startStep[cp.NodeName] = i
 		if s.created[cp.PodName] {
 			s.t.Fatalf("Pod of %s created twice", cp.NodeName)

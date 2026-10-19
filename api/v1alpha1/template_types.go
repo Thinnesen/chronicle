@@ -7,7 +7,7 @@ import (
 )
 
 // Template is one unit of work. It has exactly one type: container, script, dag, steps, suspend or resource.
-// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend or resource"
+// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource), has(self.task)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend, resource or task"
 type Template struct {
 	// name of the template. It is unique in the workflow.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -60,6 +60,35 @@ type Template struct {
 	// +kubebuilder:validation:items:MaxItems=100
 	// +optional
 	Steps [][]WorkflowStep `json:"steps,omitempty"`
+
+	// task sends the input parameters to a task worker and waits for its result. It needs the archive database.
+	// +optional
+	Task *TaskTemplate `json:"task,omitempty"`
+}
+
+// TaskTemplate calls a function that a task worker of an SDK runs. The worker gets the input parameters
+// as a JSON object. Its result becomes outputs.result, and the fields of a result object become the
+// output parameters with the same names. The template timeout is the start-to-close timeout.
+type TaskTemplate struct {
+	// name of the task type that a worker registers.
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_.]*$`
+	// +kubebuilder:validation:MaxLength=128
+	// +required
+	Name string `json:"name"`
+
+	// queue that the workers poll. The default is "default".
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_.]*$`
+	// +kubebuilder:validation:MaxLength=63
+	// +optional
+	Queue string `json:"queue,omitempty"`
+
+	// heartbeatTimeout fails the attempt when the worker sends no heartbeat for this time.
+	// +optional
+	HeartbeatTimeout *metav1.Duration `json:"heartbeatTimeout,omitempty"`
+
+	// scheduleToStartTimeout fails the attempt when no worker takes the task in this time.
+	// +optional
+	ScheduleToStartTimeout *metav1.Duration `json:"scheduleToStartTimeout,omitempty"`
 }
 
 // SuspendTemplate waits for an approval or for a duration.

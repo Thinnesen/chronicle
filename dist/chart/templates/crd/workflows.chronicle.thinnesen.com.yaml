@@ -1624,6 +1624,32 @@ spec:
                             "1h". Without a duration, the node waits for an approval.
                           type: string
                       type: object
+                    task:
+                      description: task sends the input parameters to a task worker
+                        and waits for its result. It needs the archive database.
+                      properties:
+                        heartbeatTimeout:
+                          description: heartbeatTimeout fails the attempt when the
+                            worker sends no heartbeat for this time.
+                          type: string
+                        name:
+                          description: name of the task type that a worker registers.
+                          maxLength: 128
+                          pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_.]*$
+                          type: string
+                        queue:
+                          description: queue that the workers poll. The default is
+                            "default".
+                          maxLength: 63
+                          pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_.]*$
+                          type: string
+                        scheduleToStartTimeout:
+                          description: scheduleToStartTimeout fails the attempt when
+                            no worker takes the task in this time.
+                          type: string
+                      required:
+                      - name
+                      type: object
                     timeout:
                       description: timeout fails a node of this template when it runs
                         longer, for example "10m". With retries, it applies to each
@@ -1634,9 +1660,9 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: a template must have exactly one of container, script,
-                      dag, steps, suspend or resource
+                      dag, steps, suspend, resource or task
                     rule: '[has(self.container), has(self.script), has(self.dag),
-                      has(self.steps), has(self.suspend), has(self.resource)].filter(x,
+                      has(self.steps), has(self.suspend), has(self.resource), has(self.task)].filter(x,
                       x).size() == 1'
                 maxItems: 200
                 type: array
@@ -2005,6 +2031,11 @@ spec:
                       description: startedAt is the time when the node started.
                       format: date-time
                       type: string
+                    taskID:
+                      description: taskID is the ID of the task of a Task node in
+                        the task queue.
+                      maxLength: 512
+                      type: string
                     templateName:
                       description: templateName is the name of the template that the
                         node runs.
@@ -2019,6 +2050,7 @@ spec:
                       - TaskGroup
                       - Retry
                       - Suspend
+                      - Task
                       type: string
                   required:
                   - id
@@ -3520,6 +3552,32 @@ spec:
                                 an approval.
                               type: string
                           type: object
+                        task:
+                          description: task sends the input parameters to a task worker
+                            and waits for its result. It needs the archive database.
+                          properties:
+                            heartbeatTimeout:
+                              description: heartbeatTimeout fails the attempt when
+                                the worker sends no heartbeat for this time.
+                              type: string
+                            name:
+                              description: name of the task type that a worker registers.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_.]*$
+                              type: string
+                            queue:
+                              description: queue that the workers poll. The default
+                                is "default".
+                              maxLength: 63
+                              pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_.]*$
+                              type: string
+                            scheduleToStartTimeout:
+                              description: scheduleToStartTimeout fails the attempt
+                                when no worker takes the task in this time.
+                              type: string
+                          required:
+                          - name
+                          type: object
                         timeout:
                           description: timeout fails a node of this template when
                             it runs longer, for example "10m". With retries, it applies
@@ -3530,10 +3588,10 @@ spec:
                       type: object
                       x-kubernetes-validations:
                       - message: a template must have exactly one of container, script,
-                          dag, steps, suspend or resource
+                          dag, steps, suspend, resource or task
                         rule: '[has(self.container), has(self.script), has(self.dag),
-                          has(self.steps), has(self.suspend), has(self.resource)].filter(x,
-                          x).size() == 1'
+                          has(self.steps), has(self.suspend), has(self.resource),
+                          has(self.task)].filter(x, x).size() == 1'
                     maxItems: 200
                     type: array
                     x-kubernetes-list-map-keys:

@@ -29,6 +29,9 @@ type Input struct {
 	Status v1alpha1.WorkflowStatus
 	// Pods are the observed Pods, by Pod name.
 	Pods map[string]PodResult
+	// Tasks are the observed tasks in the task queue, by task ID. TasksEnabled is false without a task queue.
+	Tasks        map[string]TaskResult
+	TasksEnabled bool
 	// Restarts is the number of retries of the workflow. New Pods get it in their name, so that a Pod
 	// of an earlier try can never stand for a new node.
 	Restarts int32
@@ -276,6 +279,8 @@ func (e *engine) runBody(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, de
 		return e.runDAG(c, t, n, depth)
 	case t.Steps != nil:
 		return e.runSteps(c, t, n, depth)
+	case t.Task != nil:
+		return e.runTask(c, t, n)
 	default:
 		return e.runPod(c, t, n)
 	}
@@ -294,10 +299,10 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 		err = errors.New("the templates are nested too deeply")
 	case err == nil && n.Type == v1alpha1.NodePod:
 		n.Phase = v1alpha1.NodePending
-		n.PodName = n.ID
-		if e.in.Restarts > 0 {
-			n.PodName = fmt.Sprintf("%s-r%d", n.ID, e.in.Restarts)
-		}
+		n.PodName = e.runID(n.ID)
+	case err == nil && n.Type == v1alpha1.NodeTask:
+		n.Phase = v1alpha1.NodePending
+		n.TaskID = e.in.UID + "/" + e.runID(n.ID)
 	case err == nil:
 		e.setPhase(&n, v1alpha1.NodeRunning, "")
 	}
@@ -308,6 +313,15 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 	return e.save(n), err == nil
 }
 
+// runID returns the name of the Pod or the task of a node. After a retry of the workflow it has a suffix,
+// so that a Pod or a task of an earlier try can never stand for a new node.
+func (e *engine) runID(nodeID string) string {
+	if e.in.Restarts > 0 {
+		return fmt.Sprintf("%s-r%d", nodeID, e.in.Restarts)
+	}
+	return nodeID
+}
+
 func nodeType(t *v1alpha1.Template) v1alpha1.NodeType {
 	switch {
 	case t.Suspend != nil:
@@ -316,6 +330,8 @@ func nodeType(t *v1alpha1.Template) v1alpha1.NodeType {
 		return v1alpha1.NodeDAG
 	case t.Steps != nil:
 		return v1alpha1.NodeSteps
+	case t.Task != nil:
+		return v1alpha1.NodeTask
 	}
 	return v1alpha1.NodePod
 }

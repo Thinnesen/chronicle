@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-19: Task workers: the queue is a table in the archive database, a timeout fails the attempt (no silent redelivery), and retries come only from `retryStrategy`. Reason: one retry mechanism for Pods and tasks, and a result that arrives after a timeout can never change a finished node. Temporal also fails an activity attempt on a heartbeat timeout and retries by policy.
+
 - 2026-10-19: The Python and Rust SDKs are hand-written builders that make plain objects, with no generated types and no runtime dependencies (the Python client uses only the standard library). The server validates on submit. A shared fixture keeps the output of the three SDKs equal. Reason: generated CRD types are large and add a generator and dependencies, but give little to a builder API. Section 6 said "the SDKs generate their workflow types from the CRD schema".
 
 - 2026-10-19: Artifacts use one S3-compatible repository for each namespace, from a ConfigMap and a Secret with a fixed name. An artifact value is its key, and the archived log is the node field `logKey`, not an artifact. Reason: a team owns its storage and credentials; the fixed name lets the server read only these Secrets; keys reuse the parameter flow of the engine. Argo has more storage drivers and a default repository in the controller ConfigMap; chronicle supports only S3 for now.

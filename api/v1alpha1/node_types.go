@@ -5,7 +5,7 @@ import (
 )
 
 // NodeType is the type of a node in the workflow graph.
-// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup;Retry;Suspend
+// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup;Retry;Suspend;Task
 type NodeType string
 
 // The node types.
@@ -20,6 +20,8 @@ const (
 	NodeRetry NodeType = "Retry"
 	// NodeSuspend waits for an approval or a duration.
 	NodeSuspend NodeType = "Suspend"
+	// NodeTask waits for a task worker.
+	NodeTask NodeType = "Task"
 )
 
 // NodePhase is the phase of a node.
@@ -82,6 +84,11 @@ type NodeStatus struct {
 	// podName is the name of the Pod of a Pod node.
 	// +optional
 	PodName string `json:"podName,omitempty"`
+
+	// taskID is the ID of the task of a Task node in the task queue.
+	// +kubebuilder:validation:MaxLength=512
+	// +optional
+	TaskID string `json:"taskID,omitempty"`
 
 	// logKey is the key of the archived log of the main container in the artifact repository.
 	// +kubebuilder:validation:MaxLength=1024

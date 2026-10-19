@@ -187,6 +187,10 @@ A `task` template sends a task to a queue. A worker that an SDK runs takes the t
 - At-least-once with task IDs for idempotency. Heartbeats. Timeouts (schedule-to-start, start-to-close, heartbeat). Retries with the template `retryStrategy`.
 - State: the task queue is in the archive database. Without a database, `task` templates are not available.
 - The SDKs give a small API: `@task` (Python), `task!` or a trait (Rust), `RegisterTask` (Go).
+- A `task` template has `name` (the task type), `queue` (default "default"), `heartbeatTimeout` and `scheduleToStartTimeout`. The template `timeout` is the start-to-close timeout.
+- The worker gets the input parameters as a JSON object and returns JSON. The result becomes `outputs.result`. The fields of a result object become the output parameters with the same names. A result can have at most 64 KiB.
+- The engine stays pure. A task node has a `taskID` (`<workflow UID>/<node ID>`, with the retry suffix of the workflow). The engine returns `EnqueueTask` (idempotent) and `CancelTask` actions, and it reads the observed tasks like Pods. It decides the timeouts from `now`, and it asks to run again every 2 s while a task waits or runs.
+- Delivery is at-least-once. A timeout or a stop fails the attempt and cancels its task: a late result is refused. A retry comes only from `retryStrategy`: each attempt is a new task. All attempts of a node have the same idempotency key (`<workflow UID>/<node name without the attempt>`), so that a worker can detect a repeated call.
 
 ## 8. Web UI
 

@@ -23,8 +23,8 @@ func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path) {
 	for i, a := range t.Inputs.Artifacts {
 		ap := path.Child("inputs", "artifacts").Index(i)
 		switch {
-		case t.Resource != nil || t.Suspend != nil:
-			c.errs = append(c.errs, field.Forbidden(ap, "a resource or suspend template cannot have input artifacts"))
+		case t.Resource != nil || t.Suspend != nil || t.Task != nil:
+			c.errs = append(c.errs, field.Forbidden(ap, "a resource, suspend or task template cannot have input artifacts"))
 		case leaf && !executor:
 			c.errs = append(c.errs, field.Forbidden(ap, "a container template needs a command to download an artifact"))
 		case leaf && a.Path == "":
