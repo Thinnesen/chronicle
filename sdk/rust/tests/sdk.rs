@@ -271,3 +271,24 @@ fn builds_a_child_workflow_template() {
             .contains("not a child workflow template")
     );
 }
+
+#[test]
+fn skips_a_run_when_its_lock_is_busy() {
+    let main = Template::container("c", "busybox", ["true"]);
+    let v = Workflow::new("sync-")
+        .skip_when_busy()
+        .mutex("sync")
+        .entrypoint(main.clone())
+        .to_value()
+        .unwrap();
+    assert_eq!(
+        v["spec"]["synchronization"],
+        json!({"mutex": {"name": "sync"}, "whenBusy": "Skip"})
+    );
+    let err = Workflow::new("x-")
+        .skip_when_busy()
+        .entrypoint(main)
+        .to_value()
+        .unwrap_err();
+    assert!(err.to_string().contains("needs a lock"));
+}

@@ -14,6 +14,7 @@ pub struct Workflow {
     spec: Map<String, Value>,
     entrypoint: Option<Template>,
     on_exit: Option<Template>,
+    skip_when_busy: bool,
 }
 
 impl Workflow {
@@ -69,6 +70,12 @@ impl Workflow {
             "synchronization".into(),
             json!({"semaphore": {"name": name, "configMapKeyRef": {"name": config_map, "key": key}}}),
         );
+        self
+    }
+
+    /// Ends a run as skipped when its lock (`mutex` or `semaphore`) is full, instead of a wait.
+    pub fn skip_when_busy(mut self) -> Self {
+        self.skip_when_busy = true;
         self
     }
 
@@ -129,6 +136,18 @@ impl Workflow {
         let mut templates: BTreeMap<String, (usize, Template)> = BTreeMap::new();
         collect(entry, &mut templates)?;
         let mut spec = self.spec.clone();
+        if self.skip_when_busy {
+            match spec.get_mut("synchronization") {
+                Some(Value::Object(sync)) => {
+                    sync.insert("whenBusy".into(), "Skip".into());
+                }
+                _ => {
+                    return Err(WorkflowError(
+                        "skip_when_busy needs a lock: call mutex or semaphore".into(),
+                    ));
+                }
+            }
+        }
         spec.insert("entrypoint".into(), entry.name.clone().into());
         if let Some(exit) = &self.on_exit {
             collect(exit, &mut templates)?;

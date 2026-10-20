@@ -176,3 +176,11 @@ def test_child_workflow_template():
         "workflowTemplateRef": {"name": "etl", "clusterScope": True},
         "arguments": {"parameters": [{"name": "day", "value": "{{inputs.parameters.day}}"}]},
     }
+
+
+def test_skip_when_busy():
+    main = chronicle.container("c", "alpine", "true")
+    w = chronicle.Workflow("sync-").skip_when_busy().mutex("sync").entrypoint(main)
+    assert w.to_dict()["spec"]["synchronization"] == {"mutex": {"name": "sync"}, "whenBusy": "Skip"}
+    with pytest.raises(chronicle.WorkflowError, match="needs a lock"):
+        chronicle.Workflow("x-").skip_when_busy().entrypoint(main).to_dict()

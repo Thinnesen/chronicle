@@ -29,6 +29,7 @@ type Workflow struct {
 	serviceAccount     string
 	parallelism        *int32
 	sync               *v1alpha1.Synchronization
+	skipWhenBusy       bool
 	claims             []v1alpha1.VolumeClaimTemplate
 	volumes            []v1alpha1.Volume
 	errs               []error
@@ -86,6 +87,13 @@ func (w *Workflow) SemaphoreFrom(name, configMap, key string) *Workflow {
 	return w
 }
 
+// SkipWhenBusy ends a run as skipped when its lock (Mutex or Semaphore) is full, instead of a wait. Use it, for
+// example, so that runs of a schedule do not pile up.
+func (w *Workflow) SkipWhenBusy() *Workflow {
+	w.skipWhenBusy = true
+	return w
+}
+
 // VolumeClaim adds a new volume for each run, which its steps share. storage is a size such as "1Gi".
 func (w *Workflow) VolumeClaim(name, storage string) *Workflow {
 	q, err := resource.ParseQuantity(storage)
@@ -125,12 +133,20 @@ func (w *Workflow) Spec() (*v1alpha1.WorkflowTemplateSpec, error) {
 	if w.entrypoint == nil {
 		return nil, errors.New("the workflow has no entrypoint")
 	}
+	sync := w.sync
+	if w.skipWhenBusy {
+		if sync == nil {
+			return nil, errors.New("SkipWhenBusy needs a lock: call Mutex or Semaphore")
+		}
+		sync = sync.DeepCopy()
+		sync.WhenBusy = v1alpha1.WhenBusySkip
+	}
 	spec := &v1alpha1.WorkflowTemplateSpec{
 		Entrypoint:           w.entrypoint.t.Name,
 		Arguments:            v1alpha1.Arguments{Parameters: w.params},
 		ServiceAccountName:   w.serviceAccount,
 		Parallelism:          w.parallelism,
-		Synchronization:      w.sync,
+		Synchronization:      sync,
 		VolumeClaimTemplates: w.claims,
 		Volumes:              w.volumes,
 	}

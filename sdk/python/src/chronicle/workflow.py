@@ -264,6 +264,7 @@ class Workflow:
         self._spec: dict[str, Any] = {}
         self._entrypoint: Template | None = None
         self._on_exit: Template | None = None
+        self._skip_when_busy = False
 
     def name(self, name: str) -> Workflow:
         """Give the run a fixed name instead of a generated one."""
@@ -320,6 +321,11 @@ class Workflow:
         self._params.append({"name": name, "value": value})
         return "{{workflow.parameters." + name + "}}"
 
+    def skip_when_busy(self) -> Workflow:
+        """End a run as skipped when its lock (mutex or semaphore) is full, instead of a wait."""
+        self._skip_when_busy = True
+        return self
+
     def entrypoint(self, template: Template) -> Workflow:
         """Set the template that the run starts with."""
         self._entrypoint = template
@@ -348,6 +354,10 @@ class Workflow:
 
         add(self._entrypoint)
         spec: dict[str, Any] = {"entrypoint": self._entrypoint.name, **self._spec}
+        if self._skip_when_busy:
+            if "synchronization" not in spec:
+                raise WorkflowError("skip_when_busy needs a lock: call mutex or semaphore")
+            spec["synchronization"] = {**spec["synchronization"], "whenBusy": "Skip"}
         if self._on_exit is not None:
             add(self._on_exit)
             spec["onExit"] = self._on_exit.name
