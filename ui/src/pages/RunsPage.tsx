@@ -109,6 +109,11 @@ export function RunsPage() {
       {table.isPending && <p className="quiet">Loading the runs…</p>}
       {table.error && !table.data && <p role="alert">Could not load the runs: {table.error.message}</p>}
       {table.data && <RefreshError error={table.error} />}
+      {table.data?.pages.some((p) => p.archiveUnavailable) && (
+        <p className="refresh-error" role="status">
+          The archive did not answer. The list shows only the runs in the cluster.
+        </p>
+      )}
       {shown && shown.length === 0 && (
         <div className="empty card">
           <p>{q || phase ? "No run matches the filter." : "No runs yet."}</p>

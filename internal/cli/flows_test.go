@@ -70,3 +70,10 @@ func TestErrorText(t *testing.T) {
 		}
 	}
 }
+
+func TestListWithoutTheArchive(t *testing.T) {
+	out, err := run(t, &stub{archiveDown: true}, "list")
+	if err != nil || !strings.Contains(out, "run-1") || !strings.Contains(out, "The archive did not answer") {
+		t.Errorf("list: %q %v", out, err)
+	}
+}

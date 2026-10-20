@@ -42,6 +42,8 @@ type stub struct {
 	failGets int
 	// gates is the number of suspend nodes of the run that wait for an approval.
 	gates int
+	// archiveDown makes the list say that the archive did not answer.
+	archiveDown bool
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -77,7 +79,7 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 }
 
 func (s *stub) ListWorkflows(context.Context, *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
-	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: []*chroniclev1.WorkflowSummary{{Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3, ApprovalsWaiting: 1}, {Name: "run-2", Phase: "Running", WaitingReason: "Unschedulable"}}}), nil
+	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{ArchiveUnavailable: s.archiveDown, Workflows: []*chroniclev1.WorkflowSummary{{Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3, ApprovalsWaiting: 1}, {Name: "run-2", Phase: "Running", WaitingReason: "Unschedulable"}}}), nil
 }
 
 func (s *stub) ApproveNode(_ context.Context, r *connect.Request[chroniclev1.ApproveNodeRequest]) (*connect.Response[chroniclev1.ApproveNodeResponse], error) {
@@ -130,6 +132,7 @@ func run(t *testing.T, s *stub, args ...string) (string, error) {
 	var out bytes.Buffer
 	cmd := NewCommand()
 	cmd.SetOut(&out)
+	cmd.SetErr(&out)
 	cmd.SetArgs(append([]string{"--config", cfgPath}, args...))
 	cmd.SetContext(context.Background())
 	err := cmd.Execute()
@@ -277,7 +280,7 @@ func TestLogsReconnect(t *testing.T) {
 	reconnectWait = time.Millisecond
 	s := &stub{phase: "Running", breakLogs: true}
 	out, err := run(t, s, "logs", "hello", "-f")
-	if err != nil || out != "hello.a: one\nhello.a: two\nhello.a: three\n" || s.streams != 2 {
+	if err != nil || out != "hello.a: one\nhello.a: two\nThe log stream stopped. Connecting again…\nhello.a: three\n" || s.streams != 2 {
 		t.Fatalf("out %q, err %v, %d streams", out, err, s.streams)
 	}
 }

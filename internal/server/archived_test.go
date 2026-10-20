@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -16,9 +17,15 @@ import (
 	"github.com/Thinnesen/chronicle/internal/auth"
 )
 
-type fakeReader struct{ rows []archive.Row }
+type fakeReader struct {
+	rows []archive.Row
+	down bool // down makes List fail, as with a database that does not answer.
+}
 
 func (f fakeReader) List(_ context.Context, q archive.Query) ([]archive.Row, error) {
+	if f.down {
+		return nil, errors.New("connection refused")
+	}
 	var out []archive.Row
 	for _, r := range f.rows {
 		after := q.After == nil || r.CreatedAt.Before(q.After.CreatedAt) || r.CreatedAt.Equal(q.After.CreatedAt) && r.Name > q.After.Name
@@ -115,5 +122,20 @@ func TestEqualityLabels(t *testing.T) {
 	}
 	if m, ok := equalityLabels(""); !ok || len(m) != 0 {
 		t.Errorf("empty: %v %v", m, ok)
+	}
+}
+
+func TestListWithoutTheArchive(t *testing.T) {
+	setup(t)
+	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}, Archive: fakeReader{down: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	// The live runs still come, with a mark that the archive did not answer.
+	list, err := newClient(srv, "alice").ListWorkflows(context.Background(), connect.NewRequest(&chroniclev1.ListWorkflowsRequest{Namespace: "team-a"}))
+	if err != nil || !list.Msg.ArchiveUnavailable {
+		t.Errorf("list: %v %+v", err, list)
 	}
 }

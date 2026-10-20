@@ -102,3 +102,13 @@ for (const scheme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/screens/run-${info.project.name}-${scheme}.png`, fullPage: true });
   });
 }
+
+test("shows the live runs when the archive does not answer", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) =>
+    r.fulfill({ json: { workflows: [{ namespace: "team-a", name: "live-run", uid: "u7", phase: "Running" }], archiveUnavailable: true } }),
+  );
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("link", { name: "live-run" })).toBeVisible();
+  await expect(page.getByText("The archive did not answer. The list shows only the runs in the cluster.")).toBeVisible();
+});

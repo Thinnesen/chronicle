@@ -57,7 +57,7 @@ message WorkflowSummary {
   map<string, string> labels = 9;
   // template is the name of the referenced WorkflowTemplate or ClusterWorkflowTemplate, if any.
   string template = 10;
-  // nodes_done and nodes_total count the Pod, suspend and resource nodes, for a progress bar.
+  // nodes_done and nodes_total count the Pod, suspend and task nodes, for a progress bar.
   int32 nodes_done = 11;
   int32 nodes_total = 12;
   // archived is true for a run that is only in the archive: the Workflow was deleted.
@@ -84,6 +84,8 @@ message ListWorkflowsRequest {
 message ListWorkflowsResponse {
   repeated WorkflowSummary workflows = 1;
   string next_page_token = 2;
+  // archive_unavailable is true when the archive could not answer: the list has only the live runs.
+  bool archive_unavailable = 3;
 }
 
 message GetWorkflowRequest {

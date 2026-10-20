@@ -208,6 +208,9 @@ func (a *app) listCommand() *cobra.Command {
 				return err
 			}
 			printList(a.out, resp.Msg.Workflows)
+			if resp.Msg.ArchiveUnavailable {
+				_, _ = fmt.Fprintln(a.errOut, "The archive did not answer: the list shows only the runs in the cluster.")
+			}
 			return nil
 		},
 	}

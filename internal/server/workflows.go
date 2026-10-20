@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -54,9 +55,10 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 		items = append(items, summary(&live[i]))
 	}
 	limit := pageSize(m.Limit)
-	archived, err := s.archivedRuns(ctx, m, live, after, limit)
-	if err != nil {
-		return nil, err
+	// Without the archive, the live runs still come, with a mark, so that the list does not fail as a whole.
+	archived, archiveErr := s.archivedRuns(ctx, m, live, after, limit)
+	if archiveErr != nil {
+		log.FromContext(ctx).Error(archiveErr, "The archive did not answer", "namespace", m.Namespace)
 	}
 	items = append(items, archived...)
 	slices.SortFunc(items, func(a, b *chroniclev1.WorkflowSummary) int {
@@ -68,7 +70,7 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 		last := items[limit-1]
 		next = cursor{Time: last.CreatedAt.AsTime(), Name: last.Name}.token()
 	}
-	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: items, NextPageToken: next}), nil
+	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: items, NextPageToken: next, ArchiveUnavailable: archiveErr != nil}), nil
 }
 
 func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {

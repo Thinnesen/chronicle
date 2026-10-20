@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -39,7 +40,7 @@ func (s *workflowService) archivedRuns(ctx context.Context, m *chroniclev1.ListW
 	}
 	rows, err := s.archive.List(ctx, q)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, fmt.Errorf("list the archived runs: %w", err)
 	}
 	seen := map[string]bool{}
 	for _, wf := range live {

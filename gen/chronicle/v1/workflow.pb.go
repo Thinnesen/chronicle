@@ -40,7 +40,7 @@ type WorkflowSummary struct {
 	Labels     map[string]string      `protobuf:"bytes,9,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// template is the name of the referenced WorkflowTemplate or ClusterWorkflowTemplate, if any.
 	Template string `protobuf:"bytes,10,opt,name=template,proto3" json:"template,omitempty"`
-	// nodes_done and nodes_total count the Pod, suspend and resource nodes, for a progress bar.
+	// nodes_done and nodes_total count the Pod, suspend and task nodes, for a progress bar.
 	NodesDone  int32 `protobuf:"varint,11,opt,name=nodes_done,json=nodesDone,proto3" json:"nodes_done,omitempty"`
 	NodesTotal int32 `protobuf:"varint,12,opt,name=nodes_total,json=nodesTotal,proto3" json:"nodes_total,omitempty"`
 	// archived is true for a run that is only in the archive: the Workflow was deleted.
@@ -273,8 +273,10 @@ type ListWorkflowsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Workflows     []*WorkflowSummary     `protobuf:"bytes,1,rep,name=workflows,proto3" json:"workflows,omitempty"`
 	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// archive_unavailable is true when the archive could not answer: the list has only the live runs.
+	ArchiveUnavailable bool `protobuf:"varint,3,opt,name=archive_unavailable,json=archiveUnavailable,proto3" json:"archive_unavailable,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ListWorkflowsResponse) Reset() {
@@ -319,6 +321,13 @@ func (x *ListWorkflowsResponse) GetNextPageToken() string {
 		return x.NextPageToken
 	}
 	return ""
+}
+
+func (x *ListWorkflowsResponse) GetArchiveUnavailable() bool {
+	if x != nil {
+		return x.ArchiveUnavailable
+	}
+	return false
 }
 
 type GetWorkflowRequest struct {
@@ -1675,10 +1684,11 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x06phases\x18\x03 \x03(\tR\x06phases\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\"|\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\xad\x01\n" +
 	"\x15ListWorkflowsResponse\x12;\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1d.chronicle.v1.WorkflowSummaryR\tworkflows\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"F\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12/\n" +
+	"\x13archive_unavailable\x18\x03 \x01(\bR\x12archiveUnavailable\"F\n" +
 	"\x12GetWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"\x83\x01\n" +
