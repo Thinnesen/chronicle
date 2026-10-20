@@ -2,8 +2,12 @@ package engine
 
 import (
 	"encoding/json"
+	"slices"
 	"strconv"
 	"testing"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
@@ -98,16 +102,27 @@ templates:
 	}
 }
 
-func TestWorkflowLabels(t *testing.T) {
+// TestWorkflowMetadata checks the placeholders of the labels, the annotations, the parameters and the creation time.
+func TestWorkflowMetadata(t *testing.T) {
 	s := newSim(t, `
 entrypoint: main
+arguments: {parameters: [{name: day, value: "2026-10-20"}]}
 templates:
 - name: main
-  container: {image: x, command: [echo, "{{workflow.labels.team}}"]}
+  container:
+    image: x
+    command: [echo, "{{workflow.labels.team}}", "{{workflow.labels.json}}", "{{workflow.annotations.example.io/owner}}",
+      "{{workflow.annotations.json}}", "{{workflow.parameters.json}}", "{{workflow.mainEntrypoint}}",
+      "{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}",
+      "{{workflow.creationTimestamp.s}}", "{{workflow.creationTimestamp.RFC3339}}"]
 `, nil)
 	s.in.Labels = map[string]string{"team": "data"}
+	s.in.Annotations = map[string]string{"example.io/owner": "ana"}
+	s.in.CreatedAt = metav1.NewTime(time.Date(2026, 3, 4, 5, 6, 7, 0, time.UTC))
 	s.run()
-	if cmd := s.pods[wfName].Template.Container.Command; cmd[1] != "data" {
-		t.Errorf("command = %v", cmd)
+	want := []string{"echo", "data", `{"team":"data"}`, "ana", `{"example.io/owner":"ana"}`,
+		`[{"name":"day","value":"2026-10-20"}]`, "main", "2026/03/04", "1772600767", "2026-03-04T05:06:07Z"}
+	if cmd := s.pods[wfName].Template.Container.Command; !slices.Equal(cmd, want) {
+		t.Errorf("command = %q", cmd)
 	}
 }

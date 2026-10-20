@@ -25,6 +25,11 @@ func (e *engine) globals() map[string]string {
 	g := map[string]string{
 		"workflow.name": e.in.Name, "workflow.namespace": e.in.Namespace, "workflow.uid": e.in.UID,
 		"workflow.status": e.status, "workflow.creationTimestamp": created, "workflow.scheduledTime": scheduled,
+		"workflow.creationTimestamp.RFC3339": created, "workflow.mainEntrypoint": e.in.Spec.Entrypoint,
+		"workflow.creationTimestamp.s": strconv.FormatInt(e.in.CreatedAt.Unix(), 10),
+	}
+	for c, layout := range expr.Strftime {
+		g["workflow.creationTimestamp."+c] = e.in.CreatedAt.UTC().Format(layout)
 	}
 	for _, p := range e.in.Spec.Arguments.Parameters {
 		if v := paramValue(p); v != nil {
@@ -34,6 +39,12 @@ func (e *engine) globals() map[string]string {
 	for k, v := range e.in.Labels {
 		g["workflow.labels."+k] = v
 	}
+	for k, v := range e.in.Annotations {
+		g["workflow.annotations."+k] = v
+	}
+	g["workflow.labels.json"] = asJSON(e.in.Labels, "{}")
+	g["workflow.annotations.json"] = asJSON(e.in.Annotations, "{}")
+	g["workflow.parameters.json"] = asJSON(e.in.Spec.Arguments.Parameters, "[]")
 	if out := e.workflowOutputs(); out != nil {
 		for _, p := range out.Parameters {
 			g["workflow.outputs.parameters."+p.Name] = *p.Value
@@ -46,6 +57,15 @@ func (e *engine) globals() map[string]string {
 	g["workflow.duration"] = strconv.FormatFloat(e.in.Now.Sub(e.startedAt).Seconds(), 'f', -1, 64)
 	g["workflow.failures"] = e.failures()
 	return g
+}
+
+// asJSON encodes metadata or parameters. It returns empty for a nil map or list, where JSON has null.
+func asJSON(v any, empty string) string {
+	data, _ := json.Marshal(v) // Maps of strings and parameters always encode.
+	if string(data) == "null" {
+		return empty
+	}
+	return string(data)
 }
 
 // failures returns the failed steps of the run as JSON, in the form of Argo: the display name, the message, the

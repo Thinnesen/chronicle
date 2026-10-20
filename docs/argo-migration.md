@@ -14,7 +14,7 @@ chronicle convert -f argo-workflow.yaml | kubectl create -n team-a -f -
 - `--strict` makes the command fail when there is a warning. Use it in CI.
 - The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid, for example when it uses a placeholder that chronicle does not have.
 
-In a test with the 190 examples of Argo Workflows (October 2026), 55 converted without a warning, 75 converted with warnings, and 60 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and artifacts that the workflow gives.
+In a test with the 190 examples of Argo Workflows (October 2026), 53 converted without a warning, 77 converted with warnings, and 60 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and artifacts that the workflow gives.
 
 ## What changes
 
@@ -56,7 +56,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 55 converted w
 
 DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
-Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.labels.*`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
+Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.mainEntrypoint`, `workflow.creationTimestamp.*` (strftime letters, `RFC3339`, `s`), `workflow.labels.*`, `workflow.annotations.*`, `workflow.parameters.json`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
 ## Not supported
 

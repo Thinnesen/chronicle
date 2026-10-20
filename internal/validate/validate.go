@@ -29,8 +29,12 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 	c.checkGlobalNames(spec, path)
 	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid", "workflow.status",
 		"workflow.creationTimestamp", "workflow.scheduledTime", "workflow.serviceAccountName", "workflow.duration",
-		"workflow.failures", "workflow.labels.*"} {
+		"workflow.failures", "workflow.labels.*", "workflow.annotations.*", "workflow.parameters.json",
+		"workflow.mainEntrypoint", "workflow.creationTimestamp.RFC3339", "workflow.creationTimestamp.s"} {
 		c.globals[g] = true
+	}
+	for l := range expr.Strftime {
+		c.globals["workflow.creationTimestamp."+l] = true
 	}
 	for i, p := range spec.Arguments.Parameters {
 		c.globals["workflow.parameters."+p.Name] = true

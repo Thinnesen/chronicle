@@ -43,14 +43,17 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | Placeholder | Value |
 |---|---|
 | `{{workflow.name}}`, `{{workflow.namespace}}`, `{{workflow.uid}}` | The run. |
-| `{{workflow.parameters.<name>}}` | A workflow parameter. |
+| `{{workflow.parameters.<name>}}`, `{{workflow.parameters.json}}` | A workflow parameter, and all workflow parameters as JSON. |
+| `{{workflow.mainEntrypoint}}` | The entrypoint template of the run. |
 | `{{workflow.creationTimestamp}}`, `{{workflow.scheduledTime}}` | The creation time, and the planned time of a cron run (RFC 3339). |
+| `{{workflow.creationTimestamp.<letter>}}` | A part of the creation time in UTC, with a strftime letter as in Argo: `Y` (2026), `m` (10), `d` (20), `H`, `M`, `S` and others. `RFC3339` gives the full time, and `s` the Unix seconds. Use them for date partitions: `day={{workflow.creationTimestamp.Y}}-{{workflow.creationTimestamp.m}}-{{workflow.creationTimestamp.d}}`. |
 | `{{workflow.status}}` | The phase of the run, in the exit handler. |
 | `{{workflow.duration}}` | The seconds since the start of the run, for example in the exit handler. |
 | `{{workflow.failures}}` | The failed steps as JSON (display name, message, template, phase, Pod, end), for the exit handler. |
 | `{{workflow.serviceAccountName}}` | The service account of the run. |
 | `{{workflow.outputs.parameters.<name>}}` | A workflow output (an output parameter with `globalName`) of a step that finished. |
-| `{{workflow.labels.<key>}}` | A label of the run, for example the label `chronicle.thinnesen.com/cron-workflow` of a cron run. |
+| `{{workflow.labels.<key>}}`, `{{workflow.labels.json}}` | A label of the run, for example the label `chronicle.thinnesen.com/cron-workflow` of a cron run, and all labels as JSON. |
+| `{{workflow.annotations.<key>}}`, `{{workflow.annotations.json}}` | An annotation of the run, and all annotations as JSON. |
 | `{{inputs.parameters.<name>}}` | An input parameter of the template. |
 | `{{tasks.<task>.outputs.result}}` | The standard output of a DAG task (at most 3 KiB). |
 | `{{tasks.<task>.outputs.parameters.<name>}}` | An output parameter of a DAG task. |
