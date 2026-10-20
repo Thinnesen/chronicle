@@ -230,7 +230,7 @@ A `childWorkflow` template starts a run of another template in the same namespac
     inputs: {parameters: [{name: day}]}
     outputs: {parameters: [{name: rows}]}      # from the outputs of the child run
     childWorkflow:
-      workflowTemplateRef: {name: etl}         # add clusterScope: true for a ClusterWorkflowTemplate
+      workflowTemplateRef: {name: etl}         # the name can have placeholders; clusterScope: true for a ClusterWorkflowTemplate
       arguments: {parameters: [{name: day, value: "{{inputs.parameters.day}}"}]}
 ```
 
