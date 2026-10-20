@@ -30,7 +30,7 @@ func etl() *chronicle.Workflow {
 
 	main := chronicle.DAG("main").Parallelism(2)
 	f := main.Task("fetch", fetch)
-	c := main.Task("count", count).After(f).ArtifactArg("rows", f.Artifact("rows"))
+	c := main.Task("count", count).After(f).ArtifactArg("rows", f.Artifact("rows")).ContinueOn(true, false)
 	main.Task("report", echo).After(c).Arg("msg", "fetched "+f.Result()+" rows")
 	return w.Entrypoint(main)
 }
@@ -97,6 +97,8 @@ func Example() {
 	//           artifacts:
 	//           - from: '{{tasks.fetch.outputs.artifacts.rows}}'
 	//             name: rows
+	//         continueOn:
+	//           failed: true
 	//         dependencies:
 	//         - fetch
 	//         name: count

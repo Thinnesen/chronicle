@@ -183,6 +183,11 @@ class Task:
         self._fields["when"] = condition
         return self
 
+    def continue_on(self, failed: bool = True, error: bool = False) -> Task:
+        """Let the run go on after the task fails (failed) or cannot run (error), as Argo's continueOn."""
+        self._fields["continueOn"] = {k: True for k, v in (("failed", failed), ("error", error)) if v}
+        return self
+
     def with_items(self, *items: Any) -> Task:
         """Run the task once for each item. The template uses "{{item}}" or "{{item.key}}"."""
         self._fields["withItems"] = list(items)

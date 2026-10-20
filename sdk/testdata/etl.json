@@ -40,6 +40,9 @@
                   }
                 ]
               },
+              "continueOn": {
+                "failed": true
+              },
               "dependencies": [
                 "fetch"
               ],

@@ -25,7 +25,7 @@ def etl() -> chronicle.Workflow:
 
     main = chronicle.dag("main").parallelism(2)
     f = main.task("fetch", fetch)
-    c = main.task("count", count).after(f).artifact_arg("rows", f.artifact("rows"))
+    c = main.task("count", count).after(f).artifact_arg("rows", f.artifact("rows")).continue_on(failed=True)
     main.task("report", echo).after(c).arg("msg", f"fetched {f.result()} rows")
     return w.entrypoint(main)
 

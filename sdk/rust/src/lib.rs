@@ -8,6 +8,7 @@ use std::fmt;
 use serde_json::{Map, Value, json};
 
 mod client;
+mod continue_on;
 mod worker;
 mod workflow;
 pub use client::{ApiError, Client};

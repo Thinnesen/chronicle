@@ -25,7 +25,8 @@ fn etl() -> Workflow {
     let f = Task::new("fetch", &fetch);
     let c = Task::new("count", &count)
         .after(&[&f])
-        .artifact_arg("rows", &f.artifact("rows"));
+        .artifact_arg("rows", &f.artifact("rows"))
+        .continue_on(true, false);
     let r = Task::new("report", &echo)
         .after(&[&c])
         .arg("msg", &format!("fetched {} rows", f.result()));
