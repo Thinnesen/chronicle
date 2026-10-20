@@ -22,6 +22,6 @@ The chronicle application uses `ServerSideApply=true`, because the Workflow CRD 
 
 ## How the UI treats resources from Git
 
-- chronicle reads the marks of Argo CD (the annotation `argocd.argoproj.io/tracking-id` or the label `argocd.argoproj.io/instance`) and of Flux (the labels `kustomize.toolkit.fluxcd.io/name` and `helm.toolkit.fluxcd.io/name`).
-- The UI and the API show such a template or cron workflow as "Managed by Argo CD" or "Managed by Flux", and they refuse changes to it, for example a suspend of a cron workflow. Change it in Git.
+- chronicle reads the marks of Argo CD: the annotation `argocd.argoproj.io/tracking-id` or the label `argocd.argoproj.io/instance`. It reads the marks of Flux: the labels `kustomize.toolkit.fluxcd.io/name` and `helm.toolkit.fluxcd.io/name`.
+- The UI and the API show such a template or cron workflow as "Managed by Argo CD" or "Managed by Flux". They refuse changes to it, for example a suspend of a cron workflow. Change it in Git.
 - Runs that start from a managed template, by hand or from a cron workflow, are normal Workflows outside Git. Argo CD does not prune them, because they have no tracking label.

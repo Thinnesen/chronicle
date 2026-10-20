@@ -12,9 +12,14 @@ chronicle convert -f argo-workflow.yaml | kubectl create -n team-a -f -
 - The command converts `Workflow`, `WorkflowTemplate`, `ClusterWorkflowTemplate` and `CronWorkflow`. A file can have more than one document.
 - The result goes to standard output. Each warning goes to standard error. A warning names a field that chronicle does not support: the result does not have that field. Read each warning, because the behavior can change.
 - `--strict` makes the command fail when there is a warning. Use it in CI.
-- The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid, for example when it uses a placeholder that chronicle does not have.
+- The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid. An example is a placeholder that chronicle does not have.
 
-In a test with the 190 examples of Argo Workflows (October 2026), 65 converted without a warning, 87 converted with warnings, and 38 failed because they use features from the last table. The most common causes are expressions (`{{=...}}`), daemon steps (`{{steps.x.ip}}`), artifact sources other than `raw` and `http` (for example `git` and `s3`), and placeholders in Python scripts.
+In a test with the 190 examples of Argo Workflows (October 2026), 65 converted without a warning and 87 with warnings. 38 failed, because they use features from the last table. The most common causes are:
+
+- expressions (`{{=...}}`),
+- daemon steps (`{{steps.x.ip}}`),
+- artifact sources other than `raw` and `http`, for example `git` and `s3`,
+- placeholders in Python scripts.
 
 ## What changes
 
@@ -54,9 +59,32 @@ In a test with the 190 examples of Argo Workflows (October 2026), 65 converted w
 
 ## Supported as in Argo
 
-DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when` (also with `=~` and `!~`), `withItems`, `withParam`, `withSequence` (also with `format`), `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), exit hooks of tasks and steps, `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`, `valueFrom.configMapKeyRef` with the label `chronicle.thinnesen.com/parameters: "true"` on the ConfigMap instead of Argo's `workflows.argoproj.io/configmap-type: Parameter`; `valueFrom.parameter` becomes a `value`), artifacts between steps and out of a `dag` or `steps` template (`from`), `raw` and `http` input artifacts with `mode` (also in the workflow `arguments.artifacts`), `http` templates (url, method, headers, body), `podGC`, `ttlStrategy`, `serviceAccountName`, `inline` templates (the converter makes a named template `<parent>-<task>`), `memoize` (key and maxAge; chronicle keeps the results in its archive database, not in a ConfigMap), and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
+- DAG: `dependencies`, and `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded` and `.AllFailed`. Also `failFast`.
+- Steps.
+- `when`, also with `=~` and `!~`.
+- Fan-out: `withItems`, `withParam` and `withSequence` (also with `format`).
+- Templates: `container`, `script`, `resource`, `http` (url, method, headers, body) and `suspend` (manual approval and `duration`). The converter turns `inline` templates into named templates `<parent>-<task>`.
+- `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout` and `activeDeadlineSeconds`.
+- Exit handlers: the workflow `onExit`, and exit hooks of tasks and steps.
+- `templateRef` and `workflowTemplateRef`.
+- Input and output parameters: `valueFrom.path` and `valueFrom.jsonPath`. `valueFrom.parameter` becomes a `value`.
+- `valueFrom.configMapKeyRef`. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, not Argo's `workflows.argoproj.io/configmap-type: Parameter`.
+- Artifacts between steps, and out of a `dag` or `steps` template (`from`).
+- `raw` and `http` input artifacts with `mode`, also in the workflow `arguments.artifacts`.
+- `memoize` with key and maxAge. chronicle keeps the results in its archive database, not in a ConfigMap.
+- `podGC`, `ttlStrategy` and `serviceAccountName`.
+- CronWorkflow: `timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits and `suspend`.
 
-Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.mainEntrypoint`, `workflow.creationTimestamp.*` (strftime letters, `RFC3339`, `s`), `workflow.labels.*`, `workflow.annotations.*`, `workflow.parameters.json`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, the declared paths (`inputs.artifacts.*.path`, `outputs.artifacts.*.path`, `outputs.parameters.*.path`), `tasks.*.outputs.*`, `tasks.*.status`, `tasks.*.exitCode`, `tasks.*.id`, `tasks.*.startedAt`, `tasks.*.finishedAt` (the same for `steps.*`), `steps.*.outputs.*`, `steps.*.outputs.parameters` of a fan-out (parameter aggregation), `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
+Placeholders:
+
+- `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.serviceAccountName` and `workflow.mainEntrypoint`.
+- `workflow.creationTimestamp`, also with a strftime letter, `RFC3339` or `s`, and `workflow.scheduledTime`.
+- `workflow.duration` and `workflow.failures`.
+- `workflow.parameters.*`, `workflow.parameters.json`, `workflow.labels.*`, `workflow.annotations.*` and `workflow.outputs.*` (with `globalName`).
+- `inputs.parameters.*`, and the declared paths `inputs.artifacts.*.path`, `outputs.artifacts.*.path` and `outputs.parameters.*.path`.
+- `tasks.*.outputs.*`, `tasks.*.status`, `tasks.*.exitCode`, `tasks.*.id`, `tasks.*.startedAt` and `tasks.*.finishedAt`. The same for `steps.*`.
+- `steps.*.outputs.parameters` of a fan-out (parameter aggregation).
+- `pod.name`, `node.name`, `retries` and `item`.
 
 ## Not supported
 

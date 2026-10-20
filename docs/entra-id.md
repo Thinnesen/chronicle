@@ -49,7 +49,7 @@ When a user is in more than 200 groups, Entra does not put the groups in the tok
 
 chronicle keeps the groups from Microsoft Graph for 10 minutes.
 
-To use app roles instead of groups, define the roles in **App roles**, assign users or groups to them, and set `groupsFrom: roles` (step 4).
+To use app roles instead of groups, define the roles in **App roles**. Assign users or groups to them. Then set `groupsFrom: roles` (step 4).
 
 ## 4. Configure chronicle
 

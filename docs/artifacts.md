@@ -1,6 +1,6 @@
 # Artifacts and the log archive
 
-An artifact is a file or a directory that a step saves and a later step uses. chronicle keeps artifacts in an S3-compatible store, for example Amazon S3, Google Cloud Storage (S3 API), Ceph RGW or SeaweedFS. The same store can also keep the logs of all steps, so that you can read them after the Pods are deleted.
+An artifact is a file or a directory that a step saves and a later step uses. chronicle keeps artifacts in an S3-compatible store, for example Amazon S3, Google Cloud Storage (S3 API), Ceph RGW or SeaweedFS. The same store can also keep the logs of all steps. Then you can read them after the Pods are deleted.
 
 ## 1. Configure the repository of a namespace
 
@@ -69,10 +69,10 @@ templates:
 Rules:
 
 - Only a `container` template with a `command`, or a `script` template, can save or download artifacts.
-- A `dag` or `steps` template can pass on an artifact of one of its tasks or steps: an output artifact with only `from`, for example `{name: report, from: "{{tasks.render.outputs.artifacts.report}}"}`. Its caller reads it as `{{tasks.<task>.outputs.artifacts.report}}`.
+- A `dag` or `steps` template can pass on an artifact of one of its tasks or steps. For this, it has an output artifact with only `from`, for example `{name: report, from: "{{tasks.render.outputs.artifacts.report}}"}`. Its caller reads it as `{{tasks.<task>.outputs.artifacts.report}}`.
 - `from` must be exactly one placeholder: `{{tasks.<task>.outputs.artifacts.<name>}}`, `{{steps.<step>.outputs.artifacts.<name>}}` or `{{inputs.artifacts.<name>}}`.
-- An input artifact can have any path, for example `/src` or `/data/model.bin`: the init container downloads it, and chronicle mounts it at its path. An output artifact needs a path that the step user (65532) can write, for example below `/tmp`.
-- Set `optional: true` on an output that a step does not always make, or on an input that a caller does not always give.
+- An input artifact can have any path, for example `/src` or `/data/model.bin`. The init container downloads it, and chronicle mounts it at its path. An output artifact needs a path that the step user (65532) can write, for example below `/tmp`.
+- Set `optional: true` on an output that a step does not always make. Set it also on an input that a caller does not always give.
 - A fan-out (`withItems`, `withParam`) has no artifact outputs.
 - An input artifact can unpack to at most 8 GiB.
 
@@ -107,11 +107,11 @@ spec:
 ```
 
 - `raw.data` is the text of the file, at most 64 KiB. Placeholders in it stay as they are.
-- `http.url` is a file that the step downloads with a GET request, from its own Pod, before the command starts. The URL can have placeholders. The step saves the file as it is: it does not unpack an archive.
+- `http.url` is a file that the step downloads with a GET request from its own Pod. The download happens before the command starts. The URL can have placeholders. The step saves the file as it is: it does not unpack an archive.
 - `mode` sets the file mode, for example `0755` for a program. The default is `0644`.
 - `spec.arguments.artifacts` gives artifacts to the entrypoint and to the exit handler. They need `raw` or `http`.
 - A `dag` or `steps` template passes such an input on with `from: "{{inputs.artifacts.<name>}}"`.
-- An error message names the URL without its query, because a signed URL has its token there. But the URL is in the Workflow spec, the resolved URL is in the node status, and the step Pod has it in its environment. Each reader of the Workflow or of the Pods in the namespace can see it. Do not put a token into a URL that these readers must not see. Download such a file in your command, with the token from a Secret.
+- An error message names the URL without its query, because a signed URL has its token there. But the URL is in the Workflow spec. The resolved URL is in the node status, and the step Pod has it in its environment. Each reader of the Workflow or of the Pods in the namespace can see it. Do not put a token into a URL that these readers must not see. Download such a file in your command, with the token from a Secret.
 
 ## 4. Download an artifact
 
@@ -119,7 +119,7 @@ Open the run in the UI, select the step and open **Summary**. Each output artifa
 
 ## 5. Read archived logs
 
-With `archiveLogs: "true"`, the UI and `chronicle logs <run>` show the log of a step after its Pod is deleted, for example by `podGC` or by the TTL. The UI marks such a log. You need `get` permission on `pods/log` in the namespace. The archive keeps the first 32 MiB of each log.
+With `archiveLogs: "true"`, the UI and `chronicle logs <run>` show the log of a step after its Pod is deleted. For example, `podGC` or the TTL deletes the Pod. The UI marks such a log. You need `get` permission on `pods/log` in the namespace. The archive keeps the first 32 MiB of each log.
 
 ## Problems
 

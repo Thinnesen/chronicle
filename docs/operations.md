@@ -79,12 +79,12 @@ See [observability.md](observability.md).
 2. `helm upgrade` with the new image. The chart updates the CRDs (they are templates, not the `crds/` folder of Helm).
 3. The archive migrations run at the start of the new controller and server.
 
-Runs continue during an upgrade: the engine reads all state from the Workflow status, so a new controller continues where the old one stopped. Task workers poll again when a server replica stops.
+Runs continue during an upgrade. The engine reads all state from the Workflow status. So a new controller continues where the old one stopped. Task workers poll again when a server replica stops.
 
 ## 9. Sizing
 
 The defaults fit small and medium clusters. Raise `manager.resources` for many active runs, because the controller keeps the Workflows and their Pods in its cache. The controller works on 8 runs at the same time; for many active runs, add `--workflow-workers=<n>` to `manager.args`. Use `podGC` and `ttlStrategy` in your templates, so that finished Pods and Workflows do not pile up.
 
-Each step is a Pod with an init container, so a burst of many steps loads the kubelet and the container runtime of the nodes more than the controller. On a small node, 120 Pods at once took minutes each to start. Limit large fan-outs with `parallelism`, and many runs of one template with a `synchronization.semaphore`.
+Each step is a Pod with an init container. So a burst of many steps loads the kubelet and the container runtime of the nodes more than the controller. On a small node, 120 Pods at once took minutes each to start. Limit large fan-outs with `parallelism`. Limit many runs of one template with a `synchronization.semaphore`.
 
-The status of a run holds all its nodes, about 0.5 KiB each, plus the step results (up to 3 KiB each). etcd refuses objects above about 1.5 MiB. So the controller fails a run with "the run is too large" when its Workflow would be larger than 1 MiB, before it starts more Pods. It deletes the Pods of the run that still run. A fan-out of 1000 items fits; 1000 items with retries, or nested fan-outs, can be too large. Split such work into more runs, for example one run for each day.
+The status of a run holds all its nodes, about 0.5 KiB each, and the step results (up to 3 KiB each). etcd refuses objects above about 1.5 MiB. So the controller fails a run with "the run is too large" when its Workflow would be larger than 1 MiB. It does this before it starts more Pods. It deletes the Pods of the run that still run. A fan-out of 1000 items fits. 1000 items with retries, or nested fan-outs, can be too large. Split such work into more runs, for example one run for each day.

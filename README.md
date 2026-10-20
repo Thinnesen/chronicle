@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <em>Kubernetes-native workflow engine: DAG, step and cron workflows as CRDs, retry and re-run from any step, run archive in PostgreSQL, S3 artifacts, OIDC with Kubernetes RBAC, and SDKs for Go, Python and Rust.</em>
+  <em>A Kubernetes-native workflow engine. Write workflows in YAML for GitOps, or in Go, Python or Rust. Retry and re-run from any step.</em>
 </p>
 
 <p align="center">
@@ -18,30 +18,37 @@
 
 ---
 
-> **chronicle has no release yet.** The first version (milestones M1 to M8) is complete on the `dev` branch and is in review. The design is in [`docs/DESIGN.md`](docs/DESIGN.md).
+> **chronicle has no release yet.** The first version (milestones M1 to M8) is complete on the `dev` branch. It is in review. The design is in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## What chronicle is
 
 chronicle runs workflows on Kubernetes. Each step runs as a Pod. Workflows, templates and schedules are custom resources, so `kubectl`, Argo CD and Flux manage them like other Kubernetes objects. The controller keeps the history of each run, so you can retry or re-run any part of it later.
 
+You can use chronicle in two ways, and you can mix them:
+
+- **Simple, with YAML and GitOps**, as with Argo Workflows. Keep the workflows in Git and let Argo CD or Flux deploy them. You need no code and no Helm templates.
+- **Advanced, with code**, as with Dagster. Build workflows in Go, Python or Rust with the SDKs, with the loops, functions and tests of your language. Submit them, or render them to YAML for Git.
+
+A `task` step adds durable work, as Temporal activities do. It gives the work to a long-running worker in your own program, with heartbeats, timeouts and retries. One engine runs all of this, with one history, one UI and one CLI.
+
 Features:
 
-- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods, with retries, timeouts, exit handlers, approvals, fan-out, parallelism limits and locks (one deployment at a time). Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends.
+- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods. It has retries, timeouts, exit handlers, approvals, fan-out, a step cache, parallelism limits and locks (one deployment at a time). Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends.
 - **Remembers** every run, every attempt, its logs and its outputs. Retry the failed steps, retry from any step, or re-run with changed parameters.
-- **Shows what needs you**: runs that wait for an approval, and steps that Kubernetes cannot start, with the reason (for example a missing image), in the UI and the CLI.
-- **Logs you in properly**: OIDC with PKCE for the UI and the device flow for the CLI, with first-class Microsoft 365 (Entra ID) support. Permissions are plain Kubernetes RBAC, the same as for `kubectl` and GitOps.
-- **Keeps teams apart**: map an Entra or other IdP group to a team and its namespaces in a few lines of Helm values. Each team sees and runs only its own work.
+- **Shows what needs you**: the runs that wait for an approval, and the steps that Kubernetes cannot start. The UI and the CLI show the reason, for example a missing image.
+- **Logs you in properly**: OIDC with PKCE for the UI, and the device flow for the CLI. Microsoft 365 (Entra ID) is a first-class provider. Permissions are plain Kubernetes RBAC, the same as for `kubectl` and GitOps.
+- **Keeps teams apart**: a few lines of Helm values map an IdP group to a team and its namespaces. Each team sees and runs only its own work.
 - **Stays GitOps-first**: every definition is a custom resource. Deploy it with Argo CD or Flux, as an app of apps. Resources from Git are read-only in the UI, and runs work from both.
-- **Speaks your language**: SDKs for Go, Python and Rust define and submit workflows as code, and run durable task workers with heartbeats and retries.
-- **Migrates from Argo**: `chronicle convert` turns Argo Workflows YAML into chronicle resources, and `chronicle lint` checks your files in CI without a server.
+- **Speaks your language**: the SDKs for Go, Python and Rust define and submit workflows as code. They also run durable task workers with heartbeats and retries.
+- **Migrates from Argo**: `chronicle convert` turns Argo Workflows YAML into chronicle resources. `chronicle lint` checks your files in CI without a server.
 
 ## See it
 
-The web UI shows the runs of a namespace, a live graph and a timeline of each run, and the logs of each step. All pictures come from real runs on a small demo cluster.
+The web UI shows the runs of a namespace. For each run, it shows a live graph, a timeline and the logs of the steps. All pictures come from real runs on a small demo cluster.
 
 A run of the `etl` template from start to end (twice the real speed):
 
-<img alt="The UI starts a run from a template, follows its graph live until it succeeds, opens the log of a step and the timeline" src="docs/assets/ui-run.gif">
+<img alt="The UI starts a run from a template and follows its graph until it succeeds. Then it opens the log of a step and the timeline." src="docs/assets/ui-run.gif">
 
 | Runs | A fan-out run |
 |---|---|
@@ -102,7 +109,7 @@ kubectl create -n demo -f hello.yaml
 kubectl get workflows -n demo -w
 ```
 
-To use the web UI and the CLI, configure a login with OIDC (any provider, or Microsoft Entra ID) in the Helm values. See [`docs/install.md`](docs/install.md) and the values of the Helm chart in [`dist/chart/values.yaml`](dist/chart/values.yaml).
+The web UI and the CLI need a login. Configure OIDC in the Helm values, with any provider or with Microsoft Entra ID. See [`docs/install.md`](docs/install.md) and the values of the Helm chart in [`dist/chart/values.yaml`](dist/chart/values.yaml).
 
 ## Docs
 

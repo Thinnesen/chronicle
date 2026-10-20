@@ -85,7 +85,7 @@ A task starts when its dependencies are done. Use `dependencies` for a list of n
 ```
 
 - `a` means "a succeeded or was skipped". You can also write `a.Succeeded`, `a.Failed`, `a.Errored`, `a.Skipped` and `a.Omitted`, and combine them with `&&`, `||`, `!` and parentheses.
-- A failure that a task tests for with its exact result (`transform.Failed`) is handled: it does not fail the DAG.
+- A task can test for the exact result of another task, for example `transform.Failed`. Such a failure counts as handled: it does not fail the DAG.
 - `failFast: false` on the DAG lets other branches continue after a failure. The default is `true`.
 
 ## 4. Steps
@@ -121,7 +121,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 - `enum` limits the values. The UI shows a list for such a parameter.
 - A workflow parameter or an input parameter can read a ConfigMap of the namespace: `valueFrom: {configMapKeyRef: {name: settings, key: region}}`. The controller reads it once when the run starts, so all steps see the same value. A missing key uses `default`. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, so that only ConfigMaps that a team shares on purpose reach the runs. Each reader of the run sees the value.
 - An output parameter reads a file (`valueFrom.path`). In a resource template, `valueFrom.jsonPath` reads a field of the object, for example `{.metadata.name}`.
-- `globalName` makes an output parameter or an output artifact a workflow output: `{{workflow.outputs.parameters.<name>}}` (or `{{workflow.outputs.artifacts.<name>}}` in `from`) in later steps and in the exit handler. The run shows its outputs in the UI and in `chronicle get`. When two steps give the same name, the later one wins.
+- `globalName` makes an output parameter or an output artifact a workflow output. Later steps and the exit handler read it as `{{workflow.outputs.parameters.<name>}}`, or as `{{workflow.outputs.artifacts.<name>}}` in `from`. The run shows its outputs in the UI and in `chronicle get`. When two steps give the same name, the later one wins.
 - Larger data goes through artifacts in S3 (see [artifacts.md](artifacts.md)).
 
 ## 6. Conditions and fan-out
@@ -139,7 +139,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 - `when` compares values with `==`, `!=`, `<`, `<=`, `>` and `>=`, and combines conditions with `&&`, `||` and `!`. Two numbers compare as numbers. `=~` and `!~` match a regular expression (Go RE2 syntax), for example `{{tasks.flip.outputs.result}} =~ '^hea'`. A false condition gives the node the phase Skipped.
 - A placeholder value in `when` is always one operand. A value such as `x || true` cannot change the condition.
 - `withItems` runs the template once for each item. `withParam` does the same for a JSON list, for example `{{tasks.list.outputs.result}}`. `withSequence` does it for a range of numbers: `withSequence: {count: "{{workflow.parameters.days}}", start: 1, format: "day-%02d"}` gives `day-01`, `day-02` and so on. Give `count` or `end`; the values can be placeholders. A fan-out has at most 1000 items. A run that would be larger than 1 MiB fails with "the run is too large" (see [operations.md](operations.md#9-sizing)).
-- `parallelism` limits the Pods that run at the same time: `spec.parallelism` for the whole run, and `parallelism` on a `dag` or `steps` template for the Pods below it. A step without a free slot waits with the message "waiting for a free slot".
+- `parallelism` limits the Pods that run at the same time. `spec.parallelism` limits the whole run. `parallelism` on a `dag` or `steps` template limits the Pods below it. A step without a free slot waits with the message "waiting for a free slot".
 
 ## 7. Retries, timeouts and deadlines
 
@@ -155,8 +155,8 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 
 - `Failed` means the command failed (exit code not 0). `Error` means that the step could not run, for example when the image does not exist.
 - `spec.activeDeadlineSeconds` stops the whole run after this time.
-- `continueOn: {failed: true}` (and `error: true`) on a task or a step lets the run go on after it fails: the tasks and steps after it run, and its failure does not fail the DAG or the steps. The step itself stays red.
-- After a run, you can retry the failed nodes, or retry from any node, in the UI or with `chronicle retry`.
+- `continueOn: {failed: true}` (and `error: true`) on a task or a step lets the run go on after it fails. The tasks and steps after it run. Its failure does not fail the DAG or the steps. The step itself stays red.
+- After a run, retry the failed nodes, or retry from any node. Use the UI or `chronicle retry`.
 
 Reuse the result of a step that ran before with the same inputs (it needs the archive database):
 
@@ -171,7 +171,7 @@ Reuse the result of a step that ran before with the same inputs (it needs the ar
 
 - Before the step starts, chronicle looks up the key. With a valid result, the node succeeds at once with the saved outputs and does not start a Pod. The node shows the run that saved the result.
 - Without a result, the step runs. When it succeeds, chronicle saves its outputs under the key.
-- Put each input that changes the result into the key. Output artifacts point to the repository objects of the run that saved them, so keep those objects as long as the results.
+- Put each input that changes the result into the key. Output artifacts point to the repository objects of the run that saved them. Keep those objects as long as the results.
 
 ## 8. Exit handler, approvals and resources
 
@@ -192,7 +192,7 @@ spec:
       env: [{name: STATUS, value: "{{workflow.status}}"}]
 ```
 
-A DAG task or a step can have its own exit handler. It runs when the task ends, also after a failure, and can read the status and the outputs of the task. The tasks after it wait for it. A hook that ends Error fails the DAG or the steps; one that ends Failed does not count. For a fan-out, the hook runs once after all items.
+A DAG task or a step can have its own exit handler. It runs when the task ends, also after a failure. It can read the status and the outputs of the task. The tasks after it wait for it. A hook that ends Error fails the DAG or the steps. A hook that ends Failed does not count. For a fan-out, the hook runs once after all items.
 
 ```yaml
   - name: build
@@ -202,7 +202,7 @@ A DAG task or a step can have its own exit handler. It runs when the task ends, 
       arguments: {parameters: [{name: status, value: "{{tasks.build.status}}"}]}
 ```
 
-Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values: the API refuses other values, and the node fails if such a value comes in another way. The node message names the approver, for example "approved by oidc:alice@example.com". A `resource` template runs with the service account of the run (`spec.serviceAccountName`), so a step can do only what that account can do.
+Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values. The API refuses other values. The node fails if such a value comes in another way. The node message names the approver, for example "approved by oidc:alice@example.com". A `resource` template runs with the service account of the run (`spec.serviceAccountName`). So a step can do only what that account can do.
 
 An `http` template sends one request, for example a chat message from the exit handler:
 
@@ -234,7 +234,7 @@ spec:
 
 Runs with the same lock name in a namespace share the lock. A run that waits for it is Pending, with the message "waiting for the lock ..., which ... holds". A finished run gives the lock back, and so does a run that was deleted. There is no fixed order among the waiting runs.
 
-A container, script, resource, http or task template can have its own lock. Then each node of the template holds the lock only while it runs, for example one database migration at a time across all runs:
+A container, script, resource, http or task template can have its own lock. Then each node of the template holds the lock only while it runs. For example, one database migration runs at a time across all runs:
 
 ```yaml
   - name: migrate
@@ -270,11 +270,11 @@ spec:
 
 ## 12. A YAML trap
 
-kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. A parameter `value: yes` or a parameter named `n` is then not a string, and the API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans.
+kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. Then a parameter `value: yes` or a parameter named `n` is not a string. The API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans.
 
 ## 13. When a step does not start
 
-A step that waits shows the reason from Kubernetes: on its card in the graph, as a badge in the runs list, and in `chronicle get <run>`. The Events tab of the step has the details.
+A step that waits shows the reason from Kubernetes. The reason is on its card in the graph, as a badge in the runs list, and in `chronicle get <run>`. The Events tab of the step has the details.
 
 | Reason | What to do |
 |---|---|

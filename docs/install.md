@@ -1,6 +1,6 @@
 # Install the CLI and the SDKs
 
-chronicle has no release yet, so you install the CLI and the SDKs from this repository. Pin each one to a commit, so that a change on a branch cannot reach your build. The repository is private now: give Git access to it (an SSH key or a token), and for Go set `GOPRIVATE=github.com/Thinnesen/chronicle`.
+chronicle has no release yet, so you install the CLI and the SDKs from this repository. Pin each one to a commit, so that a change on a branch cannot reach your build. The repository is private now. Give Git access to it with an SSH key or a token. For Go, also set `GOPRIVATE=github.com/Thinnesen/chronicle`.
 
 The CLI and the SDKs do not need each other. The CLI is a tool for people. The SDKs are libraries for your own programs: workflows as code, and task workers.
 
@@ -75,4 +75,4 @@ See [sdk/rust/README.md](../sdk/rust/README.md).
 
 ## Task workers
 
-A task worker is your own program that uses an SDK. Run it where you like, for example as a Deployment in the team namespace. It needs the URL of the chronicle server and a service account token with the audience `chronicle` that may `update` `workflows/tasks` in the namespace. See [task-workers.md](task-workers.md).
+A task worker is your own program that uses an SDK. Run it where you like, for example as a Deployment in the team namespace. It needs the URL of the chronicle server and a service account token with the audience `chronicle`. The token must allow `update` on `workflows/tasks` in the namespace. See [task-workers.md](task-workers.md).
