@@ -18,5 +18,11 @@ var _ = Describe("ClusterWorkflowTemplate validation", func() {
 		bad := &chroniclev1alpha1.ClusterWorkflowTemplate{Name: "ct-" + rand.String(6),
 			Spec: templateSpec("entrypoint: m\ntemplates: [{name: m, dag: {tasks: [{name: a, template: c, dependencies: [a]}]}}, " + container + "]")}
 		expectRejected(bad, "the DAG has a cycle")
+
+		// An update gets the same checks as a create.
+		t.Spec.Entrypoint = "nope"
+		err := k8sClient.Update(ctx, t)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("spec.entrypoint"))
 	})
 })

@@ -18,10 +18,14 @@ var _ = Describe("CronWorkflow validation", func() {
 	}
 	const wf = "\nworkflowSpec: {entrypoint: c, templates: [" + container + "]}"
 
-	It("accepts a valid CronWorkflow", func() {
+	It("accepts a valid CronWorkflow and rejects a bad update", func() {
 		cw := newCron("schedules: ['*/5 * * * *']\ntimezone: Europe/Berlin" + wf)
 		Expect(k8sClient.Create(ctx, cw)).To(Succeed())
 		DeferCleanup(k8sClient.Delete, ctx, cw)
+		cw.Spec.Schedules = []string{"every day"}
+		err := k8sClient.Update(ctx, cw)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("spec.schedules"))
 	})
 
 	DescribeTable("rejects",

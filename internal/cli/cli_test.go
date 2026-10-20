@@ -30,6 +30,7 @@ type stub struct {
 	chroniclev1connect.UnimplementedLogServiceHandler
 	chroniclev1connect.UnimplementedTemplateServiceHandler
 	chroniclev1connect.UnimplementedCronServiceHandler
+	chroniclev1connect.UnimplementedNamespaceServiceHandler
 	phase    string
 	requests []any
 	// listed is the last list request.
@@ -104,6 +105,17 @@ func (s *stub) ListWorkflows(_ context.Context, r *connect.Request[chroniclev1.L
 	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{ArchiveUnavailable: s.archiveDown, Workflows: []*chroniclev1.WorkflowSummary{{Namespace: "team-a", Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3, ApprovalsWaiting: 1}, {Name: "run-2", Phase: "Running", WaitingReason: "Unschedulable"}, {Name: "run-3", Phase: "Succeeded", Archived: true}}}), nil
 }
 
+func (s *stub) DeleteWorkflow(_ context.Context, r *connect.Request[chroniclev1.DeleteWorkflowRequest]) (*connect.Response[chroniclev1.DeleteWorkflowResponse], error) {
+	s.requests = append(s.requests, r.Msg)
+	return connect.NewResponse(&chroniclev1.DeleteWorkflowResponse{}), nil
+}
+
+func (s *stub) ListNamespaces(context.Context, *connect.Request[chroniclev1.ListNamespacesRequest]) (*connect.Response[chroniclev1.ListNamespacesResponse], error) {
+	return connect.NewResponse(&chroniclev1.ListNamespacesResponse{Namespaces: []*chroniclev1.NamespaceAccess{
+		{Name: "team-a", CanSubmit: true}, {Name: "team-b"},
+	}}), nil
+}
+
 func (s *stub) ApproveNode(_ context.Context, r *connect.Request[chroniclev1.ApproveNodeRequest]) (*connect.Response[chroniclev1.ApproveNodeResponse], error) {
 	s.requests = append(s.requests, r.Msg)
 	return connect.NewResponse(&chroniclev1.ApproveNodeResponse{}), nil
@@ -145,6 +157,7 @@ func run(t *testing.T, s *stub, args ...string) (string, error) {
 	mux.Handle(chroniclev1connect.NewLogServiceHandler(s))
 	mux.Handle(chroniclev1connect.NewTemplateServiceHandler(s))
 	mux.Handle(chroniclev1connect.NewCronServiceHandler(s))
+	mux.Handle(chroniclev1connect.NewNamespaceServiceHandler(s))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	cfgPath := filepath.Join(t.TempDir(), "config.json")
@@ -234,6 +247,19 @@ func TestCommands(t *testing.T) {
 		if _, err := run(t, s, bad...); err == nil {
 			t.Errorf("%v returned no error", bad)
 		}
+	}
+}
+
+func TestDeleteAndNamespaces(t *testing.T) {
+	s := &stub{phase: "Succeeded"}
+	out, err := run(t, s, "delete", "hello")
+	if req, ok := s.requests[0].(*chroniclev1.DeleteWorkflowRequest); err != nil || !ok || req.Name != "hello" || req.Namespace != "team-a" ||
+		!strings.Contains(out, "Deleted team-a/hello") {
+		t.Errorf("delete: err %v, requests %v, output %s", err, s.requests, out)
+	}
+	out, err = run(t, s, "namespaces")
+	if err != nil || out != "team-a\tsubmit\nteam-b\tview\n" {
+		t.Errorf("namespaces: err %v, output %q", err, out)
 	}
 }
 
