@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildGraph, taskDependencies, withPlan, type Workflow } from "./workflow";
+import { buildGraph, plannedSteps, taskDependencies, withPlan, type Workflow } from "./workflow";
 
 const wf: Workflow = {
   metadata: { name: "wf", namespace: "ns" },
@@ -65,6 +65,15 @@ describe("withPlan", () => {
     const nodes = withPlan(started);
     expect(nodes["p/planned/b"]).toMatchObject({ name: "p.b", type: "Pod", planned: true });
     expect(buildGraph(started, nodes).map((e) => `${e.from}>${e.to}`)).toContain("A>p/planned/b");
+  });
+
+  it("counts the planned steps that do work, not the groups", () => {
+    const started: Workflow = {
+      metadata: { name: "p", namespace: "ns" },
+      spec: { templates: [{ name: "main", dag: { tasks: [{ name: "a" }, { name: "b", depends: "a" }, { name: "sub", template: "inner", depends: "a" }] } }, { name: "inner", dag: { tasks: [] } }] },
+      status: { nodes: { p: { id: "p", name: "p", type: "DAG", templateName: "main", children: ["A"] }, A: { id: "A", name: "p.a", type: "Pod" } } },
+    };
+    expect(plannedSteps(started)).toBe(1);
   });
 
   it("adds the step groups that have not started after the last group", () => {

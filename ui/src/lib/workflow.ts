@@ -168,6 +168,12 @@ export function withPlan(wf: Workflow): Record<string, NodeStatus> {
   return out;
 }
 
+// plannedSteps counts the planned nodes that do work, so that the step count of an active run matches its graph.
+// The items of a fan-out are not known before it starts, so the count is a lower bound.
+export function plannedSteps(wf: Workflow): number {
+  return Object.values(withPlan(wf)).filter((n) => n.planned && isStation(n)).length;
+}
+
 // exits returns the nodes where the work of a node ends: the node itself, the last attempt of a retry,
 // the items of a fan-out, the leaf tasks of a DAG or the last group of steps.
 function exits(

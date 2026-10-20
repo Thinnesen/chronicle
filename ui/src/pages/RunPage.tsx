@@ -13,7 +13,7 @@ import { YamlView } from "../components/Lazy";
 import { RefreshError } from "../components/RefreshError";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { nodeLabel, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
+import { nodeLabel, plannedSteps, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
 import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
 import { useTitle } from "../lib/useTitle";
@@ -56,6 +56,8 @@ export function RunPage() {
   if (!data?.summary || !wf) return <p className="quiet">Loading the run…</p>;
   const s = data.summary;
   const phase = s.phase || "Pending";
+  // While the run is active, the steps that have not started count too, as the graph draws them.
+  const steps = s.nodesTotal + (finished.has(phase) ? 0 : plannedSteps(wf));
   const started = toDate(s.startedAt);
   const nodes = wf.status?.nodes ?? {};
   const node = selected ? nodes[selected] : undefined;
@@ -102,9 +104,9 @@ export function RunPage() {
           <div>
             <dt>Steps</dt>
             <dd>
-              <ProgressTrack done={s.nodesDone} total={s.nodesTotal} phase={phase} />
+              <ProgressTrack done={s.nodesDone} total={steps} phase={phase} />
               <span className="quiet">
-                {s.nodesDone} of {s.nodesTotal}
+                {s.nodesDone} of {steps}
               </span>
             </dd>
           </div>
