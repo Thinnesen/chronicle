@@ -127,7 +127,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	} else if err != nil {
 		return ctrl.Result{}, err
 	}
-	took, problems, err := r.applyAll(ctx, &wf, spec, res.Actions)
+	took, messages, err := r.applyAll(ctx, &wf, spec, res.Actions)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -137,7 +137,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		result.RequeueAfter = lockStart
 	}
 	wf.Status = res.Status
-	for id, msg := range problems {
+	for id, msg := range messages {
 		n := wf.Status.Nodes[id]
 		n.Message = msg
 		wf.Status.Nodes[id] = n
@@ -306,23 +306,27 @@ const applyWorkers = 8
 const lockStart = 100 * time.Millisecond
 
 // applyAll applies the actions of one engine step. It returns true when a node took a lock, so that the run goes on
-// soon. It also returns the message of each node that waits for a lock with a limit that is not valid. The lock actions run one after the other, because they change the same Leases. The other actions are
+// soon. It also returns the message of each node that waits for a lock: the holders, or the problem of its limit. The lock actions run one after the other, because they change the same Leases. The other actions are
 // independent and run in parallel. The artifact repository is read once.
 func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec,
 	actions []engine.Action) (bool, map[string]string, error) {
 	took := false
-	problems := map[string]string{}
+	messages := map[string]string{}
 	rest := make([]engine.Action, 0, len(actions))
 	for _, a := range actions {
 		switch a.(type) {
 		case engine.AcquireLock, engine.ReleaseLock:
-			held, err := r.applyLock(ctx, wf, a)
-			if acquire, ok := a.(engine.AcquireLock); ok && errors.Is(err, resolve.ErrInvalid) {
-				problems[acquire.NodeID] = lockProblem(acquire.Lock, err)
+			held, msg, err := r.applyLock(ctx, wf, a)
+			acquire, isAcquire := a.(engine.AcquireLock)
+			if isAcquire && errors.Is(err, resolve.ErrInvalid) {
+				messages[acquire.NodeID] = lockProblem(acquire.Lock, err)
 				continue
 			}
 			if err != nil {
 				return false, nil, err
+			}
+			if isAcquire && msg != "" {
+				messages[acquire.NodeID] = msg
 			}
 			took = took || held
 		default:
@@ -341,7 +345,7 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 			return nil
 		})
 	}
-	return took, problems, g.Wait()
+	return took, messages, g.Wait()
 }
 
 func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, a engine.Action,

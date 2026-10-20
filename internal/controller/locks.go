@@ -44,20 +44,20 @@ func (r *WorkflowReconciler) heldLocks(ctx context.Context, wf *chroniclev1alpha
 	return held, nil
 }
 
-// applyLock takes or gives back the lock of a node. It returns true when it took a lock.
-func (r *WorkflowReconciler) applyLock(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.Action) (bool, error) {
+// applyLock takes or gives back the lock of a node. It returns true when it took a lock, or else the message of a
+// node that waits, which names the holders.
+func (r *WorkflowReconciler) applyLock(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.Action) (bool, string, error) {
 	switch a := a.(type) {
 	case engine.AcquireLock:
 		limit, err := r.lockLimit(ctx, wf.Namespace, a.Limit, a.LimitFrom)
 		if err != nil {
-			return false, err
+			return false, "", err
 		}
-		held, _, err := r.acquireAs(ctx, wf.Namespace, a.Lock, limit, holder{UID: string(wf.UID), Name: wf.Name, Node: a.NodeID})
-		return held, err
+		return r.acquireAs(ctx, wf.Namespace, a.Lock, limit, holder{UID: string(wf.UID), Name: wf.Name, Node: a.NodeID})
 	case engine.ReleaseLock:
-		return false, r.releaseWhere(ctx, wf.Namespace, a.Lock, func(h holder) bool { return h.UID == string(wf.UID) && h.Node == a.NodeID })
+		return false, "", r.releaseWhere(ctx, wf.Namespace, a.Lock, func(h holder) bool { return h.UID == string(wf.UID) && h.Node == a.NodeID })
 	}
-	return false, nil
+	return false, "", nil
 }
 
 // lockLimit returns the limit of a lock: the number of the spec, or the number in a key of a labeled ConfigMap. The

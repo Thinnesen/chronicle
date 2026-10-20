@@ -36,7 +36,7 @@ templates:
 		reconcileWith(ctx, r, second) // asks for the lock
 		wf2 := reconcileWith(ctx, r, second)
 		Expect(podsOf(ctx, wf2)).To(BeEmpty())
-		Expect(wf2.Status.Nodes[wf2.Name].Message).To(Equal("waiting for the lock " + lock))
+		Expect(wf2.Status.Nodes[wf2.Name].Message).To(Equal("waiting for the lock " + lock + ", which " + wf1.Name + " holds"))
 
 		finishPod(ctx, &pods1[0])
 		r.wake = make(chan event.GenericEvent, 8)
