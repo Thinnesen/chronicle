@@ -153,6 +153,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A pending step that Kubernetes cannot start, for example because of a missing image. */
+.station-meta.is-warning {
+  font-weight: 600;
+  color: var(--caution-ink);
+}
+
 .station-kind {
   flex: none;
   width: 0.875rem;

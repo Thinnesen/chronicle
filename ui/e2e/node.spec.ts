@@ -78,6 +78,7 @@ test("shows the Kubernetes events of a node", async ({ page }) => {
 test("a step that cannot start opens on its events and explains the empty log", async ({ page }) => {
   await mockAPI(page, { stuck: true });
   await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n6");
+  await expect(page.locator(".run-graph").getByText("ErrImagePull", { exact: true })).toBeVisible();
   const panel = page.getByRole("complementary", { name: "Step publish" });
   await expect(panel.getByRole("tab", { name: "Events" })).toHaveAttribute("aria-selected", "true");
   await panel.getByRole("tab", { name: "Logs" }).click();
