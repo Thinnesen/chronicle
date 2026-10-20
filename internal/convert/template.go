@@ -273,9 +273,13 @@ func (c *converter) outputParameter(in obj, path string) obj {
 	if vf == nil {
 		return out
 	}
-	v := c.pick(vf, join(path, "valueFrom"), []string{"path", "jsonPath"}, "supplied", "default")
+	v := c.pick(vf, join(path, "valueFrom"), []string{"path", "jsonPath"}, "supplied", "default", "parameter")
 	if d, ok := vf["default"]; ok {
 		out["default"] = d
+	}
+	// An Argo output of a dag or steps template can read a parameter of a child; in chronicle it is a value.
+	if p, ok := vf["parameter"]; ok {
+		out[fValue] = p
 	}
 	if len(v) > 0 {
 		out["valueFrom"] = v

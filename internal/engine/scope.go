@@ -107,12 +107,33 @@ func isWork(t v1alpha1.NodeType) bool {
 func (e *engine) nodeScope(c call, n v1alpha1.NodeStatus) expr.Resolver {
 	inputs := e.inputScope(n.Inputs)
 	own := map[string]string{"pod.name": n.PodName, "node.name": c.nodeName, "retries": strconv.Itoa(c.retry)}
+	if t := e.templates[c.template]; t != nil {
+		maps.Copy(own, pathPlaceholders(t))
+	}
 	return func(name string) (string, bool) {
 		if v, ok := own[name]; ok {
 			return v, true
 		}
 		return inputs(name)
 	}
+}
+
+// pathPlaceholders returns the declared paths of a template: "inputs.artifacts.<name>.path",
+// "outputs.artifacts.<name>.path" and "outputs.parameters.<name>.path".
+func pathPlaceholders(t *v1alpha1.Template) map[string]string {
+	out := map[string]string{}
+	for _, a := range t.Inputs.Artifacts {
+		out["inputs.artifacts."+a.Name+".path"] = a.Path
+	}
+	for _, a := range t.Outputs.Artifacts {
+		out["outputs.artifacts."+a.Name+".path"] = a.Path
+	}
+	for _, p := range t.Outputs.Parameters {
+		if p.ValueFrom != nil && p.ValueFrom.Path != "" {
+			out["outputs.parameters."+p.Name+".path"] = p.ValueFrom.Path
+		}
+	}
+	return out
 }
 
 func paramValue(p v1alpha1.Parameter) *string {

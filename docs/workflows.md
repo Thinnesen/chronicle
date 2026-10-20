@@ -55,6 +55,7 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{workflow.labels.<key>}}`, `{{workflow.labels.json}}` | A label of the run, for example the label `chronicle.thinnesen.com/cron-workflow` of a cron run, and all labels as JSON. |
 | `{{workflow.annotations.<key>}}`, `{{workflow.annotations.json}}` | An annotation of the run, and all annotations as JSON. |
 | `{{inputs.parameters.<name>}}` | An input parameter of the template. |
+| `{{inputs.artifacts.<name>.path}}`, `{{outputs.artifacts.<name>.path}}`, `{{outputs.parameters.<name>.path}}` | In a container or script template: the path of a declared artifact or output file, so that a command does not repeat it. |
 | `{{tasks.<task>.outputs.result}}` | The standard output of a DAG task (at most 3 KiB). |
 | `{{tasks.<task>.outputs.parameters.<name>}}` | An output parameter of a DAG task. |
 | `{{steps.<step>.outputs.result}}`, `{{steps.<step>.outputs.parameters.<name>}}` | The same for a step. |

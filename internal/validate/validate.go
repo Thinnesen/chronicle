@@ -123,7 +123,7 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 	}
 	c.checkOutputs(t, path.Child("outputs", "parameters"), sc.with(c.childOutputs(t)...))
 	// A template that runs as a Pod also knows its Pod, its node and the number of its retry.
-	pod := sc.with("pod.name", "node.name", "retries")
+	pod := sc.with("pod.name", "node.name", "retries").with(pathNames(t)...)
 	switch {
 	case t.Container != nil:
 		c.checkContainer(t.Container, path.Child("container"), pod)

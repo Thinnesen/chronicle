@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -12,8 +13,15 @@ import (
 
 // isArtifact tells if a placeholder names an artifact. Its value is a key in the artifact repository, not text.
 func isArtifact(name string) bool {
+	if pathPlaceholder.MatchString(name) {
+		return false
+	}
 	return strings.HasPrefix(name, "inputs.artifacts.") || strings.Contains(name, ".outputs.artifacts.")
 }
+
+// pathPlaceholder matches the placeholder of a declared path, for example "inputs.artifacts.data.path".
+// Its value is text: the path in the container.
+var pathPlaceholder = regexp.MustCompile(`^(inputs\.artifacts|outputs\.artifacts|outputs\.parameters)\.[^.]+\.path$`)
 
 // checkArtifacts checks the artifacts that a template declares.
 // Only a container or script template with the executor can download or save files. A dag or steps template can pass
@@ -171,4 +179,21 @@ func findArtifact(list []v1alpha1.Artifact, name string) *v1alpha1.Artifact {
 		}
 	}
 	return nil
+}
+
+// pathNames returns the path placeholders of a template, for a container, script, resource or http template.
+func pathNames(t *v1alpha1.Template) []string {
+	var names []string
+	for _, a := range t.Inputs.Artifacts {
+		names = append(names, "inputs.artifacts."+a.Name+".path")
+	}
+	for _, a := range t.Outputs.Artifacts {
+		names = append(names, "outputs.artifacts."+a.Name+".path")
+	}
+	for _, p := range t.Outputs.Parameters {
+		if p.ValueFrom != nil && p.ValueFrom.Path != "" {
+			names = append(names, "outputs.parameters."+p.Name+".path")
+		}
+	}
+	return names
 }

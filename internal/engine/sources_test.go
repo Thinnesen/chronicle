@@ -85,3 +85,25 @@ templates:
 		t.Errorf("show = %v", cmd)
 	}
 }
+
+// TestPathPlaceholders checks the placeholders of the declared paths, which Argo commands use to avoid repeating them.
+func TestPathPlaceholders(t *testing.T) {
+	s := newSim(t, `
+entrypoint: main
+arguments: {artifacts: [{name: in, raw: {data: x}}]}
+templates:
+- name: main
+  inputs: {artifacts: [{name: in, path: /tmp/in.txt}]}
+  outputs:
+    parameters: [{name: lines, valueFrom: {path: /tmp/n}}]
+    artifacts: [{name: out, path: /tmp/out}]
+  container: {image: x, command: [sh, -c, "wc -l {{inputs.artifacts.in.path}} > {{outputs.parameters.lines.path}}; cp {{inputs.artifacts.in.path}} {{outputs.artifacts.out.path}}"]}
+`, nil)
+	if st := s.run(); st.Phase != v1alpha1.WorkflowSucceeded {
+		t.Fatalf("phase %s: %s", st.Phase, st.Message)
+	}
+	want := "wc -l /tmp/in.txt > /tmp/n; cp /tmp/in.txt /tmp/out"
+	if cmd := s.pods[wfName].Template.Container.Command; cmd[2] != want {
+		t.Errorf("command = %q", cmd[2])
+	}
+}

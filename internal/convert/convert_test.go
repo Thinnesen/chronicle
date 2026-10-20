@@ -145,6 +145,12 @@ func TestRules(t *testing.T) {
 			err:       "format must have one number verb",
 		},
 		{
+			name: "valueFrom.parameter becomes a value",
+			templates: "  - {name: main, outputs: {parameters: [{name: o, valueFrom: {parameter: '{{steps.s.outputs.result}}'}}]}, steps: [[{name: s, template: c}]]}\n" +
+				"  - {name: c, container: {image: x, command: [run]}}",
+			want: []string{"value: '{{steps.s.outputs.result}}'"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",
