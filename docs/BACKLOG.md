@@ -61,6 +61,10 @@ Smaller:
 - S20. (done; LAST uses the new status field `lastStartedTime`) `get` does not show global output artifacts. `cron list` LAST and NEXT texts. `list` hides "only in the archive" when the run has a message.
 - S21. (done; the missing edge did not come back on the current build) UI: at 390 px the graph is cut off on first render; a running graph does not refit; a missing edge from a nested DAG task; Tasks page icons and filters; a duration suspend uses the hand icon; "the depends condition is false" in steps; "soak-tlock, soak-tlock holds"; "<nil>: Invalid value" in a submit error; a foreign namespace URL keeps "demo" in the sidebar.
 
+## Candidates
+
+- A retry of the parent run retries only the failed nodes of a failed child run, instead of a new child run (Kestra RETRY_FAILED). It needs a restart of the child with the generation of the parent try, and a clear error when the child refuses the retry.
+
 ## Later (do not start in this run)
 
 - #37 Durable workflow code with deterministic replay
