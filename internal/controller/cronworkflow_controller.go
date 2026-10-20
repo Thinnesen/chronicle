@@ -75,7 +75,10 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	meta.SetStatusCondition(&cw.Status.Conditions, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Scheduled", Message: msg, ObservedGeneration: cw.Generation})
 	if !equality.Semantic.DeepEqual(old, &cw.Status) {
-		if err := r.Status().Update(ctx, &cw); err != nil {
+		if err := r.Status().Update(ctx, &cw); apierrors.IsConflict(err) {
+			// The cache had an old CronWorkflow. Run again with the new one; the run names are the same.
+			return ctrl.Result{RequeueAfter: time.Second}, nil
+		} else if err != nil {
 			return ctrl.Result{}, fmt.Errorf("update the CronWorkflow status: %w", err)
 		}
 	}
