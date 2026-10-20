@@ -61,6 +61,22 @@ Smaller:
 - S20. (done; LAST uses the new status field `lastStartedTime`) `get` does not show global output artifacts. `cron list` LAST and NEXT texts. `list` hides "only in the archive" when the run has a message.
 - S21. (done; the missing edge did not come back on the current build) UI: at 390 px the graph is cut off on first render; a running graph does not refit; a missing edge from a nested DAG task; Tasks page icons and filters; a duration suspend uses the hand icon; "the depends condition is false" in steps; "soak-tlock, soak-tlock holds"; "<nil>: Invalid value" in a submit error; a foreign namespace URL keeps "demo" in the sidebar.
 
+## Soak test 2 findings (2026-10-20, build a19d3a9)
+
+- T1. HIGH. A run with a name over 63 characters and a Pod root node stays Pending: the root node ID is the run name, and it is a Pod label. Child run names add 9 characters for each level.
+- T2. MEDIUM. A childWorkflow argument that the child template does not declare is accepted without an error.
+- T3. MEDIUM. The run page says "has not started yet" for a run that ended in Error before it started.
+- T4. MEDIUM. Lint accepts a negative duration (`-5s`). A bad `startAt` error has no field path in lint and submit.
+- T5. MEDIUM. With one namespace, the picker on /runs shows that namespace, not "All namespaces".
+- T6. LOW. The depth error of nested child runs repeats the messages of all levels below.
+- T7. LOW. Child runs look like top-level runs in the lists (the UI marker came in 51d3a6f).
+- T8. LOW. Stop and timeout messages do not name the child run; a missing output does not name it.
+- T9. LOW. The delete dialog does not say that child runs go too. Suspend of the parent does not suspend the child.
+- T10. LOW. `--at -5m` and `--at 0s` say "not a duration". A past time gives no warning. `rerun` prints "Started" for a waiting run.
+- T11. LOW. `list --phase failed` (lower case) or an unknown phase gives an empty list without an error.
+- T12. LOW. A Forbid skip leaves no Event.
+- T13. LOW. The UI list "Started" shows the creation time for a run that never started. Fan-out nodes are cut at the right edge of the graph.
+
 ## Later (do not start in this run)
 
 - #37 Durable workflow code with deterministic replay

@@ -37,9 +37,13 @@ const (
 // buildPod returns the Pod for a CreatePod action. The Pod meets the "restricted" Pod security standard.
 // files is the artifact work of the executor, or nil.
 func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engine.CreatePod, executorImage string, files *executor.ArtifactSpec) *corev1.Pod {
-	labels := map[string]string{LabelWorkflowUID: string(wf.UID), LabelNodeID: a.NodeID}
+	labels := map[string]string{LabelWorkflowUID: string(wf.UID)}
+	// A label value has at most 63 characters. The ID of the root node is the run name, which can be longer.
 	if len(wf.Name) <= 63 {
 		labels[LabelWorkflow] = wf.Name
+	}
+	if len(a.NodeID) <= 63 {
+		labels[LabelNodeID] = a.NodeID
 	}
 	var main corev1.Container
 	var mounts []v1alpha1.VolumeMount
