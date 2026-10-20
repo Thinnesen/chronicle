@@ -250,7 +250,12 @@ func (c *converter) parameters(list []any, path string) []any {
 func (c *converter) artifacts(list []any, path string, fields ...string) []any {
 	out := make([]any, 0, len(list))
 	for i, a := range list {
-		out = append(out, c.pick(asObj(a), index(path, i), append([]string{fName}, fields...), "archive"))
+		in := asObj(a)
+		if p, ok := in["path"].(string); ok && strings.Count(p, "/") == 1 && len(p) > 1 {
+			// Argo runs the executor as root; chronicle runs each step as a user without root.
+			c.warn(join(index(path, i), "path"), "chronicle runs steps as the user 65532, which cannot create %s: use a path below /tmp", p)
+		}
+		out = append(out, c.pick(in, index(path, i), append([]string{fName}, fields...), "archive"))
 	}
 	return out
 }

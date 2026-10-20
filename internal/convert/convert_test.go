@@ -30,7 +30,7 @@ func TestArgoExamples(t *testing.T) {
 		{file: "retry-backoff.yaml", warning: "retryStrategy.backoff.cap: chronicle does not support this field"},
 		{file: "exit-handlers.yaml"},
 		{file: "continue-on-fail.yaml"},
-		{file: "global-outputs.yaml"},
+		{file: "global-outputs.yaml", warning: "cannot create /art: use a path below /tmp"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
@@ -71,6 +71,11 @@ func TestRules(t *testing.T) {
 			name:      "string numbers and bare durations",
 			templates: `  - {name: main, retryStrategy: {limit: "3", backoff: {duration: "5", factor: "2"}}, container: {image: x, command: [run]}}`,
 			want:      []string{"limit: 3", "duration: 5s", "factor: 2"},
+		},
+		{
+			name:      "an artifact path directly below the root",
+			templates: "  - {name: main, outputs: {artifacts: [{name: o, path: /out}]}, container: {image: x, command: [run]}}",
+			want:      []string{"path: /out", "cannot create /out: use a path below /tmp"},
 		},
 		{
 			name:      "shell script placeholders become variables",
