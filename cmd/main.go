@@ -11,6 +11,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"go.opentelemetry.io/otel"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,6 +31,7 @@ import (
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/archive"
 	"github.com/Thinnesen/chronicle/internal/controller"
+	"github.com/Thinnesen/chronicle/internal/telemetry"
 	webhookv1alpha1 "github.com/Thinnesen/chronicle/internal/webhook/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -202,6 +204,15 @@ func main() {
 		APIReader:     mgr.GetAPIReader(),
 		Recorder:      mgr.GetEventRecorder("chronicle-controller"),
 		Workers:       workflowWorkers,
+	}
+	shutdownTraces, err := telemetry.Setup(context.Background(), "chronicle-controller")
+	if err != nil {
+		setupLog.Error(err, "Failed to set up the traces")
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownTraces(context.Background()) }()
+	if telemetry.Enabled() {
+		workflows.Tracer = otel.Tracer("chronicle-controller")
 	}
 	if archiveDSNFile != "" {
 		store, err := archive.OpenFile(context.Background(), archiveDSNFile)

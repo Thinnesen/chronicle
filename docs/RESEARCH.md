@@ -104,7 +104,7 @@ The ranked list, with the state of chronicle:
 10. Workflow of workflows with links and stop propagation. Argo #6922 (r69), Temporal #680 (r76). chronicle has resource steps that create runs, without links.
 11. Four-eyes approval (the approver is not the submitter). Argo #12108 (r15), #12270 (r26), Dagster #8067 (r40). chronicle records the approver, not the rules.
 12. Task queue depth as a metric, for KEDA. Temporal #33 (r51). Done in 87ebf01.
-13. OpenTelemetry spans for runs and steps. Dagster #12353 (r138), #11191 (r84), Argo #12589 (r30). chronicle traces API calls only.
+13. OpenTelemetry spans for runs and steps. Dagster #12353 (r138), #11191 (r84), Argo #12589 (r30). Runs and steps are done (spans when a run finishes, TRACEPARENT in each Pod). Task workers are open.
 14. One view across namespaces. Argo #9140 (r32), #6769 (r57). To check in chronicle.
 15. Fail a step that cannot start after a time (pendingTimeout). Argo #10341 (r28). A bad image name fails at once (bcf2d5b). The node timeout also counts the pending time.
 

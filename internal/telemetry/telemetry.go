@@ -34,7 +34,7 @@ func Setup(ctx context.Context, service string) (func(context.Context) error, er
 	if err != nil {
 		return nil, fmt.Errorf("describe the service: %w", err)
 	}
-	provider := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter), sdktrace.WithResource(res))
+	provider := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter), sdktrace.WithResource(res), sdktrace.WithIDGenerator(IDGenerator()))
 	otel.SetTracerProvider(provider)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	return provider.Shutdown, nil

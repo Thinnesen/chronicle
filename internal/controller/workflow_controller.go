@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -42,6 +43,8 @@ type WorkflowReconciler struct {
 	Tasks TaskQueue
 	// Cache keeps the results of templates with memoize, or is nil without the archive database.
 	Cache StepCache
+	// Tracer records the spans of finished runs, or is nil without traces.
+	Tracer trace.Tracer
 	// Recorder writes Kubernetes Events about runs, or is nil.
 	Recorder events.EventRecorder
 	// APIReader reads objects that the manager does not cache, such as the artifact repository ConfigMap.
@@ -166,6 +169,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	if finished(wf.Status.Phase) && wf.Status.Phase != observed.Phase {
 		r.finishedRun(&wf)
+		r.traceRun(ctx, &wf)
 	}
 	if archiveErr != nil {
 		return ctrl.Result{}, archiveErr
@@ -185,30 +189,6 @@ func (r *WorkflowReconciler) archive(ctx context.Context, wf *chroniclev1alpha1.
 	meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: conditionArchived, Status: metav1.ConditionTrue,
 		Reason: "Saved", Message: "the archive has the run", ObservedGeneration: wf.Generation})
 	return nil
-}
-
-// applyTTL deletes a finished workflow when its TTL is over, or runs again when it will be over.
-func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1.Workflow, result ctrl.Result) (ctrl.Result, error) {
-	spec := &wf.Spec.WorkflowTemplateSpec
-	if wf.Status.StoredSpec != nil {
-		spec = wf.Status.StoredSpec
-	}
-	when, ok := engine.TTL(spec, wf.Status)
-	// With an archive, the TTL deletes a run only after the archive has it.
-	if !ok || r.Archive != nil && !meta.IsStatusConditionTrue(wf.Status.Conditions, conditionArchived) {
-		return result, nil
-	}
-	if wait := time.Until(when); wait > 0 {
-		if result.RequeueAfter == 0 || wait < result.RequeueAfter {
-			result.RequeueAfter = wait
-		}
-		return result, nil
-	}
-	logf.FromContext(ctx).Info("Deleting the workflow after its TTL")
-	if err := r.Delete(ctx, wf, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
-		return ctrl.Result{}, fmt.Errorf("delete the workflow after its TTL: %w", err)
-	}
-	return ctrl.Result{}, nil
 }
 
 // restart applies a new retry request of a finished run: it resets the nodes and deletes their Pods.
@@ -366,6 +346,9 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 			}
 		}
 		pod := buildPod(wf, spec, a, r.ExecutorImage, files)
+		if r.Tracer != nil {
+			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, traceparentEnv(wf, a.NodeID))
+		}
 		if err := r.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("create the Pod of node %s: %w", a.NodeName, err)
 		}

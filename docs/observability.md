@@ -24,4 +24,11 @@ The controller records a Kubernetes Event when a run finishes: `Normal` for Succ
 
 ## Traces
 
-The server exports OpenTelemetry traces of the API calls when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (OTLP over gRPC). The other standard `OTEL_*` variables apply, for example `OTEL_TRACES_SAMPLER`. Without the variable, the server makes no spans.
+The server and the controller export OpenTelemetry traces when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (OTLP over gRPC). The other standard `OTEL_*` variables apply, for example `OTEL_TRACES_SAMPLER`. Without the variable, they make no spans. Set the variables with the Helm values `server.env` and `manager.env`.
+
+- The server makes a span for each API call.
+- The controller makes one trace for each run. The trace ID is the UID of the run, without the dashes. When the run finishes, the controller writes a span for the run and a span for each node that ran, with the times from the status. A node span is a child of its parent node. A failed run or node has the status Error with its message. The attributes start with `chronicle.`, for example `chronicle.template`, `chronicle.phase` and `chronicle.node.pod`.
+- Each Pod gets the variable `TRACEPARENT` with the span of its node. An OpenTelemetry SDK that reads the variable makes the spans of the step children of the node span.
+- A retry makes a new run span in the same trace (`chronicle.try`). It has only the nodes that ran in that try.
+
+Task workers do not get a trace context yet.
