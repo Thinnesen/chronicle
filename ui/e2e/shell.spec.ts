@@ -60,3 +60,13 @@ test("finds a run with the command palette", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/runs\/train-model-4rq9z$/);
 });
+
+test("goes to the login page when the session ends on an open page", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("link", { name: "etl-nightly-8k2pq" })).toBeVisible();
+  // The session ends, for example after the idle timeout: the server answers each call with unauthenticated.
+  await page.route("**/auth/me", (r) => r.fulfill({ status: 401, body: "log in first" }));
+  await page.route("**/chronicle.v1.**", (r) => r.fulfill({ status: 401, json: { code: "unauthenticated", message: "the session ended" } }));
+  await expect(page).toHaveURL(/\/login\?back=%2Fns%2Fteam-a/, { timeout: 15_000 });
+});

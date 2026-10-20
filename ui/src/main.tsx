@@ -6,7 +6,8 @@ import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/lists.css";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { setNonce } from "get-nonce";
 import { StrictMode } from "react";
@@ -21,7 +22,19 @@ applyTheme(readTheme());
 const nonce = document.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]')?.content;
 if (nonce) setNonce(nonce);
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } } });
+// A call that the server answers with unauthenticated means that the session ended, for example after the idle
+// timeout. Trying again cannot help, so the user goes to the login page and comes back to the same page.
+function onCallError(err: unknown) {
+  if (ConnectError.from(err).code !== Code.Unauthenticated || location.pathname === "/login") return;
+  queryClient.removeQueries({ queryKey: ["session"] });
+  void router.navigate({ to: "/login", search: { back: location.pathname + location.search } });
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } },
+  queryCache: new QueryCache({ onError: onCallError }),
+  mutationCache: new MutationCache({ onError: onCallError }),
+});
 const router = newRouter(queryClient);
 
 const root = document.getElementById("root");
