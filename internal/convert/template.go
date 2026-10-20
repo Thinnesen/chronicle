@@ -201,7 +201,7 @@ func (c *converter) http(in obj, path string) obj {
 
 // memoize keeps the key and the age. chronicle keeps the results in its archive database, not in a ConfigMap.
 func (c *converter) memoize(in obj, path string) (obj, error) {
-	out := c.pick(in, path, []string{"key"}, "maxAge", "cache")
+	out := c.pick(in, path, []string{fKey}, "maxAge", "cache")
 	if _, ok := in["cache"]; ok {
 		c.warn(join(path, "cache"), "chronicle keeps the results in its archive database, not in a ConfigMap")
 	}
@@ -342,7 +342,7 @@ func (c *converter) parameters(list []any, path string) []any {
 
 // configMapParameter keeps a parameter that reads a ConfigMap. chronicle reads only ConfigMaps with its label.
 func (c *converter) configMapParameter(vf, out obj, path string) {
-	kept := c.pick(vf, path, []string{"configMapKeyRef"}, "default")
+	kept := c.pick(vf, path, []string{fConfigMap}, "default")
 	if d, ok := vf["default"]; ok {
 		out["default"] = d
 	}

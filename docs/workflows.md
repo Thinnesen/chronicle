@@ -234,6 +234,17 @@ spec:
 
 Runs with the same lock name in a namespace share the lock. A run that waits for it is Pending, with the message "waiting for the lock ..., which ... holds". A finished run gives the lock back, and so does a run that was deleted. There is no fixed order among the waiting runs.
 
+A semaphore can read its limit from a key of a ConfigMap. Then a platform team can change the limit without a change of the workflows:
+
+```yaml
+  synchronization:
+    semaphore:
+      name: gpu-jobs
+      configMapKeyRef: {name: limits, key: gpu-jobs}   # the value is a number, for example "3"
+```
+
+The ConfigMap must have the label `chronicle.thinnesen.com/parameters: "true"`. The controller reads the value each time a run asks for the lock. A new limit applies to the next run that asks. Runs that hold the lock keep it. A missing label, key or number fails the run with phase Error.
+
 A container, script, resource, http or task template can have its own lock. Then each node of the template holds the lock only while it runs. For example, one database migration runs at a time across all runs:
 
 ```yaml

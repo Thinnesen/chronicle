@@ -16,6 +16,8 @@ const (
 	fName        = "name"
 	fValue       = "value"
 	fTemplate    = "template"
+	fKey         = "key"
+	fConfigMap   = "configMapKeyRef"
 	kindCron     = "CronWorkflow"
 	kindWorkflow = "Workflow"
 )

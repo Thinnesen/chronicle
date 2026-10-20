@@ -273,9 +273,30 @@ spec:
                     - name
                     type: object
                   semaphore:
-                    description: Semaphore lets limit runs with the lock name run
-                      at the same time in the namespace.
+                    description: |-
+                      Semaphore lets limit runs with the lock name run at the same time in the namespace. The limit is a number, or a
+                      key of a ConfigMap.
                     properties:
+                      configMapKeyRef:
+                        description: |-
+                          configMapKeyRef reads the limit from a key of a ConfigMap each time a run asks for the lock. So a platform team
+                          can change the limit without a change of the workflows. The ConfigMap needs the label
+                          chronicle.thinnesen.com/parameters: "true".
+                        properties:
+                          key:
+                            description: key in the data of the ConfigMap.
+                            maxLength: 253
+                            minLength: 1
+                            type: string
+                          name:
+                            description: name of the ConfigMap.
+                            maxLength: 253
+                            minLength: 1
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
                       limit:
                         description: limit is the number of runs that can hold the
                           lock at the same time.
@@ -289,9 +310,11 @@ spec:
                         pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                         type: string
                     required:
-                    - limit
                     - name
                     type: object
+                    x-kubernetes-validations:
+                    - message: give limit or configMapKeyRef
+                      rule: has(self.limit) != has(self.configMapKeyRef)
                 type: object
                 x-kubernetes-validations:
                 - message: set mutex or semaphore
@@ -2493,9 +2516,30 @@ spec:
                           - name
                           type: object
                         semaphore:
-                          description: Semaphore lets limit runs with the lock name
-                            run at the same time in the namespace.
+                          description: |-
+                            Semaphore lets limit runs with the lock name run at the same time in the namespace. The limit is a number, or a
+                            key of a ConfigMap.
                           properties:
+                            configMapKeyRef:
+                              description: |-
+                                configMapKeyRef reads the limit from a key of a ConfigMap each time a run asks for the lock. So a platform team
+                                can change the limit without a change of the workflows. The ConfigMap needs the label
+                                chronicle.thinnesen.com/parameters: "true".
+                              properties:
+                                key:
+                                  description: key in the data of the ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                                name:
+                                  description: name of the ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - key
+                              - name
+                              type: object
                             limit:
                               description: limit is the number of runs that can hold
                                 the lock at the same time.
@@ -2509,9 +2553,11 @@ spec:
                               pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                               type: string
                           required:
-                          - limit
                           - name
                           type: object
+                          x-kubernetes-validations:
+                          - message: give limit or configMapKeyRef
+                            rule: has(self.limit) != has(self.configMapKeyRef)
                       type: object
                       x-kubernetes-validations:
                       - message: set mutex or semaphore

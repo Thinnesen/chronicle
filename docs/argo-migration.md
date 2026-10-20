@@ -94,7 +94,7 @@ Placeholders:
 | Pod fields: `securityContext`, `volumes`, `volumeMounts`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
 | Life-cycle `hooks` with an expression, `hooks` on the workflow, and exit hooks that run once for each item of a fan-out | chronicle has exit hooks on tasks and steps (`hooks.exit` and the older `onExit` become `onExit`), and the workflow `onExit`. A hook of a fan-out runs once after all items. |
-| `synchronization.semaphore` with a ConfigMap limit, `metrics` | Not supported. A `mutex` converts, at the run and at the template level; set a semaphore limit by hand. |
+| More than one lock on a run or a template, database semaphores, `metrics` | chronicle has one lock for each run and each template. The converter keeps the first mutex or semaphore. A semaphore keeps its ConfigMap limit. Give the ConfigMap the label `chronicle.thinnesen.com/parameters: "true"`. |
 | `plugin`, `data` and `containerSet` templates; `successCondition`, `timeoutSeconds`, `insecureSkipVerify` and `bodyFrom` of an `http` template | Not supported. A status from 200 to 299 is success. Task workers cover larger calls to services. |
 | Artifact sources `s3`, `gcs`, `azure`, `oss`, `git`, `hdfs`, `artifactory`, and `http` with `auth` or `headers` | Use the artifact repository of the namespace, `raw`, or a plain `http` URL. |
 | `outputs.result` of a container without a command | Not supported. Give the container a command. |

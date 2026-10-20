@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -18,6 +19,7 @@ import (
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/engine"
+	"github.com/Thinnesen/chronicle/internal/resolve"
 )
 
 // conditionLocked tells that a run holds the lock of its synchronization.
@@ -188,6 +190,14 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 		wf.Status.Message = "the workflow was stopped while it waited for the lock " + name
 		setLocked(wf, false, "Stopped", wf.Status.Message)
 		return r.writeWaiting(ctx, wf, observed, ctrl.Result{})
+	}
+	limit, err := r.lockLimit(ctx, wf.Namespace, limit, spec.Synchronization.LimitFrom())
+	if errors.Is(err, resolve.ErrInvalid) {
+		res, err := r.setError(ctx, wf, err.Error())
+		return res, true, err
+	}
+	if err != nil {
+		return ctrl.Result{}, true, err
 	}
 	held, msg, err := r.acquire(ctx, wf, name, limit)
 	if err != nil {

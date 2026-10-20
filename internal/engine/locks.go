@@ -14,11 +14,13 @@ const lockPoll = 5 * time.Second
 // waitingForLock starts the message of a node that waits for the lock of its template.
 const waitingForLock = "waiting for the lock"
 
-// AcquireLock asks the controller to take the lock of a template for a node. Limit is the number of holders.
+// AcquireLock asks the controller to take the lock of a template for a node. Limit is the number of holders, or
+// LimitFrom names the ConfigMap key that gives it.
 type AcquireLock struct {
-	Lock   string
-	Limit  int
-	NodeID string
+	Lock      string
+	Limit     int
+	LimitFrom *v1alpha1.ConfigMapKeyRef
+	NodeID    string
 }
 
 // ReleaseLock asks the controller to give the lock of a node back.
@@ -37,7 +39,7 @@ func (e *engine) waitForLock(t *v1alpha1.Template, n *v1alpha1.NodeStatus) bool 
 		return false
 	}
 	n.Message = waitingForLock + " " + name
-	e.actions = append(e.actions, AcquireLock{Lock: name, Limit: limit, NodeID: n.ID})
+	e.actions = append(e.actions, AcquireLock{Lock: name, Limit: limit, LimitFrom: t.Synchronization.LimitFrom(), NodeID: n.ID})
 	e.reached(e.in.Now.Add(lockPoll))
 	return true
 }

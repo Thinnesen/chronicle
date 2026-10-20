@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A semaphore can read its limit from a key of a ConfigMap (`configMapKeyRef`), as in Argo. The controller reads the ConfigMap past its cache each time a run or a node asks for the lock. So a new limit counts at the next try, and holders above the new limit keep the lock. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, as for parameters. A missing label, key or number fails the run with phase Error. Reason: a platform team can change the limit without a change of the workflows. The converter names the lock after the ConfigMap name and key, so runs that share the key share the lock. This replaces part of the entry of 2026-10-19 about locks.
+
 - 2026-10-20: The init container downloads the input artifacts into an emptyDir. The main container mounts each input with `subPath` at its path, as in Argo. Before, the main container downloaded the inputs. So a step without root could not get an input at a path such as `/src`. Outputs still need a writable path, because the step writes them itself. A failed download fails the init container. Its termination message becomes the node message.
 
 - 2026-10-20: DAG tasks and steps can have an exit hook (`onExit` with a template and arguments). The rules are those of Argo v4. The tasks after a task wait for its hook. A hook that ends Error fails the DAG or the steps. A hook that ends Failed does not. A fan-out runs its hook once after all items. Argo runs it once for each item; one hook keeps the node tree simple. chronicle has no expressions, so it has no hooks with expressions.

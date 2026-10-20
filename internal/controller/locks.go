@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 
 	coordinationv1 "k8s.io/api/coordination/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -11,6 +13,7 @@ import (
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/engine"
+	"github.com/Thinnesen/chronicle/internal/resolve"
 )
 
 // heldLocks returns the nodes of a run that hold the lock of their template: node ID to lock name.
@@ -44,10 +47,31 @@ func (r *WorkflowReconciler) heldLocks(ctx context.Context, wf *chroniclev1alpha
 func (r *WorkflowReconciler) applyLock(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.Action) (bool, error) {
 	switch a := a.(type) {
 	case engine.AcquireLock:
-		held, _, err := r.acquireAs(ctx, wf.Namespace, a.Lock, a.Limit, holder{UID: string(wf.UID), Name: wf.Name, Node: a.NodeID})
+		limit, err := r.lockLimit(ctx, wf.Namespace, a.Limit, a.LimitFrom)
+		if err != nil {
+			return false, err
+		}
+		held, _, err := r.acquireAs(ctx, wf.Namespace, a.Lock, limit, holder{UID: string(wf.UID), Name: wf.Name, Node: a.NodeID})
 		return held, err
 	case engine.ReleaseLock:
 		return false, r.releaseWhere(ctx, wf.Namespace, a.Lock, func(h holder) bool { return h.UID == string(wf.UID) && h.Node == a.NodeID })
 	}
 	return false, nil
+}
+
+// lockLimit returns the limit of a lock: the number of the spec, or the number in a key of a labeled ConfigMap. The
+// controller reads the ConfigMap each time, so a new limit counts at the next try. A bad ConfigMap is ErrInvalid.
+func (r *WorkflowReconciler) lockLimit(ctx context.Context, namespace string, limit int, from *chroniclev1alpha1.ConfigMapKeyRef) (int, error) {
+	if from == nil {
+		return limit, nil
+	}
+	v, found, err := configMapGetter{r.reader(), namespace}.ConfigMapValue(ctx, from.Name, from.Key)
+	if err != nil {
+		return 0, fmt.Errorf("the limit of a lock: %w", err)
+	}
+	n, perr := strconv.Atoi(strings.TrimSpace(v))
+	if !found || perr != nil || n < 1 {
+		return 0, fmt.Errorf("the limit of a lock: ConfigMap %q needs a number of 1 or more in key %q: %w", from.Name, from.Key, resolve.ErrInvalid)
+	}
+	return n, nil
 }

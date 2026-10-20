@@ -117,6 +117,9 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.failTooLarge(ctx, &wf, size)
 	}
 	took, err := r.applyAll(ctx, &wf, spec, res.Actions)
+	if errors.Is(err, resolve.ErrInvalid) {
+		return r.setError(ctx, &wf, err.Error())
+	}
 	if err != nil {
 		return ctrl.Result{}, err
 	}

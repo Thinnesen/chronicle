@@ -1,9 +1,12 @@
 package convert
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 )
 
 // spec converts a workflow spec. forWorkflow allows workflowTemplateRef.
@@ -190,25 +193,61 @@ func (c *converter) steps(groups []any, path string) ([]any, error) {
 	return out, nil
 }
 
-// synchronization keeps an Argo mutex. An Argo semaphore reads its limit from a ConfigMap, which chronicle does not do.
+// synchronization keeps the first Argo mutex or semaphore. chronicle has one lock for each run.
 func (c *converter) synchronization(in obj, path string) obj {
-	var names []any
+	var locks []obj
 	if m := asObj(in["mutex"]); m != nil {
-		names = append(names, m["name"])
+		locks = append(locks, obj{"mutex": obj{fName: m[fName]}})
 	}
 	for _, m := range asList(in["mutexes"]) {
-		names = append(names, asObj(m)["name"])
+		locks = append(locks, obj{"mutex": obj{fName: asObj(m)[fName]}})
 	}
-	if _, ok := in["semaphore"]; ok || in["semaphores"] != nil {
-		c.warn(path, "a semaphore takes its limit from a ConfigMap in Argo: set synchronization.semaphore with a limit by hand")
+	sems := asList(in["semaphores"])
+	if s := in["semaphore"]; s != nil {
+		sems = append([]any{s}, sems...)
 	}
-	if len(names) > 1 {
-		c.warn(path, "chronicle has one lock for each run: it keeps the first mutex")
+	for _, s := range sems {
+		if sem := c.semaphore(asObj(s), path); sem != nil {
+			locks = append(locks, obj{"semaphore": sem})
+		}
 	}
-	if len(names) == 0 {
+	if len(locks) > 1 {
+		c.warn(path, "chronicle has one lock for each run: it keeps the first lock")
+	}
+	if len(locks) == 0 {
 		return nil
 	}
-	return obj{"mutex": obj{"name": names[0]}}
+	return locks[0]
+}
+
+// semaphore converts an Argo semaphore with a ConfigMap limit. The lock name comes from the ConfigMap name and key,
+// so runs that share the ConfigMap key also share the lock, as in Argo.
+func (c *converter) semaphore(in obj, path string) obj {
+	ref := asObj(in[fConfigMap])
+	name, _ := ref[fName].(string)
+	key, _ := ref[fKey].(string)
+	if name == "" || key == "" {
+		c.warn(path, "chronicle reads the limit of a semaphore only from a ConfigMap key: set synchronization.semaphore by hand")
+		return nil
+	}
+	c.warn(join(path, fConfigMap), "give ConfigMap %v the label chronicle.thinnesen.com/parameters: \"true\"", name)
+	return obj{fName: lockName(name + "-" + key), fConfigMap: obj{fName: name, fKey: key}}
+}
+
+// lockName makes a valid lock name: lower case letters, digits and dashes, at most 48 characters.
+func lockName(s string) string {
+	b := []byte(strings.ToLower(s))
+	for i, ch := range b {
+		if (ch < 'a' || ch > 'z') && (ch < '0' || ch > '9') {
+			b[i] = '-'
+		}
+	}
+	out := strings.Trim(string(b), "-")
+	if len(out) > 48 {
+		sum := sha256.Sum256([]byte(s))
+		out = strings.TrimRight(out[:39], "-") + "-" + hex.EncodeToString(sum[:4])
+	}
+	return out
 }
 
 // exitHook converts the exit hook of a task or a step: hooks.exit, or the older onExit with a template name.

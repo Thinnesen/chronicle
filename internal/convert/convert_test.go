@@ -3,6 +3,7 @@ package convert
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -94,9 +95,15 @@ func TestRules(t *testing.T) {
 			want: []string{"parallelism: 5", "- dag:", "parallelism: 2", "spec.templates[1].parallelism: only a dag or steps template"},
 		},
 		{
-			name:      "a mutex stays and a semaphore warns",
+			name:      "the first lock stays",
 			templates: "  - {name: main, container: {image: x}}\n  synchronization: {mutexes: [{name: deploy}], semaphores: [{configMapKeyRef: {name: c, key: k}}]}",
-			want:      []string{"synchronization:\n    mutex:\n      name: deploy", "set synchronization.semaphore with a limit by hand"},
+			want:      []string{"synchronization:\n    mutex:\n      name: deploy", "it keeps the first lock"},
+		},
+		{
+			name:      "a semaphore reads its limit from the ConfigMap",
+			templates: "  - {name: main, container: {image: x}}\n  synchronization: {semaphore: {configMapKeyRef: {name: my-config, key: Workflow_Limit}}}",
+			want: []string{"semaphore:\n      configMapKeyRef:\n        key: Workflow_Limit\n        name: my-config\n      name: my-config-workflow-limit",
+				`give ConfigMap my-config the label chronicle.thinnesen.com/parameters: "true"`},
 		},
 		{
 			name: "unsupported fields are dropped",
@@ -214,5 +221,15 @@ func TestRefusesOtherDocuments(t *testing.T) {
 	_, err := Convert([]byte("apiVersion: v1\nkind: ConfigMap\nmetadata: {name: x}\n"))
 	if err == nil || !strings.Contains(err.Error(), "not an Argo") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+func TestLockName(t *testing.T) {
+	long := lockName(strings.Repeat("Config.Map", 10) + "-")
+	if len(long) > 48 || !regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`).MatchString(long) {
+		t.Errorf("lockName gave %q, which is not a valid lock name", long)
+	}
+	if lockName("_a_") != "a" {
+		t.Errorf("lockName(_a_) = %q, want a", lockName("_a_"))
 	}
 }

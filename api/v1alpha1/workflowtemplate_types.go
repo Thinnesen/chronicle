@@ -140,7 +140,8 @@ type Synchronization struct {
 	Semaphore *Semaphore `json:"semaphore,omitempty"`
 }
 
-// Lock returns the name of the lock and how many holders it can have, or false without a lock.
+// Lock returns the name of the lock and how many holders it can have, or false without a lock. The limit is 0 when a
+// ConfigMap gives it (see LimitFrom).
 func (s *Synchronization) Lock() (string, int, bool) {
 	switch {
 	case s == nil:
@@ -153,6 +154,14 @@ func (s *Synchronization) Lock() (string, int, bool) {
 	return "", 0, false
 }
 
+// LimitFrom returns the ConfigMap key with the limit of a semaphore, or nil.
+func (s *Synchronization) LimitFrom() *ConfigMapKeyRef {
+	if s == nil || s.Semaphore == nil {
+		return nil
+	}
+	return s.Semaphore.ConfigMapKeyRef
+}
+
 // Mutex lets one run with the lock name run at a time in the namespace.
 type Mutex struct {
 	// name of the lock. Runs with the same name in a namespace share it.
@@ -162,7 +171,9 @@ type Mutex struct {
 	Name string `json:"name"`
 }
 
-// Semaphore lets limit runs with the lock name run at the same time in the namespace.
+// Semaphore lets limit runs with the lock name run at the same time in the namespace. The limit is a number, or a
+// key of a ConfigMap.
+// +kubebuilder:validation:XValidation:rule="has(self.limit) != has(self.configMapKeyRef)",message="give limit or configMapKeyRef"
 type Semaphore struct {
 	// name of the lock. Runs with the same name in a namespace share it.
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
@@ -171,6 +182,11 @@ type Semaphore struct {
 	Name string `json:"name"`
 	// limit is the number of runs that can hold the lock at the same time.
 	// +kubebuilder:validation:Minimum=1
-	// +required
-	Limit int32 `json:"limit"`
+	// +optional
+	Limit int32 `json:"limit,omitempty"`
+	// configMapKeyRef reads the limit from a key of a ConfigMap each time a run asks for the lock. So a platform team
+	// can change the limit without a change of the workflows. The ConfigMap needs the label
+	// chronicle.thinnesen.com/parameters: "true".
+	// +optional
+	ConfigMapKeyRef *ConfigMapKeyRef `json:"configMapKeyRef,omitempty"`
 }
