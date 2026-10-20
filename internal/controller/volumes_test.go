@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -74,6 +75,30 @@ templates:
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowError))
 		Expect(wf.Status.Message).To(ContainSubstring(`the claim "` + taken.Name + `" exists, and the run does not own it`))
 		Expect(podsOf(ctx, wf)).To(BeEmpty())
+	})
+
+	It("stops a run when its claim from an earlier try is still being deleted", func() {
+		key := newWorkflow(ctx, spec)
+		var created chroniclev1alpha1.Workflow
+		Expect(k8sClient.Get(ctx, key, &created)).To(Succeed())
+		old := &corev1.PersistentVolumeClaim{Name: claimName(&created, "work"), Namespace: key.Namespace, Finalizers: []string{"test/keep"},
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(&created, chroniclev1alpha1.GroupVersion.WithKind("Workflow"))},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources:   corev1.VolumeResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1Gi")}},
+			}}
+		Expect(k8sClient.Create(ctx, old)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, old)).To(Succeed())
+		DeferCleanup(func() error {
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(old), old); err != nil {
+				return client.IgnoreNotFound(err)
+			}
+			old.Finalizers = nil
+			return client.IgnoreNotFound(k8sClient.Update(ctx, old))
+		})
+		wf := reconcileWith(ctx, testReconciler(), key)
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowError))
+		Expect(wf.Status.Message).To(ContainSubstring("is still being deleted"))
 	})
 
 	It("creates no claim for a spec that is not valid", func() {

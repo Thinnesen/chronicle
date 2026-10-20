@@ -79,6 +79,11 @@ func (r *WorkflowReconciler) createClaim(ctx context.Context, wf *chroniclev1alp
 		if !metav1.IsControlledBy(&old, wf) {
 			return resolve.Invalidf("the claim %q exists, and the run does not own it", pvc.Name)
 		}
+		if old.DeletionTimestamp != nil {
+			// A retry of a run that succeeded: Kubernetes keeps the claim while Pods of the earlier try use it.
+			return resolve.Invalidf("the claim %q of an earlier try is still being deleted: delete the Pods of the run, "+
+				"or re-run the run", pvc.Name)
+		}
 		return nil
 	}
 	if apierrors.IsInvalid(err) {
