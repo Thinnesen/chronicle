@@ -31,6 +31,8 @@ export function useCanEdit(namespace: string): boolean {
 export function RunActions({ wf, phase, archived = false }: { wf: Workflow; phase: string; archived?: boolean }) {
   const { name, namespace } = wf.metadata;
   const canEdit = useCanEdit(namespace);
+  // The parent owns its child runs, so Kubernetes deletes them with it.
+  const children = Object.values(wf.status?.nodes ?? {}).filter((n) => n.childWorkflow).length;
   const toast = useToast();
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -147,6 +149,7 @@ export function RunActions({ wf, phase, archived = false }: { wf: Workflow; phas
         onConfirm={() => run.mutate("delete")}
       >
         The run, its Pods and their logs are deleted from the cluster.
+        {children > 0 && (children === 1 ? " Its child run is deleted too." : ` Its ${children} child runs are deleted too.`)}
         {wf.status?.conditions?.some((c) => c.type === "Archived" && c.status === "True") &&
           " The archive keeps its record, so the run stays in the history with the mark Archived."}
       </ConfirmDialog>

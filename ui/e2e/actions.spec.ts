@@ -61,3 +61,29 @@ test("an editor deletes a finished run", async ({ page }) => {
   await expect(page).toHaveURL(/\/ns\/team-a$/);
   expect(calls.DeleteWorkflow).toHaveLength(1);
 });
+
+test("says that the delete of a run also deletes its child runs", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
+    r.fulfill({
+      json: {
+        summary: { namespace: "team-a", name: "release-q4", uid: "u7", phase: "Succeeded", nodesDone: 2, nodesTotal: 2 },
+        workflow: {
+          metadata: { name: "release-q4", namespace: "team-a" },
+          spec: {},
+          status: {
+            phase: "Succeeded",
+            nodes: {
+              c1: { id: "c1", name: "release-q4.a", type: "ChildWorkflow", phase: "Succeeded", childWorkflow: "release-q4-0a1b2c3d" },
+              c2: { id: "c2", name: "release-q4.b", type: "ChildWorkflow", phase: "Succeeded", childWorkflow: "release-q4-4e5f6a7b" },
+            },
+          },
+        },
+        tries: [],
+      },
+    }),
+  );
+  await page.goto("/ns/team-a/runs/release-q4");
+  await page.getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Its 2 child runs are deleted too.");
+});
