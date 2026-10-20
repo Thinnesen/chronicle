@@ -41,6 +41,7 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		labels[LabelWorkflow] = wf.Name
 	}
 	var main corev1.Container
+	var mounts []v1alpha1.VolumeMount
 	wrapped, automount := false, spec.ServiceAccountName != ""
 	switch {
 	case a.Template.Resource != nil:
@@ -48,8 +49,12 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 	case a.Template.HTTP != nil:
 		// An http request needs no access to the Kubernetes API.
 		main, automount = httpContainer(a.Template.HTTP, executorImage), false
+	case a.Template.Script != nil:
+		main, wrapped = mainContainerFor(a.Template)
+		mounts = a.Template.Script.VolumeMounts
 	default:
 		main, wrapped = mainContainerFor(a.Template)
+		mounts = a.Template.Container.VolumeMounts
 	}
 	annotations := map[string]string{AnnotationNode: a.NodeName}
 	initContainers := []corev1.Container(nil)
@@ -66,6 +71,7 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 			volumes = mountInputs(files, &initContainers[0], &main, volumes)
 		}
 	}
+	volumes = mountVolumes(wf, spec, mounts, &main, volumes)
 	return &corev1.Pod{
 		Name:            a.PodName,
 		Namespace:       wf.Namespace,

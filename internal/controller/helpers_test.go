@@ -41,15 +41,12 @@ func podsOf(ctx context.Context, wf *chroniclev1alpha1.Workflow) []corev1.Pod {
 	return list.Items
 }
 
-// finishPod ends the main container of a Pod with an exit code.
-func finishPod(ctx context.Context, pod *corev1.Pod, code int32) {
+// finishPod ends the main container of a Pod with success.
+func finishPod(ctx context.Context, pod *corev1.Pod) {
 	now := metav1.Now()
 	pod.Status.Phase = corev1.PodSucceeded
-	if code != 0 {
-		pod.Status.Phase = corev1.PodFailed
-	}
 	pod.Status.ContainerStatuses = []corev1.ContainerStatus{{Name: mainContainer, State: corev1.ContainerState{
-		Terminated: &corev1.ContainerStateTerminated{ExitCode: code, StartedAt: now, FinishedAt: now},
+		Terminated: &corev1.ContainerStateTerminated{StartedAt: now, FinishedAt: now},
 	}}}
 	Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
 }

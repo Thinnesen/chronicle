@@ -27,6 +27,7 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 		c.templates[spec.Templates[i].Name] = &spec.Templates[i]
 	}
 	c.checkGlobalNames(spec, path)
+	c.checkVolumes(spec, path)
 	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid", "workflow.status",
 		"workflow.creationTimestamp", "workflow.scheduledTime", "workflow.serviceAccountName", "workflow.duration",
 		"workflow.failures", "workflow.labels.*", "workflow.annotations.*", "workflow.parameters.json",
@@ -103,6 +104,7 @@ func (s scope) has(name string) bool {
 type checker struct {
 	templates map[string]*v1alpha1.Template
 	globals   scope
+	volumes   map[string]bool
 	errs      field.ErrorList
 }
 
@@ -141,8 +143,10 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 	switch {
 	case t.Container != nil:
 		c.checkContainer(t.Container, path.Child("container"), pod)
+		c.checkMounts(t.Container, t, path.Child("container"))
 	case t.Script != nil:
 		c.checkContainer(&t.Script.ContainerTemplate, path.Child("script"), pod)
+		c.checkMounts(&t.Script.ContainerTemplate, t, path.Child("script"))
 		if strings.Contains(t.Script.Source, "{{") {
 			c.errs = append(c.errs, field.Invalid(path.Child("script", "source"), "{{...}}",
 				"a script source cannot have placeholders: use environment variables"))

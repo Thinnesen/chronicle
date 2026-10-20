@@ -60,6 +60,7 @@ The spec follows the Argo Workflows concepts, so that the converter is simple:
 - `synchronization` is a mutex or a semaphore. It locks runs in a namespace, or the nodes of one template.
 - Inputs and outputs: parameters (from a file, from stdout, from a JSON path) and artifacts (S3-compatible store).
 - `podGC`, `ttlStrategy`, `serviceAccountName`. There is no `podSpecPatch`: a patch of the Pod spec could undo the Pod security settings.
+- `volumeClaimTemplates` give the steps of a run a shared volume. `volumes` can be `emptyDir`, `secret` or `configMap`. Containers and scripts mount them with `volumeMounts`.
 
 - The container of a `container` or `script` template is a small chronicle type, not the full Kubernetes container. It has no security context, ports or probes. The controller sets a restricted security context.
 - A `script` source cannot have `{{...}}` placeholders. The script reads its parameters from environment variables.

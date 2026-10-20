@@ -30,6 +30,8 @@ type converter struct {
 	parent  string
 	names   map[string]bool
 	inlined []any
+	// volumes are the names of the volumes and claim templates that the converter kept.
+	volumes map[string]bool
 }
 
 // Warning is a part of the Argo document that chronicle does not support. The converter drops it.

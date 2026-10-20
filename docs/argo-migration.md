@@ -37,6 +37,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 68 converted w
 | An argument that the template does not declare | Dropped | Argo ignores it. chronicle rejects it. |
 | `resource.action: replace` | `apply` | |
 | Suspend output `valueFrom.supplied` with `valueFrom.default` | `default` | The value comes from the approval. |
+| `volumeClaimTemplates` (full PersistentVolumeClaims) | `volumeClaimTemplates` with `name`, `storage`, `storageClassName` and `accessModes` | The converter drops other fields, such as `dataSource`, because they could copy the data of another claim. |
 | Artifact locations (`s3`, `gcs`, `git`, `http`, `raw` and others) | Dropped | chronicle keeps all artifacts in the repository of the namespace. See [artifacts.md](artifacts.md). |
 
 ## CLI commands
@@ -91,7 +92,8 @@ Placeholders:
 | Argo feature | Why, and what to do |
 |---|---|
 | Expressions `{{=...}}`, `expression` in parameters and in retries | Expressions can run code from parameters. Use `when` conditions and plain placeholders. |
-| Pod fields: `securityContext`, `volumes`, `volumeMounts`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
+| Pod fields: `securityContext`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
+| Volumes other than `emptyDir`, `secret` and `configMap`, for example an existing claim or `hostPath`; `volumeClaimGC`; template-level `volumes` | The converter drops them and the mounts that use them. `volumeClaimTemplates` convert. A run that succeeded deletes its claims, as with `volumeClaimGC: OnWorkflowSuccess`. |
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
 | Life-cycle `hooks` with an expression, `hooks` on the workflow, and exit hooks that run once for each item of a fan-out | chronicle has exit hooks on tasks and steps (`hooks.exit` and the older `onExit` become `onExit`), and the workflow `onExit`. A hook of a fan-out runs once after all items. |
 | More than one lock on a run or a template, database semaphores, `metrics` | chronicle has one lock for each run and each template. The converter keeps the first mutex or semaphore. A semaphore keeps its ConfigMap limit. Give the ConfigMap the label `chronicle.thinnesen.com/parameters: "true"`. |

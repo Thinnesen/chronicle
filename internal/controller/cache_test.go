@@ -57,7 +57,7 @@ templates:
 		pods := podsOf(ctx, first)
 		Expect(pods).To(HaveLen(1))
 		Expect(first.Status.Nodes[first.Name].Cache).To(Equal(&chroniclev1alpha1.NodeCache{Key: "build-v1"}))
-		finishPod(ctx, &pods[0], 0)
+		finishPod(ctx, &pods[0])
 		first = reconcileWith(ctx, r, client.ObjectKeyFromObject(first))
 		Expect(first.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
 		Expect(cache.entries).To(HaveKey("default/build-v1"))

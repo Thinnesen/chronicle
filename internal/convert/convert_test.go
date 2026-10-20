@@ -95,6 +95,17 @@ func TestRules(t *testing.T) {
 			want: []string{"parallelism: 5", "- dag:", "parallelism: 2", "spec.templates[1].parallelism: only a dag or steps template"},
 		},
 		{
+			name: "volumes, claims and mounts",
+			templates: "  - {name: main, container: {image: x, command: [run], volumeMounts: [{name: work, mountPath: /work}, {name: data, mountPath: /data}, " +
+				"{name: tmp, mountPath: /scratch, readOnly: true}]}}\n" +
+				"  volumeClaimTemplates: [{metadata: {name: work}, spec: {accessModes: [ReadWriteOnce], storageClassName: fast, resources: {requests: {storage: 1Gi}}}}]\n" +
+				"  volumes: [{name: data, persistentVolumeClaim: {claimName: old}}, {name: tmp, emptyDir: {}}]",
+			want: []string{"volumeClaimTemplates:\n  - accessModes:\n    - ReadWriteOnce\n    name: work\n    storage: 1Gi\n    storageClassName: fast",
+				"volumes:\n  - emptyDir: {}\n    name: tmp", "- mountPath: /scratch\n        name: tmp\n        readOnly: true",
+				"spec.volumes[0]: chronicle supports emptyDir, secret and configMap volumes: the volume data is dropped",
+				"spec.templates[0].container.volumeMounts[1]: the volume data is dropped, so the mount is dropped"},
+		},
+		{
 			name:      "the first lock stays",
 			templates: "  - {name: main, container: {image: x}}\n  synchronization: {mutexes: [{name: deploy}], semaphores: [{configMapKeyRef: {name: c, key: k}}]}",
 			want:      []string{"synchronization:\n    mutex:\n      name: deploy", "it keeps the first lock"},

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
@@ -100,7 +101,22 @@ func merge(base, wf *v1alpha1.WorkflowTemplateSpec) *v1alpha1.WorkflowTemplateSp
 	if wf.TTLStrategy != nil {
 		out.TTLStrategy = wf.TTLStrategy
 	}
+	out.VolumeClaimTemplates = byName(out.VolumeClaimTemplates, wf.VolumeClaimTemplates, func(v v1alpha1.VolumeClaimTemplate) string { return v.Name })
+	out.Volumes = byName(out.Volumes, wf.Volumes, func(v v1alpha1.Volume) string { return v.Name })
 	return out
+}
+
+// byName puts the items of over on top of base: an item replaces the item of base with the same name.
+func byName[T any](base, over []T, name func(T) string) []T {
+	for _, o := range over {
+		i := slices.IndexFunc(base, func(b T) bool { return name(b) == name(o) })
+		if i >= 0 {
+			base[i] = o
+		} else {
+			base = append(base, o)
+		}
+	}
+	return base
 }
 
 type resolver struct {

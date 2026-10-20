@@ -246,6 +246,11 @@ type ContainerTemplate struct {
 	// imagePullPolicy is the pull policy of the image.
 	// +optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	// volumeMounts mount volumes of the workflow into the container.
+	// +kubebuilder:validation:MaxItems=32
+	// +optional
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
 }
 
 // ScriptTemplate runs source code in a container.

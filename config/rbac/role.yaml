@@ -13,6 +13,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - ""
+  resources:
   - pods
   verbs:
   - create

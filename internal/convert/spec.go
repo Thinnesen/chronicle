@@ -15,7 +15,14 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 	if forWorkflow {
 		copied = append(copied, "workflowTemplateRef")
 	}
-	out := c.pick(in, path, copied, "templates", "arguments", "podGC", "ttlStrategy", "synchronization")
+	out := c.pick(in, path, copied, "templates", "arguments", "podGC", "ttlStrategy", "synchronization", "volumes", "volumeClaimTemplates")
+	c.volumes = map[string]bool{}
+	if v := c.volumeClaimTemplates(asList(in["volumeClaimTemplates"]), join(path, "volumeClaimTemplates")); len(v) > 0 {
+		out["volumeClaimTemplates"] = v
+	}
+	if v := c.podVolumes(asList(in["volumes"]), join(path, "volumes")); len(v) > 0 {
+		out["volumes"] = v
+	}
 	if v, ok := in["synchronization"]; ok {
 		if sync := c.synchronization(asObj(v), join(path, "synchronization")); sync != nil {
 			out["synchronization"] = sync

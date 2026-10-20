@@ -29,7 +29,7 @@ templates:
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
 		first := podsOf(ctx, wf)
 		Expect(first).To(HaveLen(1))
-		finishPod(ctx, &first[0], 0)
+		finishPod(ctx, &first[0])
 
 		wf = reconcileWith(ctx, r, key)
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowError))

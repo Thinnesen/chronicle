@@ -55,6 +55,20 @@ type WorkflowTemplateSpec struct {
 	// +kubebuilder:validation:MaxLength=253
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	// volumeClaimTemplates are new volumes for each run, which its steps share.
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=8
+	// +optional
+	VolumeClaimTemplates []VolumeClaimTemplate `json:"volumeClaimTemplates,omitempty"`
+
+	// volumes are emptyDir, secret and configMap volumes that steps can mount.
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=32
+	// +optional
+	Volumes []Volume `json:"volumes,omitempty"`
 }
 
 // PodGCStrategy tells when to delete Pods.

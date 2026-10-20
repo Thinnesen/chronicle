@@ -36,6 +36,8 @@ var sets = fake{
 entrypoint: main
 arguments: {parameters: [{name: env, value: dev}, {name: tag, value: latest}]}
 serviceAccountName: builder
+volumeClaimTemplates: [{name: work, storage: 1Gi}]
+volumes: [{name: cache, emptyDir: {}}]
 templates:
 - {name: main, dag: {tasks: [{name: b, templateRef: {name: lib, template: build}}]}}`,
 	"ns/lib": `
@@ -60,7 +62,8 @@ func parse(t *testing.T, s string) *v1alpha1.WorkflowSpec {
 }
 
 func TestWorkflow(t *testing.T) {
-	spec := parse(t, "workflowTemplateRef: {name: pipeline}\narguments: {parameters: [{name: env, value: prod}, {name: extra, value: x}]}\nserviceAccountName: deployer")
+	spec := parse(t, "workflowTemplateRef: {name: pipeline}\narguments: {parameters: [{name: env, value: prod}, {name: extra, value: x}]}\nserviceAccountName: deployer\n"+
+		"volumes: [{name: cache, emptyDir: {medium: Memory}}, {name: extra, emptyDir: {}}]")
 	if !Needed(spec) {
 		t.Fatal("Needed() = false")
 	}
@@ -82,6 +85,10 @@ func TestWorkflow(t *testing.T) {
 	args := out.Arguments.Parameters
 	if len(args) != 3 || *args[0].Value != "prod" || *args[1].Value != "latest" || args[2].Name != "extra" || out.ServiceAccountName != "deployer" {
 		t.Errorf("merged spec = %+v", out)
+	}
+	// The volumes of the Workflow replace those of the template with the same name.
+	if v := out.Volumes; len(v) != 2 || v[0].EmptyDir.Medium != "Memory" || v[1].Name != "extra" || len(out.VolumeClaimTemplates) != 1 {
+		t.Errorf("volumes = %+v, claims = %+v", out.Volumes, out.VolumeClaimTemplates)
 	}
 	if c := out.Templates[3].Steps[1][0].Call; c.Template != "cluster--base--echo" || c.TemplateRef != nil {
 		t.Errorf("nested call = %+v", c)

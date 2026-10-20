@@ -166,6 +166,15 @@ func cliSpecs() {
 			Expect(out).To(ContainSubstring("passed-between-steps"))
 		})
 
+		It("shares a volume claim template between steps and deletes the claim after success", func() {
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/volumes.yaml", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("volumes Succeeded"))
+			Eventually(func() (string, error) {
+				return utils.Run(exec.Command("kubectl", "get", "pvc", "-n", cliNS, "--ignore-not-found", "-o", "name"))
+			}).WithTimeout(time.Minute).WithPolling(2*time.Second).Should(BeEmpty(), "a run that succeeded deletes its claims")
+		})
+
 		It("runs a task in a worker of each SDK", func() {
 			// The task queue is in the archive database, which the archive spec configured.
 			for _, args := range [][]string{

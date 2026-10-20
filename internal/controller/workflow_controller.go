@@ -69,6 +69,7 @@ const conditionArchived = "Archived"
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;create;delete
 // +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=workflowtemplates;clusterworkflowtemplates,verbs=get;list;watch
@@ -93,6 +94,11 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	if res, wait, err := r.gate(ctx, &wf, spec, observed); wait || err != nil {
 		return res, err
+	}
+	if err := r.claims(ctx, &wf, spec); errors.Is(err, resolve.ErrInvalid) {
+		return r.setError(ctx, &wf, err.Error())
+	} else if err != nil {
+		return ctrl.Result{}, err
 	}
 	pods, err := r.observePods(ctx, &wf)
 	if err != nil {
@@ -233,10 +239,6 @@ func (r *WorkflowReconciler) restart(ctx context.Context, wf *chroniclev1alpha1.
 	return nil
 }
 
-func finished(p chroniclev1alpha1.WorkflowPhase) bool {
-	return p == chroniclev1alpha1.WorkflowSucceeded || p == chroniclev1alpha1.WorkflowFailed || p == chroniclev1alpha1.WorkflowError
-}
-
 // spec returns the spec to run. It resolves the template references once and keeps the result in the status.
 func (r *WorkflowReconciler) spec(ctx context.Context, wf *chroniclev1alpha1.Workflow) (*chroniclev1alpha1.WorkflowTemplateSpec, error) {
 	if wf.Status.StoredSpec != nil {
@@ -371,18 +373,6 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		}
 	}
 	return nil
-}
-
-func (r *WorkflowReconciler) setError(ctx context.Context, wf *chroniclev1alpha1.Workflow, msg string) (ctrl.Result, error) {
-	if wf.Status.Phase == chroniclev1alpha1.WorkflowError {
-		return ctrl.Result{}, nil
-	}
-	now := metav1.Now()
-	wf.Status.Phase, wf.Status.Message, wf.Status.FinishedAt = chroniclev1alpha1.WorkflowError, msg, &now
-	if err := r.Status().Update(ctx, wf); err != nil {
-		return ctrl.Result{}, fmt.Errorf("update the workflow status: %w", err)
-	}
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager. It watches the Pods that the controller owns, and the

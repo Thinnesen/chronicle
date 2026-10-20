@@ -104,7 +104,11 @@ var containerFields = []string{"image", "command", "args", "env", "envFrom", "wo
 
 // container keeps the fields of the small chronicle container. The security context comes from chronicle.
 func (c *converter) container(in obj, path string, extra []string) obj {
-	return c.pick(in, path, append(slices.Clone(containerFields), extra...))
+	out := c.pick(in, path, append(slices.Clone(containerFields), extra...), "volumeMounts")
+	if m := c.volumeMounts(asList(in["volumeMounts"]), join(path, "volumeMounts")); len(m) > 0 {
+		out["volumeMounts"] = m
+	}
+	return out
 }
 
 // script converts a script template. Placeholders in a shell script become environment variables,

@@ -1,0 +1,25 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: volumes
+spec:
+  entrypoint: main
+  # Without Pods, the protection of the claim ends, and the claim goes away after the run succeeds.
+  podGC:
+    strategy: OnPodCompletion
+  volumeClaimTemplates: [{name: work, storage: 64Mi}]
+  templates:
+  - name: main
+    steps:
+    - - {name: write, template: write}
+    - - {name: read, template: read}
+  - name: write
+    script:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      source: echo shared-by-steps > /work/note
+      volumeMounts: [{name: work, mountPath: /work}]
+  - name: read
+    script:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      source: test "$(cat /work/note)" = shared-by-steps
+      volumeMounts: [{name: work, mountPath: /work, readOnly: true}]

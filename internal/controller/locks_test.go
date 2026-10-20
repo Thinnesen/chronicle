@@ -38,7 +38,7 @@ templates:
 		Expect(podsOf(ctx, wf2)).To(BeEmpty())
 		Expect(wf2.Status.Nodes[wf2.Name].Message).To(Equal("waiting for the lock " + lock))
 
-		finishPod(ctx, &pods1[0], 0)
+		finishPod(ctx, &pods1[0])
 		r.wake = make(chan event.GenericEvent, 8)
 		reconcileWith(ctx, r, first) // the node ends, gives the lock back and wakes the waiting node
 		Expect(r.wake).To(Receive(HaveField("Object.GetName()", second.Name)))
