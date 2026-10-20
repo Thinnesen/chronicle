@@ -199,3 +199,16 @@ spec:
 ## 12. A YAML trap
 
 kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. A parameter `value: yes` or a parameter named `n` is then not a string, and the API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans.
+
+## 13. When a step does not start
+
+A step that waits shows the reason from Kubernetes: on its card in the graph, as a badge in the runs list, and in `chronicle get <run>`. The Events tab of the step has the details.
+
+| Reason | What to do |
+|---|---|
+| `ErrImagePull`, `ImagePullBackOff` | Check the image name and the tag. For a private registry, give the run a service account with an image pull secret. |
+| `Unschedulable` | No node can take the Pod. Make the `resources.requests` smaller, or ask the platform team for a node that fits. |
+| `CreateContainerConfigError` | A Secret or a ConfigMap in `env` or `envFrom` does not exist. |
+| `waiting for a free slot` | The `parallelism` limit is full. The step starts when another step ends. |
+
+Kubernetes tries again until the cause is gone, so the step waits. Set a `timeout` on the template or `activeDeadlineSeconds` on the run to stop the wait.
