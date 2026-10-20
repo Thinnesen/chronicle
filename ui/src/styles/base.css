@@ -261,6 +261,12 @@ button {
   height: 1rem;
 }
 
+/* The text wraps next to the icon, not below it. */
+.approval-notice > span {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
 .approval-notice > .button {
   margin-left: auto;
 }
