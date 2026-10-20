@@ -53,8 +53,8 @@ func TestExport(t *testing.T) {
 	}
 	t.Cleanup(func() { otel.SetTracerProvider(noop.NewTracerProvider()) })
 	start := time.Now()
-	EmitRun(context.Background(), otel.Tracer("test"), uid, NodeSpan{ID: "0", Span: Span{Name: "etl-x7", Start: start, End: start.Add(time.Second)}},
-		[]NodeSpan{{ID: "0/load", Span: Span{Name: "etl-x7.load", Start: start, End: start.Add(time.Second)}}})
+	EmitRun(context.Background(), otel.Tracer("test"), uid, NodeSpan{ID: "0", Name: "etl-x7", Start: start, End: start.Add(time.Second)},
+		[]NodeSpan{{ID: "0/load", Name: "etl-x7.load", Start: start, End: start.Add(time.Second)}})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := stop(ctx); err != nil {
