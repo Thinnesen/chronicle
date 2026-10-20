@@ -64,6 +64,10 @@ func Execute() int {
 // errorText removes the Connect code prefix from an error for people.
 func errorText(err error) string {
 	if ce, ok := errors.AsType[*connect.Error](err); ok {
+		if ce.Code() == connect.CodeUnauthenticated {
+			// The login ended or the token expired.
+			return ce.Message() + ". Log in again: chronicle login"
+		}
 		return ce.Message()
 	}
 	return err.Error()

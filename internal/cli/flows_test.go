@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
+
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
@@ -51,4 +53,20 @@ func writeWorkflow(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return file
+}
+
+func TestErrorText(t *testing.T) {
+	tests := []struct {
+		err  error
+		want string
+	}{
+		{connect.NewError(connect.CodePermissionDenied, errors.New("workflows is forbidden")), "workflows is forbidden"},
+		{connect.NewError(connect.CodeUnauthenticated, errors.New("the token is not valid")), "the token is not valid. Log in again: chronicle login"},
+		{errors.New("plain"), "plain"},
+	}
+	for _, tt := range tests {
+		if got := errorText(tt.err); got != tt.want {
+			t.Errorf("errorText(%v) = %q, want %q", tt.err, got, tt.want)
+		}
+	}
 }

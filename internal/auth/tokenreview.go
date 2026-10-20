@@ -56,7 +56,7 @@ func (a *TokenReviewAuthenticator) review(ctx context.Context, raw string) (*Ide
 		return nil, fmt.Errorf("check the token: %w", err)
 	}
 	if !tr.Status.Authenticated {
-		return nil, errors.New("the token is not valid for chronicle: create it with --audience=" + strings.Join(a.Audiences, ","))
+		return nil, errors.New("the token is not valid for chronicle: it expired, or it was not made with --audience=" + strings.Join(a.Audiences, ","))
 	}
 	u := tr.Status.User
 	if !strings.HasPrefix(u.Username, "system:serviceaccount:") {
