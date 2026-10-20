@@ -33,7 +33,7 @@ A `task` step adds durable work, as Temporal activities do. It gives the work to
 
 Features:
 
-- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods. It has retries, timeouts, exit handlers, approvals, fan-out, a step cache, parallelism limits and locks (one deployment at a time). Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends.
+- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods. It has retries, timeouts, exit handlers, approvals, fan-out, a step cache, parallelism limits, locks (one deployment at a time) and shared volumes. Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends.
 - **Remembers** every run, every attempt, its logs and its outputs. Retry the failed steps, retry from any step, or re-run with changed parameters.
 - **Shows what needs you**: the runs that wait for an approval, and the steps that Kubernetes cannot start. The UI and the CLI show the reason, for example a missing image.
 - **Logs you in properly**: OIDC with PKCE for the UI, and the device flow for the CLI. Microsoft 365 (Entra ID) is a first-class provider. Permissions are plain Kubernetes RBAC, the same as for `kubectl` and GitOps.
@@ -116,7 +116,7 @@ The web UI and the CLI need a login. Configure OIDC in the Helm values, with any
 | Topic | Guide |
 |---|---|
 | Install the CLI and the SDKs | [`docs/install.md`](docs/install.md) |
-| Write workflows: DAGs, steps, parameters, retries, approvals, locks | [`docs/workflows.md`](docs/workflows.md) |
+| Write workflows: DAGs, steps, parameters, retries, approvals, locks, volumes | [`docs/workflows.md`](docs/workflows.md) |
 | Run chronicle in production: images, login, archive, replicas, upgrades | [`docs/operations.md`](docs/operations.md) |
 | Artifacts and archived logs in S3 | [`docs/artifacts.md`](docs/artifacts.md) |
 | Task workers in Go, Python and Rust | [`docs/task-workers.md`](docs/task-workers.md) |
