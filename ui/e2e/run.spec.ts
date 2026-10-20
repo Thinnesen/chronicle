@@ -112,3 +112,18 @@ test("shows the live runs when the archive does not answer", async ({ page }) =>
   await expect(page.getByRole("link", { name: "live-run" })).toBeVisible();
   await expect(page.getByText("The archive did not answer. The list shows only the runs in the cluster.")).toBeVisible();
 });
+
+test("says that a new run has not started yet", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
+    r.fulfill({
+      json: {
+        summary: { namespace: "team-a", name: "fresh-run", uid: "u8" },
+        workflow: { metadata: { name: "fresh-run", namespace: "team-a" }, spec: { workflowTemplateRef: { name: "etl-nightly" } } },
+      },
+    }),
+  );
+  await page.goto("/ns/team-a/runs/fresh-run");
+  await expect(page.getByText("The run has not started yet. The controller starts it in a moment.")).toBeVisible();
+  await expect(page.getByText("Select a step to see its details and logs.")).toHaveCount(0);
+});

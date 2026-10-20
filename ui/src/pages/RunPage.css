@@ -202,3 +202,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.run-waiting {
+  margin: 0;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}

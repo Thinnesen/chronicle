@@ -61,6 +61,8 @@ export function RunPage() {
   const started = toDate(s.startedAt);
   const nodes = wf.status?.nodes ?? {};
   const node = selected ? nodes[selected] : undefined;
+  // Before the first reconcile, a new run has no nodes yet.
+  const hasNodes = Object.keys(nodes).length > 0;
   const select = (id?: string) => void navigate({ search: (q) => ({ ...q, node: id }), replace: true });
   return (
     <section className="run">
@@ -136,17 +138,18 @@ export function RunPage() {
       </div>
       <div className="run-body" data-drawer={node ? "" : undefined}>
         <div className="run-view card" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
-          {tab === undefined && (
+          {!hasNodes && tab !== "spec" && <p className="run-waiting quiet">The run has not started yet. The controller starts it in a moment.</p>}
+          {hasNodes && tab === undefined && (
             <Suspense fallback={<div className="run-graph-placeholder" />}>
               <RunGraph wf={wf} now={now} selected={selected} onSelect={select} />
             </Suspense>
           )}
-          {tab === "timeline" && <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />}
+          {hasNodes && tab === "timeline" && <Timeline nodes={nodes} now={now} selected={selected} onSelect={select} />}
           {tab === "spec" && <SpecView wf={wf} />}
         </div>
         {node && <NodeDrawer wf={wf} node={node} nodes={nodes} namespace={namespace} workflow={name} onSelect={select} onClose={() => select(undefined)} />}
       </div>
-      {!node && tab !== "spec" && <p className="run-hint quiet">Select a step to see its details and logs.</p>}
+      {hasNodes && !node && tab !== "spec" && <p className="run-hint quiet">Select a step to see its details and logs.</p>}
     </section>
   );
 }
