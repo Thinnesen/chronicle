@@ -79,3 +79,9 @@ What chronicle takes, and how it stays simple:
 - Dagster defines assets and ops as decorated functions, with a typed graph.
 - What we do: the SDKs build the chronicle Workflow object (the CRD types) and validate it with the webhook rules before they render or submit it. A task handle gives the dependency and the typed placeholders (`Result`, `Output`, `Artifact`), so a user never writes `{{tasks...}}` by hand. Task workers (M7) add the Hatchet style of functions as tasks.
 - Go: a builder in the main module (`sdk/go/chronicle`) that uses `api/v1alpha1` and `internal/validate` directly. Python and Rust: the same builder shape, which makes plain objects. A shared fixture (`sdk/testdata/etl.json`) keeps the output of all SDKs equal.
+
+## Who approved (Argo Workflows, Kubernetes CSR)
+
+- Argo Workflows: `argo resume` and `argo node set` record no approver in the Workflow. Only the server log and the Kubernetes events (about one hour) have it.
+- Kubernetes CertificateSigningRequest: the API server fills `spec.username` from the requester, so the requester cannot be faked.
+- Use: an optional `user` on each approval, set by the chronicle API and checked by the admission webhook against the user of the request.

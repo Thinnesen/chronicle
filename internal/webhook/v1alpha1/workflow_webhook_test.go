@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -139,5 +140,27 @@ templates:
 		wf := newWorkflow("entrypoint: nope\ntemplates: [" + container + "]")
 		Expect((&WorkflowValidator{}).ValidateUpdate(ctx, wf, wf.DeepCopy())).Error().NotTo(HaveOccurred())
 		Expect((&WorkflowValidator{}).ValidateDelete(ctx, wf)).Error().NotTo(HaveOccurred())
+	})
+})
+
+var _ = Describe("Workflow approvals", func() {
+	It("accepts an approval user only when it is the user of the request", func() {
+		review := &authenticationv1.SelfSubjectReview{}
+		Expect(k8sClient.Create(ctx, review)).To(Succeed())
+		me := review.Status.UserInfo.Username
+		Expect(me).NotTo(BeEmpty())
+
+		wf := newWorkflow("entrypoint: c\ntemplates: [" + container + "]")
+		Expect(k8sClient.Create(ctx, wf)).To(Succeed())
+		wf.Spec.Approvals = []chroniclev1alpha1.Approval{{Node: wf.Name, Decision: chroniclev1alpha1.DecisionApprove, User: "mallory"}}
+		err := k8sClient.Update(ctx, wf)
+		Expect(apierrors.IsInvalid(err)).To(BeTrue(), "error: %v", err)
+		Expect(err.Error()).To(ContainSubstring("the user of an approval must be the user of the request"))
+
+		wf.Spec.Approvals[0].User = me
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+		// Without a user, as with kubectl patch, the approval is allowed.
+		wf.Spec.Approvals = append(wf.Spec.Approvals, chroniclev1alpha1.Approval{Node: "other", Decision: chroniclev1alpha1.DecisionReject})
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
 	})
 })

@@ -90,6 +90,12 @@ type Approval struct {
 	// +kubebuilder:validation:MaxLength=1024
 	// +optional
 	Message string `json:"message,omitempty"`
+
+	// user is the user who decided. The chronicle API sets it. The admission webhook refuses a new approval whose
+	// user is not the user of the request, so a recorded user is always true. An approval without a user is allowed.
+	// +kubebuilder:validation:MaxLength=512
+	// +optional
+	User string `json:"user,omitempty"`
 }
 
 // WorkflowTemplateRef refers to a WorkflowTemplate or a ClusterWorkflowTemplate.

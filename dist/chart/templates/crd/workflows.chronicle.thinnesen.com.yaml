@@ -144,6 +144,12 @@ spec:
                       x-kubernetes-list-map-keys:
                       - name
                       x-kubernetes-list-type: map
+                    user:
+                      description: |-
+                        user is the user who decided. The chronicle API sets it. The admission webhook refuses a new approval whose
+                        user is not the user of the request, so a recorded user is always true. An approval without a user is allowed.
+                      maxLength: 512
+                      type: string
                   required:
                   - decision
                   - node

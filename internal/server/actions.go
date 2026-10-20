@@ -10,6 +10,7 @@ import (
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/internal/auth"
 	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
@@ -53,6 +54,10 @@ func (s *workflowService) ApproveNode(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("give a node"))
 	}
 	a := v1alpha1.Approval{Node: m.Node, Decision: v1alpha1.DecisionReject, Message: m.Message}
+	// The server calls Kubernetes as the user, so the webhook accepts this user.
+	if id := auth.IdentityFrom(ctx); id != nil {
+		a.User = id.User
+	}
 	if m.Approve {
 		a.Decision = v1alpha1.DecisionApprove
 	}

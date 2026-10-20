@@ -2,8 +2,13 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
+	"slices"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -24,17 +29,49 @@ func SetupWorkflowWebhookWithManager(mgr ctrl.Manager) error {
 type WorkflowValidator struct{}
 
 // ValidateCreate implements admission.Validator so a webhook will be registered for the type Workflow.
-func (v *WorkflowValidator) ValidateCreate(_ context.Context, obj *chroniclev1alpha1.Workflow) (admission.Warnings, error) {
+func (v *WorkflowValidator) ValidateCreate(ctx context.Context, obj *chroniclev1alpha1.Workflow) (admission.Warnings, error) {
+	if err := validateApprovers(ctx, nil, obj); err != nil {
+		return nil, err
+	}
 	return nil, validateWorkflow(obj)
 }
 
 // ValidateUpdate implements admission.Validator so a webhook will be registered for the type Workflow.
-func (v *WorkflowValidator) ValidateUpdate(_ context.Context, oldObj, obj *chroniclev1alpha1.Workflow) (admission.Warnings, error) {
+func (v *WorkflowValidator) ValidateUpdate(ctx context.Context, oldObj, obj *chroniclev1alpha1.Workflow) (admission.Warnings, error) {
 	// Skip an unchanged spec, so that stricter rules never block a finalizer or label change.
 	if equality.Semantic.DeepEqual(oldObj.Spec, obj.Spec) {
 		return nil, nil
 	}
+	if err := validateApprovers(ctx, oldObj, obj); err != nil {
+		return nil, err
+	}
 	return nil, validateWorkflow(obj)
+}
+
+// validateApprovers refuses an approval with a user that is not the user of the request, as Kubernetes does for the
+// username of a CertificateSigningRequest. An approval that the old object already has, with the same user, stays.
+func validateApprovers(ctx context.Context, oldObj, obj *chroniclev1alpha1.Workflow) error {
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("read the admission request: %w", err)
+	}
+	var errs field.ErrorList
+	path := field.NewPath("spec", "approvals")
+	for i, a := range obj.Spec.Approvals {
+		if a.User == "" || a.User == req.UserInfo.Username {
+			continue
+		}
+		if oldObj != nil && slices.ContainsFunc(oldObj.Spec.Approvals, func(o chroniclev1alpha1.Approval) bool {
+			return o.Node == a.Node && o.User == a.User
+		}) {
+			continue
+		}
+		errs = append(errs, field.Forbidden(path.Index(i).Child("user"), "the user of an approval must be the user of the request"))
+	}
+	if len(errs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(schema.GroupKind{Group: chroniclev1alpha1.GroupVersion.Group, Kind: "Workflow"}, obj.Name, errs)
 }
 
 // ValidateDelete implements admission.Validator so a webhook will be registered for the type Workflow.

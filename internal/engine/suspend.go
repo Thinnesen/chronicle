@@ -12,7 +12,7 @@ import (
 func (e *engine) runSuspend(t *v1alpha1.Template, n v1alpha1.NodeStatus) v1alpha1.NodeStatus {
 	if a := e.approval(n); a != nil {
 		if a.Decision == v1alpha1.DecisionReject {
-			e.setPhase(&n, v1alpha1.NodeFailed, joinMessage("rejected", a.Message))
+			e.setPhase(&n, v1alpha1.NodeFailed, joinMessage(decided("rejected", a), a.Message))
 			return e.save(n)
 		}
 		if err := checkEnums(t, a.Parameters); err != nil {
@@ -21,7 +21,7 @@ func (e *engine) runSuspend(t *v1alpha1.Template, n v1alpha1.NodeStatus) v1alpha
 			return e.save(n)
 		}
 		n.Outputs = suspendOutputs(t, a.Parameters)
-		e.setPhase(&n, v1alpha1.NodeSucceeded, joinMessage("approved", a.Message))
+		e.setPhase(&n, v1alpha1.NodeSucceeded, joinMessage(decided("approved", a), a.Message))
 		return e.save(n)
 	}
 	if d := t.Suspend.Duration; d != nil {
@@ -101,6 +101,14 @@ func checkEnums(t *v1alpha1.Template, given []v1alpha1.Parameter) error {
 		}
 	}
 	return nil
+}
+
+// decided names the decision and, when the approval has one, the user who decided.
+func decided(verb string, a *v1alpha1.Approval) string {
+	if a.User == "" {
+		return verb
+	}
+	return verb + " by " + a.User
 }
 
 func joinMessage(prefix, msg string) string {

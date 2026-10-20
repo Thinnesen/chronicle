@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -46,5 +47,9 @@ func TestApproveChecks(t *testing.T) {
 	}
 	if err := approve("gated-1", "prod"); err != nil {
 		t.Errorf("an allowed value: %v", err)
+	}
+	// The approval records who decided.
+	if err := admin.Get(ctx, client.ObjectKeyFromObject(wf), wf); err != nil || len(wf.Spec.Approvals) != 1 || wf.Spec.Approvals[0].User != "alice" {
+		t.Errorf("approvals = %+v, %v", wf.Spec.Approvals, err)
 	}
 }

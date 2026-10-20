@@ -38,9 +38,9 @@ func TestEngineApproval(t *testing.T) {
 		t.Fatalf("gate = %+v", gate)
 	}
 	s.in.Approvals = []v1alpha1.Approval{{Node: gate.ID, Decision: v1alpha1.DecisionApprove,
-		Parameters: []v1alpha1.Parameter{{Name: "env", Value: new("prod")}}, Message: "ok by ops"}}
+		Parameters: []v1alpha1.Parameter{{Name: "env", Value: new("prod")}}, Message: "ok by ops", User: "oidc:alice"}}
 	st := s.run()
-	if st.Phase != v1alpha1.WorkflowSucceeded || nodeByName(st, "wf[0].gate").Message != "approved: ok by ops" {
+	if st.Phase != v1alpha1.WorkflowSucceeded || nodeByName(st, "wf[0].gate").Message != "approved by oidc:alice: ok by ops" {
 		t.Fatalf("phase %s, gate %+v", st.Phase, nodeByName(st, "wf[0].gate"))
 	}
 	if cmd := s.pods["wf[1].deploy"].Template.Container.Command; cmd[1] != "prod" {

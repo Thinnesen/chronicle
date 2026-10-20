@@ -107,7 +107,7 @@ The controller applies the actions. This makes the engine testable with table te
 - `withParam` has a limit of 1000 items, like `withItems`.
 
 - Run controls are fields of the Workflow spec, so `kubectl`, GitOps, the CLI and the UI use one mechanism. `suspend: true` pauses the run (no new node starts). `shutdown: Stop` fails the running nodes, deletes their Pods and runs the exit handler. `shutdown: Terminate` does not run the exit handler. A shutdown cannot be removed. Only Stop can change to Terminate.
-- A `suspend` template waits for an entry in `spec.approvals` (node ID or node name, Approve or Reject, optional output parameters) or for its `duration`. The server writes the approver to the audit log (#17).
+- A `suspend` template waits for an entry in `spec.approvals` (node ID or node name, Approve or Reject, optional output parameters, optional `user`) or for its `duration`. The API sets `user` to the caller; the admission webhook refuses a new approval whose `user` is not the user of the request, so the node message "approved by <user>" is always true. The server also writes the approver to the audit log (#17).
 
 ### 4.1 Workflow Pods and outputs
 
