@@ -1,4 +1,4 @@
-// Command chronicle-exec runs in workflow Pods. "install" copies it into a shared volume.
+// Command chronicle-exec runs in workflow Pods. "install" copies it into a shared volume and downloads the inputs.
 // "run -- command..." runs the main command and reports the outputs. "resource" and "http" run those templates.
 package main
 
@@ -12,10 +12,7 @@ import (
 func main() {
 	switch {
 	case len(os.Args) == 3 && os.Args[1] == "install":
-		if err := executor.Install(os.Args[2]); err != nil {
-			fmt.Fprintln(os.Stderr, "chronicle-exec:", err)
-			os.Exit(1)
-		}
+		os.Exit(executor.InstallMain(os.Args[2], os.Stderr))
 	case len(os.Args) == 2 && os.Args[1] == "resource":
 		os.Exit(executor.RunResourceMain(os.Stderr))
 	case len(os.Args) == 2 && os.Args[1] == "http":

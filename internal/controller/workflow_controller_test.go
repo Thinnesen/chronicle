@@ -306,8 +306,11 @@ templates:
 				b = p
 			}
 		}
-		Expect(b.Spec.Containers[0].Env).To(ContainElement(HaveField("Value",
-			ContainSubstring(`"inputs":[{"name":"data","path":"/tmp/in","key":"`+prefix+`/data.tgz"}]`))))
+		// The init container downloads the input into a volume; the main container mounts it at its path.
+		Expect(b.Spec.InitContainers[0].Env).To(ContainElement(HaveField("Value",
+			ContainSubstring(`"inputs":[{"name":"data","path":"/var/run/chronicle-inputs/data","key":"`+prefix+`/data.tgz"}]`))))
+		Expect(b.Spec.Containers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{Name: inputsVolume, MountPath: "/tmp/in", SubPath: "data"}))
+		Expect(b.Spec.Containers[0].Env).NotTo(ContainElement(HaveField("Value", ContainSubstring(`"inputs"`))))
 	})
 
 	It("sends a task to the queue and takes its result", func() {

@@ -22,6 +22,11 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 	}
 	executorInit := containerStatus(pod.Status.InitContainerStatuses, "init")
 	if t := executorInit.State.Terminated; t != nil && t.ExitCode != 0 {
+		// The init container also downloads the input artifacts, and reports a failure in its message.
+		var msg executor.Message
+		if json.Unmarshal([]byte(t.Message), &msg) == nil && msg.Error != "" {
+			return engine.PodResult{Phase: v1alpha1.NodeError, Message: msg.Error}
+		}
 		return engine.PodResult{Phase: v1alpha1.NodeError, Message: "the executor did not install: " + t.Reason}
 	}
 	switch pod.Status.Phase {

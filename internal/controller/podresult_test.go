@@ -45,6 +45,9 @@ func TestPodResult(t *testing.T) {
 		{"evicted", corev1.PodStatus{Phase: corev1.PodFailed, Reason: "Evicted", Message: "low memory"}, v1alpha1.NodeError, "Evicted: low memory"},
 		{"init failed", corev1.PodStatus{Phase: corev1.PodFailed, InitContainerStatuses: []corev1.ContainerStatus{{Name: "init", State: corev1.ContainerState{
 			Terminated: &corev1.ContainerStateTerminated{ExitCode: 1, Reason: "Error"}}}}}, v1alpha1.NodeError, "the executor did not install: Error"},
+		{"an input did not download", corev1.PodStatus{Phase: corev1.PodFailed, InitContainerStatuses: []corev1.ContainerStatus{{Name: "init", State: corev1.ContainerState{
+			Terminated: &corev1.ContainerStateTerminated{ExitCode: 1, Reason: "Error", Message: `{"error":"input artifact \"data\": not found"}`}}}}},
+			v1alpha1.NodeError, `input artifact "data": not found`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

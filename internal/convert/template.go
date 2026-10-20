@@ -294,6 +294,14 @@ func (c *converter) outputs(in obj, path string) obj {
 	}
 	if as, ok := in["artifacts"]; ok {
 		out["artifacts"] = c.artifacts(asList(as), join(path, "artifacts"), "path", "optional", "from", "globalName")
+		for i, a := range asList(as) {
+			// Argo runs the step as root; chronicle runs it as a user without root, who cannot create most paths.
+			// An input works at any path, because chronicle mounts it there.
+			if p, ok := asObj(a)["path"].(string); ok && p != "/tmp" && !strings.HasPrefix(p, "/tmp/") {
+				c.warn(join(index(join(path, "artifacts"), i), "path"),
+					"chronicle runs steps as the user 65532, which cannot create %s: use a path below /tmp", p)
+			}
+		}
 	}
 	return out
 }
@@ -350,12 +358,7 @@ func (c *converter) configMapParameter(vf, out obj, path string) {
 func (c *converter) artifacts(list []any, path string, fields ...string) []any {
 	out := make([]any, 0, len(list))
 	for i, a := range list {
-		in := asObj(a)
-		if p, ok := in["path"].(string); ok && p != "/tmp" && !strings.HasPrefix(p, "/tmp/") && !strings.Contains(p, "{{") {
-			// Argo runs the executor as root; chronicle runs each step as a user without root.
-			c.warn(join(index(path, i), "path"), "chronicle runs steps as the user 65532, which cannot create %s: use a path below /tmp", p)
-		}
-		out = append(out, c.pick(in, index(path, i), append([]string{fName}, fields...), "archive"))
+		out = append(out, c.pick(asObj(a), index(path, i), append([]string{fName}, fields...), "archive"))
 	}
 	return out
 }

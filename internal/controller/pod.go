@@ -61,8 +61,9 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		}}}
 		initContainers = []corev1.Container{initContainer(executorImage)}
 		if files != nil {
-			main.Env = append(main.Env, artifactEnv(files)...)
+			main.Env = append(main.Env, artifactEnv(withoutInputs(files))...)
 			annotations[AnnotationArtifactPrefix] = files.Prefix
+			volumes = mountInputs(files, &initContainers[0], &main, volumes)
 		}
 	}
 	return &corev1.Pod{

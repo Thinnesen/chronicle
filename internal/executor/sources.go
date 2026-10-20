@@ -12,6 +12,22 @@ import (
 	"strings"
 )
 
+// InstallMain copies the executor to dst for the main container, and downloads the input artifacts when the
+// environment has them. It returns the exit code. A failed download leaves its error in the termination message.
+func InstallMain(dst string, stderr io.Writer) int {
+	if err := Install(dst); err != nil {
+		return fail(stderr, err)
+	}
+	f, err := openFiles()
+	if err == nil {
+		err = f.download()
+	}
+	if err != nil {
+		return fail(stderr, err)
+	}
+	return 0
+}
+
 // NeedsRepository tells if the Pod reads or writes the artifact repository. Raw and http inputs do not.
 func (s ArtifactSpec) NeedsRepository() bool {
 	for _, in := range s.Inputs {
