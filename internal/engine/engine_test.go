@@ -341,7 +341,7 @@ func TestEngineRetryKeepsTheTree(t *testing.T) {
 	}
 	s.in.Status = next
 	after := s.run()
-	var names []string
+	names := make([]string, 0, len(after.Nodes[wfName].Children))
 	for _, id := range after.Nodes[wfName].Children {
 		names = append(names, after.Nodes[id].Name)
 	}
