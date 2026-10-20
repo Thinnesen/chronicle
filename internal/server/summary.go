@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -20,6 +19,7 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/internal/engine"
+	"github.com/Thinnesen/chronicle/internal/validate"
 )
 
 // summary returns the short form of a run.
@@ -106,10 +106,8 @@ func fromStruct(s *structpb.Struct) (*v1alpha1.Workflow, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encode the workflow: %w", err)
 	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
 	var wf v1alpha1.Workflow
-	if err := dec.Decode(&wf); err != nil {
+	if err := validate.Strict(data, &wf); err != nil {
 		return nil, fmt.Errorf("the workflow is not valid: %w", err)
 	}
 	return &wf, nil

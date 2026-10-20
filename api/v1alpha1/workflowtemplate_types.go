@@ -91,6 +91,8 @@ type PodGC struct {
 
 	// deleteDelayDuration is the wait before a Pod is deleted, for example "10m".
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	DeleteDelayDuration *metav1.Duration `json:"deleteDelayDuration,omitempty"`
 }
 

@@ -29,6 +29,8 @@ type Template struct {
 
 	// timeout fails a node of this template when it runs longer, for example "10m". With retries, it applies to each attempt.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
 	// memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace. Then
@@ -104,10 +106,14 @@ type TaskTemplate struct {
 
 	// heartbeatTimeout fails the attempt when the worker sends no heartbeat for this time. The default is 1 minute.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	HeartbeatTimeout *metav1.Duration `json:"heartbeatTimeout,omitempty"`
 
 	// scheduleToStartTimeout fails the attempt when no worker takes the task in this time.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	ScheduleToStartTimeout *metav1.Duration `json:"scheduleToStartTimeout,omitempty"`
 }
 
@@ -115,6 +121,8 @@ type TaskTemplate struct {
 type SuspendTemplate struct {
 	// duration ends the wait with success, for example "1h". Without a duration, the node waits for an approval.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	Duration *metav1.Duration `json:"duration,omitempty"`
 }
 
@@ -191,6 +199,8 @@ type RetryStrategy struct {
 type Backoff struct {
 	// duration is the wait before the first retry, for example "10s".
 	// +required
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	Duration metav1.Duration `json:"duration"`
 
 	// factor multiplies the wait for each retry. The default is 1.
@@ -201,6 +211,8 @@ type Backoff struct {
 
 	// maxDuration is the longest wait.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	MaxDuration *metav1.Duration `json:"maxDuration,omitempty"`
 }
 

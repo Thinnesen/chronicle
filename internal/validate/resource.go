@@ -1,7 +1,6 @@
 package validate
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -24,9 +23,7 @@ func Resource(data []byte) error {
 		return fmt.Errorf("not a resource: %w", err)
 	}
 	strict := func(v any) error {
-		dec := json.NewDecoder(bytes.NewReader(data))
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(v); err != nil {
+		if err := Strict(data, v); err != nil {
 			return fmt.Errorf("not a valid %s: %w", head.Kind, err)
 		}
 		return nil

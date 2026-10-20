@@ -13,6 +13,8 @@ type Memoize struct {
 
 	// maxAge is the oldest result that a node reuses, for example "24h". Without it, a result stays valid.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
 	MaxAge *metav1.Duration `json:"maxAge,omitempty"`
 }
 

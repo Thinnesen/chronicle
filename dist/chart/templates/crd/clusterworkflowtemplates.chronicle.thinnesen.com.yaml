@@ -240,6 +240,7 @@ spec:
                   deleteDelayDuration:
                     description: deleteDelayDuration is the wait before a Pod is deleted,
                       for example "10m".
+                    pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                     type: string
                   strategy:
                     description: strategy tells when to delete Pods.
@@ -1446,6 +1447,7 @@ spec:
                         maxAge:
                           description: maxAge is the oldest result that a node reuses,
                             for example "24h". Without it, a result stays valid.
+                          pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                           type: string
                       required:
                       - key
@@ -1685,6 +1687,7 @@ spec:
                             duration:
                               description: duration is the wait before the first retry,
                                 for example "10s".
+                              pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                               type: string
                             factor:
                               description: factor multiplies the wait for each retry.
@@ -1695,6 +1698,7 @@ spec:
                               type: integer
                             maxDuration:
                               description: maxDuration is the longest wait.
+                              pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                               type: string
                           required:
                           - duration
@@ -2561,6 +2565,7 @@ spec:
                         duration:
                           description: duration ends the wait with success, for example
                             "1h". Without a duration, the node waits for an approval.
+                          pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                           type: string
                       type: object
                     synchronization:
@@ -2637,6 +2642,7 @@ spec:
                           description: heartbeatTimeout fails the attempt when the
                             worker sends no heartbeat for this time. The default is
                             1 minute.
+                          pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                           type: string
                         name:
                           description: name of the task type that a worker registers.
@@ -2652,6 +2658,7 @@ spec:
                         scheduleToStartTimeout:
                           description: scheduleToStartTimeout fails the attempt when
                             no worker takes the task in this time.
+                          pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                           type: string
                       required:
                       - name
@@ -2660,6 +2667,7 @@ spec:
                       description: timeout fails a node of this template when it runs
                         longer, for example "10m". With retries, it applies to each
                         attempt.
+                      pattern: ^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$
                       type: string
                   required:
                   - name
