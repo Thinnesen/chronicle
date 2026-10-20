@@ -111,7 +111,7 @@ spec:
 - `mode` sets the file mode, for example `0755` for a program. The default is `0644`.
 - `spec.arguments.artifacts` gives artifacts to the entrypoint and to the exit handler. They need `raw` or `http`.
 - A `dag` or `steps` template passes such an input on with `from: "{{inputs.artifacts.<name>}}"`.
-- An error message names the URL without its query, because a signed URL has its token there. The URL itself is in the Workflow spec, so do not put a secret into it that readers of the Workflow must not see.
+- An error message names the URL without its query, because a signed URL has its token there. But the URL is in the Workflow spec, the resolved URL is in the node status, and the step Pod has it in its environment. Each reader of the Workflow or of the Pods in the namespace can see it. Do not put a token into a URL that these readers must not see. Download such a file in your command, with the token from a Secret.
 
 ## 4. Download an artifact
 

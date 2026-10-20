@@ -38,7 +38,7 @@ export function run(phase: string, gate = false, archived = false, stuck = false
           "etl-nightly-8k2pq": { id: "etl-nightly-8k2pq", name: "etl-nightly-8k2pq", type: "DAG", templateName: "main", phase, startedAt: ts(-290), children: ["n1", "n2", "n3", "n4"] },
           n1: node("n1", ".fetch", {
             displayName: "fetch", type: "Pod", phase: "Succeeded", startedAt: ts(-290), finishedAt: ts(-230), podName: "n1",
-            outputs: { result: "1204 rows", artifacts: [{ name: "rows", key: "team-a/u1/n1/rows.tgz" }] },
+            outputs: { result: "1204 rows\nchecksum ok", artifacts: [{ name: "rows", key: "team-a/u1/n1/rows.tgz" }] },
           }),
           n2: node("n2", ".validate", {
             displayName: "validate", type: "Pod", phase: "Succeeded", startedAt: ts(-228), finishedAt: ts(-200), podName: "n2",

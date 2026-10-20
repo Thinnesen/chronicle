@@ -22,7 +22,10 @@ test("shows the live log of a node and filters it", async ({ page }, info) => {
   expect(file.suggestedFilename()).toBe("etl-nightly-8k2pq-n1.log");
 
   await panel.getByRole("tab", { name: "Summary" }).click();
-  await expect(panel.getByText("1204 rows")).toBeVisible();
+  // A result with two lines shows two lines.
+  const result = panel.getByText("1204 rows");
+  await expect(result).toBeVisible();
+  expect((await result.boundingBox())?.height).toBeGreaterThan(24);
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(page).not.toHaveURL(/node=/);

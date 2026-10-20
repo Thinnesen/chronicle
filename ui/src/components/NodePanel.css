@@ -66,6 +66,14 @@
   margin-top: 0;
 }
 
+/* A value or a result can have many lines: keep them, and scroll a long one. */
+.params .facts dd code {
+  display: block;
+  max-block-size: 12rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
 .tabs {
   position: sticky;
   top: 0;
