@@ -85,7 +85,7 @@ templates:
   inputs: {parameters: [{name: x}]}
   container: {image: alpine, command: [echo], args: ["{{inputs.parameters.x}}"]}
 `)
-		finishedBefore := testutil.ToFloat64(workflowsFinished.WithLabelValues("default", "Succeeded"))
+		finishedBefore := testutil.ToFloat64(workflowsFinished.WithLabelValues("default", "", "", "Succeeded"))
 		podsBefore := testutil.ToFloat64(podsCreated)
 		wf := reconcileOnce(key)
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
@@ -123,7 +123,7 @@ templates:
 		Expect(wf.Status.FinishedAt).NotTo(BeNil())
 
 		By("checking the metrics and the Event")
-		Expect(testutil.ToFloat64(workflowsFinished.WithLabelValues("default", "Succeeded")) - finishedBefore).To(Equal(1.0))
+		Expect(testutil.ToFloat64(workflowsFinished.WithLabelValues("default", "", "", "Succeeded")) - finishedBefore).To(Equal(1.0))
 		Expect(testutil.ToFloat64(podsCreated) - podsBefore).To(Equal(2.0))
 		Eventually(recorder.Events).Should(Receive(ContainSubstring("Normal Succeeded the run Succeeded")))
 	})

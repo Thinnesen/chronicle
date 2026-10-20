@@ -6,8 +6,8 @@ The controller serves Prometheus metrics on its metrics endpoint (port 8443, HTT
 
 | Metric | Type | Labels | Meaning |
 |---|---|---|---|
-| `chronicle_workflows_finished_total` | counter | `namespace`, `phase` | Runs that finished. |
-| `chronicle_workflow_duration_seconds` | histogram | `phase` | Time from the start to the end of a run. |
+| `chronicle_workflows_finished_total` | counter | `namespace`, `template`, `cron`, `phase` | Runs that finished. |
+| `chronicle_workflow_duration_seconds` | histogram | `namespace`, `template`, `cron`, `phase` | Time from the start to the end of a run. |
 | `chronicle_pods_created_total` | counter | | Workflow Pods that the controller created. |
 | `chronicle_tasks_enqueued_total` | counter | `queue` | Tasks that the controller put into the task queue. |
 | `chronicle_workflow_retries_total` | counter | | Retries of finished runs. |

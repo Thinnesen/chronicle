@@ -12,15 +12,16 @@ import (
 // The metrics of the workflow controller. They are on the metrics endpoint of the controller with the
 // metrics of controller-runtime.
 var (
+	// The template and cron labels name Kubernetes objects, so they have a limited number of values.
 	workflowsFinished = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "chronicle_workflows_finished_total",
-		Help: "The number of runs that finished, by namespace and phase.",
-	}, []string{"namespace", "phase"})
+		Help: "The number of runs that finished, by namespace, WorkflowTemplate, CronWorkflow and phase.",
+	}, []string{"namespace", "template", "cron", "phase"})
 	workflowDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "chronicle_workflow_duration_seconds",
-		Help:    "The time from the start to the end of a run, by phase.",
+		Help:    "The time from the start to the end of a run, by namespace, WorkflowTemplate, CronWorkflow and phase.",
 		Buckets: prometheus.ExponentialBuckets(1, 2, 16), // 1 s to about 9 h
-	}, []string{"phase"})
+	}, []string{"namespace", "template", "cron", "phase"})
 	podsCreated = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "chronicle_pods_created_total",
 		Help: "The number of workflow Pods that the controller created.",
@@ -52,9 +53,10 @@ func countAction(a engine.Action) {
 // finishedRun counts a run that has just finished and records an Event on it.
 func (r *WorkflowReconciler) finishedRun(wf *chroniclev1alpha1.Workflow) {
 	phase := string(wf.Status.Phase)
-	workflowsFinished.WithLabelValues(wf.Namespace, phase).Inc()
+	l := runLabels(wf)
+	workflowsFinished.WithLabelValues(l[0], l[1], l[2], phase).Inc()
 	if wf.Status.StartedAt != nil && wf.Status.FinishedAt != nil {
-		workflowDuration.WithLabelValues(phase).Observe(wf.Status.FinishedAt.Sub(wf.Status.StartedAt.Time).Seconds())
+		workflowDuration.WithLabelValues(l[0], l[1], l[2], phase).Observe(wf.Status.FinishedAt.Sub(wf.Status.StartedAt.Time).Seconds())
 	}
 	if r.Recorder == nil {
 		return
@@ -68,4 +70,17 @@ func (r *WorkflowReconciler) finishedRun(wf *chroniclev1alpha1.Workflow) {
 		note += ": " + wf.Status.Message
 	}
 	r.Recorder.Eventf(wf, nil, kind, phase, "Finish", "%s", note)
+}
+
+// runLabels returns the namespace, the WorkflowTemplate ("cluster/<name>" for a ClusterWorkflowTemplate) and the
+// CronWorkflow of a run. The last two are empty when the run has none.
+func runLabels(wf *chroniclev1alpha1.Workflow) [3]string {
+	template := ""
+	if ref := wf.Spec.WorkflowTemplateRef; ref != nil {
+		template = ref.Name
+		if ref.ClusterScope {
+			template = "cluster/" + ref.Name
+		}
+	}
+	return [3]string{wf.Namespace, template, wf.Labels[LabelCronWorkflow]}
 }
