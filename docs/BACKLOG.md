@@ -52,7 +52,7 @@ Smaller:
 - S11. (done) Docs say a parameter value never becomes shell code, but placeholders in command or args go into `sh -c` as text.
 - S12. (done) A descending withSequence gives zero items (Argo counts down).
 - S13. (done) Unknown workflow parameters are accepted by `submit --from`, `rerun -p` and SubmitTemplate.
-- S14. (bad node done) `retry --node <bad>` exits 0 without --watch; display names are refused.
+- S14. (done) `retry --node <bad>` exits 0 without --watch; display names are refused.
 - S15. `chronicle logs <run>` stops at the first missing Pod.
 - S16. Cluster templates are not listed for namespace users; the UI gives 403.
 - S17. The UI stat "Runs in 24 h" counts the newest 200 runs.

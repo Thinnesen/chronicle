@@ -30,9 +30,9 @@ func Restart(spec *v1alpha1.WorkflowTemplateSpec, status v1alpha1.WorkflowStatus
 			return status, nil, errors.New("no node failed: use a re-run to run it again")
 		}
 	} else {
-		n, ok := r.find(fromNode)
-		if !ok {
-			return status, nil, fmt.Errorf("the run has no node %q", fromNode)
+		n, err := r.find(fromNode)
+		if err != nil {
+			return status, nil, err
 		}
 		r.subtree(n.ID)
 		r.downstream(n.ID)
@@ -78,12 +78,28 @@ func newRestarter(spec *v1alpha1.WorkflowTemplateSpec, nodes map[string]v1alpha1
 	return r
 }
 
-func (r *restarter) find(idOrName string) (v1alpha1.NodeStatus, bool) {
-	if n, ok := r.nodes[idOrName]; ok {
-		return n, true
+// find returns a node by its ID, its name or its short name: the display name or the last part of the name. A short
+// name, such as "build", must name one node.
+func (r *restarter) find(node string) (v1alpha1.NodeStatus, error) {
+	if n, ok := r.nodes[node]; ok {
+		return n, nil
 	}
-	n, ok := r.byName[idOrName]
-	return n, ok
+	if n, ok := r.byName[node]; ok {
+		return n, nil
+	}
+	var found []v1alpha1.NodeStatus
+	for _, n := range r.nodes {
+		if n.DisplayName == node || strings.HasSuffix(n.Name, "."+node) {
+			found = append(found, n)
+		}
+	}
+	switch len(found) {
+	case 0:
+		return v1alpha1.NodeStatus{}, fmt.Errorf("the run has no node %q", node)
+	case 1:
+		return found[0], nil
+	}
+	return v1alpha1.NodeStatus{}, fmt.Errorf("%d nodes have the name %q: give its ID", len(found), node)
 }
 
 func (r *restarter) subtree(id string) {

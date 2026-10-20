@@ -214,7 +214,7 @@ func (a *app) retryCommand() *cobra.Command {
 			return a.watchAfterRetry(cmd, c, ns, args[0])
 		},
 	}
-	cmd.Flags().StringVar(&node, "node", "", "The ID or the name of the node to retry from.")
+	cmd.Flags().StringVar(&node, "node", "", "The node to retry from: its ID, its name, or a short name such as \"build\" that only one node has.")
 	cmd.Flags().BoolVarP(&watch, "watch", "w", false, "Watch the run until it ends.")
 	return cmd
 }

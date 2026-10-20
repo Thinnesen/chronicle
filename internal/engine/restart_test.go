@@ -38,6 +38,7 @@ func TestRestart(t *testing.T) {
 	}{
 		{"retry the failed nodes", chain, "", map[string]v1alpha1.NodePhase{"wf.b": failed}, []string{"wf.b", "wf.d"}, v1alpha1.WorkflowSucceeded},
 		{"retry from a node", chain, "wf.b", nil, []string{"wf.b", "wf.d"}, v1alpha1.WorkflowSucceeded},
+		{"retry from a node by its short name", chain, "b", nil, []string{"wf.b", "wf.d"}, v1alpha1.WorkflowSucceeded},
 		{"retry from the first node", chain, "wf.a", nil, []string{"wf.a", "wf.b", "wf.d"}, v1alpha1.WorkflowSucceeded},
 		{"retry from a step resets the later groups", "entrypoint: main\ntemplates:\n- {name: main, steps: [[{name: a, template: c}, {name: b, template: c}], [{name: d, template: c}]]}" + pod,
 			"wf[0].a", nil, []string{"wf[0].a", "wf[1].d"}, v1alpha1.WorkflowSucceeded},
@@ -77,6 +78,12 @@ func TestRestartErrors(t *testing.T) {
 	}
 	if _, _, err := Restart(s.in.Spec, s.in.Status, wfName, "nope"); err == nil {
 		t.Error("an unknown node was accepted")
+	}
+	two := newSim(t, "entrypoint: main\ntemplates:\n- {name: main, dag: {tasks: [{name: x, template: inner}, {name: y, template: inner}]}}\n"+
+		"- {name: inner, dag: {tasks: [{name: a, template: c}]}}"+pod, nil)
+	two.run()
+	if _, _, err := Restart(two.in.Spec, two.in.Status, wfName, "a"); err == nil || !strings.Contains(err.Error(), "give its ID") {
+		t.Errorf("a short name of two nodes: %v", err)
 	}
 	st, pods, err := Restart(s.in.Spec, s.in.Status, wfName, nodeByName(s.in.Status, "wf.a").ID)
 	if err != nil || len(pods) != 1 || st.Phase != v1alpha1.WorkflowRunning || st.StartedAt != nil || len(st.Nodes) != 0 {
