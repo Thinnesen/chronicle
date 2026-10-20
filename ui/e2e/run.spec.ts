@@ -30,7 +30,7 @@ test("shows the run as a graph and a timeline, and selects a node in both", asyn
   await expect(page.getByRole("complementary", { name: "Step fetch" })).toBeVisible();
 });
 
-test("finds runs by name and by phase", async ({ page }) => {
+test("finds runs by name and by phase", async ({ page }, info) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
   await expect(page.getByRole("row", { name: /deploy-api-x7c1m/ }).getByText("Needs approval")).toBeVisible();
@@ -47,6 +47,14 @@ test("finds runs by name and by phase", async ({ page }) => {
   await expect(page).toHaveURL(/phase=Succeeded/);
   await expect(page.getByRole("link", { name: "backfill-2026-10" })).toBeVisible();
   await expect(page.getByRole("table").getByRole("link", { name: "deploy-api-x7c1m" })).toBeHidden();
+
+  // A phone has no template column.
+  if (info.project.name === "desktop") {
+    await page.getByRole("radio", { name: "All" }).click();
+    await page.getByRole("button", { name: "Show the runs of deploy-api" }).click();
+    await expect(page).toHaveURL(/q=deploy-api/);
+    await expect(page.getByRole("table").getByRole("link", { name: "train-model-4rq9z" })).toBeHidden();
+  }
 
   await page.getByRole("searchbox", { name: "Search runs" }).fill("nothing-like-this");
   await expect(page.getByText("No run matches the filter.")).toBeVisible();

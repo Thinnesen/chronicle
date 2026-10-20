@@ -162,7 +162,20 @@ export function RunsPage() {
                         </span>
                       )}
                     </td>
-                    <td className="board-template">{w.template || <span className="quiet">–</span>}</td>
+                    <td className="board-template">
+                      {w.template ? (
+                        <button
+                          type="button"
+                          className="board-filter"
+                          aria-label={`Show the runs of ${w.template}`}
+                          onClick={() => void navigate({ search: (s) => ({ ...s, q: w.template }), replace: true })}
+                        >
+                          {w.template}
+                        </button>
+                      ) : (
+                        <span className="quiet">–</span>
+                      )}
+                    </td>
                     <td>
                       <ProgressTrack done={w.nodesDone} total={w.nodesTotal} phase={p} />
                     </td>

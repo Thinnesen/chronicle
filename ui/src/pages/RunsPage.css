@@ -151,6 +151,29 @@
   white-space: nowrap;
 }
 
+/* A template name filters the list to the runs of that template. It lies above the link that covers the row. */
+.board-filter {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.board-filter:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.board-filter:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .board-time,
 .board-num {
   color: var(--ink-muted);
