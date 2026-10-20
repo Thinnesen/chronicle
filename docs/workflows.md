@@ -243,7 +243,7 @@ A semaphore can read its limit from a key of a ConfigMap. Then a platform team c
       configMapKeyRef: {name: limits, key: gpu-jobs}   # the value is a number, for example "3"
 ```
 
-The ConfigMap must have the label `chronicle.thinnesen.com/parameters: "true"`. The controller reads the value each time a run asks for the lock. A new limit applies to the next run that asks. Runs that hold the lock keep it. A missing label, key or number fails the run with phase Error.
+The ConfigMap must have the label `chronicle.thinnesen.com/parameters: "true"`. The controller reads the value each time a run asks for the lock. A new limit applies to the next run that asks. Runs that hold the lock keep it. A missing ConfigMap, label, key or number holds the run or the node back. Its message tells the reason. It goes on when the ConfigMap is correct.
 
 A container, script, resource, http or task template can have its own lock. Then each node of the template holds the lock only while it runs. For example, one database migration runs at a time across all runs:
 

@@ -84,9 +84,35 @@ templates:
 		Expect(second.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
 	})
 
-	It("fails a run when the ConfigMap has no label", func() {
-		wf := reconcileWith(ctx, testReconciler(), newWorkflow(ctx, spec("sem-"+rand.String(5), limits(false, "1"))))
-		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowError))
+	It("holds a run back with the reason until the ConfigMap has the label", func() {
+		lock, cm := "sem-"+rand.String(5), limits(false, "1")
+		r := testReconciler()
+		wf := reconcileWith(ctx, r, newWorkflow(ctx, spec(lock, cm)))
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowPending))
+		Expect(wf.Status.Message).To(HavePrefix("waiting for the lock " + lock + ": ConfigMap"))
 		Expect(wf.Status.Message).To(ContainSubstring("has no label"))
+
+		var c corev1.ConfigMap
+		Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: cm}, &c)).To(Succeed())
+		c.Labels = map[string]string{LabelParameters: "true"}
+		Expect(k8sClient.Update(ctx, &c)).To(Succeed())
+		wf = reconcileWith(ctx, r, client.ObjectKeyFromObject(wf))
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+	})
+
+	It("holds a node back with the reason when the ConfigMap does not exist", func() {
+		lock := "sem-" + rand.String(5)
+		wf := reconcileWith(ctx, testReconciler(), newWorkflow(ctx, `
+entrypoint: main
+templates:
+- name: main
+  synchronization: {semaphore: {name: `+lock+`, configMapKeyRef: {name: no-such-map, key: deploy}}}
+  container: {image: alpine, command: [deploy]}
+`))
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		node := wf.Status.Nodes[wf.Name]
+		Expect(node.Phase).To(Equal(chroniclev1alpha1.NodePending))
+		Expect(node.Message).To(Equal(`waiting for the lock ` + lock + `: ConfigMap "no-such-map" does not exist`))
+		Expect(podsOf(ctx, wf)).To(BeEmpty())
 	})
 })

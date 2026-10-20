@@ -192,16 +192,16 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 		return r.writeWaiting(ctx, wf, observed, ctrl.Result{})
 	}
 	limit, err := r.lockLimit(ctx, wf.Namespace, limit, spec.Synchronization.LimitFrom())
-	if errors.Is(err, resolve.ErrInvalid) {
-		res, err := r.setError(ctx, wf, err.Error())
-		return res, true, err
-	}
-	if err != nil {
+	held, msg := false, ""
+	switch {
+	case errors.Is(err, resolve.ErrInvalid):
+		msg = lockProblem(name, err)
+	case err != nil:
 		return ctrl.Result{}, true, err
-	}
-	held, msg, err := r.acquire(ctx, wf, name, limit)
-	if err != nil {
-		return ctrl.Result{}, true, err
+	default:
+		if held, msg, err = r.acquire(ctx, wf, name, limit); err != nil {
+			return ctrl.Result{}, true, err
+		}
 	}
 	if held {
 		setLocked(wf, true, "Acquired", "the run holds the lock "+name)

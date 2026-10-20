@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -60,21 +61,30 @@ func (r *WorkflowReconciler) applyLock(ctx context.Context, wf *chroniclev1alpha
 }
 
 // lockLimit returns the limit of a lock: the number of the spec, or the number in a key of a labeled ConfigMap. The
-// controller reads the ConfigMap each time, so a new limit counts at the next try. A bad ConfigMap is ErrInvalid.
+// controller reads the ConfigMap each time, so a new limit counts at the next try. A bad ConfigMap is ErrInvalid, and
+// the run or the node waits until a user repairs it.
 func (r *WorkflowReconciler) lockLimit(ctx context.Context, namespace string, limit int, from *chroniclev1alpha1.ConfigMapKeyRef) (int, error) {
 	if from == nil {
 		return limit, nil
 	}
 	v, found, err := configMapGetter{r.reader(), namespace}.ConfigMapValue(ctx, from.Name, from.Key)
 	if apierrors.IsNotFound(err) {
-		return 0, resolve.Invalidf("the limit of a lock: ConfigMap %q does not exist", from.Name)
+		return 0, resolve.Invalidf("ConfigMap %q does not exist", from.Name)
+	}
+	if err != nil && !errors.Is(err, resolve.ErrInvalid) {
+		err = fmt.Errorf("read the limit of a lock: %w", err)
 	}
 	if err != nil {
-		return 0, fmt.Errorf("the limit of a lock: %w", err)
+		return 0, err
 	}
 	n, perr := strconv.Atoi(strings.TrimSpace(v))
 	if !found || perr != nil || n < 1 {
-		return 0, resolve.Invalidf("the limit of a lock: ConfigMap %q needs a number of 1 or more in key %q", from.Name, from.Key)
+		return 0, resolve.Invalidf("ConfigMap %q needs a number of 1 or more in key %q", from.Name, from.Key)
 	}
 	return n, nil
+}
+
+// lockProblem is the message of a run or a node that waits, because the limit of its lock is not valid.
+func lockProblem(lock string, err error) string {
+	return fmt.Sprintf("waiting for the lock %s: %v", lock, err)
 }
