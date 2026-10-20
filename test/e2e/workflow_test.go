@@ -68,6 +68,22 @@ func workflowSpecs() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("retries the failed child run when the parent is retried", func() {
+			_, err := utils.Run(exec.Command("kubectl", "apply", "-n", workflowNamespace, "-f", "test/e2e/testdata/child-retry.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(phaseOf("child-retry")).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Equal("Failed"))
+			_, err = utils.Run(exec.Command("kubectl", "patch", "workflow", "child-retry", "-n", workflowNamespace, "--type", "merge",
+				"-p", `{"spec":{"restart":{"generation":1}}}`))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(phaseOf("child-retry")).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Equal("Succeeded"))
+			uid, err := utils.Run(exec.Command("kubectl", "get", "workflow", "child-retry", "-n", workflowNamespace, "-o", "jsonpath={.metadata.uid}"))
+			Expect(err).NotTo(HaveOccurred())
+			children, err := utils.Run(exec.Command("kubectl", "get", "workflows", "-n", workflowNamespace,
+				"-l", "chronicle.thinnesen.com/parent-uid="+uid, "-o", "jsonpath={.items[*].status.restarts}"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(children).To(Equal("1"), "one child run that was retried once")
+		})
+
 		DescribeTable("run to the expected phase",
 			func(file, name, phase, message string) {
 				_, err := utils.Run(exec.Command("kubectl", "apply", "-n", workflowNamespace, "-f", "test/e2e/testdata/"+file))

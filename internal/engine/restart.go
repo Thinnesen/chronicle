@@ -46,8 +46,15 @@ func Restart(spec *v1alpha1.WorkflowTemplateSpec, status v1alpha1.WorkflowStatus
 	out := *status.DeepCopy()
 	var pods []string
 	for _, id := range slices.Sorted(maps.Keys(r.reset)) {
-		if p := out.Nodes[id].PodName; p != "" {
-			pods = append(pods, p)
+		n := out.Nodes[id]
+		if fromNode == "" && r.keepsChild(n) {
+			// The failed child run retries its own failed nodes: the node waits for it with the same child run.
+			n.Phase, n.Message, n.StartedAt, n.FinishedAt, n.Outputs = v1alpha1.NodePending, "", nil, nil, nil
+			out.Nodes[id] = n
+			continue
+		}
+		if n.PodName != "" {
+			pods = append(pods, n.PodName)
 		}
 		delete(out.Nodes, id)
 	}
@@ -184,4 +191,12 @@ func (r *restarter) laterGroups(group v1alpha1.NodeStatus) {
 	for _, g := range steps.Children[i+1:] {
 		r.subtree(g)
 	}
+}
+
+// keepsChild tells if a retry keeps the node of a failed child run. An attempt of a retry strategy gets a new child run.
+func (r *restarter) keepsChild(n v1alpha1.NodeStatus) bool {
+	if n.Type != v1alpha1.NodeChildWorkflow || n.ChildWorkflow == "" || !isFailure(n.Phase) {
+		return false
+	}
+	return r.nodes[r.parent[n.ID]].Type != v1alpha1.NodeRetry
 }

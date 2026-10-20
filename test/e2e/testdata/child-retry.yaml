@@ -1,0 +1,33 @@
+# The child run fails in its first try and succeeds when the retry of the parent retries it.
+# The claim keeps a mark between the tries, because only a run that succeeded deletes its claims.
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: child-flaky
+spec:
+  entrypoint: once
+  volumeClaimTemplates: [{name: work, storage: 16Mi}]
+  templates:
+  - name: once
+    script:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      source: |
+        test -f /work/seen && exit 0
+        touch /work/seen
+        exit 1
+      volumeMounts: [{name: work, mountPath: /work}]
+---
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: child-retry
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    dag:
+      tasks:
+      - {name: flaky, template: flaky}
+  - name: flaky
+    childWorkflow:
+      workflowTemplateRef: {name: child-flaky}

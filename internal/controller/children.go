@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -53,10 +54,22 @@ func (r *WorkflowReconciler) observeChildren(ctx context.Context, wf *chroniclev
 	for i := range list.Items {
 		c := &list.Items[i]
 		if metav1.IsControlledBy(c, wf) {
-			out[c.Name] = engine.ChildResult{Phase: c.Status.Phase, Message: c.Status.Message, Outputs: c.Status.Outputs, FinishedAt: c.Status.FinishedAt}
+			out[c.Name] = childResult(c)
 		}
 	}
 	return out, nil
+}
+
+func childResult(c *chroniclev1alpha1.Workflow) engine.ChildResult {
+	res := engine.ChildResult{Phase: c.Status.Phase, Message: c.Status.Message, Outputs: c.Status.Outputs,
+		FinishedAt: c.Status.FinishedAt, Restarts: c.Status.Restarts}
+	if c.Spec.Restart != nil {
+		res.RestartGeneration = c.Spec.Restart.Generation
+	}
+	if cond := meta.FindStatusCondition(c.Status.Conditions, "Restarted"); cond != nil && cond.Status == metav1.ConditionFalse {
+		res.RestartRefused = cond.Message
+	}
+	return res
 }
 
 func openChild(n chroniclev1alpha1.NodeStatus) bool {
@@ -116,6 +129,27 @@ func (r *WorkflowReconciler) shutdownChild(ctx context.Context, wf *chroniclev1a
 	patch := fmt.Appendf(nil, `{"spec":{"shutdown":%q}}`, a.Mode)
 	if err := r.Patch(ctx, &child, client.RawPatch("application/merge-patch+json", patch)); client.IgnoreNotFound(err) != nil {
 		return fmt.Errorf("stop the child run %s: %w", a.Name, err)
+	}
+	return nil
+}
+
+// retryChild asks a finished child run to retry its failed nodes. A stop of the parent can have stopped the child, so
+// the retry also removes the shutdown, as the API does.
+func (r *WorkflowReconciler) retryChild(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.RetryWorkflow) error {
+	var child chroniclev1alpha1.Workflow
+	err := r.Get(ctx, client.ObjectKey{Namespace: wf.Namespace, Name: a.Name}, &child)
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read the child run %s: %w", a.Name, err)
+	}
+	if !metav1.IsControlledBy(&child, wf) || !finished(child.Status.Phase) || child.Spec.Restart != nil && child.Spec.Restart.Generation >= a.Generation {
+		return nil
+	}
+	patch := fmt.Appendf(nil, `{"spec":{"restart":{"generation":%d},"shutdown":null}}`, a.Generation)
+	if err := r.Patch(ctx, &child, client.RawPatch("application/merge-patch+json", patch)); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("retry the child run %s: %w", a.Name, err)
 	}
 	return nil
 }

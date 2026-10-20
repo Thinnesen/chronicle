@@ -23,6 +23,10 @@ type ChildResult struct {
 	Message    string
 	Outputs    *v1alpha1.Outputs
 	FinishedAt *metav1.Time
+	// RestartGeneration is the retry that the child run was asked for, and Restarts the retry that it applied.
+	// RestartRefused is the reason when it refused the retry.
+	RestartGeneration, Restarts int32
+	RestartRefused              string
 }
 
 // CreateWorkflow asks the controller to create the child run of a node. The create must be idempotent.
@@ -43,6 +47,14 @@ type ShutdownWorkflow struct {
 
 func (ShutdownWorkflow) isAction() {}
 
+// RetryWorkflow asks the controller to retry the failed nodes of a child run, with this retry generation.
+type RetryWorkflow struct {
+	Name       string
+	Generation int32
+}
+
+func (RetryWorkflow) isAction() {}
+
 // childName returns the name of the child run of a node. It is stable for the node, and new for each retry.
 func (e *engine) childName(nodeID string) string {
 	h := fnv.New32a()
@@ -58,6 +70,9 @@ func (e *engine) childName(nodeID string) string {
 func (e *engine) runChild(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1alpha1.NodeStatus {
 	child, observed := e.in.Children[n.ChildWorkflow]
 	switch {
+	case observed && n.Phase == v1alpha1.NodePending && n.ChildWorkflow != e.childName(n.ID):
+		// A retry of the parent kept the node of a failed child run, so the child run retries its failed nodes.
+		e.retryChild(t, &n, child)
 	case observed:
 		e.applyChild(t, &n, child)
 	case n.Phase == v1alpha1.NodePending && e.stopping:
@@ -77,6 +92,26 @@ func (e *engine) runChild(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v
 		e.setPhase(&n, v1alpha1.NodeError, "the child run "+n.ChildWorkflow+" was deleted")
 	}
 	return e.save(n)
+}
+
+// retryChild asks a kept child run for the retry of this try, and waits until the child run has applied it.
+func (e *engine) retryChild(t *v1alpha1.Template, n *v1alpha1.NodeStatus, child ChildResult) {
+	want := e.in.Restarts
+	switch {
+	case child.RestartGeneration < want:
+		if n.StartedAt == nil {
+			n.StartedAt = &e.in.Now
+		}
+		n.Message = "retrying the child run " + n.ChildWorkflow
+		e.actions = append(e.actions, RetryWorkflow{Name: n.ChildWorkflow, Generation: want})
+		e.reached(e.in.Now.Add(childPollInterval))
+	case child.Restarts < want:
+		e.reached(e.in.Now.Add(childPollInterval))
+	case child.RestartRefused != "":
+		e.setPhase(n, v1alpha1.NodeError, fmt.Sprintf("the child run %s refused the retry: %s", n.ChildWorkflow, child.RestartRefused))
+	default:
+		e.applyChild(t, n, child)
+	}
 }
 
 // childCall resolves the placeholders in the template name and in the arguments of the child run.

@@ -88,6 +88,37 @@ templates:
 			return child.Spec.Shutdown
 		}).Should(Equal(chroniclev1alpha1.ShutdownTerminate))
 	})
+
+	It("retries the failed child run when the parent is retried", func() {
+		r := testReconciler()
+		key := newWorkflow(ctx, parentSpec(newTemplate()))
+		parent := reconcileWith(ctx, r, key)
+		child := childOf(parent)
+		now := metav1.Now()
+		child.Status = chroniclev1alpha1.WorkflowStatus{Phase: chroniclev1alpha1.WorkflowFailed, StartedAt: &now, FinishedAt: &now, Message: "boom"}
+		Expect(k8sClient.Status().Update(ctx, child)).To(Succeed())
+		Eventually(func() chroniclev1alpha1.WorkflowPhase { return reconcileWith(ctx, r, key).Status.Phase }).
+			Should(Equal(chroniclev1alpha1.WorkflowFailed))
+		// A stop of the parent had stopped the child too. The retry removes that stop.
+		Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(child), child)).To(Succeed())
+		child.Spec.Shutdown = chroniclev1alpha1.ShutdownStop
+		Expect(k8sClient.Update(ctx, child)).To(Succeed())
+
+		parent = reconcileWith(ctx, r, key)
+		parent.Spec.Restart = &chroniclev1alpha1.Restart{Generation: 1}
+		Expect(k8sClient.Update(ctx, parent)).To(Succeed())
+		Eventually(func() int32 {
+			reconcileWith(ctx, r, key)
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(child), child)).To(Succeed())
+			if child.Spec.Restart == nil {
+				return 0
+			}
+			return child.Spec.Restart.Generation
+		}).Should(Equal(int32(1)))
+		Expect(child.Spec.Shutdown).To(BeEmpty())
+		// The same child run retries: there is no second child run.
+		childOf(reconcileWith(ctx, r, key))
+	})
 })
 
 func nodeByName(st chroniclev1alpha1.WorkflowStatus, name string) chroniclev1alpha1.NodeStatus {

@@ -130,3 +130,55 @@ func TestChildWorkflowTemplateName(t *testing.T) {
 		t.Fatalf("create = %+v", created)
 	}
 }
+
+// TestChildWorkflowRetry retries the failed child run itself when the parent run is retried, not a new child run.
+func TestChildWorkflowRetry(t *testing.T) {
+	failed := func(t *testing.T) (Input, string) {
+		in := childInput(t)
+		created, _ := next[CreateWorkflow](&in, 0)
+		name := created[0].Name
+		in.Children[name] = ChildResult{Phase: v1alpha1.WorkflowFailed, Message: "load failed"}
+		if _, r := next[CreateWorkflow](&in, 1); r.Status.Phase != v1alpha1.WorkflowFailed {
+			t.Fatalf("phase = %s", r.Status.Phase)
+		}
+		st, _, err := Restart(in.Spec, in.Status, wfName, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		in.Status, in.Restarts = st, 1
+		return in, name
+	}
+
+	t.Run("retried", func(t *testing.T) {
+		in, name := failed(t)
+		retries, r := next[RetryWorkflow](&in, 2)
+		if len(retries) != 1 || retries[0].Name != name || retries[0].Generation != 1 || r.RequeueAfter == 0 {
+			t.Fatalf("retries = %+v", retries)
+		}
+		if created, _ := next[CreateWorkflow](&in, 3); len(created) != 0 {
+			t.Fatalf("a new child run: %+v", created)
+		}
+		// The child has the request, but its controller has not applied it yet.
+		in.Children[name] = ChildResult{Phase: v1alpha1.WorkflowFailed, RestartGeneration: 1}
+		if again, _ := next[RetryWorkflow](&in, 4); len(again) != 0 || nodeByName(in.Status, wfName+".a").Phase != v1alpha1.NodePending {
+			t.Fatalf("retries again = %+v, node %+v", again, nodeByName(in.Status, wfName+".a"))
+		}
+		in.Children[name] = ChildResult{Phase: v1alpha1.WorkflowRunning, RestartGeneration: 1, Restarts: 1}
+		next[CreateWorkflow](&in, 5)
+		done := at(6)
+		in.Children[name] = ChildResult{Phase: v1alpha1.WorkflowSucceeded, RestartGeneration: 1, Restarts: 1, FinishedAt: &done, Outputs: rows("7")}
+		if pods, _ := next[CreatePod](&in, 7); len(pods) != 1 || pods[0].Template.Container.Command[1] != "7" {
+			t.Fatalf("pods = %+v", pods)
+		}
+	})
+
+	t.Run("refused", func(t *testing.T) {
+		in, name := failed(t)
+		next[RetryWorkflow](&in, 2)
+		in.Children[name] = ChildResult{Phase: v1alpha1.WorkflowFailed, RestartGeneration: 1, Restarts: 1, RestartRefused: "no node failed"}
+		next[RetryWorkflow](&in, 3)
+		if n := nodeByName(in.Status, wfName+".a"); n.Phase != v1alpha1.NodeError || !strings.Contains(n.Message, "refused the retry: no node failed") {
+			t.Errorf("node = %s %q", n.Phase, n.Message)
+		}
+	})
+}

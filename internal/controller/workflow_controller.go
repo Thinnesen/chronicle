@@ -352,6 +352,8 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		return r.createChild(ctx, wf, a)
 	case engine.ShutdownWorkflow:
 		return r.shutdownChild(ctx, wf, a)
+	case engine.RetryWorkflow:
+		return r.retryChild(ctx, wf, a)
 	case engine.SaveCache:
 		if r.Cache != nil {
 			return r.Cache.SaveCache(ctx, wf.Namespace, a.Key, wf.Name, a.NodeName, a.Outputs)
