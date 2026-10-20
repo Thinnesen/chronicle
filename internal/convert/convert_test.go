@@ -73,9 +73,9 @@ func TestRules(t *testing.T) {
 			want:      []string{"limit: 3", "duration: 5s", "factor: 2"},
 		},
 		{
-			name:      "an artifact path directly below the root",
-			templates: "  - {name: main, outputs: {artifacts: [{name: o, path: /out}]}, container: {image: x, command: [run]}}",
-			want:      []string{"path: /out", "cannot create /out: use a path below /tmp"},
+			name:      "an artifact path outside /tmp",
+			templates: "  - {name: main, outputs: {artifacts: [{name: o, path: /bin/out}]}, container: {image: x, command: [run]}}",
+			want:      []string{"path: /bin/out", "cannot create /bin/out: use a path below /tmp"},
 		},
 		{
 			name:      "shell script placeholders become variables",

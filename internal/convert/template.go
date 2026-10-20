@@ -272,7 +272,7 @@ func (c *converter) artifacts(list []any, path string, fields ...string) []any {
 	out := make([]any, 0, len(list))
 	for i, a := range list {
 		in := asObj(a)
-		if p, ok := in["path"].(string); ok && strings.Count(p, "/") == 1 && len(p) > 1 {
+		if p, ok := in["path"].(string); ok && p != "/tmp" && !strings.HasPrefix(p, "/tmp/") && !strings.Contains(p, "{{") {
 			// Argo runs the executor as root; chronicle runs each step as a user without root.
 			c.warn(join(index(path, i), "path"), "chronicle runs steps as the user 65532, which cannot create %s: use a path below /tmp", p)
 		}
