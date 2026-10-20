@@ -30,7 +30,8 @@ test("re-runs a run with a changed parameter", async ({ page }) => {
   await page.getByRole("button", { name: "Re-run" }).click();
   const dialog = page.getByRole("dialog", { name: "Re-run etl-nightly-8k2pq" });
   await expect(dialog.getByRole("textbox", { name: "day" })).toHaveValue("2026-10-17");
-  await dialog.getByRole("textbox", { name: "rows" }).fill("1000");
+  await expect(dialog.getByText("The day to load.")).toBeVisible();
+  await dialog.getByRole("combobox", { name: "rows" }).selectOption("1000");
   await dialog.getByRole("button", { name: "Start the new run" }).click();
   await expect(page).toHaveURL(/\/runs\/etl-nightly-rr001$/);
   expect(calls.RerunWorkflow).toEqual([{ namespace: "team-a", name: "etl-nightly-8k2pq", parameters: { rows: "1000" } }]);

@@ -28,7 +28,16 @@ export function RerunDialog(props: { wf: Workflow; open: boolean; onOpenChange: 
             {params.map((p) => (
               <label key={p.name} className="field">
                 <span>{p.name}</span>
-                <input value={values[p.name] ?? ""} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} />
+                {p.enum?.length ? (
+                  <select value={values[p.name] ?? ""} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })}>
+                    {p.enum.map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input value={values[p.name] ?? ""} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} />
+                )}
+                {p.description && <small className="quiet">{p.description}</small>}
               </label>
             ))}
             <div className="dialog-buttons">

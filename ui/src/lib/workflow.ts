@@ -3,6 +3,8 @@
 export interface Parameter {
   name: string;
   value?: string;
+  enum?: string[];
+  description?: string;
 }
 
 export interface NodeStatus {

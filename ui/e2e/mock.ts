@@ -27,7 +27,7 @@ export function run(phase: string, gate = false, archived = false, stuck = false
         phase,
         conditions: done ? [{ type: "Archived", status: "True" }] : [],
         storedSpec: {
-          arguments: { parameters: [{ name: "day", value: "2026-10-17" }, { name: "rows", value: "all" }] },
+          arguments: { parameters: [{ name: "day", value: "2026-10-17", description: "The day to load." }, { name: "rows", value: "all", enum: ["all", "1000"] }] },
           templates: [
             { name: "main", dag: { tasks: [{ name: "fetch" }, { name: "validate", depends: "fetch" }, { name: "train", dependencies: ["validate"] }, { name: "report", depends: "train.Succeeded" }, { name: "gate", depends: "validate" }] } },
             { name: "approve", suspend: {}, outputs: { parameters: [{ name: "env", default: "staging", enum: ["staging", "prod"], description: "The environment to deploy to." }, { name: "ticket" }] } },
