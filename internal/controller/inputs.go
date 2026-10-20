@@ -23,6 +23,12 @@ func mountInputs(files *executor.ArtifactSpec, init, main *corev1.Container, vol
 	}
 	spec := *files
 	spec.Outputs = nil
+	if files.Repository != nil {
+		// Only the main container archives its log.
+		repo := *files.Repository
+		repo.ArchiveLogs = false
+		spec.Repository = &repo
+	}
 	spec.Inputs = make([]executor.File, 0, len(files.Inputs))
 	for _, in := range files.Inputs {
 		main.VolumeMounts = append(main.VolumeMounts, corev1.VolumeMount{Name: inputsVolume, MountPath: in.Path, SubPath: in.Name})

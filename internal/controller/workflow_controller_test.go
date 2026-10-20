@@ -311,6 +311,7 @@ templates:
 			ContainSubstring(`"inputs":[{"name":"data","path":"/var/run/chronicle-inputs/data","key":"`+prefix+`/data.tgz"}]`))))
 		Expect(b.Spec.Containers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{Name: inputsVolume, MountPath: "/tmp/in", SubPath: "data"}))
 		Expect(b.Spec.Containers[0].Env).NotTo(ContainElement(HaveField("Value", ContainSubstring(`"inputs"`))))
+		Expect(b.Spec.InitContainers[0].Env).NotTo(ContainElement(HaveField("Value", ContainSubstring(`"archiveLogs":true`))))
 	})
 
 	It("sends a task to the queue and takes its result", func() {
