@@ -30,7 +30,8 @@ fn etl() -> Workflow {
         .continue_on(true, false);
     let r = Task::new("report", &echo)
         .after(&[&c])
-        .arg("msg", &format!("fetched {} rows", f.result()));
+        .arg("msg", &format!("fetched {} rows", f.result()))
+        .on_exit(&echo, &[("msg", &format!("count was {}", c.status()))]);
     let parts = Task::new("parts", &echo)
         .after(&[&c])
         .with_sequence("3", 1, "part-%d")

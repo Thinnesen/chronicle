@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -338,6 +340,21 @@ func (k *Task) ContinueOn(onFailed, onError bool) *Task {
 	k.task().ContinueOn = &v1alpha1.ContinueOn{Failed: onFailed, Error: onError}
 	return k
 }
+
+// OnExit runs hook after the task ends, also after a failure. The tasks after it wait for the hook. args are the
+// parameter arguments of the hook; they can use the outputs and the status of the task.
+func (k *Task) OnExit(hook *Template, args map[string]string) *Task {
+	h := &v1alpha1.ExitHook{Template: hook.t.Name}
+	for _, name := range slices.Sorted(maps.Keys(args)) {
+		h.Arguments.Parameters = append(h.Arguments.Parameters, v1alpha1.Parameter{Name: name, Value: new(args[name])})
+	}
+	k.task().OnExit = h
+	k.dag.children = append(k.dag.children, hook)
+	return k
+}
+
+// Status returns the placeholder for the phase of the task, for example in an exit hook.
+func (k *Task) Status() string { return "{{tasks." + k.Name() + ".status}}" }
 
 // WithItems runs the task once for each item. The template uses "{{item}}" or "{{item.key}}".
 func (k *Task) WithItems(items ...any) *Task {

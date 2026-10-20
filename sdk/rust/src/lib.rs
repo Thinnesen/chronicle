@@ -311,6 +311,7 @@ impl Template {
 pub struct Task {
     name: String,
     template: Box<Template>,
+    hook: Option<Box<Template>>,
     fields: Map<String, Value>,
     params: Vec<Value>,
     artifacts: Vec<Value>,
@@ -322,6 +323,7 @@ impl Task {
         Task {
             name: name.to_string(),
             template: Box::new(template.clone()),
+            hook: None,
             fields: Map::new(),
             params: Vec::new(),
             artifacts: Vec::new(),
@@ -358,6 +360,30 @@ impl Task {
     pub fn when(mut self, condition: &str) -> Self {
         self.fields.insert("when".into(), condition.into());
         self
+    }
+
+    /// Runs hook after the task ends, also after a failure. The tasks after it wait for the hook. args are the
+    /// parameter arguments of the hook; they can use the outputs and the status of the task.
+    pub fn on_exit(mut self, hook: &Template, args: &[(&str, &str)]) -> Self {
+        let mut h = Map::new();
+        h.insert("template".into(), hook.name.clone().into());
+        let mut sorted = args.to_vec();
+        sorted.sort();
+        if !sorted.is_empty() {
+            let params: Vec<Value> = sorted
+                .iter()
+                .map(|(k, v)| json!({"name": k, "value": v}))
+                .collect();
+            h.insert("arguments".into(), json!({ "parameters": params }));
+        }
+        self.fields.insert("onExit".into(), Value::Object(h));
+        self.hook = Some(Box::new(hook.clone()));
+        self
+    }
+
+    /// Returns the placeholder for the phase of the task, for example in an exit hook.
+    pub fn status(&self) -> String {
+        format!("{{{{tasks.{}.status}}}}", self.name)
     }
 
     /// Runs the task once for each item. The template uses "{{item}}" or "{{item.key}}".

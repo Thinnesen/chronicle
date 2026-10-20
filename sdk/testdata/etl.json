@@ -63,6 +63,17 @@
                 "count"
               ],
               "name": "report",
+              "onExit": {
+                "arguments": {
+                  "parameters": [
+                    {
+                      "name": "msg",
+                      "value": "count was {{tasks.count.status}}"
+                    }
+                  ]
+                },
+                "template": "echo"
+              },
               "template": "echo"
             },
             {

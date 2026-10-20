@@ -132,7 +132,7 @@ class Template:
         return out
 
     def _children(self) -> list[Template]:
-        return [t.template for t in self._tasks]
+        return [t.template for t in self._tasks] + [t.hook for t in self._tasks if t.hook is not None]
 
 
 def container(name: str, image: str, *command: str) -> Template:
@@ -189,6 +189,7 @@ class Task:
     def __init__(self, name: str, template: Template) -> None:
         self.name = name
         self.template = template
+        self.hook: Template | None = None
         self._fields: dict[str, Any] = {}
         self._params: list[dict[str, str]] = []
         self._artifacts: list[dict[str, str]] = []
@@ -222,6 +223,20 @@ class Task:
         """Let the run go on after the task fails (failed) or cannot run (error), as Argo's continueOn."""
         self._fields["continueOn"] = {k: True for k, v in (("failed", failed), ("error", error)) if v}
         return self
+
+    def on_exit(self, hook: Template, **args: str) -> Task:
+        """Run hook after the task ends, also after a failure. The tasks after it wait for the hook.
+        args are the parameter arguments of the hook; they can use the outputs and the status of the task."""
+        h: dict[str, Any] = {"template": hook.name}
+        if args:
+            h["arguments"] = {"parameters": [{"name": k, "value": v} for k, v in sorted(args.items())]}
+        self._fields["onExit"] = h
+        self.hook = hook
+        return self
+
+    def status(self) -> str:
+        """Return the placeholder for the phase of the task, for example in an exit hook."""
+        return "{{tasks." + self.name + ".status}}"
 
     def with_items(self, *items: Any) -> Task:
         """Run the task once for each item. The template uses "{{item}}" or "{{item.key}}"."""

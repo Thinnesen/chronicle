@@ -140,6 +140,9 @@ fn collect(
     seen.insert(t.name.clone(), (index, t.clone()));
     for task in &t.tasks {
         collect(&task.template, seen)?;
+        if let Some(hook) = &task.hook {
+            collect(hook, seen)?;
+        }
     }
     Ok(())
 }

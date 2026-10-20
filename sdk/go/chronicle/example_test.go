@@ -32,7 +32,8 @@ func etl() *chronicle.Workflow {
 	main := chronicle.DAG("main").Parallelism(2)
 	f := main.Task("fetch", fetch)
 	c := main.Task("count", count).After(f).ArtifactArg("rows", f.Artifact("rows")).ContinueOn(true, false)
-	main.Task("report", echo).After(c).Arg("msg", "fetched "+f.Result()+" rows")
+	main.Task("report", echo).After(c).Arg("msg", "fetched "+f.Result()+" rows").
+		OnExit(echo, map[string]string{"msg": "count was " + c.Status()})
 	main.Task("parts", echo).After(c).WithSequence("3", 1, "part-%d").Arg("msg", "{{item}}")
 	notify := chronicle.HTTP("notify", "https://chat.example.com/hooks/data").Method("POST").
 		Header("Content-Type", "application/json").HeaderFromSecret("Authorization", "chat", "token").
@@ -116,6 +117,12 @@ func Example() {
 	//         dependencies:
 	//         - count
 	//         name: report
+	//         onExit:
+	//           arguments:
+	//             parameters:
+	//             - name: msg
+	//               value: count was {{tasks.count.status}}
+	//           template: echo
 	//         template: echo
 	//       - arguments:
 	//           parameters:
