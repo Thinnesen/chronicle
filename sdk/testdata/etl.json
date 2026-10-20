@@ -64,6 +64,26 @@
               ],
               "name": "report",
               "template": "echo"
+            },
+            {
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "msg",
+                    "value": "{{item}}"
+                  }
+                ]
+              },
+              "dependencies": [
+                "count"
+              ],
+              "name": "parts",
+              "template": "echo",
+              "withSequence": {
+                "count": "3",
+                "format": "part-%d",
+                "start": 1
+              }
             }
           ]
         },

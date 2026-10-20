@@ -12,6 +12,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
@@ -342,6 +343,17 @@ func (k *Task) WithItems(items ...any) *Task {
 		}
 		k.task().WithItems = append(k.task().WithItems, apiextensionsv1.JSON{Raw: raw})
 	}
+	return k
+}
+
+// WithSequence runs the task once for each number from start, count times. count can be a placeholder, for example
+// a workflow parameter. format makes the item text, for example "part-%d"; empty is "%d".
+func (k *Task) WithSequence(count string, start int, format string) *Task {
+	seq := &v1alpha1.Sequence{Count: new(intstr.FromString(count)), Format: format}
+	if start != 0 {
+		seq.Start = new(intstr.FromInt(start))
+	}
+	k.task().WithSequence = seq
 	return k
 }
 

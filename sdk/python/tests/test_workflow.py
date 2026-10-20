@@ -27,6 +27,7 @@ def etl() -> chronicle.Workflow:
     f = main.task("fetch", fetch)
     c = main.task("count", count).after(f).artifact_arg("rows", f.artifact("rows")).continue_on(failed=True)
     main.task("report", echo).after(c).arg("msg", f"fetched {f.result()} rows")
+    main.task("parts", echo).after(c).with_sequence("3", start=1, format="part-%d").arg("msg", "{{item}}")
     notify = chronicle.http_template("notify", "https://chat.example.com/hooks/data", method="POST")
     notify.header("Content-Type", "application/json").header_from_secret("Authorization", "chat", "token")
     notify.body('{"text": "{{workflow.name}} is {{workflow.status}}"}')

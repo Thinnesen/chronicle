@@ -30,12 +30,16 @@ fn etl() -> Workflow {
     let r = Task::new("report", &echo)
         .after(&[&c])
         .arg("msg", &format!("fetched {} rows", f.result()));
+    let parts = Task::new("parts", &echo)
+        .after(&[&c])
+        .with_sequence("3", 1, "part-%d")
+        .arg("msg", "{{item}}");
     Workflow::new("etl-")
         .label("team", "data")
         .parallelism(4)
         .mutex("etl")
         .param("day", "2026-10-17")
-        .entrypoint(Template::dag("main").parallelism(2).tasks([f, c, r]))
+        .entrypoint(Template::dag("main").parallelism(2).tasks([f, c, r, parts]))
         .on_exit(
             Template::http("notify", "https://chat.example.com/hooks/data")
                 .method("POST")

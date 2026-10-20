@@ -362,6 +362,22 @@ impl Task {
         self
     }
 
+    /// Runs the task once for each number from start, count times. count can be a placeholder.
+    /// format makes the item text, for example "part-%d"; empty is "%d".
+    pub fn with_sequence(mut self, count: &str, start: i64, format: &str) -> Self {
+        let mut seq = Map::new();
+        seq.insert("count".into(), count.into());
+        if start != 0 {
+            seq.insert("start".into(), start.into());
+        }
+        if !format.is_empty() {
+            seq.insert("format".into(), format.into());
+        }
+        self.fields
+            .insert("withSequence".into(), Value::Object(seq));
+        self
+    }
+
     /// Returns the placeholder for the standard output of the task.
     pub fn result(&self) -> String {
         format!("{{{{tasks.{}.outputs.result}}}}", self.name)

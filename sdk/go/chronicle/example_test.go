@@ -32,6 +32,7 @@ func etl() *chronicle.Workflow {
 	f := main.Task("fetch", fetch)
 	c := main.Task("count", count).After(f).ArtifactArg("rows", f.Artifact("rows")).ContinueOn(true, false)
 	main.Task("report", echo).After(c).Arg("msg", "fetched "+f.Result()+" rows")
+	main.Task("parts", echo).After(c).WithSequence("3", 1, "part-%d").Arg("msg", "{{item}}")
 	notify := chronicle.HTTP("notify", "https://chat.example.com/hooks/data").Method("POST").
 		Header("Content-Type", "application/json").HeaderFromSecret("Authorization", "chat", "token").
 		Body(`{"text": "{{workflow.name}} is {{workflow.status}}"}`)
@@ -115,6 +116,18 @@ func Example() {
 	//         - count
 	//         name: report
 	//         template: echo
+	//       - arguments:
+	//           parameters:
+	//           - name: msg
+	//             value: '{{item}}'
+	//         dependencies:
+	//         - count
+	//         name: parts
+	//         template: echo
+	//         withSequence:
+	//           count: "3"
+	//           format: part-%d
+	//           start: 1
 	//     name: main
 	//     parallelism: 2
 	//   - name: fetch

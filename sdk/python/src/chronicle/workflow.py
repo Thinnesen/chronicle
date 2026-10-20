@@ -223,6 +223,17 @@ class Task:
         self._fields["withItems"] = list(items)
         return self
 
+    def with_sequence(self, count: str, start: int = 0, format: str = "") -> Task:
+        """Run the task once for each number from start, count times. count can be a placeholder.
+        format makes the item text, for example "part-%d"; empty is "%d"."""
+        seq: dict[str, Any] = {"count": count}
+        if start:
+            seq["start"] = start
+        if format:
+            seq["format"] = format
+        self._fields["withSequence"] = seq
+        return self
+
     def result(self) -> str:
         """Return the placeholder for the standard output of the task."""
         return "{{tasks." + self.name + ".outputs.result}}"
