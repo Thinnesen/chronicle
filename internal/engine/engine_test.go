@@ -238,6 +238,18 @@ func TestEnginePodStates(t *testing.T) {
 		t.Fatalf("pending: actions %v, node %+v", r.Actions, r.Status.Nodes[id])
 	}
 
+	// A Pod that can never start ends its node, and the engine deletes the Pod once.
+	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeError, Message: "InvalidImageName: bad", Stuck: true}
+	stuck := Run(s.in)
+	if n := stuck.Status.Nodes[id]; n.Phase != v1alpha1.NodeError || len(stuck.Actions) != 1 || stuck.Actions[0] != (DeletePod{PodName: n.PodName}) {
+		t.Fatalf("stuck: actions %v, node %+v", stuck.Actions, n)
+	}
+	s.in.Status = stuck.Status
+	if again := Run(s.in); len(again.Actions) != 0 {
+		t.Fatalf("stuck again: actions %v", again.Actions)
+	}
+	s.in.Status = r.Status
+
 	// A Running Pod has the start time of its node.
 	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeRunning}
 	r = Run(s.in)

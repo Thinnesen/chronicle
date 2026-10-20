@@ -60,6 +60,9 @@ type PodResult struct {
 	Outputs    *v1alpha1.Outputs
 	// LogKey is the key of the archived log.
 	LogKey string
+	// Stuck means that the Pod can never start, for example because of a bad image name. Then the engine ends the
+	// node and deletes the Pod, so that it does not hold its resources.
+	Stuck bool
 }
 
 // Result is the new status and the actions that the controller must apply.

@@ -35,6 +35,12 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 	case corev1.PodRunning:
 		return engine.PodResult{Phase: v1alpha1.NodeRunning}
 	}
+	for _, s := range []corev1.ContainerStatus{executorInit, main} {
+		// The image of a Pod cannot change, so this Pod never starts.
+		if w := s.State.Waiting; w != nil && w.Reason == "InvalidImageName" {
+			return engine.PodResult{Phase: v1alpha1.NodeError, Message: reasonMessage(w.Reason, w.Message), Stuck: true}
+		}
+	}
 	return engine.PodResult{Phase: v1alpha1.NodePending, Message: pendingMessage(pod, executorInit, main)}
 }
 

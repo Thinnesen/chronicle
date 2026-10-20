@@ -25,6 +25,9 @@ func TestPodResult(t *testing.T) {
 		{"initializing", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
 			Waiting: &corev1.ContainerStateWaiting{Reason: "PodInitializing"}})},
 			v1alpha1.NodePending, ""},
+		{"invalid image name", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
+			Waiting: &corev1.ContainerStateWaiting{Reason: "InvalidImageName", Message: `couldn't parse image name "Bad:Name"`}})},
+			v1alpha1.NodeError, `InvalidImageName: couldn't parse image name "Bad:Name"`},
 		{"waiting without a message", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
 			Waiting: &corev1.ContainerStateWaiting{Reason: "CreateContainerConfigError"}})},
 			v1alpha1.NodePending, "CreateContainerConfigError"},
@@ -54,6 +57,9 @@ func TestPodResult(t *testing.T) {
 			r := podResult(&corev1.Pod{Status: tt.status})
 			if r.Phase != tt.phase || r.Message != tt.msg {
 				t.Errorf("got %s %q, want %s %q", r.Phase, r.Message, tt.phase, tt.msg)
+			}
+			if r.Stuck != (tt.name == "invalid image name") {
+				t.Errorf("stuck = %t", r.Stuck)
 			}
 			if m := containerStatus(tt.status.ContainerStatuses, mainContainer).State.Terminated; m != nil &&
 				(r.Outputs == nil || r.Outputs.ExitCode == nil || *r.Outputs.ExitCode != m.ExitCode) {

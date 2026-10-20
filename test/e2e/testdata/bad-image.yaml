@@ -1,0 +1,9 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: bad-image
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    container: {image: "Bad:Name", command: [run]}
