@@ -163,6 +163,11 @@ func TestRules(t *testing.T) {
 			want: []string{"configMapKeyRef:\n            key: msg\n            name: cfg", "default: hi", `give ConfigMap cfg the label chronicle.thinnesen.com/parameters: "true"`},
 		},
 		{
+			name:      "a template mutex stays",
+			templates: "  - {name: main, synchronization: {mutex: {name: db}}, container: {image: x, command: [migrate]}}",
+			want:      []string{"synchronization:\n      mutex:\n        name: db"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

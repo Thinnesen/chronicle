@@ -209,6 +209,17 @@ spec:
 
 Runs with the same lock name in a namespace share the lock. A run that waits for it is Pending, with the message "waiting for the lock ..., which ... holds". A finished run gives the lock back, and so does a run that was deleted. There is no fixed order among the waiting runs.
 
+A container, script, resource, http or task template can have its own lock. Then each node of the template holds the lock only while it runs, for example one database migration at a time across all runs:
+
+```yaml
+  - name: migrate
+    synchronization:
+      mutex: {name: orders-db}
+    container: {image: migrate:1.4, command: [migrate, up]}
+```
+
+A node that waits is Pending with the message "waiting for the lock orders-db". A node gives the lock back when it ends. Template locks and run locks with the same name share one lock.
+
 ## 10. Templates and schedules
 
 ```yaml

@@ -30,6 +30,7 @@ function meta(n: NodeStatus, data: NodeData): string {
   if (data.preview) return n.templateName !== nodeLabel(n) ? (n.templateName ?? "") : "";
   if (n.planned) return "Not started";
   if (n.phase === "Pending" && n.message?.startsWith("waiting for a free slot")) return "Waiting for a slot";
+  if (n.phase === "Pending" && n.message?.startsWith("waiting for the lock")) return "Waiting for a lock";
   return waitReason(n) ?? (nodeDuration(n, data.now) || n.phase || "Pending");
 }
 

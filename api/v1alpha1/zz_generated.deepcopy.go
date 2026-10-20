@@ -959,6 +959,11 @@ func (in *Template) DeepCopyInto(out *Template) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.Synchronization != nil {
+		in, out := &in.Synchronization, &out.Synchronization
+		*out = new(Synchronization)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Parallelism != nil {
 		in, out := &in.Parallelism, &out.Parallelism
 		*out = new(int32)

@@ -123,6 +123,9 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 		sc = sc.with("inputs.artifacts." + a.Name)
 	}
 	c.checkArtifacts(t, path, sc.with(c.childOutputs(t)...))
+	if t.Synchronization != nil && t.Container == nil && t.Script == nil && t.Resource == nil && t.HTTP == nil && t.Task == nil {
+		c.errs = append(c.errs, field.Forbidden(path.Child("synchronization"), "only a container, script, resource, http or task template can hold a lock"))
+	}
 	if t.Parallelism != nil && t.DAG == nil && t.Steps == nil {
 		c.errs = append(c.errs, field.Invalid(path.Child("parallelism"), *t.Parallelism, "only a dag or steps template can limit its parallelism"))
 	}

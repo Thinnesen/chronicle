@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
 // conditionLocked tells that a run holds the lock of its synchronization.
@@ -31,23 +32,16 @@ const lockPoll = 5 * time.Second
 // lockPrefix starts the name of the Lease of each lock.
 const lockPrefix = "chronicle-lock-"
 
-// holder is a run that holds a lock.
+// holder is a run that holds a lock, or one node of a run when the lock belongs to a template.
 type holder struct {
 	UID  string `json:"uid"`
 	Name string `json:"name"`
+	Node string `json:"node,omitempty"`
 }
 
-// lockOf returns the lock of a spec and how many runs can hold it.
+// lockOf returns the lock of a run and how many runs can hold it.
 func lockOf(spec *chroniclev1alpha1.WorkflowTemplateSpec) (string, int, bool) {
-	switch s := spec.Synchronization; {
-	case s == nil:
-		return "", 0, false
-	case s.Mutex != nil:
-		return s.Mutex.Name, 1, true
-	case s.Semaphore != nil:
-		return s.Semaphore.Name, int(s.Semaphore.Limit), true
-	}
-	return "", 0, false
+	return spec.Synchronization.Lock()
 }
 
 // reader reads past the cache: the Lease and its holders, so that two reconciles never see an old holder list,
@@ -60,13 +54,18 @@ func (r *WorkflowReconciler) reader() client.Reader {
 }
 
 // acquire takes the lock for a run if a slot is free. It returns false and a message when the run must wait.
-// The Lease update has the resource version of the read, so a concurrent change makes it fail and nothing is lost.
 func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.Workflow, name string, limit int) (bool, string, error) {
+	return r.acquireAs(ctx, wf.Namespace, name, limit, holder{UID: string(wf.UID), Name: wf.Name})
+}
+
+// acquireAs takes the lock for a run or a node if a slot is free. It returns false and a message when it must wait.
+// The Lease update has the resource version of the read, so a concurrent change makes it fail and nothing is lost.
+func (r *WorkflowReconciler) acquireAs(ctx context.Context, namespace, name string, limit int, me holder) (bool, string, error) {
 	var lease coordinationv1.Lease
-	err := r.reader().Get(ctx, client.ObjectKey{Namespace: wf.Namespace, Name: lockPrefix + name}, &lease)
+	err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: lockPrefix + name}, &lease)
 	if apierrors.IsNotFound(err) {
-		lease = coordinationv1.Lease{Name: lockPrefix + name, Namespace: wf.Namespace}
-		setHolders(&lease, []holder{{UID: string(wf.UID), Name: wf.Name}})
+		lease = coordinationv1.Lease{Name: lockPrefix + name, Namespace: namespace}
+		setHolders(&lease, []holder{me})
 		if err := r.Create(ctx, &lease); apierrors.IsAlreadyExists(err) {
 			return false, "waiting for the lock " + name, nil
 		} else if err != nil {
@@ -78,10 +77,10 @@ func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.
 		return false, "", fmt.Errorf("read the lock %s: %w", name, err)
 	}
 	all := holdersOf(&lease)
-	if slices.ContainsFunc(all, func(h holder) bool { return h.UID == string(wf.UID) }) {
+	if slices.Contains(all, me) {
 		return true, "", nil
 	}
-	alive, err := r.liveHolders(ctx, wf.Namespace, all)
+	alive, err := r.liveHolders(ctx, namespace, all)
 	if err != nil {
 		return false, "", err
 	}
@@ -92,7 +91,7 @@ func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.
 		}
 		return false, fmt.Sprintf("waiting for the lock %s, which %s holds", name, strings.Join(names, ", ")), nil
 	}
-	setHolders(&lease, append(alive, holder{UID: string(wf.UID), Name: wf.Name}))
+	setHolders(&lease, append(alive, me))
 	if err := r.Update(ctx, &lease); apierrors.IsConflict(err) {
 		return false, "waiting for the lock " + name, nil
 	} else if err != nil {
@@ -101,38 +100,52 @@ func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.
 	return true, "", nil
 }
 
-// release gives the lock of a run back.
+// release gives the lock of a run back, and the locks that its nodes still hold under the same name.
 func (r *WorkflowReconciler) release(ctx context.Context, wf *chroniclev1alpha1.Workflow, name string) error {
+	return r.releaseWhere(ctx, wf.Namespace, name, func(h holder) bool { return h.UID == string(wf.UID) })
+}
+
+// releaseWhere removes the holders that match from a lock.
+func (r *WorkflowReconciler) releaseWhere(ctx context.Context, namespace, name string, match func(holder) bool) error {
 	var lease coordinationv1.Lease
-	err := r.reader().Get(ctx, client.ObjectKey{Namespace: wf.Namespace, Name: lockPrefix + name}, &lease)
+	err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: lockPrefix + name}, &lease)
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("read the lock %s: %w", name, err)
 	}
-	setHolders(&lease, slices.DeleteFunc(holdersOf(&lease), func(h holder) bool { return h.UID == string(wf.UID) }))
+	setHolders(&lease, slices.DeleteFunc(holdersOf(&lease), match))
 	if err := r.Update(ctx, &lease); err != nil {
 		return fmt.Errorf("give back the lock %s: %w", name, err)
 	}
 	return nil
 }
 
-// liveHolders drops the holders whose run was deleted or finished, for example a run that was deleted while it ran.
+// liveHolders drops the holders whose run was deleted or finished, for example a run that was deleted while it ran,
+// and the node holders whose node has ended.
 func (r *WorkflowReconciler) liveHolders(ctx context.Context, namespace string, all []holder) ([]holder, error) {
 	var out []holder
+	runs := map[string]*chroniclev1alpha1.Workflow{}
 	for _, h := range all {
-		var wf chroniclev1alpha1.Workflow
-		err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: h.Name}, &wf)
-		if apierrors.IsNotFound(err) {
+		wf, ok := runs[h.Name]
+		if !ok {
+			wf = &chroniclev1alpha1.Workflow{}
+			err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: h.Name}, wf)
+			if apierrors.IsNotFound(err) {
+				wf = nil
+			} else if err != nil {
+				return nil, fmt.Errorf("read the holder %s: %w", h.Name, err)
+			}
+			runs[h.Name] = wf
+		}
+		if wf == nil || string(wf.UID) != h.UID || finished(wf.Status.Phase) {
 			continue
 		}
-		if err != nil {
-			return nil, fmt.Errorf("read the holder %s: %w", h.Name, err)
+		if n, ok := wf.Status.Nodes[h.Node]; h.Node != "" && ok && engine.IsTerminal(n.Phase) {
+			continue
 		}
-		if string(wf.UID) == h.UID && !finished(wf.Status.Phase) {
-			out = append(out, h)
-		}
+		out = append(out, h)
 	}
 	return out, nil
 }

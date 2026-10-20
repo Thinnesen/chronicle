@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A container, script, resource, http or task template can have a lock (`synchronization`), as in Argo. Each node holds it while it runs. The engine stays pure: it asks for the lock with an action and starts the node when the controller reports it as held; it gives it back when the node ends. The locks use the same Leases as run locks, with the node ID in the holder. The converter dropped Argo template locks before, so a converted pipeline could run two migrations at once.
+
 - 2026-10-20: Workflow and input parameters can read a ConfigMap (`valueFrom.configMapKeyRef`), as in Argo. The controller reads it once at the start and keeps the values in `status.storedSpec`, like resolved template references, so a change of the ConfigMap during a run does not change later steps. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, because the controller can read all ConfigMaps and a user who may create Workflows must not read other ConfigMaps through a run (Argo has the same opt-in label).
 
 - 2026-10-20: The controller fails a run whose Workflow would be larger than 1 MiB, before it applies the actions of that engine step. Before, the status update failed on each reconcile, the run looked stuck, and Pods went on. Argo moves large node lists into its database ("offloading"); that makes the database a dependency of every run and the status in the cluster incomplete. A clear failure with a hint to split the work is simpler; offloading stays an option if real runs need it.

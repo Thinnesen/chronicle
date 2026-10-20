@@ -115,3 +115,11 @@ templates:
   container: {image: x, command: [run]}`, want: []string{"only a workflow parameter or an input parameter can read a ConfigMap"}},
 	}, true)
 }
+
+func TestTemplateLock(t *testing.T) {
+	runCases(t, []specCase{
+		{name: "a container", spec: "entrypoint: c\ntemplates:\n- {name: c, synchronization: {mutex: {name: prod}}, container: {image: x}}"},
+		{name: "a dag", spec: "entrypoint: m\ntemplates:\n- {name: m, synchronization: {mutex: {name: prod}}, dag: {tasks: [{name: a, template: c}]}}\n- {name: c, container: {image: x}}",
+			want: []string{"only a container, script, resource, http or task template can hold a lock"}},
+	}, true)
+}

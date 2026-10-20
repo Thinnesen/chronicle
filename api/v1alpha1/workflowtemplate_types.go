@@ -140,6 +140,19 @@ type Synchronization struct {
 	Semaphore *Semaphore `json:"semaphore,omitempty"`
 }
 
+// Lock returns the name of the lock and how many holders it can have, or false without a lock.
+func (s *Synchronization) Lock() (string, int, bool) {
+	switch {
+	case s == nil:
+		return "", 0, false
+	case s.Mutex != nil:
+		return s.Mutex.Name, 1, true
+	case s.Semaphore != nil:
+		return s.Semaphore.Name, int(s.Semaphore.Limit), true
+	}
+	return "", 0, false
+}
+
 // Mutex lets one run with the lock name run at a time in the namespace.
 type Mutex struct {
 	// name of the lock. Runs with the same name in a namespace share it.

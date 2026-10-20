@@ -62,7 +62,9 @@ func (e *engine) runTask(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1
 	}
 	task, observed := e.in.Tasks[n.TaskID]
 	switch {
+	case !observed && n.Phase == v1alpha1.NodePending && e.waitForLock(t, &n):
 	case !observed && n.Phase == v1alpha1.NodePending:
+		n.Message = ""
 		e.actions = append(e.actions, EnqueueTask{
 			TaskID: n.TaskID, NodeID: n.ID, NodeName: c.nodeName, IdempotencyKey: e.in.UID + "/" + retryKey(c.nodeName),
 			Name: t.Task.Name, Queue: queueOf(t.Task), Input: taskInput(n.Inputs),

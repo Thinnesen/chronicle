@@ -66,7 +66,7 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Pod fields: `securityContext`, `volumes`, `volumeMounts`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
-| `synchronization.semaphore` with a ConfigMap limit, template-level `synchronization`, `memoize`, `metrics` | Not supported. A workflow `mutex` converts; set a semaphore limit by hand. |
+| `synchronization.semaphore` with a ConfigMap limit, `memoize`, `metrics` | Not supported. A `mutex` converts, at the run and at the template level; set a semaphore limit by hand. |
 | `plugin`, `data` and `containerSet` templates; `successCondition`, `timeoutSeconds`, `insecureSkipVerify` and `bodyFrom` of an `http` template | Not supported. A status from 200 to 299 is success. Task workers cover larger calls to services. |
 | Artifact sources `s3`, `gcs`, `azure`, `oss`, `git`, `hdfs`, `artifactory`, and `http` with `auth` or `headers` | Use the artifact repository of the namespace, `raw`, or a plain `http` URL. |
 | `outputs.result` of a container without a command | Not supported. Give the container a command. |

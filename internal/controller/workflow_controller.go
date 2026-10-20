@@ -95,21 +95,30 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	held, err := r.heldLocks(ctx, &wf, spec)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	res := engine.Run(engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
 		CreatedAt: wf.CreationTimestamp, ScheduledTime: wf.Annotations[AnnotationScheduledTime], Labels: wf.Labels, Annotations: wf.Annotations,
 		Spec: spec, Status: wf.Status, Pods: pods, Tasks: tasks, TasksEnabled: r.Tasks != nil,
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
-		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,
+		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals, HeldLocks: held,
 	})
 	// The phase after restart: the first reconcile of a retry must also respect the limit.
 	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(wf.Status.Phase) {
 		return r.failTooLarge(ctx, &wf, size)
 	}
-	if err := r.applyAll(ctx, &wf, spec, res.Actions); err != nil {
+	took, err := r.applyAll(ctx, &wf, spec, res.Actions)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
+	if took {
+		// The engine starts the node in the next step, now that it holds the lock.
+		result.RequeueAfter = lockStart
+	}
 	wf.Status = res.Status
 	if err := r.unlock(ctx, &wf, spec); err != nil {
 		return ctrl.Result{}, err
@@ -275,12 +284,31 @@ func (r *WorkflowReconciler) observePods(ctx context.Context, wf *chroniclev1alp
 // starts many Pods in one step, and one API call after the other made the first status wait for all of them.
 const applyWorkers = 8
 
-// applyAll applies the actions of one engine step. The actions are independent. The artifact repository is read once.
-func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, actions []engine.Action) error {
+// lockStart is the wait before the step that starts a node which has just taken its lock.
+const lockStart = 100 * time.Millisecond
+
+// applyAll applies the actions of one engine step. It returns true when a node took a lock, so that the run goes on
+// soon. The lock actions run one after the other, because they change the same Leases. The other actions are
+// independent and run in parallel. The artifact repository is read once.
+func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, actions []engine.Action) (bool, error) {
+	took := false
+	rest := make([]engine.Action, 0, len(actions))
+	for _, a := range actions {
+		switch a.(type) {
+		case engine.AcquireLock, engine.ReleaseLock:
+			held, err := r.applyLock(ctx, wf, a)
+			if err != nil {
+				return false, err
+			}
+			took = took || held
+		default:
+			rest = append(rest, a)
+		}
+	}
 	repo := sync.OnceValues(func() (*artifact.Repository, error) { return r.repository(ctx, wf.Namespace) })
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(applyWorkers)
-	for _, a := range actions {
+	for _, a := range rest {
 		g.Go(func() error {
 			if err := r.apply(gctx, wf, spec, a, repo); err != nil {
 				return err
@@ -289,7 +317,7 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 			return nil
 		})
 	}
-	return g.Wait()
+	return took, g.Wait()
 }
 
 func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, a engine.Action,

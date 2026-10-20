@@ -31,6 +31,11 @@ type Template struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
+	// synchronization is a lock that each node of this container, script, resource, http or task template holds while it
+	// runs. Nodes of all runs in the namespace share a lock with the same name, also with the lock of a run.
+	// +optional
+	Synchronization *Synchronization `json:"synchronization,omitempty"`
+
 	// parallelism limits the Pods that run at the same time below a node of this DAG or steps template.
 	// +kubebuilder:validation:Minimum=1
 	// +optional

@@ -48,7 +48,7 @@ The spec follows the Argo Workflows concepts, so that the converter is simple:
 
 - `entrypoint`, `arguments.parameters`, `templates`.
 - Template types: `container`, `script`, `dag` (tasks with `dependencies` and `depends` expressions), `steps` (lists of parallel steps), `suspend` (wait or manual approval), `resource` (create a Kubernetes object), `task` (call a task worker, section 7), `http` (send one HTTP request).
-- `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions, `withItems` and `withParam` fan-out, `parallelism` (of the workflow, and of a `dag` or `steps` template), `synchronization` (a mutex or a semaphore for runs in a namespace).
+- `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions, `withItems` and `withParam` fan-out, `parallelism` (of the workflow, and of a `dag` or `steps` template), `synchronization` (a mutex or a semaphore for runs in a namespace, or for the nodes of one template).
 - Inputs and outputs: parameters (from a file, from stdout, from a JSON path) and artifacts (S3-compatible store).
 - `podGC`, `ttlStrategy`, `serviceAccountName`. There is no `podSpecPatch`: a patch of the Pod spec could undo the Pod security settings.
 

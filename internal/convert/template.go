@@ -13,13 +13,19 @@ func (c *converter) template(in obj, path string) (obj, error) {
 	defer func(p string) { c.parent = p }(c.parent)
 	c.parent, _ = in[fName].(string)
 	out := c.pick(in, path, []string{fName, "dag", "steps"},
-		"inputs", "outputs", "container", "script", "suspend", "resource", "http", "retryStrategy", "timeout", "activeDeadlineSeconds", "parallelism")
+		"inputs", "outputs", "container", "script", "suspend", "resource", "http", "retryStrategy", "timeout", "activeDeadlineSeconds",
+		"parallelism", "synchronization")
 	var err error
 	if v, ok := in["parallelism"]; ok {
 		if out["dag"] != nil || out["steps"] != nil {
 			out["parallelism"] = v
 		} else {
 			c.warn(join(path, "parallelism"), "only a dag or steps template can limit its parallelism: it is dropped")
+		}
+	}
+	if v, ok := in["synchronization"]; ok {
+		if sync := c.synchronization(asObj(v), join(path, "synchronization")); sync != nil {
+			out["synchronization"] = sync
 		}
 	}
 	if v, ok := in["inputs"]; ok {

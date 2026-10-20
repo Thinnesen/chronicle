@@ -38,6 +38,8 @@ type Input struct {
 	// Restarts is the number of retries of the workflow. New Pods get it in their name, so that a Pod
 	// of an earlier try can never stand for a new node.
 	Restarts int32
+	// HeldLocks are the nodes that hold the lock of their template: node ID to lock name.
+	HeldLocks map[string]string
 	// Suspend, Shutdown and Approvals are the run controls from the Workflow spec.
 	Suspend   bool
 	Shutdown  v1alpha1.ShutdownMode
@@ -100,6 +102,7 @@ func Run(in Input) Result {
 		e.step(&status)
 		status.Outputs = e.workflowOutputs()
 	}
+	e.releaseLocks()
 	e.actions = append(e.actions, e.gc(&status)...)
 	return Result{Status: status, Actions: e.actions, RequeueAfter: e.requeueAfter()}
 }
