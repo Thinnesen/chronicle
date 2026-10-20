@@ -76,10 +76,10 @@ func openChild(n chroniclev1alpha1.NodeStatus) bool {
 	return n.Type == chroniclev1alpha1.NodeChildWorkflow && !engine.IsTerminal(n.Phase)
 }
 
-// depth returns the number of parent runs above a run.
+// depth returns the number of parent runs above a run. A user can set the annotation, so a negative value counts as 0.
 func depth(wf *chroniclev1alpha1.Workflow) int {
 	d, _ := strconv.Atoi(wf.Annotations[AnnotationDepth])
-	return d
+	return max(d, 0)
 }
 
 // createChild creates the child run of a node. A child run with the name that the run does not control is an error.
