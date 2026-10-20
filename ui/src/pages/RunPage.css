@@ -49,6 +49,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The picker of the tries of a retried run sits in the facts row, so it is as small as the text around it. */
+.run-facts select {
+  height: 1.5rem;
+  padding: 0 var(--space-1);
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
 .run-facts dd svg {
   width: 0.875rem;
   height: 0.875rem;

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file chronicle/v1/log.proto.
  */
 export const file_chronicle_v1_log: GenFile = /*@__PURE__*/
-  fileDesc("ChZjaHJvbmljbGUvdjEvbG9nLnByb3RvEgxjaHJvbmljbGUudjEiagoRU3RyZWFtTG9nc1JlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhAKCHdvcmtmbG93GAIgASgJEgwKBG5vZGUYAyABKAkSDgoGZm9sbG93GAQgASgIEhIKCnRhaWxfbGluZXMYBSABKAMiggEKElN0cmVhbUxvZ3NSZXNwb25zZRIPCgdub2RlX2lkGAEgASgJEhEKCW5vZGVfbmFtZRgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRsaW5lGAQgASgJEhAKCGFyY2hpdmVkGAUgASgIMl8KCkxvZ1NlcnZpY2USUQoKU3RyZWFtTG9ncxIfLmNocm9uaWNsZS52MS5TdHJlYW1Mb2dzUmVxdWVzdBogLmNocm9uaWNsZS52MS5TdHJlYW1Mb2dzUmVzcG9uc2UwAUI9WjtnaXRodWIuY29tL1RoaW5uZXNlbi9jaHJvbmljbGUvZ2VuL2Nocm9uaWNsZS92MTtjaHJvbmljbGV2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChZjaHJvbmljbGUvdjEvbG9nLnByb3RvEgxjaHJvbmljbGUudjEihAEKEVN0cmVhbUxvZ3NSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIQCgh3b3JrZmxvdxgCIAEoCRIMCgRub2RlGAMgASgJEg4KBmZvbGxvdxgEIAEoCBISCgp0YWlsX2xpbmVzGAUgASgDEhAKA3RyeRgGIAEoBUgAiAEBQgYKBF90cnkiggEKElN0cmVhbUxvZ3NSZXNwb25zZRIPCgdub2RlX2lkGAEgASgJEhEKCW5vZGVfbmFtZRgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRsaW5lGAQgASgJEhAKCGFyY2hpdmVkGAUgASgIMl8KCkxvZ1NlcnZpY2USUQoKU3RyZWFtTG9ncxIfLmNocm9uaWNsZS52MS5TdHJlYW1Mb2dzUmVxdWVzdBogLmNocm9uaWNsZS52MS5TdHJlYW1Mb2dzUmVzcG9uc2UwAUI9WjtnaXRodWIuY29tL1RoaW5uZXNlbi9jaHJvbmljbGUvZ2VuL2Nocm9uaWNsZS92MTtjaHJvbmljbGV2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message chronicle.v1.StreamLogsRequest
@@ -48,6 +48,14 @@ export type StreamLogsRequest = Message<"chronicle.v1.StreamLogsRequest"> & {
    * @generated from field: int64 tail_lines = 5;
    */
   tailLines: bigint;
+
+  /**
+   * try selects an earlier try of a run that was retried (see GetWorkflowRequest.try). Its logs come from the log
+   * archive.
+   *
+   * @generated from field: optional int32 try = 6;
+   */
+  try?: number | undefined;
 };
 
 /**

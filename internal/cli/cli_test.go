@@ -44,6 +44,7 @@ type stub struct {
 	gates int
 	// archiveDown makes the list say that the archive did not answer.
 	archiveDown bool
+	tries       []*chroniclev1.Try // the earlier tries of the run
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -72,10 +73,15 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 		status["conditions"] = []any{map[string]any{"type": "Restarted", "status": s.restarted, "reason": "Test",
 			"message": `the run has no node "x"`, "lastTransitionTime": "2026-01-01T00:00:00Z"}}
 	}
+	phase := s.phase
+	if r.Msg.Try != nil {
+		// An earlier try comes from the archive, with its own retry count.
+		phase, status["restarts"] = fmt.Sprintf("Failed in try %d", *r.Msg.Try), *r.Msg.Try
+	}
 	wf, _ := structpb.NewStruct(map[string]any{"metadata": map[string]any{"name": r.Msg.Name}, "spec": spec, "status": status})
-	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf,
-		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: s.phase, NodesTotal: 1,
-			ApprovalsWaiting: int32(s.gates)}}), nil
+	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf, Tries: s.tries,
+		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: phase, NodesTotal: 1,
+			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil}}), nil
 }
 
 func (s *stub) ListWorkflows(context.Context, *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {

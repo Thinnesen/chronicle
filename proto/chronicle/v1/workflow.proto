@@ -91,12 +91,25 @@ message ListWorkflowsResponse {
 message GetWorkflowRequest {
   string namespace = 1;
   string name = 2;
+  // try selects an earlier try of a run that was retried, from the archive. 0 is the first try. Without it, the
+  // response has the current try.
+  optional int32 try = 3;
 }
 
 message GetWorkflowResponse {
   WorkflowSummary summary = 1;
   // workflow is the full Workflow object as JSON (apiVersion, kind, metadata, spec, status).
   google.protobuf.Struct workflow = 2;
+  // tries are the earlier tries of the run that the archive keeps, oldest first.
+  repeated Try tries = 3;
+}
+
+// Try is an earlier try of a run that was retried.
+message Try {
+  // number is the retry count of the run during the try: 0 is the first try.
+  int32 number = 1;
+  string phase = 2;
+  google.protobuf.Timestamp finished_at = 3;
 }
 
 message SubmitWorkflowRequest {

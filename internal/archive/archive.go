@@ -89,7 +89,8 @@ func (s *Store) migrate(ctx context.Context) error {
 	return tx.Commit(ctx)
 }
 
-// Save writes a finished run. A second save of the same run (after a retry) replaces it.
+// Save writes a finished run. A second save of the same run (after a retry) replaces it. Before that, the archive
+// keeps the earlier try in workflow_tries, because a retry resets its failed nodes.
 func (s *Store) Save(ctx context.Context, wf *v1alpha1.Workflow, nodesDone, nodesTotal int) error {
 	obj := wf.DeepCopy()
 	obj.ManagedFields = nil
@@ -102,7 +103,20 @@ func (s *Store) Save(ctx context.Context, wf *v1alpha1.Workflow, nodesDone, node
 	if ref := wf.Spec.WorkflowTemplateRef; ref != nil {
 		template = ref.Name
 	}
-	_, err = s.pool.Exec(ctx, `
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("save the run: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	_, err = tx.Exec(ctx, `
+INSERT INTO workflow_tries (uid, try, phase, finished_at, workflow)
+SELECT uid, COALESCE((workflow->'status'->>'restarts')::integer, 0), phase, finished_at, workflow FROM workflow_runs
+WHERE uid = $1 AND COALESCE((workflow->'status'->>'restarts')::integer, 0) < $2
+ON CONFLICT (uid, try) DO NOTHING`, string(wf.UID), wf.Status.Restarts)
+	if err != nil {
+		return fmt.Errorf("keep the earlier try: %w", err)
+	}
+	_, err = tx.Exec(ctx, `
 INSERT INTO workflow_runs (uid, namespace, name, phase, message, template, labels, created_at, started_at, finished_at, nodes_done, nodes_total, workflow)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 ON CONFLICT (uid) DO UPDATE SET phase = $4, message = $5, labels = $7, started_at = $9, finished_at = $10,
@@ -110,6 +124,9 @@ ON CONFLICT (uid) DO UPDATE SET phase = $4, message = $5, labels = $7, started_a
 		string(wf.UID), wf.Namespace, wf.Name, string(wf.Status.Phase), wf.Status.Message, template, labels,
 		wf.CreationTimestamp.Time, timeOrNil(wf.Status.StartedAt), timeOrNil(wf.Status.FinishedAt), nodesDone, nodesTotal, data)
 	if err != nil {
+		return fmt.Errorf("save the run: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("save the run: %w", err)
 	}
 	return nil

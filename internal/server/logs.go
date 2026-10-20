@@ -36,9 +36,12 @@ type logService struct {
 
 func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroniclev1.StreamLogsRequest], stream *connect.ServerStream[chroniclev1.StreamLogsResponse]) error {
 	m := req.Msg
-	wf, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow)
+	wf, archived, err := s.workflows.workflowTry(ctx, m.Namespace, m.Workflow, m.Try)
 	if err != nil {
 		return err
+	}
+	if archived {
+		m.Follow = false // A run in the archive, or an earlier try, has ended.
 	}
 	nodes := podNodes(wf, m.Node)
 	if len(nodes) == 0 && m.Node != "" {

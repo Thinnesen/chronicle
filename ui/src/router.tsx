@@ -57,6 +57,8 @@ export const runsRoute = createRoute({
 export interface RunSearch {
   node?: string;
   tab?: "timeline" | "spec";
+  // try is an earlier try of a retried run. Without it, the page shows the latest try.
+  try?: number;
 }
 
 export const runRoute = createRoute({
@@ -66,6 +68,7 @@ export const runRoute = createRoute({
   validateSearch: (s: Record<string, unknown>): RunSearch => ({
     node: typeof s.node === "string" ? s.node : undefined,
     tab: s.tab === "timeline" || s.tab === "spec" ? s.tab : undefined,
+    try: Number.isInteger(Number(s.try)) && s.try !== "" && s.try !== undefined && Number(s.try) >= 0 ? Number(s.try) : undefined,
   }),
 });
 

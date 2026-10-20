@@ -5,6 +5,7 @@ import { useState } from "react";
 import { workflows } from "../api/client";
 import { actionError } from "../lib/errors";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { useTry } from "../lib/tryContext";
 import { useCanEdit } from "./RunActions";
 import { useToast } from "./Toast";
 
@@ -98,6 +99,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
 function RetryFromNode({ wf, node }: { wf: Workflow; node: NodeStatus }) {
   const { name, namespace } = wf.metadata;
   const canEdit = useCanEdit(namespace);
+  const earlier = useTry();
   const toast = useToast();
   const client = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -110,7 +112,8 @@ function RetryFromNode({ wf, node }: { wf: Workflow; node: NodeStatus }) {
     onError: (err) => toast(actionError("retry runs", namespace, err), "error"),
   });
   const done = ["Succeeded", "Failed", "Error"].includes(wf.status?.phase ?? "");
-  if (!canEdit || !done) return null;
+  // An earlier try is history: only the latest try can be retried.
+  if (!canEdit || !done || earlier !== undefined) return null;
   return (
     <>
       <button type="button" className="button" onClick={() => setOpen(true)} disabled={retry.isPending}>

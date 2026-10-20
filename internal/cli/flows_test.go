@@ -84,3 +84,16 @@ func TestGetShowsTheOutputs(t *testing.T) {
 		t.Errorf("get: %q %v", out, err)
 	}
 }
+
+func TestGetShowsTheEarlierTries(t *testing.T) {
+	st := &stub{phase: "Succeeded", tries: []*chroniclev1.Try{{Number: 0, Phase: "Failed"}}}
+	out, err := run(t, st, "get", "release")
+	if err != nil || !strings.Contains(out, "Tries:     1 Failed, latest (shown). Show a try with --try <number>.") {
+		t.Errorf("get: %q %v", out, err)
+	}
+	// The numbers start at 1, as in the UI. The API counts from 0.
+	out, err = run(t, st, "get", "release", "--try", "1")
+	if err != nil || !strings.Contains(out, "Phase:     Failed in try 0") || !strings.Contains(out, "Tries:     1 Failed (shown), latest.") {
+		t.Errorf("get --try: %q %v", out, err)
+	}
+}

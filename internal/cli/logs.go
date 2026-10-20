@@ -17,6 +17,7 @@ func (a *app) logsCommand() *cobra.Command {
 	var node string
 	var follow bool
 	var tail int64
+	var try int32
 	cmd := &cobra.Command{
 		Use:     "logs <name>",
 		Short:   "Print the logs of a run or of one node",
@@ -36,12 +37,16 @@ func (a *app) logsCommand() *cobra.Command {
 				return err
 			}
 			req := &chroniclev1.StreamLogsRequest{Namespace: ns, Workflow: args[0], Node: node, Follow: follow, TailLines: tail}
+			if try > 0 {
+				req.Try, req.Follow = new(try-1), false // The API counts the tries from 0. An earlier try has ended.
+			}
 			return a.printLogs(cmd.Context(), chroniclev1connect.NewLogServiceClient(hc, url), req)
 		},
 	}
 	cmd.Flags().StringVar(&node, "node", "", "The ID or the name of one node. The default is all Pod nodes.")
 	cmd.Flags().BoolVarP(&follow, "follow", "f", false, "Keep printing new lines.")
 	cmd.Flags().Int64Var(&tail, "tail", 0, "Print only the last lines of each Pod.")
+	cmd.Flags().Int32Var(&try, "try", 0, "Print the logs of an earlier try of a retried run. The first try is 1.")
 	return cmd
 }
 

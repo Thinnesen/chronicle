@@ -1,12 +1,14 @@
 import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useTry } from "../lib/tryContext";
 import { useLogStream } from "../lib/useLogStream";
 import "./LogView.css";
 
 // LogView shows the log of one node. While the node runs, new lines arrive live.
 export function LogView({ namespace, workflow, node, live }: { namespace: string; workflow: string; node: string; live: boolean }) {
-  const { lines, dropped, error, notice, done, archived, reconnecting } = useLogStream(namespace, workflow, node, live);
+  const tryNumber = useTry();
+  const { lines, dropped, error, notice, done, archived, reconnecting } = useLogStream(namespace, workflow, node, live && tryNumber === undefined, tryNumber);
   const [filter, setFilter] = useState("");
   const box = useRef<HTMLPreElement>(null);
   const atBottom = useRef(true);

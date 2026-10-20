@@ -22,6 +22,9 @@ message StreamLogsRequest {
   bool follow = 4;
   // tail_lines sends only the last lines of each Pod. Zero sends all lines.
   int64 tail_lines = 5;
+  // try selects an earlier try of a run that was retried (see GetWorkflowRequest.try). Its logs come from the log
+  // archive.
+  optional int32 try = 6;
 }
 
 message StreamLogsResponse {

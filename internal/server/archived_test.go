@@ -18,8 +18,24 @@ import (
 )
 
 type fakeReader struct {
-	rows []archive.Row
-	down bool // down makes List fail, as with a database that does not answer.
+	rows  []archive.Row
+	down  bool // down makes List fail, as with a database that does not answer.
+	tries map[int32]*v1alpha1.Workflow
+}
+
+func (f fakeReader) Tries(_ context.Context, _ string) ([]archive.Try, error) {
+	out := make([]archive.Try, 0, len(f.tries))
+	for n, wf := range f.tries {
+		out = append(out, archive.Try{Number: n, Phase: string(wf.Status.Phase)})
+	}
+	return out, nil
+}
+
+func (f fakeReader) GetTry(_ context.Context, _ string, number int32) (*v1alpha1.Workflow, error) {
+	if wf, ok := f.tries[number]; ok {
+		return wf, nil
+	}
+	return nil, archive.ErrNotFound
 }
 
 func (f fakeReader) List(_ context.Context, q archive.Query) ([]archive.Row, error) {
@@ -40,7 +56,7 @@ func (f fakeReader) Get(_ context.Context, namespace, name string) (*v1alpha1.Wo
 	for _, r := range f.rows {
 		if r.Namespace == namespace && r.Name == name {
 			return &v1alpha1.Workflow{Name: name, Namespace: namespace, CreationTimestamp: metav1.NewTime(r.CreatedAt),
-				Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowPhase(r.Phase)}}, nil
+				Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowPhase(r.Phase), Restarts: int32(len(f.tries))}}, nil
 		}
 	}
 	return nil, archive.ErrNotFound
@@ -50,7 +66,8 @@ func TestArchivedRuns(t *testing.T) {
 	setup(t)
 	ctx := context.Background()
 	old := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	reader := fakeReader{rows: []archive.Row{{UID: "aaaaaaaa-0000-0000-0000-000000000001", Namespace: "team-a", Name: "gone", Phase: "Succeeded", CreatedAt: old}}}
+	reader := fakeReader{rows: []archive.Row{{UID: "aaaaaaaa-0000-0000-0000-000000000001", Namespace: "team-a", Name: "gone", Phase: "Succeeded", CreatedAt: old}},
+		tries: map[int32]*v1alpha1.Workflow{0: {Name: "gone", Namespace: "team-a", Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed, Message: "first try"}}}}
 	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}, Archive: reader})
 	if err != nil {
 		t.Fatal(err)
@@ -100,6 +117,20 @@ func TestArchivedRuns(t *testing.T) {
 	}
 	if _, err := newClient(srv, "bob").GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "gone"})); code(err) != connect.CodePermissionDenied {
 		t.Errorf("bob must not read the archive: %v", err)
+	}
+	// The archive keeps the earlier try of a retried run.
+	if len(got.Msg.Tries) != 1 || got.Msg.Tries[0].Phase != "Failed" {
+		t.Errorf("tries: %+v", got.Msg.Tries)
+	}
+	first, err := alice.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "gone", Try: new(int32(0))}))
+	if err != nil || first.Msg.Summary.Phase != "Failed" || first.Msg.Summary.Message != "first try" || len(first.Msg.Tries) != 1 {
+		t.Errorf("get the first try: %v %+v", err, first)
+	}
+	if _, err := alice.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "gone", Try: new(int32(7))})); code(err) != connect.CodeNotFound {
+		t.Errorf("a try that is not in the archive: %v", err)
+	}
+	if _, err := newClient(srv, "bob").GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "gone", Try: new(int32(0))})); code(err) != connect.CodePermissionDenied {
+		t.Errorf("bob must not read a try: %v", err)
 	}
 	if _, err := alice.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "never"})); code(err) != connect.CodeNotFound {
 		t.Errorf("a run that is nowhere: %v", err)

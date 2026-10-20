@@ -331,9 +331,12 @@ func (x *ListWorkflowsResponse) GetArchiveUnavailable() bool {
 }
 
 type GetWorkflowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespace     string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Namespace string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Name      string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// try selects an earlier try of a run that was retried, from the archive. 0 is the first try. Without it, the
+	// response has the current try.
+	Try           *int32 `protobuf:"varint,3,opt,name=try,proto3,oneof" json:"try,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,11 +385,20 @@ func (x *GetWorkflowRequest) GetName() string {
 	return ""
 }
 
+func (x *GetWorkflowRequest) GetTry() int32 {
+	if x != nil && x.Try != nil {
+		return *x.Try
+	}
+	return 0
+}
+
 type GetWorkflowResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Summary *WorkflowSummary       `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
 	// workflow is the full Workflow object as JSON (apiVersion, kind, metadata, spec, status).
-	Workflow      *structpb.Struct `protobuf:"bytes,2,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	Workflow *structpb.Struct `protobuf:"bytes,2,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	// tries are the earlier tries of the run that the archive keeps, oldest first.
+	Tries         []*Try `protobuf:"bytes,3,rep,name=tries,proto3" json:"tries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -435,6 +447,75 @@ func (x *GetWorkflowResponse) GetWorkflow() *structpb.Struct {
 	return nil
 }
 
+func (x *GetWorkflowResponse) GetTries() []*Try {
+	if x != nil {
+		return x.Tries
+	}
+	return nil
+}
+
+// Try is an earlier try of a run that was retried.
+type Try struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// number is the retry count of the run during the try: 0 is the first try.
+	Number        int32                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Phase         string                 `protobuf:"bytes,2,opt,name=phase,proto3" json:"phase,omitempty"`
+	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Try) Reset() {
+	*x = Try{}
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Try) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Try) ProtoMessage() {}
+
+func (x *Try) ProtoReflect() protoreflect.Message {
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Try.ProtoReflect.Descriptor instead.
+func (*Try) Descriptor() ([]byte, []int) {
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Try) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *Try) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *Try) GetFinishedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return nil
+}
+
 type SubmitWorkflowRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Namespace string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
@@ -453,7 +534,7 @@ type SubmitWorkflowRequest struct {
 
 func (x *SubmitWorkflowRequest) Reset() {
 	*x = SubmitWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[5]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -465,7 +546,7 @@ func (x *SubmitWorkflowRequest) String() string {
 func (*SubmitWorkflowRequest) ProtoMessage() {}
 
 func (x *SubmitWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[5]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -478,7 +559,7 @@ func (x *SubmitWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*SubmitWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{5}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SubmitWorkflowRequest) GetNamespace() string {
@@ -558,7 +639,7 @@ type TemplateSource struct {
 
 func (x *TemplateSource) Reset() {
 	*x = TemplateSource{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[6]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +651,7 @@ func (x *TemplateSource) String() string {
 func (*TemplateSource) ProtoMessage() {}
 
 func (x *TemplateSource) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[6]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +664,7 @@ func (x *TemplateSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TemplateSource.ProtoReflect.Descriptor instead.
 func (*TemplateSource) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{6}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *TemplateSource) GetName() string {
@@ -616,7 +697,7 @@ type SubmitWorkflowResponse struct {
 
 func (x *SubmitWorkflowResponse) Reset() {
 	*x = SubmitWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[7]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -628,7 +709,7 @@ func (x *SubmitWorkflowResponse) String() string {
 func (*SubmitWorkflowResponse) ProtoMessage() {}
 
 func (x *SubmitWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[7]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -641,7 +722,7 @@ func (x *SubmitWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*SubmitWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{7}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SubmitWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -661,7 +742,7 @@ type SuspendWorkflowRequest struct {
 
 func (x *SuspendWorkflowRequest) Reset() {
 	*x = SuspendWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[8]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -673,7 +754,7 @@ func (x *SuspendWorkflowRequest) String() string {
 func (*SuspendWorkflowRequest) ProtoMessage() {}
 
 func (x *SuspendWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[8]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +767,7 @@ func (x *SuspendWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuspendWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*SuspendWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{8}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SuspendWorkflowRequest) GetNamespace() string {
@@ -712,7 +793,7 @@ type SuspendWorkflowResponse struct {
 
 func (x *SuspendWorkflowResponse) Reset() {
 	*x = SuspendWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[9]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +805,7 @@ func (x *SuspendWorkflowResponse) String() string {
 func (*SuspendWorkflowResponse) ProtoMessage() {}
 
 func (x *SuspendWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[9]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +818,7 @@ func (x *SuspendWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuspendWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*SuspendWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{9}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SuspendWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -757,7 +838,7 @@ type ResumeWorkflowRequest struct {
 
 func (x *ResumeWorkflowRequest) Reset() {
 	*x = ResumeWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[10]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -769,7 +850,7 @@ func (x *ResumeWorkflowRequest) String() string {
 func (*ResumeWorkflowRequest) ProtoMessage() {}
 
 func (x *ResumeWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[10]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -782,7 +863,7 @@ func (x *ResumeWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*ResumeWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{10}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ResumeWorkflowRequest) GetNamespace() string {
@@ -808,7 +889,7 @@ type ResumeWorkflowResponse struct {
 
 func (x *ResumeWorkflowResponse) Reset() {
 	*x = ResumeWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[11]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -820,7 +901,7 @@ func (x *ResumeWorkflowResponse) String() string {
 func (*ResumeWorkflowResponse) ProtoMessage() {}
 
 func (x *ResumeWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[11]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -833,7 +914,7 @@ func (x *ResumeWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*ResumeWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{11}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ResumeWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -853,7 +934,7 @@ type StopWorkflowRequest struct {
 
 func (x *StopWorkflowRequest) Reset() {
 	*x = StopWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[12]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -865,7 +946,7 @@ func (x *StopWorkflowRequest) String() string {
 func (*StopWorkflowRequest) ProtoMessage() {}
 
 func (x *StopWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[12]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -878,7 +959,7 @@ func (x *StopWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*StopWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{12}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *StopWorkflowRequest) GetNamespace() string {
@@ -904,7 +985,7 @@ type StopWorkflowResponse struct {
 
 func (x *StopWorkflowResponse) Reset() {
 	*x = StopWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[13]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -916,7 +997,7 @@ func (x *StopWorkflowResponse) String() string {
 func (*StopWorkflowResponse) ProtoMessage() {}
 
 func (x *StopWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[13]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -929,7 +1010,7 @@ func (x *StopWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*StopWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{13}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StopWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -949,7 +1030,7 @@ type TerminateWorkflowRequest struct {
 
 func (x *TerminateWorkflowRequest) Reset() {
 	*x = TerminateWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[14]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -961,7 +1042,7 @@ func (x *TerminateWorkflowRequest) String() string {
 func (*TerminateWorkflowRequest) ProtoMessage() {}
 
 func (x *TerminateWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[14]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -974,7 +1055,7 @@ func (x *TerminateWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*TerminateWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{14}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *TerminateWorkflowRequest) GetNamespace() string {
@@ -1000,7 +1081,7 @@ type TerminateWorkflowResponse struct {
 
 func (x *TerminateWorkflowResponse) Reset() {
 	*x = TerminateWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[15]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1093,7 @@ func (x *TerminateWorkflowResponse) String() string {
 func (*TerminateWorkflowResponse) ProtoMessage() {}
 
 func (x *TerminateWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[15]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1106,7 @@ func (x *TerminateWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*TerminateWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{15}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *TerminateWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -1052,7 +1133,7 @@ type ApproveNodeRequest struct {
 
 func (x *ApproveNodeRequest) Reset() {
 	*x = ApproveNodeRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[16]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1064,7 +1145,7 @@ func (x *ApproveNodeRequest) String() string {
 func (*ApproveNodeRequest) ProtoMessage() {}
 
 func (x *ApproveNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[16]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1077,7 +1158,7 @@ func (x *ApproveNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveNodeRequest.ProtoReflect.Descriptor instead.
 func (*ApproveNodeRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{16}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ApproveNodeRequest) GetNamespace() string {
@@ -1131,7 +1212,7 @@ type ApproveNodeResponse struct {
 
 func (x *ApproveNodeResponse) Reset() {
 	*x = ApproveNodeResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[17]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1143,7 +1224,7 @@ func (x *ApproveNodeResponse) String() string {
 func (*ApproveNodeResponse) ProtoMessage() {}
 
 func (x *ApproveNodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[17]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1156,7 +1237,7 @@ func (x *ApproveNodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveNodeResponse.ProtoReflect.Descriptor instead.
 func (*ApproveNodeResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{17}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ApproveNodeResponse) GetSummary() *WorkflowSummary {
@@ -1178,7 +1259,7 @@ type RetryWorkflowRequest struct {
 
 func (x *RetryWorkflowRequest) Reset() {
 	*x = RetryWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[18]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1190,7 +1271,7 @@ func (x *RetryWorkflowRequest) String() string {
 func (*RetryWorkflowRequest) ProtoMessage() {}
 
 func (x *RetryWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[18]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1203,7 +1284,7 @@ func (x *RetryWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*RetryWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{18}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RetryWorkflowRequest) GetNamespace() string {
@@ -1236,7 +1317,7 @@ type RetryWorkflowResponse struct {
 
 func (x *RetryWorkflowResponse) Reset() {
 	*x = RetryWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[19]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1248,7 +1329,7 @@ func (x *RetryWorkflowResponse) String() string {
 func (*RetryWorkflowResponse) ProtoMessage() {}
 
 func (x *RetryWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[19]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1261,7 +1342,7 @@ func (x *RetryWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*RetryWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{19}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RetryWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -1283,7 +1364,7 @@ type RerunWorkflowRequest struct {
 
 func (x *RerunWorkflowRequest) Reset() {
 	*x = RerunWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[20]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1295,7 +1376,7 @@ func (x *RerunWorkflowRequest) String() string {
 func (*RerunWorkflowRequest) ProtoMessage() {}
 
 func (x *RerunWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[20]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1308,7 +1389,7 @@ func (x *RerunWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RerunWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*RerunWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{20}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RerunWorkflowRequest) GetNamespace() string {
@@ -1341,7 +1422,7 @@ type RerunWorkflowResponse struct {
 
 func (x *RerunWorkflowResponse) Reset() {
 	*x = RerunWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[21]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1353,7 +1434,7 @@ func (x *RerunWorkflowResponse) String() string {
 func (*RerunWorkflowResponse) ProtoMessage() {}
 
 func (x *RerunWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[21]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1366,7 +1447,7 @@ func (x *RerunWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RerunWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*RerunWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{21}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RerunWorkflowResponse) GetSummary() *WorkflowSummary {
@@ -1386,7 +1467,7 @@ type DeleteWorkflowRequest struct {
 
 func (x *DeleteWorkflowRequest) Reset() {
 	*x = DeleteWorkflowRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[22]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1398,7 +1479,7 @@ func (x *DeleteWorkflowRequest) String() string {
 func (*DeleteWorkflowRequest) ProtoMessage() {}
 
 func (x *DeleteWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[22]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1411,7 +1492,7 @@ func (x *DeleteWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*DeleteWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{22}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *DeleteWorkflowRequest) GetNamespace() string {
@@ -1436,7 +1517,7 @@ type DeleteWorkflowResponse struct {
 
 func (x *DeleteWorkflowResponse) Reset() {
 	*x = DeleteWorkflowResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[23]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1448,7 +1529,7 @@ func (x *DeleteWorkflowResponse) String() string {
 func (*DeleteWorkflowResponse) ProtoMessage() {}
 
 func (x *DeleteWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[23]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1461,7 +1542,7 @@ func (x *DeleteWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*DeleteWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{23}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{24}
 }
 
 type ListNodeEventsRequest struct {
@@ -1476,7 +1557,7 @@ type ListNodeEventsRequest struct {
 
 func (x *ListNodeEventsRequest) Reset() {
 	*x = ListNodeEventsRequest{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[24]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1488,7 +1569,7 @@ func (x *ListNodeEventsRequest) String() string {
 func (*ListNodeEventsRequest) ProtoMessage() {}
 
 func (x *ListNodeEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[24]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1501,7 +1582,7 @@ func (x *ListNodeEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListNodeEventsRequest) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{24}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListNodeEventsRequest) GetNamespace() string {
@@ -1535,7 +1616,7 @@ type ListNodeEventsResponse struct {
 
 func (x *ListNodeEventsResponse) Reset() {
 	*x = ListNodeEventsResponse{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[25]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1547,7 +1628,7 @@ func (x *ListNodeEventsResponse) String() string {
 func (*ListNodeEventsResponse) ProtoMessage() {}
 
 func (x *ListNodeEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[25]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1560,7 +1641,7 @@ func (x *ListNodeEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListNodeEventsResponse) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{25}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListNodeEventsResponse) GetEvents() []*NodeEvent {
@@ -1585,7 +1666,7 @@ type NodeEvent struct {
 
 func (x *NodeEvent) Reset() {
 	*x = NodeEvent{}
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[26]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1597,7 +1678,7 @@ func (x *NodeEvent) String() string {
 func (*NodeEvent) ProtoMessage() {}
 
 func (x *NodeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_chronicle_v1_workflow_proto_msgTypes[26]
+	mi := &file_chronicle_v1_workflow_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1610,7 +1691,7 @@ func (x *NodeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeEvent.ProtoReflect.Descriptor instead.
 func (*NodeEvent) Descriptor() ([]byte, []int) {
-	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{26}
+	return file_chronicle_v1_workflow_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *NodeEvent) GetType() string {
@@ -1688,13 +1769,21 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x15ListWorkflowsResponse\x12;\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1d.chronicle.v1.WorkflowSummaryR\tworkflows\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12/\n" +
-	"\x13archive_unavailable\x18\x03 \x01(\bR\x12archiveUnavailable\"F\n" +
+	"\x13archive_unavailable\x18\x03 \x01(\bR\x12archiveUnavailable\"e\n" +
 	"\x12GetWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\x83\x01\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x15\n" +
+	"\x03try\x18\x03 \x01(\x05H\x00R\x03try\x88\x01\x01B\x06\n" +
+	"\x04_try\"\xac\x01\n" +
 	"\x13GetWorkflowResponse\x127\n" +
 	"\asummary\x18\x01 \x01(\v2\x1d.chronicle.v1.WorkflowSummaryR\asummary\x123\n" +
-	"\bworkflow\x18\x02 \x01(\v2\x17.google.protobuf.StructR\bworkflow\"\xca\x03\n" +
+	"\bworkflow\x18\x02 \x01(\v2\x17.google.protobuf.StructR\bworkflow\x12'\n" +
+	"\x05tries\x18\x03 \x03(\v2\x11.chronicle.v1.TryR\x05tries\"p\n" +
+	"\x03Try\x12\x16\n" +
+	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x14\n" +
+	"\x05phase\x18\x02 \x01(\tR\x05phase\x12;\n" +
+	"\vfinished_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\"\xca\x03\n" +
 	"\x15SubmitWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x125\n" +
 	"\bworkflow\x18\x02 \x01(\v2\x17.google.protobuf.StructH\x00R\bworkflow\x12:\n" +
@@ -1809,96 +1898,99 @@ func file_chronicle_v1_workflow_proto_rawDescGZIP() []byte {
 	return file_chronicle_v1_workflow_proto_rawDescData
 }
 
-var file_chronicle_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_chronicle_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_chronicle_v1_workflow_proto_goTypes = []any{
 	(*WorkflowSummary)(nil),           // 0: chronicle.v1.WorkflowSummary
 	(*ListWorkflowsRequest)(nil),      // 1: chronicle.v1.ListWorkflowsRequest
 	(*ListWorkflowsResponse)(nil),     // 2: chronicle.v1.ListWorkflowsResponse
 	(*GetWorkflowRequest)(nil),        // 3: chronicle.v1.GetWorkflowRequest
 	(*GetWorkflowResponse)(nil),       // 4: chronicle.v1.GetWorkflowResponse
-	(*SubmitWorkflowRequest)(nil),     // 5: chronicle.v1.SubmitWorkflowRequest
-	(*TemplateSource)(nil),            // 6: chronicle.v1.TemplateSource
-	(*SubmitWorkflowResponse)(nil),    // 7: chronicle.v1.SubmitWorkflowResponse
-	(*SuspendWorkflowRequest)(nil),    // 8: chronicle.v1.SuspendWorkflowRequest
-	(*SuspendWorkflowResponse)(nil),   // 9: chronicle.v1.SuspendWorkflowResponse
-	(*ResumeWorkflowRequest)(nil),     // 10: chronicle.v1.ResumeWorkflowRequest
-	(*ResumeWorkflowResponse)(nil),    // 11: chronicle.v1.ResumeWorkflowResponse
-	(*StopWorkflowRequest)(nil),       // 12: chronicle.v1.StopWorkflowRequest
-	(*StopWorkflowResponse)(nil),      // 13: chronicle.v1.StopWorkflowResponse
-	(*TerminateWorkflowRequest)(nil),  // 14: chronicle.v1.TerminateWorkflowRequest
-	(*TerminateWorkflowResponse)(nil), // 15: chronicle.v1.TerminateWorkflowResponse
-	(*ApproveNodeRequest)(nil),        // 16: chronicle.v1.ApproveNodeRequest
-	(*ApproveNodeResponse)(nil),       // 17: chronicle.v1.ApproveNodeResponse
-	(*RetryWorkflowRequest)(nil),      // 18: chronicle.v1.RetryWorkflowRequest
-	(*RetryWorkflowResponse)(nil),     // 19: chronicle.v1.RetryWorkflowResponse
-	(*RerunWorkflowRequest)(nil),      // 20: chronicle.v1.RerunWorkflowRequest
-	(*RerunWorkflowResponse)(nil),     // 21: chronicle.v1.RerunWorkflowResponse
-	(*DeleteWorkflowRequest)(nil),     // 22: chronicle.v1.DeleteWorkflowRequest
-	(*DeleteWorkflowResponse)(nil),    // 23: chronicle.v1.DeleteWorkflowResponse
-	(*ListNodeEventsRequest)(nil),     // 24: chronicle.v1.ListNodeEventsRequest
-	(*ListNodeEventsResponse)(nil),    // 25: chronicle.v1.ListNodeEventsResponse
-	(*NodeEvent)(nil),                 // 26: chronicle.v1.NodeEvent
-	nil,                               // 27: chronicle.v1.WorkflowSummary.LabelsEntry
-	nil,                               // 28: chronicle.v1.SubmitWorkflowRequest.ParametersEntry
-	nil,                               // 29: chronicle.v1.SubmitWorkflowRequest.LabelsEntry
-	nil,                               // 30: chronicle.v1.ApproveNodeRequest.ParametersEntry
-	nil,                               // 31: chronicle.v1.RerunWorkflowRequest.ParametersEntry
-	(*timestamppb.Timestamp)(nil),     // 32: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),           // 33: google.protobuf.Struct
+	(*Try)(nil),                       // 5: chronicle.v1.Try
+	(*SubmitWorkflowRequest)(nil),     // 6: chronicle.v1.SubmitWorkflowRequest
+	(*TemplateSource)(nil),            // 7: chronicle.v1.TemplateSource
+	(*SubmitWorkflowResponse)(nil),    // 8: chronicle.v1.SubmitWorkflowResponse
+	(*SuspendWorkflowRequest)(nil),    // 9: chronicle.v1.SuspendWorkflowRequest
+	(*SuspendWorkflowResponse)(nil),   // 10: chronicle.v1.SuspendWorkflowResponse
+	(*ResumeWorkflowRequest)(nil),     // 11: chronicle.v1.ResumeWorkflowRequest
+	(*ResumeWorkflowResponse)(nil),    // 12: chronicle.v1.ResumeWorkflowResponse
+	(*StopWorkflowRequest)(nil),       // 13: chronicle.v1.StopWorkflowRequest
+	(*StopWorkflowResponse)(nil),      // 14: chronicle.v1.StopWorkflowResponse
+	(*TerminateWorkflowRequest)(nil),  // 15: chronicle.v1.TerminateWorkflowRequest
+	(*TerminateWorkflowResponse)(nil), // 16: chronicle.v1.TerminateWorkflowResponse
+	(*ApproveNodeRequest)(nil),        // 17: chronicle.v1.ApproveNodeRequest
+	(*ApproveNodeResponse)(nil),       // 18: chronicle.v1.ApproveNodeResponse
+	(*RetryWorkflowRequest)(nil),      // 19: chronicle.v1.RetryWorkflowRequest
+	(*RetryWorkflowResponse)(nil),     // 20: chronicle.v1.RetryWorkflowResponse
+	(*RerunWorkflowRequest)(nil),      // 21: chronicle.v1.RerunWorkflowRequest
+	(*RerunWorkflowResponse)(nil),     // 22: chronicle.v1.RerunWorkflowResponse
+	(*DeleteWorkflowRequest)(nil),     // 23: chronicle.v1.DeleteWorkflowRequest
+	(*DeleteWorkflowResponse)(nil),    // 24: chronicle.v1.DeleteWorkflowResponse
+	(*ListNodeEventsRequest)(nil),     // 25: chronicle.v1.ListNodeEventsRequest
+	(*ListNodeEventsResponse)(nil),    // 26: chronicle.v1.ListNodeEventsResponse
+	(*NodeEvent)(nil),                 // 27: chronicle.v1.NodeEvent
+	nil,                               // 28: chronicle.v1.WorkflowSummary.LabelsEntry
+	nil,                               // 29: chronicle.v1.SubmitWorkflowRequest.ParametersEntry
+	nil,                               // 30: chronicle.v1.SubmitWorkflowRequest.LabelsEntry
+	nil,                               // 31: chronicle.v1.ApproveNodeRequest.ParametersEntry
+	nil,                               // 32: chronicle.v1.RerunWorkflowRequest.ParametersEntry
+	(*timestamppb.Timestamp)(nil),     // 33: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),           // 34: google.protobuf.Struct
 }
 var file_chronicle_v1_workflow_proto_depIdxs = []int32{
-	32, // 0: chronicle.v1.WorkflowSummary.created_at:type_name -> google.protobuf.Timestamp
-	32, // 1: chronicle.v1.WorkflowSummary.started_at:type_name -> google.protobuf.Timestamp
-	32, // 2: chronicle.v1.WorkflowSummary.finished_at:type_name -> google.protobuf.Timestamp
-	27, // 3: chronicle.v1.WorkflowSummary.labels:type_name -> chronicle.v1.WorkflowSummary.LabelsEntry
+	33, // 0: chronicle.v1.WorkflowSummary.created_at:type_name -> google.protobuf.Timestamp
+	33, // 1: chronicle.v1.WorkflowSummary.started_at:type_name -> google.protobuf.Timestamp
+	33, // 2: chronicle.v1.WorkflowSummary.finished_at:type_name -> google.protobuf.Timestamp
+	28, // 3: chronicle.v1.WorkflowSummary.labels:type_name -> chronicle.v1.WorkflowSummary.LabelsEntry
 	0,  // 4: chronicle.v1.ListWorkflowsResponse.workflows:type_name -> chronicle.v1.WorkflowSummary
 	0,  // 5: chronicle.v1.GetWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	33, // 6: chronicle.v1.GetWorkflowResponse.workflow:type_name -> google.protobuf.Struct
-	33, // 7: chronicle.v1.SubmitWorkflowRequest.workflow:type_name -> google.protobuf.Struct
-	6,  // 8: chronicle.v1.SubmitWorkflowRequest.template:type_name -> chronicle.v1.TemplateSource
-	28, // 9: chronicle.v1.SubmitWorkflowRequest.parameters:type_name -> chronicle.v1.SubmitWorkflowRequest.ParametersEntry
-	29, // 10: chronicle.v1.SubmitWorkflowRequest.labels:type_name -> chronicle.v1.SubmitWorkflowRequest.LabelsEntry
-	0,  // 11: chronicle.v1.SubmitWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 12: chronicle.v1.SuspendWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 13: chronicle.v1.ResumeWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 14: chronicle.v1.StopWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 15: chronicle.v1.TerminateWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	30, // 16: chronicle.v1.ApproveNodeRequest.parameters:type_name -> chronicle.v1.ApproveNodeRequest.ParametersEntry
-	0,  // 17: chronicle.v1.ApproveNodeResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 18: chronicle.v1.RetryWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	31, // 19: chronicle.v1.RerunWorkflowRequest.parameters:type_name -> chronicle.v1.RerunWorkflowRequest.ParametersEntry
-	0,  // 20: chronicle.v1.RerunWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	26, // 21: chronicle.v1.ListNodeEventsResponse.events:type_name -> chronicle.v1.NodeEvent
-	32, // 22: chronicle.v1.NodeEvent.last_seen:type_name -> google.protobuf.Timestamp
-	1,  // 23: chronicle.v1.WorkflowService.ListWorkflows:input_type -> chronicle.v1.ListWorkflowsRequest
-	3,  // 24: chronicle.v1.WorkflowService.GetWorkflow:input_type -> chronicle.v1.GetWorkflowRequest
-	5,  // 25: chronicle.v1.WorkflowService.SubmitWorkflow:input_type -> chronicle.v1.SubmitWorkflowRequest
-	8,  // 26: chronicle.v1.WorkflowService.SuspendWorkflow:input_type -> chronicle.v1.SuspendWorkflowRequest
-	10, // 27: chronicle.v1.WorkflowService.ResumeWorkflow:input_type -> chronicle.v1.ResumeWorkflowRequest
-	12, // 28: chronicle.v1.WorkflowService.StopWorkflow:input_type -> chronicle.v1.StopWorkflowRequest
-	14, // 29: chronicle.v1.WorkflowService.TerminateWorkflow:input_type -> chronicle.v1.TerminateWorkflowRequest
-	16, // 30: chronicle.v1.WorkflowService.ApproveNode:input_type -> chronicle.v1.ApproveNodeRequest
-	18, // 31: chronicle.v1.WorkflowService.RetryWorkflow:input_type -> chronicle.v1.RetryWorkflowRequest
-	20, // 32: chronicle.v1.WorkflowService.RerunWorkflow:input_type -> chronicle.v1.RerunWorkflowRequest
-	22, // 33: chronicle.v1.WorkflowService.DeleteWorkflow:input_type -> chronicle.v1.DeleteWorkflowRequest
-	24, // 34: chronicle.v1.WorkflowService.ListNodeEvents:input_type -> chronicle.v1.ListNodeEventsRequest
-	2,  // 35: chronicle.v1.WorkflowService.ListWorkflows:output_type -> chronicle.v1.ListWorkflowsResponse
-	4,  // 36: chronicle.v1.WorkflowService.GetWorkflow:output_type -> chronicle.v1.GetWorkflowResponse
-	7,  // 37: chronicle.v1.WorkflowService.SubmitWorkflow:output_type -> chronicle.v1.SubmitWorkflowResponse
-	9,  // 38: chronicle.v1.WorkflowService.SuspendWorkflow:output_type -> chronicle.v1.SuspendWorkflowResponse
-	11, // 39: chronicle.v1.WorkflowService.ResumeWorkflow:output_type -> chronicle.v1.ResumeWorkflowResponse
-	13, // 40: chronicle.v1.WorkflowService.StopWorkflow:output_type -> chronicle.v1.StopWorkflowResponse
-	15, // 41: chronicle.v1.WorkflowService.TerminateWorkflow:output_type -> chronicle.v1.TerminateWorkflowResponse
-	17, // 42: chronicle.v1.WorkflowService.ApproveNode:output_type -> chronicle.v1.ApproveNodeResponse
-	19, // 43: chronicle.v1.WorkflowService.RetryWorkflow:output_type -> chronicle.v1.RetryWorkflowResponse
-	21, // 44: chronicle.v1.WorkflowService.RerunWorkflow:output_type -> chronicle.v1.RerunWorkflowResponse
-	23, // 45: chronicle.v1.WorkflowService.DeleteWorkflow:output_type -> chronicle.v1.DeleteWorkflowResponse
-	25, // 46: chronicle.v1.WorkflowService.ListNodeEvents:output_type -> chronicle.v1.ListNodeEventsResponse
-	35, // [35:47] is the sub-list for method output_type
-	23, // [23:35] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	34, // 6: chronicle.v1.GetWorkflowResponse.workflow:type_name -> google.protobuf.Struct
+	5,  // 7: chronicle.v1.GetWorkflowResponse.tries:type_name -> chronicle.v1.Try
+	33, // 8: chronicle.v1.Try.finished_at:type_name -> google.protobuf.Timestamp
+	34, // 9: chronicle.v1.SubmitWorkflowRequest.workflow:type_name -> google.protobuf.Struct
+	7,  // 10: chronicle.v1.SubmitWorkflowRequest.template:type_name -> chronicle.v1.TemplateSource
+	29, // 11: chronicle.v1.SubmitWorkflowRequest.parameters:type_name -> chronicle.v1.SubmitWorkflowRequest.ParametersEntry
+	30, // 12: chronicle.v1.SubmitWorkflowRequest.labels:type_name -> chronicle.v1.SubmitWorkflowRequest.LabelsEntry
+	0,  // 13: chronicle.v1.SubmitWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 14: chronicle.v1.SuspendWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 15: chronicle.v1.ResumeWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 16: chronicle.v1.StopWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 17: chronicle.v1.TerminateWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	31, // 18: chronicle.v1.ApproveNodeRequest.parameters:type_name -> chronicle.v1.ApproveNodeRequest.ParametersEntry
+	0,  // 19: chronicle.v1.ApproveNodeResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 20: chronicle.v1.RetryWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	32, // 21: chronicle.v1.RerunWorkflowRequest.parameters:type_name -> chronicle.v1.RerunWorkflowRequest.ParametersEntry
+	0,  // 22: chronicle.v1.RerunWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	27, // 23: chronicle.v1.ListNodeEventsResponse.events:type_name -> chronicle.v1.NodeEvent
+	33, // 24: chronicle.v1.NodeEvent.last_seen:type_name -> google.protobuf.Timestamp
+	1,  // 25: chronicle.v1.WorkflowService.ListWorkflows:input_type -> chronicle.v1.ListWorkflowsRequest
+	3,  // 26: chronicle.v1.WorkflowService.GetWorkflow:input_type -> chronicle.v1.GetWorkflowRequest
+	6,  // 27: chronicle.v1.WorkflowService.SubmitWorkflow:input_type -> chronicle.v1.SubmitWorkflowRequest
+	9,  // 28: chronicle.v1.WorkflowService.SuspendWorkflow:input_type -> chronicle.v1.SuspendWorkflowRequest
+	11, // 29: chronicle.v1.WorkflowService.ResumeWorkflow:input_type -> chronicle.v1.ResumeWorkflowRequest
+	13, // 30: chronicle.v1.WorkflowService.StopWorkflow:input_type -> chronicle.v1.StopWorkflowRequest
+	15, // 31: chronicle.v1.WorkflowService.TerminateWorkflow:input_type -> chronicle.v1.TerminateWorkflowRequest
+	17, // 32: chronicle.v1.WorkflowService.ApproveNode:input_type -> chronicle.v1.ApproveNodeRequest
+	19, // 33: chronicle.v1.WorkflowService.RetryWorkflow:input_type -> chronicle.v1.RetryWorkflowRequest
+	21, // 34: chronicle.v1.WorkflowService.RerunWorkflow:input_type -> chronicle.v1.RerunWorkflowRequest
+	23, // 35: chronicle.v1.WorkflowService.DeleteWorkflow:input_type -> chronicle.v1.DeleteWorkflowRequest
+	25, // 36: chronicle.v1.WorkflowService.ListNodeEvents:input_type -> chronicle.v1.ListNodeEventsRequest
+	2,  // 37: chronicle.v1.WorkflowService.ListWorkflows:output_type -> chronicle.v1.ListWorkflowsResponse
+	4,  // 38: chronicle.v1.WorkflowService.GetWorkflow:output_type -> chronicle.v1.GetWorkflowResponse
+	8,  // 39: chronicle.v1.WorkflowService.SubmitWorkflow:output_type -> chronicle.v1.SubmitWorkflowResponse
+	10, // 40: chronicle.v1.WorkflowService.SuspendWorkflow:output_type -> chronicle.v1.SuspendWorkflowResponse
+	12, // 41: chronicle.v1.WorkflowService.ResumeWorkflow:output_type -> chronicle.v1.ResumeWorkflowResponse
+	14, // 42: chronicle.v1.WorkflowService.StopWorkflow:output_type -> chronicle.v1.StopWorkflowResponse
+	16, // 43: chronicle.v1.WorkflowService.TerminateWorkflow:output_type -> chronicle.v1.TerminateWorkflowResponse
+	18, // 44: chronicle.v1.WorkflowService.ApproveNode:output_type -> chronicle.v1.ApproveNodeResponse
+	20, // 45: chronicle.v1.WorkflowService.RetryWorkflow:output_type -> chronicle.v1.RetryWorkflowResponse
+	22, // 46: chronicle.v1.WorkflowService.RerunWorkflow:output_type -> chronicle.v1.RerunWorkflowResponse
+	24, // 47: chronicle.v1.WorkflowService.DeleteWorkflow:output_type -> chronicle.v1.DeleteWorkflowResponse
+	26, // 48: chronicle.v1.WorkflowService.ListNodeEvents:output_type -> chronicle.v1.ListNodeEventsResponse
+	37, // [37:49] is the sub-list for method output_type
+	25, // [25:37] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_chronicle_v1_workflow_proto_init() }
@@ -1906,7 +1998,8 @@ func file_chronicle_v1_workflow_proto_init() {
 	if File_chronicle_v1_workflow_proto != nil {
 		return
 	}
-	file_chronicle_v1_workflow_proto_msgTypes[5].OneofWrappers = []any{
+	file_chronicle_v1_workflow_proto_msgTypes[3].OneofWrappers = []any{}
+	file_chronicle_v1_workflow_proto_msgTypes[6].OneofWrappers = []any{
 		(*SubmitWorkflowRequest_Workflow)(nil),
 		(*SubmitWorkflowRequest_Template)(nil),
 	}
@@ -1916,7 +2009,7 @@ func file_chronicle_v1_workflow_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chronicle_v1_workflow_proto_rawDesc), len(file_chronicle_v1_workflow_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   32,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

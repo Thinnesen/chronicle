@@ -255,6 +255,14 @@ func cliSpecs() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pods).To(MatchRegexp(`pod/param-exit-\d+-r1`))
 
+			By("reading the first try from the archive")
+			Eventually(func() (string, error) { return chronicle("get", "param-exit") }).
+				WithTimeout(time.Minute).Should(ContainSubstring("Tries:     1 Failed, latest (shown)."))
+			out, err = chronicle("get", "param-exit", "--try", "1")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("Phase:     Failed"))
+			Expect(out).To(ContainSubstring("Tries:     1 Failed (shown), latest."))
+
 			By("re-running with a changed parameter")
 			out, err = chronicle("rerun", "param-exit", "-p", "code=0", "--watch")
 			Expect(err).NotTo(HaveOccurred(), out)

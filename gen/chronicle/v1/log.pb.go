@@ -31,7 +31,10 @@ type StreamLogsRequest struct {
 	// follow keeps the stream open and sends new lines.
 	Follow bool `protobuf:"varint,4,opt,name=follow,proto3" json:"follow,omitempty"`
 	// tail_lines sends only the last lines of each Pod. Zero sends all lines.
-	TailLines     int64 `protobuf:"varint,5,opt,name=tail_lines,json=tailLines,proto3" json:"tail_lines,omitempty"`
+	TailLines int64 `protobuf:"varint,5,opt,name=tail_lines,json=tailLines,proto3" json:"tail_lines,omitempty"`
+	// try selects an earlier try of a run that was retried (see GetWorkflowRequest.try). Its logs come from the log
+	// archive.
+	Try           *int32 `protobuf:"varint,6,opt,name=try,proto3,oneof" json:"try,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -97,6 +100,13 @@ func (x *StreamLogsRequest) GetFollow() bool {
 func (x *StreamLogsRequest) GetTailLines() int64 {
 	if x != nil {
 		return x.TailLines
+	}
+	return 0
+}
+
+func (x *StreamLogsRequest) GetTry() int32 {
+	if x != nil && x.Try != nil {
+		return *x.Try
 	}
 	return 0
 }
@@ -182,14 +192,16 @@ var File_chronicle_v1_log_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_log_proto_rawDesc = "" +
 	"\n" +
-	"\x16chronicle/v1/log.proto\x12\fchronicle.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x01\n" +
+	"\x16chronicle/v1/log.proto\x12\fchronicle.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb7\x01\n" +
 	"\x11StreamLogsRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x1a\n" +
 	"\bworkflow\x18\x02 \x01(\tR\bworkflow\x12\x12\n" +
 	"\x04node\x18\x03 \x01(\tR\x04node\x12\x16\n" +
 	"\x06follow\x18\x04 \x01(\bR\x06follow\x12\x1d\n" +
 	"\n" +
-	"tail_lines\x18\x05 \x01(\x03R\ttailLines\"\xaa\x01\n" +
+	"tail_lines\x18\x05 \x01(\x03R\ttailLines\x12\x15\n" +
+	"\x03try\x18\x06 \x01(\x05H\x00R\x03try\x88\x01\x01B\x06\n" +
+	"\x04_try\"\xaa\x01\n" +
 	"\x12StreamLogsResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
 	"\tnode_name\x18\x02 \x01(\tR\bnodeName\x12.\n" +
@@ -235,6 +247,7 @@ func file_chronicle_v1_log_proto_init() {
 	if File_chronicle_v1_log_proto != nil {
 		return
 	}
+	file_chronicle_v1_log_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

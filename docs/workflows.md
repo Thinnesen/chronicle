@@ -156,7 +156,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 - `Failed` means the command failed (exit code not 0). `Error` means that the step could not run, for example when the image does not exist.
 - `spec.activeDeadlineSeconds` stops the whole run after this time.
 - `continueOn: {failed: true}` (and `error: true`) on a task or a step lets the run go on after it fails. The tasks and steps after it run. Its failure does not fail the DAG or the steps. The step itself stays red.
-- After a run, retry the failed nodes, or retry from any node. Use the UI or `chronicle retry`.
+- After a run, retry the failed nodes, or retry from any node. Use the UI or `chronicle retry`. A retry starts a new try of the same run. The archive keeps each earlier try, with its nodes and the keys of its archived logs. Select a try with the "Try" field on the run page, or with `chronicle get <run> --try 1` and `chronicle logs <run> --try 1`.
 
 Reuse the result of a step that ran before with the same inputs (it needs the archive database):
 

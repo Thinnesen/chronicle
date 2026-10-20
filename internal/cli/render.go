@@ -106,6 +106,9 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 		}
 		_, _ = fmt.Fprintf(out, "Outputs:   %s\n", strings.Join(parts, ", "))
 	}
+	if len(resp.Tries) > 0 {
+		_, _ = fmt.Fprintf(out, "Tries:     %s\n", triesLine(resp.Tries, s.Archived, wf.Status.Restarts))
+	}
 	_, _ = fmt.Fprintf(out, "Progress:  %d/%d\n\n", s.NodesDone, s.NodesTotal)
 	if root, ok := wf.Status.Nodes[wf.Name]; ok {
 		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
@@ -170,4 +173,23 @@ func ptrValue(p *string) string {
 		return ""
 	}
 	return *p
+}
+
+// triesLine lists the tries of a retried run, from 1 as in the UI, and marks the try that the output shows. An earlier
+// try comes from the archive, so it has the retry count of that try.
+func triesLine(tries []*chroniclev1.Try, archived bool, restarts int32) string {
+	parts := make([]string, 0, len(tries)+1)
+	shownEarlier := false
+	for _, t := range tries {
+		part := fmt.Sprintf("%d %s", t.Number+1, t.Phase)
+		if archived && t.Number == restarts {
+			part += " (shown)"
+			shownEarlier = true
+		}
+		parts = append(parts, part)
+	}
+	if shownEarlier {
+		return strings.Join(append(parts, "latest."), ", ")
+	}
+	return strings.Join(append(parts, "latest (shown). Show a try with --try <number>."), ", ")
 }

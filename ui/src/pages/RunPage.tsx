@@ -11,6 +11,7 @@ import { RunActions } from "../components/RunActions";
 import { Timeline } from "../components/Timeline";
 import { YamlView } from "../components/Lazy";
 import { RefreshError } from "../components/RefreshError";
+import { TryContext } from "../lib/tryContext";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { nodeLabel, plannedSteps, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
@@ -34,12 +35,12 @@ const tabs: { id: RunSearch["tab"]; label: string; icon: typeof Network }[] = [
 // drawer. It updates while the run is active.
 export function RunPage() {
   const { namespace, name } = runRoute.useParams();
-  const { node: selected, tab } = runRoute.useSearch();
+  const { node: selected, tab, try: earlier } = runRoute.useSearch();
   const navigate = useNavigate({ from: runRoute.fullPath });
   const { data, error } = useQuery({
-    queryKey: ["run", namespace, name],
-    queryFn: () => workflows.getWorkflow({ namespace, name }),
-    refetchInterval: (q) => (finished.has(q.state.data?.summary?.phase ?? "") ? false : 2000),
+    queryKey: ["run", namespace, name, earlier],
+    queryFn: () => workflows.getWorkflow({ namespace, name, try: earlier }),
+    refetchInterval: (q) => (earlier !== undefined || finished.has(q.state.data?.summary?.phase ?? "") ? false : 2000),
   });
   const wf = useMemo(() => (data?.workflow ? (data.workflow as unknown as Workflow) : undefined), [data]);
   const now = useNow(!finished.has(data?.summary?.phase ?? ""));
@@ -65,6 +66,7 @@ export function RunPage() {
   const hasNodes = Object.keys(nodes).length > 0;
   const select = (id?: string) => void navigate({ search: (q) => ({ ...q, node: id }), replace: true });
   return (
+    <TryContext.Provider value={earlier}>
     <section className="run">
       <RefreshError error={error} />
       <header className="run-head">
@@ -73,7 +75,7 @@ export function RunPage() {
             <h1>{s.name}</h1>
             <Status phase={phase} />
           </div>
-          <RunActions wf={wf} phase={phase} archived={s.archived} />
+          {earlier === undefined && <RunActions wf={wf} phase={phase} archived={s.archived} />}
         </div>
         <dl className="run-facts">
           {s.template && (
@@ -103,6 +105,25 @@ export function RunPage() {
               </dd>
             </div>
           )}
+          {data.tries.length > 0 && (
+            <div>
+              <dt>Try</dt>
+              <dd>
+                <select
+                  aria-label="Try"
+                  value={earlier ?? "latest"}
+                  onChange={(e) => void navigate({ search: (q) => ({ ...q, node: undefined, try: e.target.value === "latest" ? undefined : Number(e.target.value) }) })}
+                >
+                  {data.tries.map((t) => (
+                    <option key={t.number} value={t.number}>
+                      Try {t.number + 1}, {t.phase}
+                    </option>
+                  ))}
+                  <option value="latest">Latest try</option>
+                </select>
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Steps</dt>
             <dd>
@@ -120,7 +141,16 @@ export function RunPage() {
           </p>
         )}
         {!finished.has(phase) && <WaitingApprovals nodes={nodes} onReview={select} />}
-        {s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted. Logs are available only when the namespace archives them.</p>}
+        {earlier !== undefined ? (
+          <p className="run-notice">
+            This is try {earlier + 1} of the run. A retry started a new try.{" "}
+            <Link to="/ns/$namespace/runs/$name" params={{ namespace, name }} search={(q) => ({ ...q, node: undefined, try: undefined })}>
+              Show the latest try
+            </Link>
+          </p>
+        ) : (
+          s.archived && <p className="run-notice">This run is in the archive. Its Workflow and Pods were deleted. Logs are available only when the namespace archives them.</p>
+        )}
       </header>
       <div className="run-tabs" role="tablist" aria-label="Run views">
         {tabs.map((t) => (
@@ -151,6 +181,7 @@ export function RunPage() {
       </div>
       {hasNodes && !node && tab !== "spec" && <p className="run-hint quiet">Select a step to see its details and logs.</p>}
     </section>
+    </TryContext.Provider>
   );
 }
 

@@ -221,6 +221,7 @@ func (a *app) listCommand() *cobra.Command {
 
 func (a *app) getCommand() *cobra.Command {
 	var output string
+	var try int32
 	cmd := &cobra.Command{
 		Use:   "get <name>",
 		Short: "Show a run and its nodes",
@@ -234,7 +235,11 @@ func (a *app) getCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resp, err := c.GetWorkflow(cmd.Context(), connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: args[0]}))
+			req := &chroniclev1.GetWorkflowRequest{Namespace: ns, Name: args[0]}
+			if try > 0 {
+				req.Try = new(try - 1) // The API counts the tries from 0.
+			}
+			resp, err := c.GetWorkflow(cmd.Context(), connect.NewRequest(req))
 			if err != nil {
 				return err
 			}
@@ -242,5 +247,6 @@ func (a *app) getCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&output, "output", "o", "", "The output format: yaml or json. The default is a tree of the nodes.")
+	cmd.Flags().Int32Var(&try, "try", 0, "Show an earlier try of a retried run. The first try is 1.")
 	return cmd
 }

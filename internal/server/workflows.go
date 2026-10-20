@@ -74,7 +74,7 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 }
 
 func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
-	wf, archived, err := s.getAny(ctx, req.Msg.Namespace, req.Msg.Name)
+	wf, archived, err := s.workflowTry(ctx, req.Msg.Namespace, req.Msg.Name, req.Msg.Try)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[
 	}
 	sum := summary(wf)
 	sum.Archived = archived
-	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Summary: sum, Workflow: obj}), nil
+	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Summary: sum, Workflow: obj, Tries: s.tries(ctx, wf)}), nil
 }
 
 // getAny returns a live run, or the archived run when the Workflow was deleted.

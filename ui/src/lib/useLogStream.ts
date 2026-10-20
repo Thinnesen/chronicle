@@ -30,7 +30,7 @@ export interface LogState {
 }
 
 // useLogStream streams the log of one node. It follows new lines while follow is true.
-export function useLogStream(namespace: string, workflow: string, node: string | undefined, follow: boolean): LogState {
+export function useLogStream(namespace: string, workflow: string, node: string | undefined, follow: boolean, tryNumber?: number): LogState {
   const [state, setState] = useState<LogState>({ lines: [], dropped: 0, done: false });
   // attempt counts the connections. A followed stream can break, for example during a server rollout. Then it
   // connects again after a short wait and reads the log from the start.
@@ -43,7 +43,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
     setState({ lines: [], dropped: 0, done: false });
     void (async () => {
       try {
-        for await (const m of logs.streamLogs({ namespace, workflow, node, follow }, { signal: abort.signal })) {
+        for await (const m of logs.streamLogs({ namespace, workflow, node, follow, try: tryNumber }, { signal: abort.signal })) {
           // After a cleanup, a buffered line of the old stream must not reach the state of the new stream.
           if (abort.signal.aborted) return;
           count++;
@@ -75,7 +75,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
       abort.abort();
       clearTimeout(retry);
     };
-  }, [namespace, workflow, node, follow, attempt]);
+  }, [namespace, workflow, node, follow, tryNumber, attempt]);
   return state;
 }
 
