@@ -28,6 +28,12 @@ kubectl create token ci -n team-a --audience=chronicle | chronicle login --serve
 
 Then, for example: `chronicle submit --from etl -p day=2026-10-19 --log`, `chronicle list`, `chronicle approve <run>`. Run `chronicle --help` for all commands.
 
+`chronicle lint` and `chronicle convert` need no login. Check your workflow files in CI before a merge:
+
+```sh
+chronicle lint workflows/
+```
+
 ## The Go SDK
 
 The Go SDK is a package of the main module:

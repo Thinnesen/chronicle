@@ -51,6 +51,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 57 converted w
 | `argo suspend`, `resume`, `stop`, `terminate`, `delete` | The same command names. |
 | `argo template list` | `chronicle templates` |
 | `argo cron list`, `suspend`, `resume` | `chronicle cron list`, `suspend`, `resume` |
+| `argo lint` | `chronicle lint <files or directories>`. It needs no server. |
 
 ## Supported as in Argo
 
