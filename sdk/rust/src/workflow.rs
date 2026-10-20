@@ -72,6 +72,30 @@ impl Workflow {
         self
     }
 
+    /// Adds a new volume for each run, which its steps share. `storage` is a size such as "1Gi".
+    pub fn volume_claim(self, name: &str, storage: &str) -> Self {
+        self.push(
+            "volumeClaimTemplates",
+            json!({"name": name, "storage": storage}),
+        )
+    }
+
+    /// Adds a volume that steps can mount. `source` is `{"emptyDir": {}}`, a `secret` or a `configMap`.
+    pub fn volume(self, name: &str, source: Value) -> Self {
+        let mut volume = json!({"name": name});
+        if let (Some(v), Value::Object(s)) = (volume.as_object_mut(), source) {
+            v.extend(s);
+        }
+        self.push("volumes", volume)
+    }
+
+    fn push(mut self, key: &str, item: Value) -> Self {
+        if let Value::Array(list) = self.spec.entry(key).or_insert_with(|| json!([])) {
+            list.push(item);
+        }
+        self
+    }
+
     /// Runs the workflow Pods with a Kubernetes service account.
     pub fn service_account(mut self, name: &str) -> Self {
         self.spec.insert("serviceAccountName".into(), name.into());

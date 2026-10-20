@@ -278,7 +278,7 @@ spec:
 ```
 
 - The controller creates the claim `<run>-<name>` before the first Pod. A run that waits for a lock creates it when it gets the lock.
-- A run that succeeds deletes its claims. A run that fails keeps them, so a retry finds the files of the steps that succeeded. The claims go away with the run.
+- A run that succeeds deletes its claims. A run that fails keeps them, so a retry finds the files of the steps that succeeded. The claims go away with the run. Kubernetes keeps a deleted claim until the Pods that use it are gone, for example after the Pod GC.
 - The default access mode is `ReadWriteOnce`. Then all Pods that mount the volume must run on one node. Use `ReadWriteMany` when steps run at the same time on different nodes, and the storage class supports it.
 - A claim with the same name that the run does not own stops the run with phase Error. The run never uses the files of another owner.
 - `volumes` can be `emptyDir`, `secret` or `configMap`. A secret volume gives the same access as `env` with `secretKeyRef`.

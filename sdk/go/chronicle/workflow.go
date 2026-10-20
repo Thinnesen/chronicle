@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
@@ -27,6 +29,9 @@ type Workflow struct {
 	serviceAccount     string
 	parallelism        *int32
 	sync               *v1alpha1.Synchronization
+	claims             []v1alpha1.VolumeClaimTemplate
+	volumes            []v1alpha1.Volume
+	errs               []error
 }
 
 // New returns a workflow whose runs get the name prefix generateName, for example "etl-".
@@ -81,6 +86,22 @@ func (w *Workflow) SemaphoreFrom(name, configMap, key string) *Workflow {
 	return w
 }
 
+// VolumeClaim adds a new volume for each run, which its steps share. storage is a size such as "1Gi".
+func (w *Workflow) VolumeClaim(name, storage string) *Workflow {
+	q, err := resource.ParseQuantity(storage)
+	if err != nil {
+		w.errs = append(w.errs, fmt.Errorf("volume claim %q: %w", name, err))
+	}
+	w.claims = append(w.claims, v1alpha1.VolumeClaimTemplate{Name: name, Storage: q})
+	return w
+}
+
+// Volume adds an emptyDir, secret or configMap volume that steps can mount.
+func (w *Workflow) Volume(v v1alpha1.Volume) *Workflow {
+	w.volumes = append(w.volumes, v)
+	return w
+}
+
 // Param declares a workflow parameter with a default value and returns its placeholder.
 func (w *Workflow) Param(name, value string) string {
 	w.params = append(w.params, v1alpha1.Parameter{Name: name, Value: &value})
@@ -105,14 +126,16 @@ func (w *Workflow) Spec() (*v1alpha1.WorkflowTemplateSpec, error) {
 		return nil, errors.New("the workflow has no entrypoint")
 	}
 	spec := &v1alpha1.WorkflowTemplateSpec{
-		Entrypoint:         w.entrypoint.t.Name,
-		Arguments:          v1alpha1.Arguments{Parameters: w.params},
-		ServiceAccountName: w.serviceAccount,
-		Parallelism:        w.parallelism,
-		Synchronization:    w.sync,
+		Entrypoint:           w.entrypoint.t.Name,
+		Arguments:            v1alpha1.Arguments{Parameters: w.params},
+		ServiceAccountName:   w.serviceAccount,
+		Parallelism:          w.parallelism,
+		Synchronization:      w.sync,
+		VolumeClaimTemplates: w.claims,
+		Volumes:              w.volumes,
 	}
 	seen := map[string]*Template{}
-	var errs []error
+	errs := slices.Clone(w.errs)
 	var add func(t *Template)
 	add = func(t *Template) {
 		if prev, ok := seen[t.t.Name]; ok {
@@ -221,6 +244,13 @@ func (t *Template) Args(args ...string) *Template {
 func (t *Template) Env(name, value string) *Template {
 	c := t.container()
 	c.Env = append(c.Env, corev1.EnvVar{Name: name, Value: value})
+	return t
+}
+
+// Mount mounts a volume or a volume claim of the workflow at path in the container.
+func (t *Template) Mount(volume, path string) *Template {
+	c := t.container()
+	c.VolumeMounts = append(c.VolumeMounts, v1alpha1.VolumeMount{Name: volume, MountPath: path})
 	return t
 }
 

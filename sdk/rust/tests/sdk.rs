@@ -15,7 +15,9 @@ fn etl() -> Workflow {
     )
     .env("DAY", &param("day"))
     .output_artifact("rows", "/tmp/rows")
-    .retry(2, Some("10s"));
+    .retry(2, Some("10s"))
+    .mount("cache", "/cache")
+    .mount("scratch", "/scratch");
     let count = Template::container("count", "busybox:1.37", ["wc", "-l", "/tmp/in/day.txt"])
         .input_artifact("rows", "/tmp/in")
         .mutex("counter");
@@ -40,6 +42,8 @@ fn etl() -> Workflow {
         .label("team", "data")
         .parallelism(4)
         .semaphore_from("etl", "limits", "etl")
+        .volume_claim("cache", "1Gi")
+        .volume("scratch", serde_json::json!({"emptyDir": {}}))
         .param("day", "2026-10-17")
         .entrypoint(Template::dag("main").parallelism(2).tasks([f, c, r, parts]))
         .on_exit(

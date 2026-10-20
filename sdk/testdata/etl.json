@@ -130,7 +130,17 @@
             }
           ],
           "image": "busybox:1.37",
-          "source": "mkdir -p /tmp/rows \u0026\u0026 echo \"$DAY\" \u003e /tmp/rows/day.txt \u0026\u0026 echo 1204"
+          "source": "mkdir -p /tmp/rows \u0026\u0026 echo \"$DAY\" \u003e /tmp/rows/day.txt \u0026\u0026 echo 1204",
+          "volumeMounts": [
+            {
+              "mountPath": "/cache",
+              "name": "cache"
+            },
+            {
+              "mountPath": "/scratch",
+              "name": "scratch"
+            }
+          ]
         }
       },
       {
@@ -198,6 +208,18 @@
           "url": "https://chat.example.com/hooks/data"
         },
         "name": "notify"
+      }
+    ],
+    "volumeClaimTemplates": [
+      {
+        "name": "cache",
+        "storage": "1Gi"
+      }
+    ],
+    "volumes": [
+      {
+        "emptyDir": {},
+        "name": "scratch"
       }
     ]
   }

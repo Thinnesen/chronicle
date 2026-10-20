@@ -8,22 +8,26 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/sdk/go/chronicle"
 )
 
 // etl builds a DAG: fetch saves a directory, count uses it, and report runs last.
 // The Python and Rust SDK tests build the same workflow and compare it with sdk/testdata/etl.json.
 func etl() *chronicle.Workflow {
-	w := chronicle.New("etl-").Label("team", "data").Parallelism(4).SemaphoreFrom("etl", "limits", "etl")
+	w := chronicle.New("etl-").Label("team", "data").Parallelism(4).SemaphoreFrom("etl", "limits", "etl").
+		VolumeClaim("cache", "1Gi").Volume(v1alpha1.Volume{Name: "scratch", EmptyDir: &corev1.EmptyDirVolumeSource{}})
 	day := w.Param("day", "2026-10-17")
 
 	const source = `mkdir -p /tmp/rows && echo "$DAY" > /tmp/rows/day.txt && echo 1204`
 	fetch := chronicle.Script("fetch", "busybox:1.37", source).
 		Env("DAY", day).
 		OutputArtifact("rows", "/tmp/rows").
-		Retry(2, 10*time.Second)
+		Retry(2, 10*time.Second).
+		Mount("cache", "/cache").Mount("scratch", "/scratch")
 	count := chronicle.Container("count", "busybox:1.37", "wc", "-l", "/tmp/in/day.txt").
 		InputArtifact("rows", "/tmp/in").Mutex("counter")
 	echo := chronicle.Container("echo", "busybox:1.37", "echo")
@@ -157,6 +161,11 @@ func Example() {
 	//         value: '{{workflow.parameters.day}}'
 	//       image: busybox:1.37
 	//       source: mkdir -p /tmp/rows && echo "$DAY" > /tmp/rows/day.txt && echo 1204
+	//       volumeMounts:
+	//       - mountPath: /cache
+	//         name: cache
+	//       - mountPath: /scratch
+	//         name: scratch
 	//   - container:
 	//       command:
 	//       - wc
@@ -194,4 +203,10 @@ func Example() {
 	//       method: POST
 	//       url: https://chat.example.com/hooks/data
 	//     name: notify
+	//   volumeClaimTemplates:
+	//   - name: cache
+	//     storage: 1Gi
+	//   volumes:
+	//   - emptyDir: {}
+	//     name: scratch
 }

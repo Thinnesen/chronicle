@@ -160,7 +160,11 @@ impl Template {
             return self;
         }
         match (self.body.get_mut(key), value) {
-            (Some(Value::Array(list)), Value::Array(more)) if key == "env" => list.extend(more),
+            (Some(Value::Array(list)), Value::Array(more))
+                if key == "env" || key == "volumeMounts" =>
+            {
+                list.extend(more)
+            }
             (_, value) => {
                 self.body.insert(key.into(), value);
             }
@@ -181,6 +185,11 @@ impl Template {
     /// Adds an environment variable. Use it to give inputs to a script.
     pub fn env(self, name: &str, value: &str) -> Self {
         self.container_field("env", json!([{"name": name, "value": value}]))
+    }
+
+    /// Mounts a volume or a volume claim of the workflow at path in the container.
+    pub fn mount(self, volume: &str, path: &str) -> Self {
+        self.container_field("volumeMounts", json!([{"name": volume, "mountPath": path}]))
     }
 
     fn push(map: &mut Map<String, Value>, key: &str, item: Value) {

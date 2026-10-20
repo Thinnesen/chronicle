@@ -39,6 +39,11 @@ class Template:
         self._container().setdefault("env", []).append({"name": name, "value": value})
         return self
 
+    def mount(self, volume: str, path: str) -> Template:
+        """Mount a volume or a volume claim of the workflow at path in the container."""
+        self._container().setdefault("volumeMounts", []).append({"name": volume, "mountPath": path})
+        return self
+
     def input(self, name: str, default: str | None = None) -> str:
         """Declare an input parameter and return its placeholder."""
         param: dict[str, Any] = {"name": name}
@@ -321,6 +326,16 @@ class Workflow:
         """
         ref = {"name": config_map, "key": key}
         self._spec["synchronization"] = {"semaphore": {"name": name, "configMapKeyRef": ref}}
+        return self
+
+    def volume_claim(self, name: str, storage: str) -> Workflow:
+        """Add a new volume for each run, which its steps share. storage is a size such as "1Gi"."""
+        self._spec.setdefault("volumeClaimTemplates", []).append({"name": name, "storage": storage})
+        return self
+
+    def volume(self, name: str, source: dict[str, Any]) -> Workflow:
+        """Add a volume that steps can mount. source is {"emptyDir": {}}, {"secret": {...}} or {"configMap": {...}}."""
+        self._spec.setdefault("volumes", []).append({"name": name, **source})
         return self
 
     def service_account(self, name: str) -> Workflow:

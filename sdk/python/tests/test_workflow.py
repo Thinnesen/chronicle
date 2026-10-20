@@ -14,10 +14,11 @@ FIXTURE = Path(__file__).parents[2] / "testdata" / "etl.json"
 def etl() -> chronicle.Workflow:
     """Build the same workflow as etl() in the Go SDK tests."""
     w = chronicle.Workflow("etl-").label("team", "data").parallelism(4).semaphore_from("etl", "limits", "etl")
+    w.volume_claim("cache", "1Gi").volume("scratch", {"emptyDir": {}})
     day = w.param("day", "2026-10-17")
     source = 'mkdir -p /tmp/rows && echo "$DAY" > /tmp/rows/day.txt && echo 1204'
     fetch = chronicle.script("fetch", "busybox:1.37", source).env("DAY", day)
-    fetch.output_artifact("rows", "/tmp/rows").retry(2, "10s")
+    fetch.output_artifact("rows", "/tmp/rows").retry(2, "10s").mount("cache", "/cache").mount("scratch", "/scratch")
     count = chronicle.container("count", "busybox:1.37", "wc", "-l", "/tmp/in/day.txt")
     count.input_artifact("rows", "/tmp/in").mutex("counter")
     echo = chronicle.container("echo", "busybox:1.37", "echo")
