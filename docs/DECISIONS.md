@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A run lock can have `whenBusy: Skip`. When the lock is full, the run ends as Succeeded with the condition `Skipped` and the message "skipped: the lock ... is busy". A lost race for the lock is not full, so it does not skip. Succeeded, not a new phase, keeps alerts on Failed quiet and needs no change of the API clients and the metrics. The owner can still choose a phase Skipped. Only run locks have it, because a skipped node has no clear meaning for the steps after it.
+
 - 2026-10-20: A list of all namespaces uses one cluster-wide list when the caller may list Workflows in the whole cluster, for example a platform admin. Then the limit of 100 namespaces does not apply. Other callers keep the list for each namespace, as the caller.
 
 - 2026-10-20: The controller counts the depth of a child run from the chain of parent runs that exist and control it, not from the depth annotation, which a user can write. The annotation stays for people. The walk stops at the limit (10). Found by the security review of the child runs. The review also found that a user can create a Workflow that poses as a child run of their own run, with a fake owner reference, before the controller creates the real one. That stays inside the namespace of the user, who can already change the parent run, so chronicle accepts it.

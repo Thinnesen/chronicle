@@ -48,6 +48,22 @@ var _ = Describe("Workflow synchronization", func() {
 		Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
 	}
 
+	// whenBusy: Skip ends a run whose lock is full, for example a cron run that must not pile up.
+	It("skips a run whose lock is busy", func() {
+		a := run()
+		Expect(step(a).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		wf := &chroniclev1alpha1.Workflow{Name: "sync-" + rand.String(6), Namespace: "default"}
+		Expect(yaml.UnmarshalStrict([]byte("entrypoint: c\nsynchronization: {mutex: {name: "+lock+"}, whenBusy: Skip}\ntemplates: [{name: c, container: {image: alpine, command: [run]}}]"), &wf.Spec)).To(Succeed())
+		Expect(k8sClient.Create(ctx, wf)).To(Succeed())
+		DeferCleanup(func() error { return client.IgnoreNotFound(k8sClient.Delete(ctx, wf)) })
+		skipped := step(types.NamespacedName{Name: wf.Name, Namespace: wf.Namespace})
+		Expect(skipped.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+		Expect(skipped.Status.Message).To(HavePrefix("skipped: the lock " + lock + " is busy"))
+		Expect(meta.IsStatusConditionTrue(skipped.Status.Conditions, conditionSkipped)).To(BeTrue())
+		succeed(step(a))
+		step(a)
+	})
+
 	It("runs one holder of a mutex at a time and passes the lock on", func() {
 		a, b := run(), run()
 		Expect(step(a).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))

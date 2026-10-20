@@ -23,8 +23,12 @@ import (
 	"github.com/Thinnesen/chronicle/internal/resolve"
 )
 
-// conditionLocked tells that a run holds the lock of its synchronization.
-const conditionLocked = "Synchronized"
+// conditionLocked tells that a run holds the lock of its synchronization. conditionSkipped tells that a run did not run,
+// because its lock was busy and whenBusy is Skip.
+const (
+	conditionLocked  = "Synchronized"
+	conditionSkipped = "Skipped"
+)
 
 // annotationHolders lists the runs that hold a lock, on the Lease of the lock.
 const annotationHolders = "chronicle.thinnesen.com/holders"
@@ -57,46 +61,52 @@ func (r *WorkflowReconciler) reader() client.Reader {
 }
 
 // acquire takes the lock for a run if a slot is free. It returns false and a message when the run must wait.
-func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.Workflow, name string, limit int) (bool, string, error) {
-	return r.acquireAs(ctx, wf.Namespace, name, limit, holder{UID: string(wf.UID), Name: wf.Name})
+func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.Workflow, name string, limit int) (held, full bool, msg string, err error) {
+	return r.take(ctx, wf.Namespace, name, limit, holder{UID: string(wf.UID), Name: wf.Name})
 }
 
-// acquireAs takes the lock for a run or a node if a slot is free. It returns false and a message when it must wait. The
-// Lease update has the resource version of the read. So a concurrent change makes it fail, and nothing is lost.
+// acquireAs takes the lock for a run or a node if a slot is free. It returns false and a message when it must wait.
 func (r *WorkflowReconciler) acquireAs(ctx context.Context, namespace, name string, limit int, me holder) (bool, string, error) {
+	held, _, msg, err := r.take(ctx, namespace, name, limit, me)
+	return held, msg, err
+}
+
+// take takes the lock if a slot is free. full is true when live holders use all slots; a lost race is not full. The
+// Lease update has the resource version of the read. So a concurrent change makes it fail, and nothing is lost.
+func (r *WorkflowReconciler) take(ctx context.Context, namespace, name string, limit int, me holder) (held, full bool, msg string, err error) {
 	var lease coordinationv1.Lease
-	err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: lockPrefix + name}, &lease)
+	err = r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: lockPrefix + name}, &lease)
 	if apierrors.IsNotFound(err) {
 		lease = coordinationv1.Lease{Name: lockPrefix + name, Namespace: namespace}
 		setHolders(&lease, []holder{me})
 		if err := r.Create(ctx, &lease); apierrors.IsAlreadyExists(err) {
-			return false, engine.WaitingForLock + " " + name, nil
+			return false, false, engine.WaitingForLock + " " + name, nil
 		} else if err != nil {
-			return false, "", fmt.Errorf("create the lock %s: %w", name, err)
+			return false, false, "", fmt.Errorf("create the lock %s: %w", name, err)
 		}
-		return true, "", nil
+		return true, false, "", nil
 	}
 	if err != nil {
-		return false, "", fmt.Errorf("read the lock %s: %w", name, err)
+		return false, false, "", fmt.Errorf("read the lock %s: %w", name, err)
 	}
 	all := holdersOf(&lease)
 	if slices.Contains(all, me) {
-		return true, "", nil
+		return true, false, "", nil
 	}
 	alive, err := r.liveHolders(ctx, namespace, all)
 	if err != nil {
-		return false, "", err
+		return false, false, "", err
 	}
 	if len(alive) >= limit {
-		return false, fmt.Sprintf("%s %s, which %s holds", engine.WaitingForLock, name, holderNames(alive)), nil
+		return false, true, fmt.Sprintf("%s %s, which %s holds", engine.WaitingForLock, name, holderNames(alive)), nil
 	}
 	setHolders(&lease, append(alive, me))
 	if err := r.Update(ctx, &lease); apierrors.IsConflict(err) {
-		return false, engine.WaitingForLock + " " + name, nil
+		return false, false, engine.WaitingForLock + " " + name, nil
 	} else if err != nil {
-		return false, "", fmt.Errorf("take the lock %s: %w", name, err)
+		return false, false, "", fmt.Errorf("take the lock %s: %w", name, err)
 	}
-	return true, "", nil
+	return true, false, "", nil
 }
 
 // release gives the lock of a run back, and the locks that its nodes still hold under the same name.
@@ -235,16 +245,29 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 		return r.writeWaiting(ctx, wf, observed, ctrl.Result{})
 	}
 	limit, err := r.lockLimit(ctx, wf.Namespace, limit, spec.Synchronization.LimitFrom())
-	held, msg := false, ""
+	held, full, msg := false, false, ""
 	switch {
 	case errors.Is(err, resolve.ErrInvalid):
 		msg = lockProblem(name, err)
 	case err != nil:
 		return ctrl.Result{}, true, err
 	default:
-		if held, msg, err = r.acquire(ctx, wf, name, limit); err != nil {
+		if held, full, msg, err = r.acquire(ctx, wf, name, limit); err != nil {
 			return ctrl.Result{}, true, err
 		}
+	}
+	if full && spec.Synchronization.WhenBusy == chroniclev1alpha1.WhenBusySkip {
+		now := metav1.Now()
+		wf.Status.Phase, wf.Status.FinishedAt = chroniclev1alpha1.WorkflowSucceeded, &now
+		wf.Status.Message = "skipped: the lock " + name + " is busy"
+		setLocked(wf, false, "Skipped", wf.Status.Message)
+		meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: conditionSkipped, Status: metav1.ConditionTrue,
+			Reason: "LockBusy", Message: wf.Status.Message, ObservedGeneration: wf.Generation})
+		res, wait, err := r.writeWaiting(ctx, wf, observed, ctrl.Result{RequeueAfter: time.Second})
+		if err == nil {
+			r.finishedRun(wf)
+		}
+		return res, wait, err
 	}
 	if held {
 		if strings.HasPrefix(wf.Status.Message, engine.WaitingForLock) {

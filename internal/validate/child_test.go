@@ -13,3 +13,11 @@ func TestSpecChildWorkflow(t *testing.T) {
 		{name: "unknown placeholder", spec: child(`{parameters: [{name: day, value: "{{inputs.parameters.nope}}"}]}`), want: []string{"inputs.parameters.nope"}},
 	}, true)
 }
+
+func TestSpecWhenBusy(t *testing.T) {
+	runCases(t, []specCase{
+		{name: "run lock", spec: "entrypoint: c\nsynchronization: {mutex: {name: m}, whenBusy: Skip}\ntemplates: [{name: c, container: {image: x}}]"},
+		{name: "template lock", spec: "entrypoint: c\ntemplates: [{name: c, synchronization: {mutex: {name: m}, whenBusy: Skip}, container: {image: x}}]",
+			want: []string{"only the lock of a run can have whenBusy"}},
+	}, true)
+}

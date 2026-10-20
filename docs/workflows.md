@@ -251,6 +251,14 @@ spec:
 
 Runs with the same lock name in a namespace share the lock. A run that waits for it is Pending, with the message "waiting for the lock ..., which ... holds". A finished run gives the lock back, and so does a run that was deleted. There is no fixed order among the waiting runs.
 
+With `whenBusy: Skip`, a run does not wait. When the lock is full, the run ends at once as Succeeded, with the message "skipped: the lock ... is busy" and the condition `Skipped`. Use it, for example, for a cron workflow whose runs must not pile up. Only the lock of a run can have `whenBusy`.
+
+```yaml
+  synchronization:
+    mutex: {name: sync-orders}
+    whenBusy: Skip                             # Wait (the default) or Skip
+```
+
 A semaphore can read its limit from a key of a ConfigMap. Then a platform team can change the limit without a change of the workflows:
 
 ```yaml

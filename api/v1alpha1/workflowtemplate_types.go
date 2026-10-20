@@ -154,7 +154,21 @@ type Synchronization struct {
 	Mutex *Mutex `json:"mutex,omitempty"`
 	// +optional
 	Semaphore *Semaphore `json:"semaphore,omitempty"`
+	// whenBusy is what a run does when its lock is full: Wait (the default) or Skip. Skip ends the run as Succeeded with
+	// the condition Skipped, for example so that cron runs do not pile up. Only the lock of a run can have it.
+	// +kubebuilder:validation:Enum=Wait;Skip
+	// +optional
+	WhenBusy WhenBusy `json:"whenBusy,omitempty"`
 }
+
+// WhenBusy is what a run does when its lock is full.
+type WhenBusy string
+
+// The values of whenBusy.
+const (
+	WhenBusyWait WhenBusy = "Wait"
+	WhenBusySkip WhenBusy = "Skip"
+)
 
 // Lock returns the name of the lock and how many holders it can have, or false without a lock. The limit is 0 when a
 // ConfigMap gives it (see LimitFrom).

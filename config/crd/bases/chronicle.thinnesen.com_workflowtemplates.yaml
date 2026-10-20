@@ -315,6 +315,14 @@ spec:
                     x-kubernetes-validations:
                     - message: give limit or configMapKeyRef
                       rule: has(self.limit) != has(self.configMapKeyRef)
+                  whenBusy:
+                    description: |-
+                      whenBusy is what a run does when its lock is full: Wait (the default) or Skip. Skip ends the run as Succeeded with
+                      the condition Skipped, for example so that cron runs do not pile up. Only the lock of a run can have it.
+                    enum:
+                    - Wait
+                    - Skip
+                    type: string
                 type: object
                 x-kubernetes-validations:
                 - message: set mutex or semaphore
@@ -2817,6 +2825,14 @@ spec:
                           x-kubernetes-validations:
                           - message: give limit or configMapKeyRef
                             rule: has(self.limit) != has(self.configMapKeyRef)
+                        whenBusy:
+                          description: |-
+                            whenBusy is what a run does when its lock is full: Wait (the default) or Skip. Skip ends the run as Succeeded with
+                            the condition Skipped, for example so that cron runs do not pile up. Only the lock of a run can have it.
+                          enum:
+                          - Wait
+                          - Skip
+                          type: string
                       type: object
                       x-kubernetes-validations:
                       - message: set mutex or semaphore
