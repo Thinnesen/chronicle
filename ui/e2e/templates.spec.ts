@@ -65,3 +65,14 @@ for (const scheme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/screens/cron-${info.project.name}-${scheme}.png`, fullPage: true });
   });
 }
+
+test("schedules a run of a template for later", async ({ page }) => {
+  const calls = await mockAPI(page);
+  await page.goto("/ns/team-a/templates/deploy-api");
+  await page.getByRole("textbox", { name: /version/ }).fill("1.4.2");
+  await page.getByLabel("Start at").fill("2026-10-19T03:00");
+  await page.getByRole("button", { name: "Schedule the run" }).click();
+  await expect(page).toHaveURL(/\/runs\/deploy-api-new01$/);
+  const req = (calls.SubmitWorkflow ?? [])[0] as { startAt?: string };
+  expect(req.startAt).toMatch(/^2026-10-19T/);
+});

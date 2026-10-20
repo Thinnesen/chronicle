@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { useState } from "react";
 
 import { workflows } from "../api/client";
@@ -16,6 +17,8 @@ export function RunForm({ namespace, template }: { namespace: string; template: 
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(template.parameters.map((p) => [p.name, p.hasDefault ? p.default : ""])),
   );
+  // startAt is a local time from the field, or empty to start now.
+  const [startAt, setStartAt] = useState("");
   const navigate = useNavigate();
   const toast = useToast();
   const submit = useMutation({
@@ -24,10 +27,11 @@ export function RunForm({ namespace, template }: { namespace: string; template: 
         namespace,
         source: { case: "template", value: { name: template.name, clusterScope: template.clusterScope } },
         parameters: Object.fromEntries(Object.entries(values).filter(([name, v]) => v !== "" || !fromConfigMap(name))),
+        startAt: startAt ? timestampFromDate(new Date(startAt)) : undefined,
       }),
     onSuccess: (resp) => {
       const name = resp.summary?.name ?? "";
-      toast(`Started ${name}`);
+      toast(startAt ? `Scheduled ${name} for ${new Date(startAt).toLocaleString()}` : `Started ${name}`);
       void navigate({ to: "/ns/$namespace/runs/$name", params: { namespace, name } });
     },
     onError: (err) => toast(actionError("run templates", namespace, err), "error"),
@@ -73,8 +77,15 @@ export function RunForm({ namespace, template }: { namespace: string; template: 
           {p.description && <small className="quiet">{p.description}</small>}
         </label>
       ))}
+      <label className="field">
+        <span>
+          Start at <span className="quiet">(optional)</span>
+        </span>
+        <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+        <small className="quiet">Empty starts the run now. A later time keeps the run Pending until then.</small>
+      </label>
       <button type="submit" className="button button-primary" disabled={submit.isPending}>
-        {submit.isPending ? "Starting…" : "Start the run"}
+        {submit.isPending ? "Starting…" : startAt ? "Schedule the run" : "Start the run"}
       </button>
     </form>
   );
