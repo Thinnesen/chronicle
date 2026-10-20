@@ -32,6 +32,8 @@ type converter struct {
 	inlined []any
 	// volumes are the names of the volumes and claim templates that the converter kept.
 	volumes map[string]bool
+	// defaults are the Argo templateDefaults of the workflow.
+	defaults obj
 }
 
 // Warning is a part of the Argo document that chronicle does not support. The converter drops it.

@@ -59,9 +59,9 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 	for _, t := range asList(in["templates"]) {
 		c.names[fmt.Sprint(asObj(t)[fName])] = true
 	}
-	defaults := asObj(in["templateDefaults"])
+	c.defaults = asObj(in["templateDefaults"])
 	for i, t := range asList(in["templates"]) {
-		ct, err := c.template(withDefaults(asObj(t), defaults), index(join(path, "templates"), i))
+		ct, err := c.template(withDefaults(asObj(t), c.defaults), index(join(path, "templates"), i))
 		if err != nil {
 			return nil, err
 		}

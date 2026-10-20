@@ -20,7 +20,7 @@ func (c *converter) inline(in obj, path string) (string, error) {
 			t[k] = v
 		}
 	}
-	out, err := c.template(t, join(path, "inline"))
+	out, err := c.template(withDefaults(t, c.defaults), join(path, "inline"))
 	if err != nil {
 		return "", err
 	}
