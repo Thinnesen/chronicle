@@ -108,6 +108,7 @@ To use the web UI and the CLI, configure a login with OIDC (any provider, or Mic
 
 | Topic | Guide |
 |---|---|
+| Install the CLI and the SDKs | [`docs/install.md`](docs/install.md) |
 | Write workflows: DAGs, steps, parameters, retries, approvals, locks | [`docs/workflows.md`](docs/workflows.md) |
 | Run chronicle in production: images, login, archive, replicas, upgrades | [`docs/operations.md`](docs/operations.md) |
 | Artifacts and archived logs in S3 | [`docs/artifacts.md`](docs/artifacts.md) |
