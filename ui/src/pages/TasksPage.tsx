@@ -10,7 +10,7 @@ import { tasksRoute } from "../router";
 import { useTitle } from "../lib/useTitle";
 import { errorText } from "../lib/errors";
 
-const stateFilters = { pending: "Pending", running: "Running", failed: "Failed", succeeded: "Succeeded" };
+const stateFilters = { pending: "Pending", running: "Running", failed: "Failed", cancelled: "Cancelled", succeeded: "Succeeded" };
 
 // phaseOf maps a task state to the phase that the lamps show.
 function phaseOf(state: string): string {
@@ -22,7 +22,7 @@ function phaseOf(state: string): string {
     case "succeeded":
       return "Succeeded";
     case "cancelled":
-      return "Suspended";
+      return "Skipped"; // the gray lamp: the task stopped, no worker failed
     default:
       return "Failed";
   }
@@ -35,7 +35,7 @@ export function TasksPage() {
   const { state } = tasksRoute.useSearch();
   const navigate = useNavigate({ from: tasksRoute.fullPath });
   const now = useNow();
-  const states = state === "failed" ? ["failed", "error", "cancelled"] : state ? [state] : [];
+  const states = state === "failed" ? ["failed", "error"] : state ? [state] : [];
   const { data, error, isPending } = useQuery({
     queryKey: ["tasks", namespace, state],
     queryFn: () => tasks.listTasks({ namespace, states }),

@@ -92,6 +92,7 @@ export const cronList = [
 export const taskList = [
   { id: "u1/n7", name: "send-mail", queue: "mail", state: "running", workflow: "etl-nightly-8k2pq", nodeName: "etl-nightly-8k2pq.notify", worker: "mailer-6d9f", createdAt: ts(-40), startedAt: ts(-38) },
   { id: "u1/n8", name: "score-model", queue: "gpu", state: "pending", workflow: "train-model-4rq9z", nodeName: "train-model-4rq9z.score", createdAt: ts(-20) },
+  { id: "u1/n8", name: "send-mail", queue: "mail", state: "cancelled", workflow: "deploy-api-x7c1m", nodeName: "deploy-api-x7c1m.retry-mail", worker: "", message: "the workflow was stopped", createdAt: ts(-700) },
   { id: "u1/n9", name: "send-mail", queue: "mail", state: "failed", workflow: "deploy-api-x7c1m", nodeName: "deploy-api-x7c1m.notify", worker: "mailer-6d9f", message: "the worker sent no heartbeat for 30s", createdAt: ts(-600) },
 ];
 

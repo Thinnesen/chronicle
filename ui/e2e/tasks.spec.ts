@@ -16,4 +16,10 @@ test("lists the tasks of the queue and filters them by state", async ({ page }, 
   await expect(page).toHaveURL(/state=failed/);
   await expect(page.getByText("the worker sent no heartbeat for 30s")).toBeVisible();
   await expect(page.getByText("score-model")).toBeHidden();
+  await expect(page.getByText("the workflow was stopped")).toBeHidden();
+
+  await page.getByRole("radio", { name: "Cancelled" }).click();
+  await expect(page).toHaveURL(/state=cancelled/);
+  await expect(page.getByText("the workflow was stopped")).toBeVisible();
+  await expect(page.getByText("the worker sent no heartbeat for 30s")).toBeHidden();
 });
