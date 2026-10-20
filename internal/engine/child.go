@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"hash/fnv"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +14,9 @@ import (
 
 // MaxChildDepth limits the nesting of child runs, so that a template that starts itself does not run forever.
 const MaxChildDepth = 10
+
+// childPrefix starts the message of a node whose child run failed.
+const childPrefix = "the child run "
 
 // childPollInterval is the wait before the engine asks again for a child run that the cache does not have yet.
 const childPollInterval = 2 * time.Second
@@ -142,7 +146,7 @@ func (e *engine) applyChild(t *v1alpha1.Template, n *v1alpha1.NodeStatus, child 
 	switch child.Phase {
 	case v1alpha1.WorkflowSucceeded:
 		n.FinishedAt = child.FinishedAt
-		out, err := childOutputs(t, child.Outputs)
+		out, err := childOutputs(t, n.ChildWorkflow, child.Outputs)
 		if err != nil {
 			e.setPhase(n, v1alpha1.NodeFailed, err.Error())
 			return
@@ -151,7 +155,11 @@ func (e *engine) applyChild(t *v1alpha1.Template, n *v1alpha1.NodeStatus, child 
 		e.setPhase(n, v1alpha1.NodeSucceeded, "")
 	case v1alpha1.WorkflowFailed, v1alpha1.WorkflowError:
 		n.FinishedAt = child.FinishedAt
-		e.setPhase(n, v1alpha1.NodePhase(child.Phase), fmt.Sprintf("the child run %s %s: %s", n.ChildWorkflow, child.Phase, child.Message))
+		msg := fmt.Sprintf("the child run %s %s: %s", n.ChildWorkflow, child.Phase, child.Message)
+		if strings.HasPrefix(child.Message, childPrefix) {
+			msg = fmt.Sprintf("the child run %s %s; open it for the reason", n.ChildWorkflow, child.Phase)
+		}
+		e.setPhase(n, v1alpha1.NodePhase(child.Phase), msg)
 	case v1alpha1.WorkflowRunning, v1alpha1.WorkflowSuspended:
 		e.setPhase(n, v1alpha1.NodeRunning, "")
 	default:
@@ -160,7 +168,7 @@ func (e *engine) applyChild(t *v1alpha1.Template, n *v1alpha1.NodeStatus, child 
 }
 
 // childOutputs takes the output parameters of a template from the global outputs of its child run.
-func childOutputs(t *v1alpha1.Template, child *v1alpha1.Outputs) (*v1alpha1.Outputs, error) {
+func childOutputs(t *v1alpha1.Template, name string, child *v1alpha1.Outputs) (*v1alpha1.Outputs, error) {
 	values := map[string]string{}
 	if child != nil {
 		for _, p := range child.Parameters {
@@ -174,7 +182,7 @@ func childOutputs(t *v1alpha1.Template, child *v1alpha1.Outputs) (*v1alpha1.Outp
 		v, ok := values[p.Name]
 		if !ok {
 			if p.Default == nil {
-				return nil, fmt.Errorf("the child run has no output parameter %q", p.Name)
+				return nil, fmt.Errorf("the child run %s has no output parameter %q", name, p.Name)
 			}
 			v = *p.Default
 		}

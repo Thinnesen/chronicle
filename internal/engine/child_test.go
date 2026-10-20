@@ -76,7 +76,10 @@ func TestChildWorkflowEnds(t *testing.T) {
 	}{
 		{name: "failed", child: ChildResult{Phase: v1alpha1.WorkflowFailed, Message: "load failed"}, phase: v1alpha1.NodeFailed, message: "load failed"},
 		{name: "error", child: ChildResult{Phase: v1alpha1.WorkflowError, Message: "no template"}, phase: v1alpha1.NodeError, message: "no template"},
-		{name: "no output", child: ChildResult{Phase: v1alpha1.WorkflowSucceeded}, phase: v1alpha1.NodeFailed, message: `no output parameter "rows"`},
+		{name: "no output", child: ChildResult{Phase: v1alpha1.WorkflowSucceeded}, phase: v1alpha1.NodeFailed, message: `has no output parameter "rows"`},
+		// A failed grandchild does not repeat its whole chain of messages in each parent.
+		{name: "nested", child: ChildResult{Phase: v1alpha1.WorkflowFailed, Message: "the child run x-1 Failed: the child run x-2 Failed: boom"}, phase: v1alpha1.NodeFailed,
+			message: "Failed; open it for the reason"},
 		{name: "stop", child: ChildResult{Phase: v1alpha1.WorkflowRunning}, shutdown: v1alpha1.ShutdownStop, phase: v1alpha1.NodeFailed, stop: v1alpha1.ShutdownStop},
 		{name: "terminate", child: ChildResult{Phase: v1alpha1.WorkflowRunning}, shutdown: v1alpha1.ShutdownTerminate, phase: v1alpha1.NodeFailed, stop: v1alpha1.ShutdownTerminate},
 		{name: "deleted", delete: true, phase: v1alpha1.NodeError, message: "was deleted"},
