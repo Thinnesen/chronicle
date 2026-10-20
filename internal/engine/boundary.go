@@ -59,6 +59,8 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 		n, ok := b.node(t.name)
 		switch {
 		case ok && IsTerminal(n.Phase):
+			// A retry keeps the nodes that succeeded, under a new parent. The link puts them back into the tree.
+			b.link(t, b.nodeID, n.ID)
 			b.runHook(t)
 			continue
 		case !ok && (stopped != "" || b.e.in.Suspend || !b.ready(t)):

@@ -45,6 +45,7 @@ type stub struct {
 	// archiveDown makes the list say that the archive did not answer.
 	archiveDown bool
 	tries       []*chroniclev1.Try // the earlier tries of the run
+	exitHandler bool               // the run has an exit handler node
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -62,6 +63,9 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 		"n1":       map[string]any{"id": "n1", "name": r.Msg.Name + ".a", "displayName": "a", "type": "Pod", "phase": s.phase},
 	}}
 	nodes := status["nodes"].(map[string]any)
+	if s.exitHandler {
+		nodes["x"] = map[string]any{"id": "x", "name": r.Msg.Name + ".onExit", "displayName": r.Msg.Name + ".onExit", "type": "Pod", "phase": "Failed", "message": "notify failed"}
+	}
 	for i := range s.gates {
 		id := fmt.Sprintf("g%d", i)
 		nodes[id] = map[string]any{"id": id, "name": fmt.Sprintf("%s.gate%d", r.Msg.Name, i), "type": "Suspend", "phase": "Running"}

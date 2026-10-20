@@ -114,6 +114,12 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 		_, _ = fmt.Fprintln(tw, "STEP\tDURATION\tMESSAGE")
 		printNode(tw, wf.Status.Nodes, root, "")
+		// The exit handler of the workflow is not under the root node.
+		for _, n := range wf.Status.Nodes {
+			if n.Name == wf.Name+".onExit" {
+				printNode(tw, wf.Status.Nodes, n, "")
+			}
+		}
 		if err := tw.Flush(); err != nil {
 			return err
 		}

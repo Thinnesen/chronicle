@@ -97,3 +97,10 @@ func TestGetShowsTheEarlierTries(t *testing.T) {
 		t.Errorf("get --try: %q %v", out, err)
 	}
 }
+
+func TestGetShowsTheExitHandler(t *testing.T) {
+	out, err := run(t, &stub{phase: "Failed", exitHandler: true}, "get", "release")
+	if err != nil || !strings.Contains(out, "release.onExit") || !strings.Contains(out, "notify failed") {
+		t.Errorf("get: %q %v", out, err)
+	}
+}

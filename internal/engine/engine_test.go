@@ -328,3 +328,24 @@ func TestEngineStopCreatesNoPod(t *testing.T) {
 		t.Error("the exit handler does not start")
 	}
 }
+
+// TestEngineRetryKeepsTheTree links the nodes that a retry keeps to their new parent. Before, the tree of a retried run
+// left them out.
+func TestEngineRetryKeepsTheTree(t *testing.T) {
+	s := newSim(t, "entrypoint: main\ntemplates:\n- {name: main, dag: {tasks: [{name: a, template: c}, {name: b, template: c, depends: a}]}}"+pod,
+		map[string]v1alpha1.NodePhase{"wf.b": v1alpha1.NodeFailed})
+	first := s.run()
+	next, _, err := Restart(s.in.Spec, first, wfName, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.in.Status = next
+	after := s.run()
+	var names []string
+	for _, id := range after.Nodes[wfName].Children {
+		names = append(names, after.Nodes[id].Name)
+	}
+	if strings.Join(names, " ") != "wf.a wf.b" {
+		t.Errorf("children of the root after the retry: %v", names)
+	}
+}
