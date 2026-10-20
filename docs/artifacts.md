@@ -19,6 +19,8 @@ data:
   keyPrefix: chronicle        # optional
   archiveLogs: "true"         # optional: keep the log of each step
   # insecure: "true"          # only for a store without TLS in a test cluster
+  # caBundle: |               # optional: PEM certificates of a private CA of the endpoint
+  #   -----BEGIN CERTIFICATE-----
 ---
 apiVersion: v1
 kind: Secret

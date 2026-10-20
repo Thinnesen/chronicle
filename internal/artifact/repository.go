@@ -3,10 +3,13 @@ package artifact
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"path"
 	"strconv"
 	"strings"
@@ -36,13 +39,20 @@ type Repository struct {
 	KeyPrefix string `json:"keyPrefix,omitempty"`
 	// ArchiveLogs saves the log of each main container.
 	ArchiveLogs bool `json:"archiveLogs,omitempty"`
+	// CABundle is PEM certificates for an endpoint with a private CA. Without it, the system CAs apply.
+	CABundle string `json:"caBundle,omitempty"`
 }
 
 // FromConfigMap reads a repository from the data of the ConfigMap.
 func FromConfigMap(data map[string]string) (Repository, error) {
 	r := Repository{
 		Endpoint: data["endpoint"], Bucket: data["bucket"], Region: data["region"],
-		KeyPrefix: strings.Trim(data["keyPrefix"], "/"),
+		KeyPrefix: strings.Trim(data["keyPrefix"], "/"), CABundle: data["caBundle"],
+	}
+	if r.CABundle != "" {
+		if _, err := certPool(r.CABundle); err != nil {
+			return r, err
+		}
 	}
 	var err error
 	for key, dst := range map[string]*bool{"insecure": &r.Insecure, "archiveLogs": &r.ArchiveLogs} {
@@ -87,11 +97,21 @@ func Open(r Repository, accessKey, secretKey string) (*Store, error) {
 	if accessKey == "" || secretKey == "" {
 		return nil, fmt.Errorf("the Secret %s needs the keys %s and %s", Name, SecretAccessKey, SecretSecretKey)
 	}
-	c, err := minio.New(r.Endpoint, &minio.Options{
+	opts := &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: !r.Insecure,
 		Region: r.Region,
-	})
+	}
+	if r.CABundle != "" {
+		pool, err := certPool(r.CABundle)
+		if err != nil {
+			return nil, err
+		}
+		tr := http.DefaultTransport.(*http.Transport).Clone()
+		tr.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+		opts.Transport = tr
+	}
+	c, err := minio.New(r.Endpoint, opts)
 	if err != nil {
 		return nil, fmt.Errorf("connect to the artifact repository: %w", err)
 	}
@@ -122,4 +142,13 @@ func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, int64, erro
 		return nil, 0, fmt.Errorf("read %s: %w", key, err)
 	}
 	return obj, info.Size, nil
+}
+
+// certPool reads the PEM certificates of a CA bundle.
+func certPool(bundle string) (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM([]byte(bundle)) {
+		return nil, fmt.Errorf("ConfigMap %s: caBundle has no PEM certificate", Name)
+	}
+	return pool, nil
 }
