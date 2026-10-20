@@ -134,8 +134,9 @@ func (r *WorkflowReconciler) wakeWaiters(ctx context.Context, namespace, name st
 	if r.wake == nil {
 		return nil
 	}
+	// The runs come from the cache without a copy, so this code must not change them.
 	var list chroniclev1alpha1.WorkflowList
-	if err := r.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+	if err := r.List(ctx, &list, client.InNamespace(namespace), client.UnsafeDisableDeepCopy); err != nil {
 		return fmt.Errorf("list the runs that wait for the lock %s: %w", name, err)
 	}
 	for i := range list.Items {
