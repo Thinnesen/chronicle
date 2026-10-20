@@ -157,4 +157,6 @@ test("shows the start time of a scheduled run in the list", async ({ page }) => 
   const row = page.getByRole("row").filter({ hasText: "later-run" });
   await expect(row.getByText(/^Starts /)).toBeVisible();
   await expect(row.getByText(`the run starts at ${at}`)).toHaveCount(0);
+  // The run has not started, so the Started cell is empty.
+  await expect(row.locator(".board-time")).toHaveText("–");
 });

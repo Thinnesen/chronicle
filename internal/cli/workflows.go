@@ -48,7 +48,11 @@ func (a *app) submitCommand() *cobra.Command {
 				return err
 			}
 			name := resp.Msg.Summary.Name
-			_, _ = fmt.Fprintf(a.out, "Started %s/%s\n", req.Namespace, name)
+			if req.StartAt != nil {
+				_, _ = fmt.Fprintf(a.out, "Submitted %s/%s. It starts at %s.\n", req.Namespace, name, req.StartAt.AsTime().Local().Format(time.RFC3339))
+			} else {
+				_, _ = fmt.Fprintf(a.out, "Started %s/%s\n", req.Namespace, name)
+			}
 			switch {
 			case watch:
 				return a.watch(cmd.Context(), req.Namespace, name)

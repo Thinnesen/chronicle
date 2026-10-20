@@ -232,8 +232,9 @@ func TestCommands(t *testing.T) {
 
 func TestSubmitAt(t *testing.T) {
 	s := &stub{}
-	if _, err := run(t, s, "submit", "--from", "etl", "--at", "2026-10-21T03:00:00+02:00"); err != nil {
-		t.Fatal(err)
+	out, err := run(t, s, "submit", "--from", "etl", "--at", "2026-10-21T03:00:00+02:00")
+	if err != nil || !strings.HasPrefix(out, "Submitted team-a/hello-abc. It starts at ") {
+		t.Fatalf("err %v, output %s", err, out)
 	}
 	if got := s.requests[0].(*chroniclev1.SubmitWorkflowRequest).StartAt.AsTime(); !got.Equal(time.Date(2026, 10, 21, 1, 0, 0, 0, time.UTC)) {
 		t.Errorf("start time = %v", got)

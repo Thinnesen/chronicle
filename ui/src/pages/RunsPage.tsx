@@ -222,7 +222,7 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                     <td>
                       <ProgressTrack done={w.nodesDone} total={w.nodesTotal} phase={p} />
                     </td>
-                    <td className="board-time">{created ? <time title={created.toLocaleString()}>{ago(created, new Date(now))}</time> : "–"}</td>
+                    <td className="board-time">{created && !startAt ? <time title={created.toLocaleString()}>{ago(created, new Date(now))}</time> : "–"}</td>
                     <td className="board-num">{started ? duration(end - started.getTime()) : "–"}</td>
                   </tr>
                 );
