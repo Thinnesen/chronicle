@@ -90,6 +90,12 @@ def test_client():
         assert path == "/chronicle.v1.WorkflowService/SubmitWorkflow"
         assert auth == "Bearer tok"
         assert body["workflow"]["kind"] == "Workflow"
+        assert client.submit_template("team-a", "cluster/etl", {"day": "2026-10-19"}) == "hello-x1"
+        assert _Stub.requests[-1][2] == {
+            "namespace": "team-a",
+            "template": {"name": "etl", "clusterScope": True},
+            "parameters": {"day": "2026-10-19"},
+        }
         with pytest.raises(chronicle.APIError) as err:
             client.submit("forbidden", w)
         assert err.value.code == "permission_denied"

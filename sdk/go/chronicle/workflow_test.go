@@ -115,3 +115,23 @@ func TestWait(t *testing.T) {
 		t.Fatalf("wait: %q, %v", phase, err)
 	}
 }
+
+func TestSubmitTemplate(t *testing.T) {
+	stub := &submitStub{}
+	mux := http.NewServeMux()
+	mux.Handle(chroniclev1connect.NewWorkflowServiceHandler(stub))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c, err := NewClient(srv.URL, "tok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	params := map[string]string{"day": "2026-10-19"}
+	if _, err := c.SubmitTemplate(context.Background(), "team-a", "cluster/etl", params); err != nil {
+		t.Fatal(err)
+	}
+	src := stub.req.GetTemplate()
+	if src.GetName() != "etl" || !src.GetClusterScope() || stub.req.Parameters["day"] != "2026-10-19" {
+		t.Errorf("request = %+v", stub.req)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -55,6 +56,22 @@ func (c *Client) Submit(ctx context.Context, namespace string, w *Workflow) (str
 	}))
 	if err != nil {
 		return "", fmt.Errorf("submit the workflow: %w", err)
+	}
+	return resp.Msg.Summary.Name, nil
+}
+
+// SubmitTemplate starts a run of a WorkflowTemplate with parameters and returns the name of the run. For a
+// ClusterWorkflowTemplate, give the template as "cluster/<name>".
+func (c *Client) SubmitTemplate(
+	ctx context.Context, namespace, template string, params map[string]string,
+) (string, error) {
+	name, cluster := strings.CutPrefix(template, "cluster/")
+	source := &chroniclev1.TemplateSource{Name: name, ClusterScope: cluster}
+	resp, err := c.Workflows.SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
+		Namespace: namespace, Parameters: params, Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: source},
+	}))
+	if err != nil {
+		return "", fmt.Errorf("submit the template %s: %w", template, err)
 	}
 	return resp.Msg.Summary.Name, nil
 }

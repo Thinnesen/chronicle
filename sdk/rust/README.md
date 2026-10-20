@@ -14,6 +14,8 @@ println!("{}", w.to_json()?);                    // for kubectl or Git
 let client = Client::new(server, token)?;
 let name = client.submit("team-a", &w)?;
 let phase = client.wait("team-a", &name, Duration::from_secs(5), None)?; // Succeeded, Failed or Error
+
+let name = client.submit_template("team-a", "etl", &[("day", "2026-10-19")])?; // a WorkflowTemplate
 ```
 
 - Placeholders connect the steps: `param`, `input`, `Task::result`, `Task::output` and `Task::artifact`.

@@ -81,6 +81,34 @@ impl Client {
             .to_string())
     }
 
+    /// Starts a run of a WorkflowTemplate with parameters and returns the name of the run. For a
+    /// ClusterWorkflowTemplate, give the template as `cluster/<name>`.
+    pub fn submit_template(
+        &self,
+        namespace: &str,
+        template: &str,
+        params: &[(&str, &str)],
+    ) -> Result<String, ApiError> {
+        let (name, cluster) = match template.strip_prefix("cluster/") {
+            Some(name) => (name, true),
+            None => (template, false),
+        };
+        let params: serde_json::Map<String, Value> = params
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), Value::from(*v)))
+            .collect();
+        let answer = self.call(
+            "WorkflowService",
+            "SubmitWorkflow",
+            json!({"namespace": namespace, "template": {"name": name, "clusterScope": cluster}, "parameters": params}),
+            None,
+        )?;
+        Ok(answer["summary"]["name"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string())
+    }
+
     /// Returns the phase of a run: Pending, Running, Succeeded, Failed, Error or Suspended.
     pub fn phase(&self, namespace: &str, name: &str) -> Result<String, ApiError> {
         let answer = self.call(

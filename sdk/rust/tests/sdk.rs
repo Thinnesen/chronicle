@@ -171,3 +171,23 @@ fn waits_for_the_end_of_a_run() {
     assert_eq!(phase, "Succeeded");
     server.join().unwrap();
 }
+
+#[test]
+fn submits_a_template_with_parameters() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let server = serve(
+        listener,
+        vec![("200 OK", r#"{"summary":{"name":"etl-x1"}}"#)],
+    );
+    let client = Client::new(&url, "tok").unwrap();
+    let name = client
+        .submit_template("team-a", "cluster/etl", &[("day", "2026-10-19")])
+        .unwrap();
+    assert_eq!(name, "etl-x1");
+    let request = server.join().unwrap();
+    let body: Value = serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(body["template"]["name"], "etl");
+    assert_eq!(body["template"]["clusterScope"], true);
+    assert_eq!(body["parameters"]["day"], "2026-10-19");
+}

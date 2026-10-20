@@ -49,6 +49,16 @@ class Client:
         answer = self._call("SubmitWorkflow", {"namespace": namespace, "workflow": workflow.to_dict()})
         return answer["summary"]["name"]
 
+    def submit_template(self, namespace: str, template: str, parameters: dict[str, str] | None = None) -> str:
+        """Start a run of a WorkflowTemplate with parameters and return the name of the run.
+
+        For a ClusterWorkflowTemplate, give the template as "cluster/<name>".
+        """
+        name = template.removeprefix("cluster/")
+        source = {"name": name, "clusterScope": name != template}
+        body = {"namespace": namespace, "template": source, "parameters": parameters or {}}
+        return self._call("SubmitWorkflow", body)["summary"]["name"]
+
     def phase(self, namespace: str, name: str) -> str:
         """Return the phase of a run: Pending, Running, Succeeded, Failed, Error or Suspended."""
         answer = self._call("GetWorkflow", {"namespace": namespace, "name": name})

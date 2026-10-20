@@ -19,6 +19,8 @@ print(w.to_json())  # for kubectl or Git
 client = chronicle.Client(server, token)
 name = client.submit("team-a", w)  # start a run
 phase = client.wait("team-a", name, timeout=3600)  # Succeeded, Failed or Error
+
+name = client.submit_template("team-a", "etl", {"day": "2026-10-19"})  # a WorkflowTemplate
 ```
 
 - Placeholders connect the steps: `Workflow.param`, `Template.input`, `Task.result`, `Task.output` and `Task.artifact`.
