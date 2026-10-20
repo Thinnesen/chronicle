@@ -31,15 +31,19 @@ func (a *app) convertCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			warned := false
-			for i, r := range results {
+			warned, written := false, 0
+			for _, r := range results {
 				for _, w := range r.Warnings {
 					warned = true
 					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s %s: %s\n", r.Kind, r.Name, w)
 				}
-				if i > 0 {
+				if r.YAML == nil {
+					continue // a dropped document
+				}
+				if written > 0 {
 					_, _ = fmt.Fprintln(a.out, "---")
 				}
+				written++
 				_, _ = a.out.Write(r.YAML)
 			}
 			if strict && warned {

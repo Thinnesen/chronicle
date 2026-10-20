@@ -43,7 +43,12 @@ type Warning struct {
 	Message string
 }
 
-func (w Warning) String() string { return w.Path + ": " + w.Message }
+func (w Warning) String() string {
+	if w.Path == "" {
+		return w.Message
+	}
+	return w.Path + ": " + w.Message
+}
 
 func (c *converter) warn(path, format string, args ...any) {
 	c.warnings = append(c.warnings, Warning{Path: path, Message: fmt.Sprintf(format, args...)})

@@ -239,10 +239,18 @@ func TestRules(t *testing.T) {
 	}
 }
 
-func TestRefusesOtherDocuments(t *testing.T) {
-	_, err := Convert([]byte("apiVersion: v1\nkind: ConfigMap\nmetadata: {name: x}\n"))
-	if err == nil || !strings.Contains(err.Error(), "not an Argo") {
-		t.Errorf("err = %v", err)
+// TestOtherDocuments copies a document that is not an Argo resource, such as a ConfigMap that a workflow reads. An Argo
+// kind that chronicle does not have is dropped. Both give a warning.
+func TestOtherDocuments(t *testing.T) {
+	out, err := Convert([]byte("apiVersion: v1\nkind: ConfigMap\nmetadata: {name: cfg}\ndata: {a: b}\n---\n" +
+		"apiVersion: argoproj.io/v1alpha1\nkind: WorkflowEventBinding\nmetadata: {name: e}\n"))
+	if err != nil || len(out) != 2 || out[0].Kind != "ConfigMap" || !strings.Contains(string(out[0].YAML), "a: b") ||
+		!strings.Contains(out[0].Warnings[0].Message, "not an Argo resource: copied as it is") ||
+		out[1].YAML != nil || !strings.Contains(out[1].Warnings[0].Message, "chronicle has no WorkflowEventBinding: the document is dropped") {
+		t.Fatalf("convert = %+v, %v", out, err)
+	}
+	if _, err := Convert([]byte("apiVersion: argoproj.io/v1alpha1\nkind: WorkflowEventBinding\nmetadata: {name: e}\n")); err == nil {
+		t.Error("a file with nothing to convert gave no error")
 	}
 }
 

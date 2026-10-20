@@ -50,8 +50,8 @@ func Convert(data []byte) ([]Result, error) {
 		}
 		out = append(out, r)
 	}
-	if len(out) == 0 {
-		return nil, errors.New("the file has no documents")
+	if !slices.ContainsFunc(out, func(r Result) bool { return r.YAML != nil }) {
+		return nil, errors.New("the file has nothing to convert")
 	}
 	return out, nil
 }
@@ -67,8 +67,16 @@ func name(doc obj) string {
 
 func convertDocument(doc obj) (Result, error) {
 	kind, _ := doc["kind"].(string)
-	if doc["apiVersion"] != argoAPIVersion || !slices.Contains(validate.Kinds, kind) {
-		return Result{}, fmt.Errorf("not an Argo Workflow, WorkflowTemplate, ClusterWorkflowTemplate or CronWorkflow")
+	if doc["apiVersion"] != argoAPIVersion {
+		// For example a ConfigMap that a workflow reads.
+		data, err := yaml.Marshal(doc)
+		if err != nil {
+			return Result{}, fmt.Errorf("encode the document: %w", err)
+		}
+		return Result{Kind: kind, Name: name(doc), YAML: data, Warnings: []Warning{{Message: "not an Argo resource: copied as it is"}}}, nil
+	}
+	if !slices.Contains(validate.Kinds, kind) {
+		return Result{Kind: kind, Name: name(doc), Warnings: []Warning{{Message: "chronicle has no " + kind + ": the document is dropped"}}}, nil
 	}
 	c := &converter{}
 	out := obj{
