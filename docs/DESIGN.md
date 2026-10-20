@@ -102,6 +102,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Timers: the engine has no clock. It returns the time until the next timer (backoff, `timeout`, `activeDeadlineSeconds`), and the controller runs it again then.
 - `timeout` fails a node of the template (each attempt of a retry). `activeDeadlineSeconds` fails the workflow. Both stop the running descendants and delete their Pods.
 - `parallelism` limits the Pods that run at the same time. A Pod node without a free slot stays Pending with a message. The slots go to the waiting nodes in the order of the walk, and a Pod that the engine asked for still holds its slot before the cache shows it.
+- `continueOn` (`failed`, `error`) on a task or step: its failure counts as success for the tasks after it and does not fail the boundary, as in Argo.
 - `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`, `{{workflow.duration}}` and `{{workflow.failures}}` (the failed steps as JSON, in the form of Argo). A failed exit handler fails a workflow that succeeded.
 - The exit handler is protected: `activeDeadlineSeconds` and `shutdown: Stop` stop only the entrypoint, so that cleanup can run. Give the exit template a `timeout`. `shutdown: Terminate` always stops the exit handler too.
 - `withParam` has a limit of 1000 items, like `withItems`.

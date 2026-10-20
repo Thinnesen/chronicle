@@ -120,7 +120,7 @@ func (c *converter) cronSpec(in obj, path string) (obj, error) {
 	return out, nil
 }
 
-var callFields = []string{fName, "template", "templateRef", "when", "withItems", "withParam"}
+var callFields = []string{fName, "template", "templateRef", "when", "withItems", "withParam", "continueOn"}
 
 // call converts the parts that a DAG task and a step share.
 func (c *converter) call(in obj, path string, extra ...string) (obj, error) {

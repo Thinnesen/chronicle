@@ -345,4 +345,19 @@ type Call struct {
 	// +kubebuilder:validation:MaxLength=4096
 	// +optional
 	WithParam string `json:"withParam,omitempty"`
+
+	// continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
+	// fail the DAG or the steps.
+	// +optional
+	ContinueOn *ContinueOn `json:"continueOn,omitempty"`
+}
+
+// ContinueOn names the failures after which a run goes on.
+type ContinueOn struct {
+	// failed: the command failed (phase Failed).
+	// +optional
+	Failed bool `json:"failed,omitempty"`
+	// error: the step could not run (phase Error), for example because the image does not exist.
+	// +optional
+	Error bool `json:"error,omitempty"`
 }

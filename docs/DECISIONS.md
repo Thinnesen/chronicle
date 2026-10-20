@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: `continueOn` (`failed`, `error`) on a DAG task or a step, as in Argo. A failure that continues counts as success for the depends of later tasks and does not fail the DAG or the steps; the node stays Failed. Reason: steps templates have no `depends`, so users moving from Argo had no way to go on after a failed step.
+
 - 2026-10-20: An approval has an optional `user`. The API sets it to the caller. The validating webhook refuses a new or changed approval whose `user` is not the user of the admission request, as Kubernetes does for the username of a CertificateSigningRequest. An approval without a user stays allowed, so `kubectl patch` keeps working. Reason: the audit log and the Kubernetes events (one hour) did not keep a durable record of who approved; Argo has none either.
 
 - 2026-10-20: The CSP allows injected styles that carry a per-page nonce (`style-src 'self' 'nonce-...'`). The server puts a new random nonce into index.html and into the header of each page; the UI gives it to `get-nonce`, which the dialog scroll lock reads. Reason: every Radix dialog injects a `<style>` for its scroll lock, and the CSP blocked it, so the lock did not work and each dialog logged a violation. `'unsafe-inline'` would allow CSS injection, and a hash does not work because the style depends on the scrollbar width.

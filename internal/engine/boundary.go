@@ -152,7 +152,8 @@ func (b *boundary) lookup(name string, r expr.Result) bool {
 	case expr.ResultAllFailed:
 		return b.allChildren(n, v1alpha1.NodeFailed)
 	case expr.ResultSucceeded:
-		return n.Phase == v1alpha1.NodeSucceeded
+		// A failure with continueOn counts as success for the tasks after it, as in Argo.
+		return n.Phase == v1alpha1.NodeSucceeded || b.continues(name, n.Phase)
 	case expr.ResultFailed:
 		return n.Phase == v1alpha1.NodeFailed
 	case expr.ResultErrored:
@@ -173,12 +174,18 @@ func (b *boundary) stopReason() string {
 	}
 	for _, t := range b.tasks {
 		n, ok := b.node(t.name)
-		if !ok || !isFailure(n.Phase) || b.handledByAny(t.name, n.Phase) {
+		if !ok || !isFailure(n.Phase) || b.handledByAny(t.name, n.Phase) || b.continues(t.name, n.Phase) {
 			continue
 		}
 		return fmt.Sprintf("not started because task %q failed", t.name)
 	}
 	return ""
+}
+
+// continues tells if the run goes on after the task failed with the phase p, because of its continueOn.
+func (b *boundary) continues(name string, p v1alpha1.NodePhase) bool {
+	c := b.byName[name].call.ContinueOn
+	return c != nil && (p == v1alpha1.NodeFailed && c.Failed || p == v1alpha1.NodeError && c.Error)
 }
 
 func (b *boundary) handledByAny(name string, p v1alpha1.NodePhase) bool {
@@ -258,6 +265,9 @@ func (b *boundary) branchPhase(name string, memo map[string]v1alpha1.NodePhase) 
 	t := b.byName[name]
 	n, _ := b.node(name)
 	p := n.Phase
+	if b.continues(name, p) {
+		p = v1alpha1.NodeSucceeded
+	}
 	if p == v1alpha1.NodeSkipped || p == v1alpha1.NodeOmitted {
 		p = v1alpha1.NodeSucceeded
 		for _, d := range t.deps {
@@ -273,7 +283,7 @@ func (b *boundary) branchPhase(name string, memo map[string]v1alpha1.NodePhase) 
 
 // failedTask returns the name of the task that failed first in the branch of a task.
 func (b *boundary) failedTask(name string, memo map[string]v1alpha1.NodePhase) string {
-	if n, _ := b.node(name); isFailure(n.Phase) {
+	if n, _ := b.node(name); isFailure(n.Phase) && !b.continues(name, n.Phase) {
 		return name
 	}
 	t := b.byName[name]

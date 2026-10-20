@@ -664,6 +664,21 @@ spec:
                                     - name
                                     x-kubernetes-list-type: map
                                 type: object
+                              continueOn:
+                                description: |-
+                                  continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
+                                  fail the DAG or the steps.
+                                properties:
+                                  error:
+                                    description: 'error: the step could not run (phase
+                                      Error), for example because the image does not
+                                      exist.'
+                                    type: boolean
+                                  failed:
+                                    description: 'failed: the command failed (phase
+                                      Failed).'
+                                    type: boolean
+                                type: object
                               dependencies:
                                 description: dependencies are the names of the tasks
                                   that must succeed before this task starts.
@@ -1471,6 +1486,21 @@ spec:
                                   x-kubernetes-list-map-keys:
                                   - name
                                   x-kubernetes-list-type: map
+                              type: object
+                            continueOn:
+                              description: |-
+                                continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
+                                fail the DAG or the steps.
+                              properties:
+                                error:
+                                  description: 'error: the step could not run (phase
+                                    Error), for example because the image does not
+                                    exist.'
+                                  type: boolean
+                                failed:
+                                  description: 'failed: the command failed (phase
+                                    Failed).'
+                                  type: boolean
                               type: object
                             name:
                               description: name of the step. It is unique in the steps

@@ -145,6 +145,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 
 - `Failed` means the command failed (exit code not 0). `Error` means that the step could not run, for example when the image does not exist.
 - `spec.activeDeadlineSeconds` stops the whole run after this time.
+- `continueOn: {failed: true}` (and `error: true`) on a task or a step lets the run go on after it fails: the tasks and steps after it run, and its failure does not fail the DAG or the steps. The step itself stays red.
 - After a run, you can retry the failed nodes, or retry from any node, in the UI or with `chronicle retry`.
 
 ## 8. Exit handler, approvals and resources

@@ -54,7 +54,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 52 converted w
 
 ## Supported as in Argo
 
-DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
+DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
 Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.labels.*`, `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
@@ -65,7 +65,6 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Expressions `{{=...}}`, `expression` in parameters and in retries | Expressions can run code from parameters. Use `when` conditions and plain placeholders. |
 | Pod fields: `securityContext`, `volumes`, `volumeMounts`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
-| `continueOn` | Use `depends` with `.Failed` in a DAG. |
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
 | Global outputs (`globalName`, `workflow.outputs.*`) | Not planned for the first version. |
 | `inline` templates in tasks or steps | Write a named template. |
