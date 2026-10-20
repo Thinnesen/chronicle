@@ -10,7 +10,7 @@ import { ProgressTrack } from "../components/ProgressTrack";
 import { RefreshError } from "../components/RefreshError";
 import { useCanEdit } from "../components/RunActions";
 import { SubmitDialog } from "../components/Lazy";
-import { ago, duration, toDate } from "../lib/time";
+import { ago, clock, duration, toDate } from "../lib/time";
 import { WaitingRuns } from "../components/WaitingRuns";
 import { useNow } from "../lib/useNow";
 import { runsRoute, type RunsSearch } from "../router";
@@ -167,6 +167,7 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                 const created = started ?? toDate(w.createdAt);
                 const end = toDate(w.finishedAt)?.getTime() ?? now;
                 const p = w.phase || "Pending";
+                const startAt = toDate(w.startAt);
                 return (
                   <tr key={w.uid}>
                     <td>
@@ -180,13 +181,18 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                         {all && <span className="board-ns-inline">{w.namespace}</span>}
                         {w.archived && <span className="badge">Archived</span>}
                         {w.approvalsWaiting > 0 && <span className="badge badge-caution">Needs approval</span>}
+                        {startAt && (
+                          <span className="badge" title={startAt.toLocaleString()}>
+                            Starts {clock(startAt, new Date(now))}
+                          </span>
+                        )}
                         {w.waitingReason && (
                           <span className="badge badge-caution" title="A step does not start. Open the run to see why.">
                             {w.waitingReason}
                           </span>
                         )}
                       </span>
-                      {w.message && (
+                      {w.message && !startAt && (
                         <span className="board-message" title={w.message}>
                           {w.message}
                         </span>

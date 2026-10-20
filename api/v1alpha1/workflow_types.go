@@ -22,6 +22,10 @@ type WorkflowSpec struct {
 	// +optional
 	Shutdown ShutdownMode `json:"shutdown,omitempty"`
 
+	// startAt delays the start of the run until this time. The run stays Pending until then.
+	// +optional
+	StartAt *metav1.Time `json:"startAt,omitempty"`
+
 	// restart asks for a retry of a finished run. Raise generation to retry again.
 	// +optional
 	Restart *Restart `json:"restart,omitempty"`

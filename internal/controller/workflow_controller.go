@@ -95,7 +95,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.restart(ctx, &wf, spec); err != nil {
 		return ctrl.Result{}, err
 	}
-	if res, wait, err := r.gate(ctx, &wf, spec, observed); wait || err != nil {
+	if res, wait, err := r.holdBack(ctx, &wf, spec, observed); wait || err != nil {
 		return res, err
 	}
 	pods, err := r.observePods(ctx, &wf)

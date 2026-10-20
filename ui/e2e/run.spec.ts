@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 
-import { mockAPI } from "./mock";
+import { mockAPI, now } from "./mock";
 
 test("shows the run as a graph and a timeline, and selects a node in both", async ({ page }) => {
   await mockAPI(page);
@@ -126,4 +126,35 @@ test("says that a new run has not started yet", async ({ page }) => {
   await page.goto("/ns/team-a/runs/fresh-run");
   await expect(page.getByText("The run has not started yet. The controller starts it in a moment.")).toBeVisible();
   await expect(page.getByText("Select a step to see its details and logs.")).toHaveCount(0);
+});
+
+test("says when a scheduled run starts", async ({ page }) => {
+  await mockAPI(page);
+  const at = new Date(now + 2 * 3600_000 + 60_000).toISOString();
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
+    r.fulfill({
+      json: {
+        summary: { namespace: "team-a", name: "later-run", uid: "u8", phase: "Pending", message: `the run starts at ${at}` },
+        workflow: { metadata: { name: "later-run", namespace: "team-a" }, spec: { startAt: at }, status: { phase: "Pending" } },
+      },
+    }),
+  );
+  await page.goto("/ns/team-a/runs/later-run");
+  await expect(page.getByText(/^The run starts at .+, in 2h 1m\.$/)).toBeVisible();
+  await expect(page.getByRole("term").filter({ hasText: "Starts" })).toBeVisible();
+  await expect(page.getByText(`the run starts at ${at}`)).toHaveCount(0);
+});
+
+test("shows the start time of a scheduled run in the list", async ({ page }) => {
+  await mockAPI(page);
+  const at = new Date(now + 2 * 3600_000).toISOString();
+  await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) =>
+    r.fulfill({
+      json: { workflows: [{ namespace: "team-a", name: "later-run", uid: "u8", phase: "Pending", message: `the run starts at ${at}`, createdAt: new Date(now).toISOString(), startAt: at }] },
+    }),
+  );
+  await page.goto("/ns/team-a");
+  const row = page.getByRole("row").filter({ hasText: "later-run" });
+  await expect(row.getByText(/^Starts /)).toBeVisible();
+  await expect(row.getByText(`the run starts at ${at}`)).toHaveCount(0);
 });

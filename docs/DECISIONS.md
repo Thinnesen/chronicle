@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A Workflow can wait for a start time (`spec.startAt`, `chronicle submit --at`). The controller keeps the run Pending and starts it at that time. It takes no lock before that. A stop ends the waiting run at once. The field is on the Workflow, not on a CronWorkflow, so a one-time run needs no schedule object and no clean up. Sources: Argo #2706, #10620.
+
 - 2026-10-20: A list of runs can cover all namespaces of the caller (`all_namespaces`, `chronicle list -A`, the UI page `/runs`). The server lists each namespace where an access review allows a list, as the caller, and asks the archive once for all of them. It does not list Workflows across the cluster, because a team user has RoleBindings, not a ClusterRole. The list has at most 100 namespaces. Runs with the same name and time in two namespaces are ordered by namespace, so a page token now has the namespace too. Sources: Argo #9140, #6769.
 
 - 2026-10-20: The controller exports a trace for each run when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. It writes the spans when the run finishes, with the times from the status: one span for the run and one span for each node, under its parent node. The trace ID is the UID of the run. A span ID comes from the UID, the try and the node, so the controller gives each Pod its `TRACEPARENT` before the span exists, and the spans of the step become children of the node span. A controller restart loses no open span, because no span is open while the run runs. Each try of a run is a new run span in the same trace. A task carries the same trace context to its worker (column `traceparent`, set only when traces are on). Sources: Dagster #12353, #11191, Argo #12589.

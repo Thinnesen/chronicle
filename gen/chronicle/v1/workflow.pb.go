@@ -50,6 +50,8 @@ type WorkflowSummary struct {
 	// waiting_reason is the Kubernetes reason why a step of the run does not start, for example ImagePullBackOff or
 	// Unschedulable. It is empty when no step waits for such a reason.
 	WaitingReason string `protobuf:"bytes,15,opt,name=waiting_reason,json=waitingReason,proto3" json:"waiting_reason,omitempty"`
+	// start_at is the start time of a run that waits for it. It is empty when the run has started.
+	StartAt       *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -187,6 +189,13 @@ func (x *WorkflowSummary) GetWaitingReason() string {
 		return x.WaitingReason
 	}
 	return ""
+}
+
+func (x *WorkflowSummary) GetStartAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartAt
+	}
+	return nil
 }
 
 type ListWorkflowsRequest struct {
@@ -536,7 +545,9 @@ type SubmitWorkflowRequest struct {
 	// parameters set workflow parameters by name.
 	Parameters map[string]string `protobuf:"bytes,4,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// labels are added to the run.
-	Labels        map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// start_at delays the start of the run until this time. The run stays Pending until then.
+	StartAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -613,6 +624,13 @@ func (x *SubmitWorkflowRequest) GetParameters() map[string]string {
 func (x *SubmitWorkflowRequest) GetLabels() map[string]string {
 	if x != nil {
 		return x.Labels
+	}
+	return nil
+}
+
+func (x *SubmitWorkflowRequest) GetStartAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartAt
 	}
 	return nil
 }
@@ -1742,7 +1760,7 @@ var File_chronicle_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x82\x05\n" +
+	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x05\n" +
 	"\x0fWorkflowSummary\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
@@ -1764,7 +1782,8 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"nodesTotal\x12\x1a\n" +
 	"\barchived\x18\r \x01(\bR\barchived\x12+\n" +
 	"\x11approvals_waiting\x18\x0e \x01(\x05R\x10approvalsWaiting\x12%\n" +
-	"\x0ewaiting_reason\x18\x0f \x01(\tR\rwaitingReason\x1a9\n" +
+	"\x0ewaiting_reason\x18\x0f \x01(\tR\rwaitingReason\x125\n" +
+	"\bstart_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcf\x01\n" +
@@ -1793,7 +1812,7 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x14\n" +
 	"\x05phase\x18\x02 \x01(\tR\x05phase\x12;\n" +
 	"\vfinished_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"finishedAt\"\xca\x03\n" +
+	"finishedAt\"\x81\x04\n" +
 	"\x15SubmitWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x125\n" +
 	"\bworkflow\x18\x02 \x01(\v2\x17.google.protobuf.StructH\x00R\bworkflow\x12:\n" +
@@ -1801,7 +1820,8 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\n" +
 	"parameters\x18\x04 \x03(\v23.chronicle.v1.SubmitWorkflowRequest.ParametersEntryR\n" +
 	"parameters\x12G\n" +
-	"\x06labels\x18\x05 \x03(\v2/.chronicle.v1.SubmitWorkflowRequest.LabelsEntryR\x06labels\x1a=\n" +
+	"\x06labels\x18\x05 \x03(\v2/.chronicle.v1.SubmitWorkflowRequest.LabelsEntryR\x06labels\x125\n" +
+	"\bstart_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x1a=\n" +
 	"\x0fParametersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a9\n" +
@@ -1951,56 +1971,58 @@ var file_chronicle_v1_workflow_proto_depIdxs = []int32{
 	33, // 1: chronicle.v1.WorkflowSummary.started_at:type_name -> google.protobuf.Timestamp
 	33, // 2: chronicle.v1.WorkflowSummary.finished_at:type_name -> google.protobuf.Timestamp
 	28, // 3: chronicle.v1.WorkflowSummary.labels:type_name -> chronicle.v1.WorkflowSummary.LabelsEntry
-	0,  // 4: chronicle.v1.ListWorkflowsResponse.workflows:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 5: chronicle.v1.GetWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	34, // 6: chronicle.v1.GetWorkflowResponse.workflow:type_name -> google.protobuf.Struct
-	5,  // 7: chronicle.v1.GetWorkflowResponse.tries:type_name -> chronicle.v1.Try
-	33, // 8: chronicle.v1.Try.finished_at:type_name -> google.protobuf.Timestamp
-	34, // 9: chronicle.v1.SubmitWorkflowRequest.workflow:type_name -> google.protobuf.Struct
-	7,  // 10: chronicle.v1.SubmitWorkflowRequest.template:type_name -> chronicle.v1.TemplateSource
-	29, // 11: chronicle.v1.SubmitWorkflowRequest.parameters:type_name -> chronicle.v1.SubmitWorkflowRequest.ParametersEntry
-	30, // 12: chronicle.v1.SubmitWorkflowRequest.labels:type_name -> chronicle.v1.SubmitWorkflowRequest.LabelsEntry
-	0,  // 13: chronicle.v1.SubmitWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 14: chronicle.v1.SuspendWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 15: chronicle.v1.ResumeWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 16: chronicle.v1.StopWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 17: chronicle.v1.TerminateWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	31, // 18: chronicle.v1.ApproveNodeRequest.parameters:type_name -> chronicle.v1.ApproveNodeRequest.ParametersEntry
-	0,  // 19: chronicle.v1.ApproveNodeResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	0,  // 20: chronicle.v1.RetryWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	32, // 21: chronicle.v1.RerunWorkflowRequest.parameters:type_name -> chronicle.v1.RerunWorkflowRequest.ParametersEntry
-	0,  // 22: chronicle.v1.RerunWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
-	27, // 23: chronicle.v1.ListNodeEventsResponse.events:type_name -> chronicle.v1.NodeEvent
-	33, // 24: chronicle.v1.NodeEvent.last_seen:type_name -> google.protobuf.Timestamp
-	1,  // 25: chronicle.v1.WorkflowService.ListWorkflows:input_type -> chronicle.v1.ListWorkflowsRequest
-	3,  // 26: chronicle.v1.WorkflowService.GetWorkflow:input_type -> chronicle.v1.GetWorkflowRequest
-	6,  // 27: chronicle.v1.WorkflowService.SubmitWorkflow:input_type -> chronicle.v1.SubmitWorkflowRequest
-	9,  // 28: chronicle.v1.WorkflowService.SuspendWorkflow:input_type -> chronicle.v1.SuspendWorkflowRequest
-	11, // 29: chronicle.v1.WorkflowService.ResumeWorkflow:input_type -> chronicle.v1.ResumeWorkflowRequest
-	13, // 30: chronicle.v1.WorkflowService.StopWorkflow:input_type -> chronicle.v1.StopWorkflowRequest
-	15, // 31: chronicle.v1.WorkflowService.TerminateWorkflow:input_type -> chronicle.v1.TerminateWorkflowRequest
-	17, // 32: chronicle.v1.WorkflowService.ApproveNode:input_type -> chronicle.v1.ApproveNodeRequest
-	19, // 33: chronicle.v1.WorkflowService.RetryWorkflow:input_type -> chronicle.v1.RetryWorkflowRequest
-	21, // 34: chronicle.v1.WorkflowService.RerunWorkflow:input_type -> chronicle.v1.RerunWorkflowRequest
-	23, // 35: chronicle.v1.WorkflowService.DeleteWorkflow:input_type -> chronicle.v1.DeleteWorkflowRequest
-	25, // 36: chronicle.v1.WorkflowService.ListNodeEvents:input_type -> chronicle.v1.ListNodeEventsRequest
-	2,  // 37: chronicle.v1.WorkflowService.ListWorkflows:output_type -> chronicle.v1.ListWorkflowsResponse
-	4,  // 38: chronicle.v1.WorkflowService.GetWorkflow:output_type -> chronicle.v1.GetWorkflowResponse
-	8,  // 39: chronicle.v1.WorkflowService.SubmitWorkflow:output_type -> chronicle.v1.SubmitWorkflowResponse
-	10, // 40: chronicle.v1.WorkflowService.SuspendWorkflow:output_type -> chronicle.v1.SuspendWorkflowResponse
-	12, // 41: chronicle.v1.WorkflowService.ResumeWorkflow:output_type -> chronicle.v1.ResumeWorkflowResponse
-	14, // 42: chronicle.v1.WorkflowService.StopWorkflow:output_type -> chronicle.v1.StopWorkflowResponse
-	16, // 43: chronicle.v1.WorkflowService.TerminateWorkflow:output_type -> chronicle.v1.TerminateWorkflowResponse
-	18, // 44: chronicle.v1.WorkflowService.ApproveNode:output_type -> chronicle.v1.ApproveNodeResponse
-	20, // 45: chronicle.v1.WorkflowService.RetryWorkflow:output_type -> chronicle.v1.RetryWorkflowResponse
-	22, // 46: chronicle.v1.WorkflowService.RerunWorkflow:output_type -> chronicle.v1.RerunWorkflowResponse
-	24, // 47: chronicle.v1.WorkflowService.DeleteWorkflow:output_type -> chronicle.v1.DeleteWorkflowResponse
-	26, // 48: chronicle.v1.WorkflowService.ListNodeEvents:output_type -> chronicle.v1.ListNodeEventsResponse
-	37, // [37:49] is the sub-list for method output_type
-	25, // [25:37] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	33, // 4: chronicle.v1.WorkflowSummary.start_at:type_name -> google.protobuf.Timestamp
+	0,  // 5: chronicle.v1.ListWorkflowsResponse.workflows:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 6: chronicle.v1.GetWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	34, // 7: chronicle.v1.GetWorkflowResponse.workflow:type_name -> google.protobuf.Struct
+	5,  // 8: chronicle.v1.GetWorkflowResponse.tries:type_name -> chronicle.v1.Try
+	33, // 9: chronicle.v1.Try.finished_at:type_name -> google.protobuf.Timestamp
+	34, // 10: chronicle.v1.SubmitWorkflowRequest.workflow:type_name -> google.protobuf.Struct
+	7,  // 11: chronicle.v1.SubmitWorkflowRequest.template:type_name -> chronicle.v1.TemplateSource
+	29, // 12: chronicle.v1.SubmitWorkflowRequest.parameters:type_name -> chronicle.v1.SubmitWorkflowRequest.ParametersEntry
+	30, // 13: chronicle.v1.SubmitWorkflowRequest.labels:type_name -> chronicle.v1.SubmitWorkflowRequest.LabelsEntry
+	33, // 14: chronicle.v1.SubmitWorkflowRequest.start_at:type_name -> google.protobuf.Timestamp
+	0,  // 15: chronicle.v1.SubmitWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 16: chronicle.v1.SuspendWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 17: chronicle.v1.ResumeWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 18: chronicle.v1.StopWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 19: chronicle.v1.TerminateWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	31, // 20: chronicle.v1.ApproveNodeRequest.parameters:type_name -> chronicle.v1.ApproveNodeRequest.ParametersEntry
+	0,  // 21: chronicle.v1.ApproveNodeResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	0,  // 22: chronicle.v1.RetryWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	32, // 23: chronicle.v1.RerunWorkflowRequest.parameters:type_name -> chronicle.v1.RerunWorkflowRequest.ParametersEntry
+	0,  // 24: chronicle.v1.RerunWorkflowResponse.summary:type_name -> chronicle.v1.WorkflowSummary
+	27, // 25: chronicle.v1.ListNodeEventsResponse.events:type_name -> chronicle.v1.NodeEvent
+	33, // 26: chronicle.v1.NodeEvent.last_seen:type_name -> google.protobuf.Timestamp
+	1,  // 27: chronicle.v1.WorkflowService.ListWorkflows:input_type -> chronicle.v1.ListWorkflowsRequest
+	3,  // 28: chronicle.v1.WorkflowService.GetWorkflow:input_type -> chronicle.v1.GetWorkflowRequest
+	6,  // 29: chronicle.v1.WorkflowService.SubmitWorkflow:input_type -> chronicle.v1.SubmitWorkflowRequest
+	9,  // 30: chronicle.v1.WorkflowService.SuspendWorkflow:input_type -> chronicle.v1.SuspendWorkflowRequest
+	11, // 31: chronicle.v1.WorkflowService.ResumeWorkflow:input_type -> chronicle.v1.ResumeWorkflowRequest
+	13, // 32: chronicle.v1.WorkflowService.StopWorkflow:input_type -> chronicle.v1.StopWorkflowRequest
+	15, // 33: chronicle.v1.WorkflowService.TerminateWorkflow:input_type -> chronicle.v1.TerminateWorkflowRequest
+	17, // 34: chronicle.v1.WorkflowService.ApproveNode:input_type -> chronicle.v1.ApproveNodeRequest
+	19, // 35: chronicle.v1.WorkflowService.RetryWorkflow:input_type -> chronicle.v1.RetryWorkflowRequest
+	21, // 36: chronicle.v1.WorkflowService.RerunWorkflow:input_type -> chronicle.v1.RerunWorkflowRequest
+	23, // 37: chronicle.v1.WorkflowService.DeleteWorkflow:input_type -> chronicle.v1.DeleteWorkflowRequest
+	25, // 38: chronicle.v1.WorkflowService.ListNodeEvents:input_type -> chronicle.v1.ListNodeEventsRequest
+	2,  // 39: chronicle.v1.WorkflowService.ListWorkflows:output_type -> chronicle.v1.ListWorkflowsResponse
+	4,  // 40: chronicle.v1.WorkflowService.GetWorkflow:output_type -> chronicle.v1.GetWorkflowResponse
+	8,  // 41: chronicle.v1.WorkflowService.SubmitWorkflow:output_type -> chronicle.v1.SubmitWorkflowResponse
+	10, // 42: chronicle.v1.WorkflowService.SuspendWorkflow:output_type -> chronicle.v1.SuspendWorkflowResponse
+	12, // 43: chronicle.v1.WorkflowService.ResumeWorkflow:output_type -> chronicle.v1.ResumeWorkflowResponse
+	14, // 44: chronicle.v1.WorkflowService.StopWorkflow:output_type -> chronicle.v1.StopWorkflowResponse
+	16, // 45: chronicle.v1.WorkflowService.TerminateWorkflow:output_type -> chronicle.v1.TerminateWorkflowResponse
+	18, // 46: chronicle.v1.WorkflowService.ApproveNode:output_type -> chronicle.v1.ApproveNodeResponse
+	20, // 47: chronicle.v1.WorkflowService.RetryWorkflow:output_type -> chronicle.v1.RetryWorkflowResponse
+	22, // 48: chronicle.v1.WorkflowService.RerunWorkflow:output_type -> chronicle.v1.RerunWorkflowResponse
+	24, // 49: chronicle.v1.WorkflowService.DeleteWorkflow:output_type -> chronicle.v1.DeleteWorkflowResponse
+	26, // 50: chronicle.v1.WorkflowService.ListNodeEvents:output_type -> chronicle.v1.ListNodeEventsResponse
+	39, // [39:51] is the sub-list for method output_type
+	27, // [27:39] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_chronicle_v1_workflow_proto_init() }

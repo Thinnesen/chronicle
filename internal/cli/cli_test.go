@@ -230,6 +230,25 @@ func TestCommands(t *testing.T) {
 	}
 }
 
+func TestSubmitAt(t *testing.T) {
+	s := &stub{}
+	if _, err := run(t, s, "submit", "--from", "etl", "--at", "2026-10-21T03:00:00+02:00"); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.requests[0].(*chroniclev1.SubmitWorkflowRequest).StartAt.AsTime(); !got.Equal(time.Date(2026, 10, 21, 1, 0, 0, 0, time.UTC)) {
+		t.Errorf("start time = %v", got)
+	}
+	if _, err := run(t, s, "submit", "--from", "etl", "--at", "2h"); err != nil {
+		t.Fatal(err)
+	}
+	if got := time.Until(s.requests[1].(*chroniclev1.SubmitWorkflowRequest).StartAt.AsTime()); got < 119*time.Minute || got > 2*time.Hour {
+		t.Errorf("start in %v", got)
+	}
+	if _, err := run(t, s, "submit", "--from", "etl", "--at", "tomorrow"); err == nil {
+		t.Error("a bad start time gave no error")
+	}
+}
+
 func TestListAllNamespaces(t *testing.T) {
 	s := &stub{}
 	out, err := run(t, s, "list", "-A")

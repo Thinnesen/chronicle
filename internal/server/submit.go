@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -67,6 +68,9 @@ func newSubmission(m *chroniclev1.SubmitWorkflowRequest) (*v1alpha1.Workflow, er
 	}
 	maps.Copy(wf.Labels, m.Labels)
 	setParameters(&wf.Spec.Arguments, m.Parameters)
+	if m.StartAt != nil {
+		wf.Spec.StartAt = &metav1.Time{Time: m.StartAt.AsTime()}
+	}
 	return wf, nil
 }
 

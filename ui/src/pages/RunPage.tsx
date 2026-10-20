@@ -12,7 +12,7 @@ import { Timeline } from "../components/Timeline";
 import { YamlView } from "../components/Lazy";
 import { RefreshError } from "../components/RefreshError";
 import { TryContext } from "../lib/tryContext";
-import { ago, duration, toDate } from "../lib/time";
+import { ago, clock, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { nodeLabel, plannedSteps, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
 import { runRoute, type RunSearch } from "../router";
@@ -60,6 +60,9 @@ export function RunPage() {
   // While the run is active, the steps that have not started count too, as the graph draws them.
   const steps = s.nodesTotal + (finished.has(phase) ? 0 : plannedSteps(wf));
   const started = toDate(s.startedAt);
+  // A run with a start time in the future waits for it, with the phase Pending.
+  const startAt = !started && wf.spec.startAt ? new Date(wf.spec.startAt) : undefined;
+  const later = startAt && startAt.getTime() > now ? startAt : undefined;
   const nodes = wf.status?.nodes ?? {};
   const node = selected ? nodes[selected] : undefined;
   // Before the first reconcile, a new run has no nodes yet.
@@ -85,6 +88,14 @@ export function RunPage() {
                 <Link to="/ns/$namespace/templates/$name" params={{ namespace, name: s.template }}>
                   {s.template}
                 </Link>
+              </dd>
+            </div>
+          )}
+          {later && (
+            <div>
+              <dt>Starts</dt>
+              <dd>
+                <time title={later.toLocaleString()}>{clock(later, new Date(now))}</time>
               </dd>
             </div>
           )}
@@ -135,7 +146,7 @@ export function RunPage() {
           </div>
         </dl>
         <Parameters wf={wf} />
-        {s.message && (
+        {s.message && !later && (
           <p className="run-message" data-phase={phase}>
             {s.message}
           </p>
@@ -168,7 +179,13 @@ export function RunPage() {
       </div>
       <div className="run-body" data-drawer={node ? "" : undefined}>
         <div className="run-view card" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
-          {!hasNodes && tab !== "spec" && <p className="run-waiting quiet">The run has not started yet. The controller starts it in a moment.</p>}
+          {!hasNodes && tab !== "spec" && (
+            <p className="run-waiting quiet">
+              {later
+                ? `The run starts at ${clock(later, new Date(now))}, in ${duration(later.getTime() - now)}.`
+                : "The run has not started yet. The controller starts it in a moment."}
+            </p>
+          )}
           {hasNodes && tab === undefined && (
             <Suspense fallback={<div className="run-graph-placeholder" />}>
               <RunGraph wf={wf} now={now} selected={selected} onSelect={select} />

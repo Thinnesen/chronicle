@@ -412,6 +412,11 @@ spec:
                 - Stop
                 - Terminate
                 type: string
+              startAt:
+                description: startAt delays the start of the run until this time.
+                  The run stays Pending until then.
+                format: date-time
+                type: string
               suspend:
                 description: 'suspend pauses the workflow: no new node starts. Running
                   Pods go on.'

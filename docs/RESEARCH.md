@@ -100,7 +100,7 @@ The ranked list, with the state of chronicle:
 6. Sensitive parameters that do not show in the status, the archive or the UI. Argo #5506 (r61), #8685 (r57). chronicle gap.
 7. Archive retention. Dagster #4497 (r27), Temporal #2617. Done in 94d54f6.
 8. The UI under a path prefix. Argo #3080 (r55), Dagster #17641 (r26), Temporal UI #576 (r18). Done in 2db231d.
-9. Backfill and one-time scheduled runs. Argo #2706 (r27), #10620 (r25). Backfill is done (chronicle cron backfill). One-time runs are open.
+9. Backfill and one-time scheduled runs. Argo #2706 (r27), #10620 (r25). Backfill is done (chronicle cron backfill). One-time runs are done (startAt, chronicle submit --at).
 10. Workflow of workflows with links and stop propagation. Argo #6922 (r69), Temporal #680 (r76). chronicle has resource steps that create runs, without links.
 11. Four-eyes approval (the approver is not the submitter). Argo #12108 (r15), #12270 (r26), Dagster #8067 (r40). chronicle records the approver, not the rules.
 12. Task queue depth as a metric, for KEDA. Temporal #33 (r51). Done in 87ebf01.

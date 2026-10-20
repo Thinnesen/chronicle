@@ -79,7 +79,7 @@ export interface VolumeMount {
 
 export interface Workflow {
   metadata: { name: string; namespace: string; creationTimestamp?: string };
-  spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; approvals?: { node: string }[] };
+  spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; startAt?: string; approvals?: { node: string }[] };
   status?: {
     phase?: string;
     conditions?: { type: string; status: string }[];

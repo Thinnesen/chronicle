@@ -5,29 +5,39 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 	yamlv3 "go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
 func (a *app) submitCommand() *cobra.Command {
-	var file, from string
+	var file, from, at string
 	var params, labels []string
 	var watch, log bool
 	cmd := &cobra.Command{
 		Use:   "submit (-f <file> | --from <template>)",
 		Short: "Start a run from a Workflow file or a template",
 		Example: "  chronicle submit -f hello.yaml -p who=world --watch\n" +
-			"  chronicle submit --from nightly-build\n  chronicle submit --from cluster/base-pipeline",
+			"  chronicle submit --from nightly-build\n  chronicle submit --from cluster/base-pipeline\n" +
+			"  chronicle submit --from backfill --at 2026-10-21T03:00:00+02:00",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			req, err := a.submitRequest(file, from, params, labels)
 			if err != nil {
 				return err
+			}
+			if at != "" {
+				t, err := startTime(at, time.Now())
+				if err != nil {
+					return err
+				}
+				req.StartAt = timestamppb.New(t)
 			}
 			c, err := a.workflows(cmd.Context())
 			if err != nil {
@@ -54,6 +64,7 @@ func (a *app) submitCommand() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&labels, "label", "l", nil, "A label of the run as key=value.")
 	cmd.Flags().BoolVarP(&watch, "watch", "w", false, "Watch the run until it ends.")
 	cmd.Flags().BoolVar(&log, "log", false, "Print the logs of all steps until the run ends.")
+	cmd.Flags().StringVar(&at, "at", "", "Start the run later: an RFC 3339 time, or a duration from now such as 2h.")
 	cmd.MarkFlagsMutuallyExclusive("watch", "log")
 	return cmd
 }
@@ -254,4 +265,15 @@ func (a *app) getCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&output, "output", "o", "", "The output format: yaml or json. The default is a tree of the nodes.")
 	cmd.Flags().Int32Var(&try, "try", 0, "Show an earlier try of a retried run. The first try is 1.")
 	return cmd
+}
+
+// startTime reads the start time of a run: an RFC 3339 time, or a duration from now.
+func startTime(s string, now time.Time) (time.Time, error) {
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	if d, err := time.ParseDuration(s); err == nil && d > 0 {
+		return now.Add(d), nil
+	}
+	return time.Time{}, fmt.Errorf("%q is not an RFC 3339 time (2026-10-21T03:00:00+02:00) or a duration (2h)", s)
 }

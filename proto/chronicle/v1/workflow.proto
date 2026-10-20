@@ -67,6 +67,8 @@ message WorkflowSummary {
   // waiting_reason is the Kubernetes reason why a step of the run does not start, for example ImagePullBackOff or
   // Unschedulable. It is empty when no step waits for such a reason.
   string waiting_reason = 15;
+  // start_at is the start time of a run that waits for it. It is empty when the run has started.
+  google.protobuf.Timestamp start_at = 16;
 }
 
 message ListWorkflowsRequest {
@@ -126,6 +128,8 @@ message SubmitWorkflowRequest {
   map<string, string> parameters = 4;
   // labels are added to the run.
   map<string, string> labels = 5;
+  // start_at delays the start of the run until this time. The run stays Pending until then.
+  google.protobuf.Timestamp start_at = 6;
 }
 
 // TemplateSource names a WorkflowTemplate or a ClusterWorkflowTemplate.

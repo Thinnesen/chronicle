@@ -1308,6 +1308,10 @@ func (in *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 		*out = new(WorkflowTemplateRef)
 		**out = **in
 	}
+	if in.StartAt != nil {
+		in, out := &in.StartAt, &out.StartAt
+		*out = (*in).DeepCopy()
+	}
 	if in.Restart != nil {
 		in, out := &in.Restart, &out.Restart
 		*out = new(Restart)

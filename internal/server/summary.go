@@ -38,6 +38,9 @@ func summary(wf *v1alpha1.Workflow) *chroniclev1.WorkflowSummary {
 	if ref := wf.Spec.WorkflowTemplateRef; ref != nil {
 		s.Template = ref.Name
 	}
+	if wf.Status.StartedAt == nil {
+		s.StartAt = timestamp(wf.Spec.StartAt)
+	}
 	s.NodesDone, s.NodesTotal = wf.Status.Progress()
 	for _, id := range slices.Sorted(maps.Keys(wf.Status.Nodes)) {
 		n := wf.Status.Nodes[id]

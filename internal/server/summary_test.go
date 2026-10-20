@@ -24,6 +24,18 @@ func TestSummaryCounts(t *testing.T) {
 	}
 }
 
+func TestSummaryStartAt(t *testing.T) {
+	at := metav1.Now()
+	wf := &v1alpha1.Workflow{Spec: v1alpha1.WorkflowSpec{StartAt: &at}}
+	if s := summary(wf); !s.StartAt.AsTime().Equal(at.Time) {
+		t.Errorf("start time of a waiting run = %v", s.StartAt)
+	}
+	wf.Status.StartedAt = &at
+	if s := summary(wf); s.StartAt != nil {
+		t.Errorf("a started run has the start time %v", s.StartAt)
+	}
+}
+
 func TestWaitingReason(t *testing.T) {
 	for msg, want := range map[string]string{
 		"Unschedulable: 0/3 nodes are available":                      "Unschedulable",
