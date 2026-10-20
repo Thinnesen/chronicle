@@ -14,7 +14,7 @@ chronicle convert -f argo-workflow.yaml | kubectl create -n team-a -f -
 - `--strict` makes the command fail when there is a warning. Use it in CI.
 - The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid. An example is a placeholder that chronicle does not have.
 
-In a test with the 190 examples of Argo Workflows (October 2026), 65 converted without a warning and 87 with warnings. 38 failed, because they use features from the last table. The most common causes are:
+In a test with the 190 examples of Argo Workflows (October 2026), 68 converted without a warning and 84 with warnings. 38 failed, because they use features from the last table. The most common causes are:
 
 - expressions (`{{=...}}`),
 - daemon steps (`{{steps.x.ip}}`),
