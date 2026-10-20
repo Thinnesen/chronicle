@@ -27,12 +27,16 @@ func Sequence(start, end int64, format string) ([]string, error) {
 	if format == "" {
 		format = "%d"
 	}
-	if end-start >= MaxItems {
-		return nil, fmt.Errorf("the sequence has more than %d items", MaxItems)
-	}
 	items := []string{}
-	for i := start; i <= end; i++ {
+	// The loop counts the items instead of computing end-start, which can overflow for extreme values.
+	for i := start; start <= end; i++ {
+		if len(items) == MaxItems {
+			return nil, fmt.Errorf("the sequence has more than %d items", MaxItems)
+		}
 		items = append(items, fmt.Sprintf(format, i))
+		if i == end {
+			break
+		}
 	}
 	return items, nil
 }

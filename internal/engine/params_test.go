@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
@@ -158,5 +160,18 @@ func TestWithSequence(t *testing.T) {
 	}
 	if got := phases(st)["wf.none"]; got != v1alpha1.NodeSkipped {
 		t.Errorf("an empty sequence is %s", got)
+	}
+}
+
+func TestSequenceItemsErrors(t *testing.T) {
+	none := func(string) (string, bool) { return "", false }
+	for _, seq := range []v1alpha1.Sequence{
+		{Count: new(intstr.FromString("-1"))},
+		{Count: new(intstr.FromInt(2)), Start: new(intstr.FromString("9223372036854775807"))},
+		{End: new(intstr.FromString("9223372036854775807")), Start: new(intstr.FromString("-9223372036854775808"))},
+	} {
+		if _, err := sequenceItems(&seq, none); err == nil {
+			t.Errorf("sequenceItems(%+v) returned no error", seq)
+		}
 	}
 }

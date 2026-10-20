@@ -1,6 +1,7 @@
 package expr
 
 import (
+	"math"
 	"slices"
 	"testing"
 )
@@ -18,7 +19,9 @@ func TestSequence(t *testing.T) {
 		{5, 4, "", []string{}, false}, // count 0
 		{0, 1, "%s", nil, true},
 		{0, 1, "%d-%d", nil, true},
-		{0, 1000, "", nil, true}, // more than 1000 items
+		{0, 1000, "", nil, true},                      // more than 1000 items
+		{math.MinInt64, math.MaxInt64, "", nil, true}, // end-start overflows
+		{math.MaxInt64 - 1, math.MaxInt64, "", []string{"9223372036854775806", "9223372036854775807"}, false},
 	}
 	for _, tt := range tests {
 		got, err := Sequence(tt.start, tt.end, tt.format)

@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -95,7 +96,12 @@ func sequenceItems(seq *v1alpha1.Sequence, resolve expr.Resolver) ([]apiextensio
 	end, err := number("end", seq.End)
 	if seq.Count != nil {
 		var count int64
-		count, err = number("count", seq.Count)
+		if count, err = number("count", seq.Count); err != nil {
+			return nil, err
+		}
+		if count < 0 || count > 0 && start > math.MaxInt64-(count-1) {
+			return nil, fmt.Errorf("withSequence: count %d does not fit after start %d", count, start)
+		}
 		end = start + count - 1
 	}
 	if err != nil {

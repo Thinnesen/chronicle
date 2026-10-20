@@ -102,7 +102,8 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,
 	})
-	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(observed.Phase) {
+	// The phase after restart: the first reconcile of a retry must also respect the limit.
+	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(wf.Status.Phase) {
 		return r.failTooLarge(ctx, &wf, size)
 	}
 	if err := r.applyAll(ctx, &wf, spec, res.Actions); err != nil {
