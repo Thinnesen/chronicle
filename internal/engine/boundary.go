@@ -184,7 +184,10 @@ func (b *boundary) stopReason() string {
 
 // continues tells if the run goes on after the task failed with the phase p, because of its continueOn.
 func (b *boundary) continues(name string, p v1alpha1.NodePhase) bool {
-	c := b.byName[name].call.ContinueOn
+	return continuesOn(b.byName[name].call.ContinueOn, p)
+}
+
+func continuesOn(c *v1alpha1.ContinueOn, p v1alpha1.NodePhase) bool {
 	return c != nil && (p == v1alpha1.NodeFailed && c.Failed || p == v1alpha1.NodeError && c.Error)
 }
 

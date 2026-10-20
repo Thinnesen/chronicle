@@ -54,6 +54,12 @@ templates:
 			if st.Phase != tt.phase || ran != tt.next {
 				t.Errorf("phase %s (%s), next ran %v; want %s, %v", st.Phase, st.Message, ran, tt.phase, tt.next)
 			}
+			for _, n := range st.Nodes {
+				// A group whose failures all continue succeeds, as in Argo.
+				if n.Type == v1alpha1.NodeStepGroup && st.Phase == v1alpha1.WorkflowSucceeded && n.Phase != v1alpha1.NodeSucceeded {
+					t.Errorf("group %s is %s", n.Name, n.Phase)
+				}
+			}
 		})
 	}
 }

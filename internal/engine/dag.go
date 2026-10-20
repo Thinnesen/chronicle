@@ -81,12 +81,16 @@ func (e *engine) runSteps(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, d
 		}
 	}
 	n = e.runBoundary(t, n, "steps", tasks, false, depth)
-	e.updateGroups(n)
+	e.updateGroups(n, tasks)
 	return n
 }
 
-// updateGroups sets the phase of each step group from its steps.
-func (e *engine) updateGroups(steps v1alpha1.NodeStatus) {
+// updateGroups sets the phase of each step group from its steps. A failure that continues counts as success.
+func (e *engine) updateGroups(steps v1alpha1.NodeStatus, tasks []task) {
+	continueOn := map[string]*v1alpha1.ContinueOn{}
+	for _, t := range tasks {
+		continueOn[t.nodeName] = t.call.ContinueOn
+	}
 	for _, gid := range steps.Children {
 		g := e.nodes[gid]
 		if isTerminal(g.Phase) {
@@ -94,7 +98,11 @@ func (e *engine) updateGroups(steps v1alpha1.NodeStatus) {
 		}
 		phase, omitted := v1alpha1.NodeSucceeded, true
 		for _, cid := range g.Children {
-			p := e.nodes[cid].Phase
+			c := e.nodes[cid]
+			p := c.Phase
+			if continuesOn(continueOn[c.Name], p) {
+				p = v1alpha1.NodeSucceeded
+			}
 			if !isTerminal(p) {
 				phase = v1alpha1.NodeRunning
 				break
