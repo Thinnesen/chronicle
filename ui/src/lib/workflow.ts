@@ -206,8 +206,8 @@ export function plannedSteps(wf: Workflow): number {
   return Object.values(withPlan(wf)).filter((n) => n.planned && isStation(n)).length;
 }
 
-// exits returns the nodes where the work of a node ends. These are the node itself, the last attempt of a retry, the
-// items of a fan-out, the leaf tasks of a DAG or the last group of steps.
+// exits returns the nodes where the work of a node ends. For a node of a Pod, it is the node itself. For a retry, it
+// is the last attempt, and for a fan-out, the items. For a DAG, it is the leaf tasks, and for steps, the last group.
 function exits(
   n: NodeStatus,
   nodes: Record<string, NodeStatus>,
