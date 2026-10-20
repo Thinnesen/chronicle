@@ -25,12 +25,16 @@ const (
 
 // TemplateParameter is a workflow parameter of a template, for a run form.
 type TemplateParameter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Default       string                 `protobuf:"bytes,2,opt,name=default,proto3" json:"default,omitempty"`
-	HasDefault    bool                   `protobuf:"varint,3,opt,name=has_default,json=hasDefault,proto3" json:"has_default,omitempty"`
-	Enum          []string               `protobuf:"bytes,4,rep,name=enum,proto3" json:"enum,omitempty"`
-	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Default     string                 `protobuf:"bytes,2,opt,name=default,proto3" json:"default,omitempty"`
+	HasDefault  bool                   `protobuf:"varint,3,opt,name=has_default,json=hasDefault,proto3" json:"has_default,omitempty"`
+	Enum        []string               `protobuf:"bytes,4,rep,name=enum,proto3" json:"enum,omitempty"`
+	Description string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	// config_map_name and config_map_key name the ConfigMap key that gives the value when the run starts and the
+	// caller gives no value.
+	ConfigMapName string `protobuf:"bytes,6,opt,name=config_map_name,json=configMapName,proto3" json:"config_map_name,omitempty"`
+	ConfigMapKey  string `protobuf:"bytes,7,opt,name=config_map_key,json=configMapKey,proto3" json:"config_map_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -96,6 +100,20 @@ func (x *TemplateParameter) GetEnum() []string {
 func (x *TemplateParameter) GetDescription() string {
 	if x != nil {
 		return x.Description
+	}
+	return ""
+}
+
+func (x *TemplateParameter) GetConfigMapName() string {
+	if x != nil {
+		return x.ConfigMapName
+	}
+	return ""
+}
+
+func (x *TemplateParameter) GetConfigMapKey() string {
+	if x != nil {
+		return x.ConfigMapKey
 	}
 	return ""
 }
@@ -923,14 +941,16 @@ var File_chronicle_v1_template_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_template_proto_rawDesc = "" +
 	"\n" +
-	"\x1bchronicle/v1/template.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x01\n" +
+	"\x1bchronicle/v1/template.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe6\x01\n" +
 	"\x11TemplateParameter\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\adefault\x18\x02 \x01(\tR\adefault\x12\x1f\n" +
 	"\vhas_default\x18\x03 \x01(\bR\n" +
 	"hasDefault\x12\x12\n" +
 	"\x04enum\x18\x04 \x03(\tR\x04enum\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xc5\x02\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12&\n" +
+	"\x0fconfig_map_name\x18\x06 \x01(\tR\rconfigMapName\x12$\n" +
+	"\x0econfig_map_key\x18\a \x01(\tR\fconfigMapKey\"\xc5\x02\n" +
 	"\x0fTemplateSummary\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +

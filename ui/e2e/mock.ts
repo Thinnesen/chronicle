@@ -75,6 +75,7 @@ export const templateList = [
     parameters: [
       { name: "env", default: "staging", hasDefault: true, enum: ["staging", "prod"], description: "The target environment." },
       { name: "version", hasDefault: false, enum: [], description: "The image tag, for example 1.4.2." },
+      { name: "region", hasDefault: false, enum: [], configMapName: "settings", configMapKey: "region" },
     ],
   },
   { namespace: "", name: "base-pipeline", clusterScope: true, entrypoint: "main", parameters: [], managedBy: "Argo CD" },

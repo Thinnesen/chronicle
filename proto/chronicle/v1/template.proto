@@ -40,6 +40,10 @@ message TemplateParameter {
   bool has_default = 3;
   repeated string enum = 4;
   string description = 5;
+  // config_map_name and config_map_key name the ConfigMap key that gives the value when the run starts and the
+  // caller gives no value.
+  string config_map_name = 6;
+  string config_map_key = 7;
 }
 
 message TemplateSummary {

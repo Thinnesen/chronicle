@@ -20,6 +20,8 @@ test("starts a run from a template with parameters", async ({ page }) => {
   await page.getByRole("button", { name: "Start the run" }).click();
   expect(calls.SubmitWorkflow ?? []).toHaveLength(0); // the required version is missing
   await page.getByRole("textbox", { name: /version/ }).fill("1.4.2");
+  // A parameter from a ConfigMap is optional, and an empty field is not sent.
+  await expect(page.getByText("Empty uses key region of ConfigMap settings.")).toBeVisible();
   await page.getByRole("button", { name: "Start the run" }).click();
   await expect(page).toHaveURL(/\/runs\/deploy-api-new01$/);
   expect(calls.SubmitWorkflow).toEqual([

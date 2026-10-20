@@ -90,6 +90,9 @@ func templateSummary(obj client.Object, spec *v1alpha1.WorkflowTemplateSpec, clu
 		if v := cmpPtr(p.Value, p.Default); v != nil {
 			tp.Default, tp.HasDefault = *v, true
 		}
+		if p.ValueFrom != nil && p.ValueFrom.ConfigMapKeyRef != nil {
+			tp.ConfigMapName, tp.ConfigMapKey = p.ValueFrom.ConfigMapKeyRef.Name, p.ValueFrom.ConfigMapKeyRef.Key
+		}
 		s.Parameters = append(s.Parameters, tp)
 	}
 	return s

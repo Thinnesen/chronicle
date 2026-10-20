@@ -30,6 +30,7 @@ func TestTemplatesAndCrons(t *testing.T) {
 		Entrypoint: "c",
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{
 			{Name: "env", Default: new("dev"), Enum: []string{"dev", "prod"}, Description: "Where to deploy"}, {Name: "tag"},
+			{Name: "region", ValueFrom: &v1alpha1.ValueFrom{ConfigMapKeyRef: &v1alpha1.ConfigMapKeyRef{Name: "settings", Key: "region"}}},
 		}},
 		Templates: []v1alpha1.Template{{Name: "c", Container: &v1alpha1.ContainerTemplate{Image: "alpine"}}},
 	}
@@ -55,7 +56,8 @@ func TestTemplatesAndCrons(t *testing.T) {
 		t.Fatalf("alice cannot list cluster templates, but sees %d templates", len(list.Msg.Templates))
 	}
 	d := list.Msg.Templates[0]
-	if d.Description != "Deploys the API" || len(d.Parameters) != 2 || d.Parameters[0].Default != "dev" || !d.Parameters[0].HasDefault || d.Parameters[1].HasDefault {
+	if d.Description != "Deploys the API" || len(d.Parameters) != 3 || d.Parameters[0].Default != "dev" || !d.Parameters[0].HasDefault || d.Parameters[1].HasDefault ||
+		d.Parameters[2].ConfigMapName != "settings" || d.Parameters[2].ConfigMapKey != "region" {
 		t.Errorf("summary = %+v", d)
 	}
 	if got, err := templates.GetTemplate(ctx, connect.NewRequest(&chroniclev1.GetTemplateRequest{Namespace: "team-a", Name: "deploy"})); err != nil || got.Msg.Template.Fields["spec"] == nil {

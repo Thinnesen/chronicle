@@ -8,7 +8,10 @@ import { actionError } from "../lib/errors";
 import { useToast } from "./Toast";
 
 // RunForm starts a run of a template. Each workflow parameter is a field; a list of permitted values is a select.
+// A parameter that reads a ConfigMap is optional: an empty field is not sent, so that the run reads the ConfigMap.
 export function RunForm({ namespace, template }: { namespace: string; template: TemplateSummary }) {
+  const fromConfigMap = (name: string) => !!template.parameters.find((p) => p.name === name)?.configMapName;
+  const required = (p: TemplateSummary["parameters"][number]) => !p.hasDefault && !p.configMapName;
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(template.parameters.map((p) => [p.name, p.hasDefault ? p.default : ""])),
   );
@@ -19,7 +22,7 @@ export function RunForm({ namespace, template }: { namespace: string; template: 
       workflows.submitWorkflow({
         namespace,
         source: { case: "template", value: { name: template.name, clusterScope: template.clusterScope } },
-        parameters: values,
+        parameters: Object.fromEntries(Object.entries(values).filter(([name, v]) => v !== "" || !fromConfigMap(name))),
       }),
     onSuccess: (resp) => {
       const name = resp.summary?.name ?? "";
@@ -42,11 +45,11 @@ export function RunForm({ namespace, template }: { namespace: string; template: 
         <label key={p.name} className="field">
           <span>
             {p.name}
-            {!p.hasDefault && <span className="quiet"> (required)</span>}
+            {required(p) && <span className="quiet"> (required)</span>}
           </span>
           {p.enum.length > 0 ? (
-            <select value={values[p.name]} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} required={!p.hasDefault}>
-              {!p.hasDefault && <option value="">Choose a value</option>}
+            <select value={values[p.name]} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} required={required(p)}>
+              {!p.hasDefault && <option value="">{p.configMapName ? "From the ConfigMap" : "Choose a value"}</option>}
               {p.enum.map((v) => (
                 <option key={v} value={v}>
                   {v}
@@ -54,7 +57,17 @@ export function RunForm({ namespace, template }: { namespace: string; template: 
               ))}
             </select>
           ) : (
-            <input value={values[p.name]} onChange={(e) => setValues({ ...values, [p.name]: e.target.value })} required={!p.hasDefault} />
+            <input
+              value={values[p.name]}
+              onChange={(e) => setValues({ ...values, [p.name]: e.target.value })}
+              required={required(p)}
+              placeholder={p.configMapName ? `${p.configMapName}: ${p.configMapKey}` : undefined}
+            />
+          )}
+          {p.configMapName && (
+            <small className="quiet">
+              Empty uses key <code>{p.configMapKey}</code> of ConfigMap <code>{p.configMapName}</code>.
+            </small>
           )}
           {p.description && <small className="quiet">{p.description}</small>}
         </label>
