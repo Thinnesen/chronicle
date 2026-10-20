@@ -32,6 +32,13 @@ func TestLint(t *testing.T) {
 	if err != nil || !strings.Contains(out, "echo.yaml: WorkflowTemplate echo: warning: spec.templates[0].container: a placeholder in a shell command") {
 		t.Errorf("shell: %v\n%s", err, out)
 	}
+	trap := write("trap/yes.yaml", head+"metadata: {name: trap}\nspec: {entrypoint: c, arguments: {parameters: [{name: answer, value: no}]}, "+
+		"templates: [{name: c, container: {image: x}}]}\n")
+	// The value is a boolean for kubectl, so the template is also not valid.
+	out, _ = run(t, &stub{}, "lint", trap)
+	if !strings.Contains(out, `yes.yaml:4: warning: the value no is a boolean for kubectl (YAML 1.1); write "no"`) {
+		t.Errorf("trap:\n%s", out)
+	}
 	out, err = run(t, &stub{}, "lint", filepath.Join(dir, "ok"))
 	if err != nil || !strings.Contains(out, "etl.yaml: WorkflowTemplate etl is valid") || !strings.Contains(out, "1 resource is valid") {
 		t.Errorf("good: %v\n%s", err, out)

@@ -38,6 +38,7 @@ func (a *app) lintCommand() *cobra.Command {
 				if err != nil {
 					return err
 				}
+				yamlTraps(a.out, f, data)
 				n, problems := lintData(a.out, f, data)
 				total, bad = total+n, bad+problems
 			}
