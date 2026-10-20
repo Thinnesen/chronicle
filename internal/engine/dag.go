@@ -29,9 +29,10 @@ func (e *engine) runBoundary(t *v1alpha1.Template, n v1alpha1.NodeStatus, prefix
 	return e.save(n)
 }
 
-// resolveOutputs resolves the output parameters of a DAG or steps template.
+// resolveOutputs resolves the output parameters of a DAG or steps template, and the artifacts that it passes on from
+// its tasks or steps.
 func resolveOutputs(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.Outputs, error) {
-	if len(t.Outputs.Parameters) == 0 {
+	if len(t.Outputs.Parameters) == 0 && len(t.Outputs.Artifacts) == 0 {
 		return nil, nil
 	}
 	out := &v1alpha1.Outputs{}
@@ -41,6 +42,15 @@ func resolveOutputs(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.Outp
 			return nil, fmt.Errorf("output %q: %w", p.Name, err)
 		}
 		out.Parameters = append(out.Parameters, v1alpha1.Parameter{Name: p.Name, Value: &v})
+	}
+	for _, a := range t.Outputs.Artifacts {
+		key, err := expr.Substitute(a.From, resolve)
+		switch {
+		case err == nil && key != "":
+			out.Artifacts = append(out.Artifacts, v1alpha1.Artifact{Name: a.Name, Key: key})
+		case !a.Optional:
+			return nil, fmt.Errorf("output artifact %q: the task or step has no such artifact", a.Name)
+		}
 	}
 	return out, nil
 }

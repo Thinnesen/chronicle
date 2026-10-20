@@ -69,6 +69,7 @@ templates:
 Rules:
 
 - Only a `container` template with a `command`, or a `script` template, can save or download artifacts.
+- A `dag` or `steps` template can pass on an artifact of one of its tasks or steps: an output artifact with only `from`, for example `{name: report, from: "{{tasks.render.outputs.artifacts.report}}"}`. Its caller reads it as `{{tasks.<task>.outputs.artifacts.report}}`.
 - `from` must be exactly one placeholder: `{{tasks.<task>.outputs.artifacts.<name>}}`, `{{steps.<step>.outputs.artifacts.<name>}}` or `{{inputs.artifacts.<name>}}`.
 - Use a path that the container user (65532) can write, for example below `/tmp`.
 - Set `optional: true` on an output that a step does not always make, or on an input that a caller does not always give.

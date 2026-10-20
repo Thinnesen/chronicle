@@ -372,7 +372,7 @@ func TestSpecArtifacts(t *testing.T) {
 			name: "templates that cannot use files",
 			spec: "entrypoint: m\ntemplates:\n- {name: m, outputs: {artifacts: [{name: o, path: /o}]}, dag: {tasks: [{name: a, template: c}]}}" +
 				"\n- {name: c, inputs: {artifacts: [{name: i, path: /i, optional: true}]}, outputs: {artifacts: [{name: o}]}, container: {image: x}}",
-			want: []string{"only a container or script template can save an artifact", "needs a command to download", "needs a command to save"},
+			want: []string{"an output artifact of a dag or steps template needs only from", "needs a command to download", "needs a command to save"},
 			n:    3,
 		},
 		{name: "entrypoint needs an artifact", spec: "entrypoint: use\ntemplates:" + tmpl, want: []string{"a workflow cannot give artifacts"}},

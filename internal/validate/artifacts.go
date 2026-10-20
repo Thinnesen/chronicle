@@ -16,8 +16,9 @@ func isArtifact(name string) bool {
 }
 
 // checkArtifacts checks the artifacts that a template declares.
-// Only a container or script template with the executor can download or save files.
-func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path) {
+// Only a container or script template with the executor can download or save files. A dag or steps template can pass
+// on an artifact of one of its tasks or steps with from; sc has their outputs.
+func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path, sc scope) {
 	executor := t.Script != nil || t.Container != nil && len(t.Container.Command) > 0
 	leaf := t.Container != nil || t.Script != nil
 	for i, a := range t.Inputs.Artifacts {
@@ -34,6 +35,10 @@ func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path) {
 	}
 	for i, a := range t.Outputs.Artifacts {
 		ap := path.Child("outputs", "artifacts").Index(i)
+		if t.DAG != nil || t.Steps != nil {
+			c.checkPassedArtifact(a, ap, sc)
+			continue
+		}
 		switch {
 		case !leaf:
 			c.errs = append(c.errs, field.Forbidden(ap, "only a container or script template can save an artifact"))
@@ -44,6 +49,16 @@ func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path) {
 		}
 		c.checkArtifactPath(a, ap)
 	}
+}
+
+// checkPassedArtifact checks an output artifact of a dag or steps template: it names an artifact of a task or a step.
+func (c *checker) checkPassedArtifact(a v1alpha1.Artifact, path *field.Path, sc scope) {
+	if a.From == "" || a.Path != "" || a.Key != "" {
+		c.errs = append(c.errs, field.Invalid(path, a.Name,
+			"an output artifact of a dag or steps template needs only from, an artifact of one of its tasks or steps"))
+		return
+	}
+	c.checkFrom(a.From, path.Child("from"), sc, nil)
 }
 
 func (c *checker) checkArtifactPath(a v1alpha1.Artifact, path *field.Path) {

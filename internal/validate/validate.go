@@ -109,7 +109,7 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 	for _, a := range t.Inputs.Artifacts {
 		sc = sc.with("inputs.artifacts." + a.Name)
 	}
-	c.checkArtifacts(t, path)
+	c.checkArtifacts(t, path, sc.with(c.childOutputs(t)...))
 	if t.Parallelism != nil && t.DAG == nil && t.Steps == nil {
 		c.errs = append(c.errs, field.Invalid(path.Child("parallelism"), *t.Parallelism, "only a dag or steps template can limit its parallelism"))
 	}

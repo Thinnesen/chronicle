@@ -68,3 +68,32 @@ templates:
 		t.Errorf("command of b = %v", cmd)
 	}
 }
+
+// TestDAGOutputArtifact checks that a DAG passes on an artifact of one of its tasks, as in Argo.
+func TestDAGOutputArtifact(t *testing.T) {
+	s := newSim(t, `
+entrypoint: main
+templates:
+- name: main
+  dag:
+    tasks:
+    - {name: inner, template: inner}
+    - {name: use, template: consume, depends: inner, arguments: {artifacts: [{name: in, from: "{{tasks.inner.outputs.artifacts.out}}"}]}}
+- name: inner
+  outputs: {artifacts: [{name: out, from: "{{tasks.make.outputs.artifacts.data}}"}]}
+  dag: {tasks: [{name: make, template: producer}]}
+- name: producer
+  outputs: {artifacts: [{name: data, path: /tmp/d}]}
+  container: {image: x, command: [mk]}
+- name: consume
+  inputs: {artifacts: [{name: in, path: /tmp/in}]}
+  container: {image: x, command: [use]}
+`, nil)
+	s.outputs["wf.inner.make"] = &v1alpha1.Outputs{Artifacts: []v1alpha1.Artifact{{Name: "data", Key: "ns/uid/make/data.tgz"}}}
+	if st := s.run(); st.Phase != v1alpha1.WorkflowSucceeded {
+		t.Fatalf("phase %s: %s", st.Phase, st.Message)
+	}
+	if in := s.pods["wf.use"].Inputs; in == nil || len(in.Artifacts) != 1 || in.Artifacts[0].Key != "ns/uid/make/data.tgz" {
+		t.Errorf("inputs of use = %+v", in)
+	}
+}
