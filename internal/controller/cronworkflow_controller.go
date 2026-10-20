@@ -85,8 +85,9 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{RequeueAfter: max(plan.Next.Sub(now), time.Second)}, nil
 }
 
-// archivedOnly returns the runs of names that can be deleted: all of them without an archive, else only the runs that
-// the archive has. A run that is not archived yet is deleted by a later reconcile, after its status changes.
+// archivedOnly returns the runs of names that can be deleted. Without an archive, these are all of them. With an
+// archive, these are the runs that the archive has. A later reconcile deletes a run that is not archived yet, after its
+// status changes.
 func archivedOnly(runs []chroniclev1alpha1.Workflow, names []string, archive bool) []string {
 	if !archive {
 		return names

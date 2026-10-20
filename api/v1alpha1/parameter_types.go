@@ -33,8 +33,8 @@ type Parameter struct {
 	// +optional
 	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
 
-	// globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-	// in later steps and in the exit handler, and status.outputs of the run.
+	// globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+	// "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
 	// +kubebuilder:validation:MaxLength=128
 	// +optional
 	GlobalName string `json:"globalName,omitempty"`
@@ -155,8 +155,8 @@ type Artifact struct {
 	// +optional
 	Optional bool `json:"optional,omitempty"`
 
-	// globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-	// in the from of a later argument, and status.outputs of the run.
+	// globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+	// "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
 	// +kubebuilder:validation:MaxLength=128
 	// +optional
 	GlobalName string `json:"globalName,omitempty"`

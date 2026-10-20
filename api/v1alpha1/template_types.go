@@ -31,13 +31,14 @@ type Template struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	// memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace,
-	// instead of running it again. It needs the archive database.
+	// memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace. Then
+	// the node does not run again. It needs the archive database.
 	// +optional
 	Memoize *Memoize `json:"memoize,omitempty"`
 
-	// synchronization is a lock that each node of this container, script, resource, http or task template holds while it
-	// runs. Nodes of all runs in the namespace share a lock with the same name, also with the lock of a run.
+	// synchronization is a lock that each node of this template holds while it runs. Only container, script, resource,
+	// http and task templates can have it. Nodes of all runs in the namespace share a lock with the same name. A run lock
+	// with that name is the same lock.
 	// +optional
 	Synchronization *Synchronization `json:"synchronization,omitempty"`
 
@@ -63,8 +64,8 @@ type Template struct {
 	// +optional
 	Suspend *SuspendTemplate `json:"suspend,omitempty"`
 
-	// resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the
-	// service account of the workflow, so it has only the permissions of that service account.
+	// resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the service account
+	// of the workflow. So it has only the permissions of that service account.
 	// +optional
 	Resource *ResourceTemplate `json:"resource,omitempty"`
 
@@ -364,8 +365,8 @@ type Call struct {
 	// +optional
 	WithSequence *Sequence `json:"withSequence,omitempty"`
 
-	// continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
-	// fail the DAG or the steps.
+	// continueOn lets the run go on after this task or step fails. The tasks after it run. Its failure does not fail the
+	// DAG or the steps.
 	// +optional
 	ContinueOn *ContinueOn `json:"continueOn,omitempty"`
 

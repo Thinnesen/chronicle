@@ -239,8 +239,8 @@ func cliSpecs() {
 	})
 }
 
-// stopWorker stops a task worker with SIGTERM. A worker that does not stop within a minute prints its stack (the
-// Python worker on SIGUSR1) and is killed, so that it cannot hang the suite.
+// stopWorker stops a task worker with SIGTERM. A worker that does not stop within a minute prints its stack (the Python
+// worker on SIGUSR1). Then the test kills it, so it cannot hang the suite.
 func stopWorker(w *exec.Cmd) {
 	_ = syscall.Kill(-w.Process.Pid, syscall.SIGTERM)
 	done := make(chan struct{})

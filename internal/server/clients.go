@@ -71,8 +71,8 @@ func (f *clientFactory) configFor(ctx context.Context) (*rest.Config, error) {
 	if id == nil || id.User == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("log in first"))
 	}
-	// A second check after the claim mapping: the server never impersonates a Kubernetes system name,
-	// except a service account that a TokenReview confirmed.
+	// A second check after the claim mapping. The server never impersonates a Kubernetes system name. The exception is a
+	// service account that a TokenReview confirmed.
 	if !id.Impersonable() {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("system names cannot be used"))
 	}

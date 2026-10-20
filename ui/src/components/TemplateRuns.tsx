@@ -20,8 +20,8 @@ export function TemplateRuns({ namespace, runs, now }: { namespace: string; runs
 
 const tail = 10;
 
-// RunBars lists the last runs of a template or a schedule with a bar for the duration of each, so that a slow or
-// failed run stands out against the others.
+// RunBars lists the last runs of a template or a schedule, with a bar for the duration of each. So a slow or failed
+// run stands out against the others.
 export function RunBars({ namespace, runs, now }: { namespace: string; runs: WorkflowSummary[]; now: number }) {
   const last = runs.slice(0, shown).map((w) => {
     const start = toDate(w.startedAt);

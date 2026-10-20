@@ -38,7 +38,8 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 	return engine.PodResult{Phase: v1alpha1.NodePending, Message: pendingMessage(pod, executorInit, main)}
 }
 
-// pendingMessage tells why a Pod does not start: no node can take it, or a container waits, for example for its image.
+// pendingMessage tells why a Pod does not start. Either no node can take it, or a container waits, for example for its
+// image.
 func pendingMessage(pod *corev1.Pod, executorInit, main corev1.ContainerStatus) string {
 	for _, c := range pod.Status.Conditions {
 		if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && c.Reason != "" {

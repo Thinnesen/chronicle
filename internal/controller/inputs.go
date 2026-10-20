@@ -14,9 +14,9 @@ const (
 	inputsDir    = "/var/run/chronicle-inputs"
 )
 
-// mountInputs lets the init container download the input artifacts into a volume, and mounts each one with subPath
-// at its path in the main container. So a step that runs without root can get an input at any path, as in Argo,
-// and a file and a directory both work. An artifact name has no slash, so a subPath stays in the volume.
+// mountInputs lets the init container download the input artifacts into a volume. It mounts each input with subPath at
+// its path in the main container. So a step without root can get an input at any path, as in Argo. A file and a
+// directory both work. An artifact name has no slash, so a subPath stays in the volume.
 func mountInputs(files *executor.ArtifactSpec, init, main *corev1.Container, volumes []corev1.Volume) []corev1.Volume {
 	if len(files.Inputs) == 0 {
 		return volumes

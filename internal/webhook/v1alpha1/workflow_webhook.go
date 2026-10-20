@@ -48,8 +48,8 @@ func (v *WorkflowValidator) ValidateUpdate(ctx context.Context, oldObj, obj *chr
 	return nil, validateWorkflow(obj)
 }
 
-// validateApprovers refuses an approval with a user that is not the user of the request, as Kubernetes does for the
-// username of a CertificateSigningRequest. An approval that the old object already has, with the same user, stays.
+// validateApprovers refuses an approval with a user that is not the user of the request. Kubernetes does the same for
+// the username of a CertificateSigningRequest. An approval that the old object already has, with the same user, stays.
 func validateApprovers(ctx context.Context, oldObj, obj *chroniclev1alpha1.Workflow) error {
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {

@@ -57,8 +57,8 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 	if m.Follow {
 		return toConnect(s.follow(ctx, m, wf, opts, send))
 	}
-	// Without follow, the nodes come one after the other in the order of their start, so the output reads like the run.
-	// A step that has not started has no log yet.
+	// Without follow, the nodes come one after the other in the order of their start. So the output reads like the run. A
+	// step that has not started has no log yet.
 	var errs []error
 	for _, n := range nodes {
 		if !started(n) {
@@ -79,8 +79,8 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 	return toConnect(errors.Join(errs...))
 }
 
-// neverStarted tells if a log failed because the main container of the Pod never started, for example because its
-// init container failed. Such a step has no log.
+// neverStarted tells if a log failed because the main container of the Pod never started. An example is a failed init
+// container. Such a step has no log.
 func neverStarted(err error) bool {
 	return apierrors.IsBadRequest(err) && strings.Contains(err.Error(), "is waiting to start")
 }
@@ -202,7 +202,7 @@ func (s *logService) streamArchived(ctx context.Context, namespace string, n v1a
 	return nil
 }
 
-// podNodes returns the Pod nodes of a run, or the one node with the ID or name, in the order of their start.
+// podNodes returns the Pod nodes of a run in the order of their start. With an ID or a name, it returns only that node.
 func podNodes(wf *v1alpha1.Workflow, node string) []v1alpha1.NodeStatus {
 	var out []v1alpha1.NodeStatus
 	for _, n := range wf.Status.Nodes {

@@ -14,8 +14,8 @@ import (
 	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
-// defaultMaxObjectBytes is the largest Workflow that the controller writes. etcd refuses objects above about 1.5 MiB,
-// and one step of the engine can add many nodes, so the limit keeps room.
+// defaultMaxObjectBytes is the largest Workflow that the controller writes. etcd refuses objects above about 1.5 MiB.
+// One step of the engine can add many nodes, so the limit keeps room.
 const defaultMaxObjectBytes = 1 << 20
 
 // tooLarge returns the size of the Workflow with the new status when it is above the limit, or 0.
@@ -33,8 +33,8 @@ func (r *WorkflowReconciler) tooLarge(wf *chroniclev1alpha1.Workflow, status chr
 	return len(data)
 }
 
-// failTooLarge ends a run whose status would be too large. It keeps the last saved status, which fits, ends its
-// open nodes with Error and deletes the Pods that still run. The engine does not create the new Pods.
+// failTooLarge ends a run whose status would be too large. It keeps the last saved status, which fits. It ends the open
+// nodes with Error and deletes the Pods that still run. The engine does not create the new Pods.
 func (r *WorkflowReconciler) failTooLarge(ctx context.Context, wf *chroniclev1alpha1.Workflow, size int) (ctrl.Result, error) {
 	var pods corev1.PodList
 	if err := r.List(ctx, &pods, client.InNamespace(wf.Namespace), client.MatchingLabels{LabelWorkflowUID: string(wf.UID)}); err != nil {

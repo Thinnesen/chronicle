@@ -6,8 +6,8 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// TestArtifactSources checks that raw and http artifacts reach the Pod: from the workflow arguments, from a step
-// argument, passed on with from, and from the template itself with a URL placeholder. A retry gives the same artifacts again.
+// TestArtifactSources checks that raw and http artifacts reach the Pod. They come from the workflow arguments, from a
+// step argument, through from, and from the template with a URL placeholder. A retry gives the same artifacts again.
 func TestArtifactSources(t *testing.T) {
 	s := newSim(t, `
 entrypoint: main
@@ -52,8 +52,8 @@ templates:
 	}
 }
 
-// TestHTTPTemplate checks that an http template runs as a Pod with its placeholders replaced, and that its result
-// reaches a later step.
+// TestHTTPTemplate checks that an http template runs as a Pod with its placeholders replaced. It also checks that its
+// result reaches a later step.
 func TestHTTPTemplate(t *testing.T) {
 	s := newSim(t, `
 entrypoint: main

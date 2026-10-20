@@ -97,8 +97,8 @@ function MoreNode({ data }: NodeProps<Node<NodeData>>) {
 
 const nodeTypes = { station: StationNode, junction: JunctionNode, more: MoreNode };
 
-// Frame fits the graph into its box, again when the box changes, for example when the step drawer opens. A graph
-// that does not fit at the smallest zoom shows the selected step, or else the start of the run.
+// Frame fits the graph into its box. It does this again when the box changes, for example when the step drawer opens.
+// A graph that does not fit at the smallest zoom shows the selected step, or else the start of the run.
 function Frame({ box, options, selected, vertical }: { box: React.RefObject<HTMLDivElement | null>; options: FitViewOptions; selected?: string; vertical: boolean }) {
   const flow = useReactFlow();
   useEffect(() => {
@@ -128,7 +128,7 @@ function Frame({ box, options, selected, vertical }: { box: React.RefObject<HTML
   return null;
 }
 
-// Fades shows a fade at each side of the box where the graph goes on, so that a long run shows that it can pan.
+// Fades shows a fade at each side of the box where the graph goes on. So a long run shows that the user can pan it.
 function Fades({ box, vertical }: { box: React.RefObject<HTMLDivElement | null>; vertical: boolean }) {
   const { x, y, zoom } = useViewport();
   const flow = useReactFlow();
@@ -169,7 +169,7 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
   const box = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   // Below 80 % the names are too small to read, so a long graph needs a pan along its axis. On a phone the graph runs
-  // from top to bottom, and the width of a fan-out must fit, because the view pans only along the axis.
+  // from top to bottom. There the width of a fan-out must fit, because the view pans only along the axis.
   const fit = useMemo(() => ({ maxZoom: 1, minZoom: narrow ? 0.5 : 0.8, padding: 0.08 }), [narrow]);
   const { nodes, edges, height } = useMemo(() => {
     // The root node is the run itself, which the header shows. Without it the graph is one column narrower.

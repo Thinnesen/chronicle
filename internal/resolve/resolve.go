@@ -35,8 +35,8 @@ func Needed(spec *v1alpha1.WorkflowSpec) bool {
 	return false
 }
 
-// Workflow returns the resolved spec: the referenced WorkflowTemplate with the values of the Workflow on top,
-// and a copy of each template that a templateRef names, with the name "<template set>--<template>".
+// Workflow returns the resolved spec: the referenced WorkflowTemplate with the values of the Workflow on top. It adds a
+// copy of each template that a templateRef names, with the name "<template set>--<template>".
 func Workflow(ctx context.Context, g Getter, spec *v1alpha1.WorkflowSpec) (*v1alpha1.WorkflowTemplateSpec, error) {
 	out := spec.WorkflowTemplateSpec.DeepCopy()
 	if ref := spec.WorkflowTemplateRef; ref != nil {

@@ -1,5 +1,5 @@
-// Package engine is the pure workflow engine. It has no I/O and no clock.
-// It takes the spec, the status and the observed Pods, and it returns the new status and the actions to apply.
+// Package engine is the pure workflow engine. It has no I/O and no clock. It takes the spec, the status and the
+// observed Pods. It returns the new status and the actions to apply.
 package engine
 
 import (
@@ -35,11 +35,11 @@ type Input struct {
 	// Tasks are the observed tasks in the task queue, by task ID. TasksEnabled is false without a task queue.
 	Tasks        map[string]TaskResult
 	TasksEnabled bool
-	// Restarts is the number of retries of the workflow. New Pods get it in their name, so that a Pod
-	// of an earlier try can never stand for a new node.
+	// Restarts is the number of retries of the workflow. New Pods get it in their name. So a Pod of an earlier try can
+	// never stand for a new node.
 	Restarts int32
-	// CacheEnabled is false without the archive database. Cache has the saved results of the keys that the
-	// controller looked up for this step: a nil entry means that the key has no result.
+	// CacheEnabled is false without the archive database. Cache has the saved results of the keys that the controller
+	// looked up for this step. A nil entry means that the key has no result.
 	CacheEnabled bool
 	Cache        map[string]*CacheEntry
 	// HeldLocks are the nodes that hold the lock of their template: node ID to lock name.
@@ -325,8 +325,8 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 	return e.save(n), err == nil
 }
 
-// runID returns the name of the Pod or the task of a node. After a retry of the workflow it has a suffix,
-// so that a Pod or a task of an earlier try can never stand for a new node.
+// runID returns the name of the Pod or the task of a node. After a retry of the workflow, the name has a suffix. So a
+// Pod or a task of an earlier try can never stand for a new node.
 func (e *engine) runID(nodeID string) string {
 	if e.in.Restarts > 0 {
 		return fmt.Sprintf("%s-r%d", nodeID, e.in.Restarts)

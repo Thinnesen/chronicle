@@ -6,8 +6,8 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// TestGlobalOutputs checks that an output parameter with a globalName becomes a workflow output, which a later step
-// and the exit handler can read, as in Argo.
+// TestGlobalOutputs checks that an output parameter with a globalName becomes a workflow output, as in Argo. A later
+// step and the exit handler can read it.
 func TestGlobalOutputs(t *testing.T) {
 	s := newSim(t, `
 entrypoint: main

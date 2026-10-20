@@ -32,8 +32,8 @@ export interface LogState {
 // useLogStream streams the log of one node. It follows new lines while follow is true.
 export function useLogStream(namespace: string, workflow: string, node: string | undefined, follow: boolean): LogState {
   const [state, setState] = useState<LogState>({ lines: [], dropped: 0, done: false });
-  // attempt counts the connections. A followed stream that breaks, for example during a server rollout, connects
-  // again after a short wait and reads the log from the start.
+  // attempt counts the connections. A followed stream can break, for example during a server rollout. Then it
+  // connects again after a short wait and reads the log from the start.
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!node) return;
@@ -79,7 +79,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
   return state;
 }
 
-// healable tells if a stream error can go away by itself, such as a lost connection or a server that restarts.
+// healable tells if a stream error can go away by itself. Examples are a lost connection and a server that restarts.
 function healable(e: unknown): boolean {
   const code = ConnectError.from(e).code;
   return code === Code.Unavailable || code === Code.Unknown || code === Code.Internal || code === Code.DeadlineExceeded;

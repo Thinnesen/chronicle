@@ -176,8 +176,8 @@ func (b *boundary) allChildren(n v1alpha1.NodeStatus, p v1alpha1.NodePhase) bool
 	return len(n.Children) > 0
 }
 
-// scope returns a resolver for the placeholders of a task: globals, the boundary inputs,
-// the outputs of finished tasks and the item.
+// scope returns a resolver for the placeholders of a task. It knows the globals, the boundary inputs, the outputs of
+// finished tasks and the item.
 func (b *boundary) scope(item *apiextensionsv1.JSON) expr.Resolver {
 	base := b.e.inputScope(b.inputs)
 	return func(name string) (string, bool) {

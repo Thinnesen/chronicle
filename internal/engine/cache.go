@@ -35,8 +35,8 @@ type SaveCache struct {
 func (LookupCache) isAction() {}
 func (SaveCache) isAction()   {}
 
-// fromCache decides about a pending node of a template with memoize. It returns true when the node does not start
-// now: it reused a saved result, it waits for the lookup of its key, or it failed.
+// fromCache decides about a pending node of a template with memoize. It returns true when the node does not start now.
+// Then the node reused a saved result, waits for the lookup of its key, or failed.
 func (e *engine) fromCache(c call, t *v1alpha1.Template, n *v1alpha1.NodeStatus) bool {
 	m := t.Memoize
 	if m == nil || n.Cache != nil {

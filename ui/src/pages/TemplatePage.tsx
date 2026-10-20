@@ -29,7 +29,7 @@ export function TemplatePage() {
   });
   const recent = useRecentRuns(namespace);
   const runs = recent.data?.workflows.filter((w) => w.template === name) ?? [];
-  // The clock ticks only while a run is active, so that the page does not render again each second for nothing.
+  // The clock ticks only while a run is active. So the page does not render again each second for nothing.
   const now = useNow(runs.some((w) => !["Succeeded", "Failed", "Error"].includes(w.phase)));
   if (error) {
     return (

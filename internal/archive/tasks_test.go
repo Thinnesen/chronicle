@@ -16,8 +16,8 @@ func newTask(i int) NewTask {
 	}
 }
 
-// TestTaskQueue covers the delivery rules: one worker per task, a lease for heartbeats and results,
-// and no result after a cancel.
+// TestTaskQueue covers the delivery rules. Each task has one worker. A lease covers heartbeats and results. A cancelled
+// task takes no result.
 func TestTaskQueue(t *testing.T) {
 	s := openTest(t)
 	ctx := context.Background()

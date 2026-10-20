@@ -63,8 +63,8 @@ templates:
 	}
 }
 
-// TestParallelismCacheLag checks that a Pod that the engine asked for, but that the cache does not show yet, still
-// holds its slot.
+// TestParallelismCacheLag checks that a Pod that the engine asked for still holds its slot when the cache does not show
+// it yet.
 func TestParallelismCacheLag(t *testing.T) {
 	s := newSim(t, `
 entrypoint: main

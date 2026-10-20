@@ -75,7 +75,7 @@ var kinds = func() *runtime.Scheme {
 }()
 
 // toStruct converts an object to a protobuf Struct through JSON. It sets the kind and the API version, which a typed
-// read leaves empty, so that the object can go back to kubectl apply.
+// read leaves empty. Then the object can go back to kubectl apply.
 func toStruct(obj client.Object) (*structpb.Struct, error) {
 	if gvk, err := apiutil.GVKForObject(obj, kinds); err == nil {
 		obj.GetObjectKind().SetGroupVersionKind(gvk)

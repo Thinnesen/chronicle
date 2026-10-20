@@ -55,7 +55,7 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 		items = append(items, summary(&live[i]))
 	}
 	limit := pageSize(m.Limit)
-	// Without the archive, the live runs still come, with a mark, so that the list does not fail as a whole.
+	// Without the archive, the live runs still come, with a mark. So the list does not fail as a whole.
 	archived, archiveErr := s.archivedRuns(ctx, m, live, after, limit)
 	if archiveErr != nil {
 		log.FromContext(ctx).Error(archiveErr, "The archive did not answer", "namespace", m.Namespace)

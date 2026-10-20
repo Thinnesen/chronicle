@@ -53,8 +53,8 @@ func next[T Action](in *Input, step int) ([]T, Result) {
 	return out, r
 }
 
-// TestTaskRetryAfterHeartbeatTimeout covers at-least-once delivery: a silent worker fails the attempt,
-// the retry gets a new task with the same idempotency key, and its result flows to the next task.
+// TestTaskRetryAfterHeartbeatTimeout covers at-least-once delivery. A silent worker fails the attempt. The retry gets a
+// new task with the same idempotency key. Its result flows to the next task.
 func TestTaskRetryAfterHeartbeatTimeout(t *testing.T) {
 	in := taskInputFor(t, taskSpec)
 	first, r := next[EnqueueTask](&in, 0)

@@ -106,8 +106,8 @@ func (r *restarter) ancestors(id string) {
 	}
 }
 
-// downstream resets the nodes after a node: dependent DAG tasks and later step groups, in its boundary
-// and, because the boundary runs again, in each boundary above it.
+// downstream resets the nodes after a node: the dependent DAG tasks and the later step groups. It does this in the
+// boundary of the node and in each boundary above it, because each of these boundaries runs again.
 func (r *restarter) downstream(id string) {
 	for {
 		p, ok := r.parent[id]

@@ -30,8 +30,8 @@ type Options struct {
 	Tasks TaskStore
 	// Artifacts opens the artifact repositories. The default reads the ConfigMap and the Secret of each namespace.
 	Artifacts ArtifactStores
-	// Drain closes when the server shuts down. Then the long polls of the task workers end at once, so that the
-	// workers poll another replica instead of holding up the shutdown.
+	// Drain closes when the server shuts down. Then the long polls of the task workers end at once. So the workers poll
+	// another replica and do not hold up the shutdown.
 	Drain <-chan struct{}
 }
 

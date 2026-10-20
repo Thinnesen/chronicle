@@ -14,8 +14,8 @@ import (
 // Kinds are the kinds of the chronicle resources that Resource checks.
 var Kinds = []string{"Workflow", "WorkflowTemplate", "ClusterWorkflowTemplate", "CronWorkflow"}
 
-// Resource checks one chronicle resource in JSON offline: it decodes it strictly, so that an unknown field is an
-// error, and applies the rules of the admission webhook. It does not check the references to templates.
+// Resource checks one chronicle resource in JSON offline. It decodes it strictly, so an unknown field is an error. It
+// applies the rules of the admission webhook. It does not check the references to templates.
 func Resource(data []byte) error {
 	var head struct{ Kind string }
 	if err := json.Unmarshal(data, &head); err != nil {

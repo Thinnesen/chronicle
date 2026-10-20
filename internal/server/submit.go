@@ -90,8 +90,9 @@ func cmpOr(a, b string) string {
 	return b
 }
 
-// checkTemplate refuses a template that does not exist and a parameter value that the template does not allow, before
-// the run starts. When the caller cannot read the template, the controller checks both when it resolves the template.
+// checkTemplate refuses a template that does not exist, before the run starts. It also refuses a parameter value that
+// the template does not allow. When the caller cannot read the template, the controller checks both when it resolves
+// the template.
 func checkTemplate(ctx context.Context, c client.Client, namespace string, t *chroniclev1.TemplateSource, params map[string]string) error {
 	_, spec, err := readTemplate(ctx, c, namespace, t.Name, t.ClusterScope)
 	if apierrors.IsNotFound(err) {

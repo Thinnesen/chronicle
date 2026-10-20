@@ -1,6 +1,6 @@
 import { errorText } from "../lib/errors";
 
-// RefreshError says that the page could not load new data and still shows the last data, for example while the
+// RefreshError says that the page could not load new data. The page still shows the last data, for example while the
 // server restarts. A page without data shows its own error instead.
 export function RefreshError({ error }: { error: Error | null }) {
   if (!error) return null;

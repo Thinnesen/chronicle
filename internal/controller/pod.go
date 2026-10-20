@@ -75,8 +75,8 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
 			ServiceAccountName: spec.ServiceAccountName,
-			// A Pod gets an API token only for a resource template, or when the workflow names a service account
-			// and the template is not an http template.
+			// A Pod gets an API token only for a resource template. It also gets one when the workflow names a service account,
+			// except for an http template.
 			AutomountServiceAccountToken: new(automount),
 			EnableServiceLinks:           new(false),
 			SecurityContext: &corev1.PodSecurityContext{
@@ -192,7 +192,7 @@ func initContainer(image string) corev1.Container {
 	}
 }
 
-// readOnly adds a read-only root file system. Only the containers of the chronicle image get it: the image of a user
+// readOnly adds a read-only root file system. Only the containers of the chronicle image get it. The image of a user
 // step often writes to its root file system (see docs/DECISIONS.md).
 func readOnly(sc *corev1.SecurityContext) *corev1.SecurityContext {
 	sc.ReadOnlyRootFilesystem = new(true)

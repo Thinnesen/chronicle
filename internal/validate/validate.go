@@ -1,5 +1,5 @@
-// Package validate checks a workflow spec for errors that the CRD schema cannot find:
-// unknown templates, unknown parameters, bad placeholders and DAG cycles.
+// Package validate checks a workflow spec for errors that the CRD schema cannot find. Examples are unknown templates,
+// unknown parameters, bad placeholders and DAG cycles.
 package validate
 
 import (

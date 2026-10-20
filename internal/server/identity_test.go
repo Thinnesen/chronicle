@@ -115,7 +115,7 @@ type failingAuth struct{ err error }
 
 func (f failingAuth) Authenticate(*http.Request) (*auth.Identity, error) { return nil, f.err }
 
-// A session store that does not answer gives "unavailable", so that the UI tries again and does not log the user out.
+// A session store that does not answer gives "unavailable". So the UI tries again and does not log out the user.
 func TestAuthenticateErrors(t *testing.T) {
 	for err, want := range map[error]connect.Code{
 		auth.ErrUnavailable:             connect.CodeUnavailable,

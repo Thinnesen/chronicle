@@ -69,8 +69,8 @@ func asJSON(v any, empty string) string {
 	return string(data)
 }
 
-// failures returns the failed steps of the run as JSON, in the form of Argo: the display name, the message, the
-// template, the phase, the Pod and the end of each step. An exit handler can send them in a notification.
+// failures returns the failed steps of the run as JSON, in the form of Argo. Each step has the display name, the
+// message, the template, the phase, the Pod and the end. An exit handler can send them in a notification.
 func (e *engine) failures() string {
 	type failure struct {
 		DisplayName  string `json:"displayName"`
@@ -102,7 +102,7 @@ func isWork(t v1alpha1.NodeType) bool {
 	return t == v1alpha1.NodePod || t == v1alpha1.NodeSuspend || t == v1alpha1.NodeTask
 }
 
-// nodeScope returns a resolver for the template of a node that runs as a Pod: the input scope, and the Pod name,
+// nodeScope returns a resolver for the template of a node that runs as a Pod. It knows the input scope, the Pod name,
 // the node name and the number of the retry.
 func (e *engine) nodeScope(c call, n v1alpha1.NodeStatus) expr.Resolver {
 	inputs := e.inputScope(n.Inputs)
@@ -229,9 +229,9 @@ func resolveArgs(args v1alpha1.Arguments, resolve expr.Resolver) (map[string]str
 	return out, nil
 }
 
-// nodeOutput returns an output of a node: "outputs.result", "outputs.parameters.x", "exitCode", or a field of
-// the node: "status" (its phase), "id", "startedAt" or "finishedAt".
-// For a task group, it returns a JSON list with the output of each item.
+// nodeOutput returns an output of a node: "outputs.result", "outputs.parameters.x" or "exitCode". It also returns a
+// field of the node: "status" (its phase), "id", "startedAt" or "finishedAt". For a task group, it returns a JSON list
+// with the output of each item.
 func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
 	switch key {
 	case "status":

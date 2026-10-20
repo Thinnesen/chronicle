@@ -66,8 +66,8 @@ spec:
                           type: string
                         globalName:
                           description: |-
-                            globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                            in the from of a later argument, and status.outputs of the run.
+                            globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                            "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                           maxLength: 128
                           type: string
                         http:
@@ -156,8 +156,8 @@ spec:
                           type: array
                         globalName:
                           description: |-
-                            globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                            in later steps and in the exit handler, and status.outputs of the run.
+                            globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                            "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                           maxLength: 128
                           type: string
                         name:
@@ -256,8 +256,8 @@ spec:
                 type: string
               synchronization:
                 description: |-
-                  synchronization lets only a limited number of runs with the same lock run at the same time in a namespace,
-                  for example one deployment at a time. A run that waits for the lock is Pending.
+                  synchronization limits the number of runs with the same lock that run at the same time in a namespace. An example is
+                  one deployment at a time. A run that waits for the lock is Pending.
                 properties:
                   mutex:
                     description: Mutex lets one run with the lock name run at a time
@@ -638,8 +638,8 @@ spec:
                                           type: string
                                         globalName:
                                           description: |-
-                                            globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                                            in the from of a later argument, and status.outputs of the run.
+                                            globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                                            "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                                           maxLength: 128
                                           type: string
                                         http:
@@ -732,8 +732,8 @@ spec:
                                           type: array
                                         globalName:
                                           description: |-
-                                            globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                                            in later steps and in the exit handler, and status.outputs of the run.
+                                            globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                                            "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                                           maxLength: 128
                                           type: string
                                         name:
@@ -796,8 +796,8 @@ spec:
                                 type: object
                               continueOn:
                                 description: |-
-                                  continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
-                                  fail the DAG or the steps.
+                                  continueOn lets the run go on after this task or step fails. The tasks after it run. Its failure does not fail the
+                                  DAG or the steps.
                                 properties:
                                   error:
                                     description: 'error: the step could not run (phase
@@ -853,8 +853,8 @@ spec:
                                               type: string
                                             globalName:
                                               description: |-
-                                                globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                                                in the from of a later argument, and status.outputs of the run.
+                                                globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                                                "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                                               maxLength: 128
                                               type: string
                                             http:
@@ -951,8 +951,8 @@ spec:
                                               type: array
                                             globalName:
                                               description: |-
-                                                globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                                                in later steps and in the exit handler, and status.outputs of the run.
+                                                globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                                                "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                                               maxLength: 128
                                               type: string
                                             name:
@@ -1224,8 +1224,8 @@ spec:
                                 type: string
                               globalName:
                                 description: |-
-                                  globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                                  in the from of a later argument, and status.outputs of the run.
+                                  globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                                  "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                                 maxLength: 128
                                 type: string
                               http:
@@ -1315,8 +1315,8 @@ spec:
                                 type: array
                               globalName:
                                 description: |-
-                                  globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                                  in later steps and in the exit handler, and status.outputs of the run.
+                                  globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                                  "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                                 maxLength: 128
                                 type: string
                               name:
@@ -1375,8 +1375,8 @@ spec:
                       type: object
                     memoize:
                       description: |-
-                        memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace,
-                        instead of running it again. It needs the archive database.
+                        memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace. Then
+                        the node does not run again. It needs the archive database.
                       properties:
                         key:
                           description: |-
@@ -1413,8 +1413,8 @@ spec:
                                 type: string
                               globalName:
                                 description: |-
-                                  globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                                  in the from of a later argument, and status.outputs of the run.
+                                  globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                                  "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                                 maxLength: 128
                                 type: string
                               http:
@@ -1509,8 +1509,8 @@ spec:
                                 type: array
                               globalName:
                                 description: |-
-                                  globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                                  in later steps and in the exit handler, and status.outputs of the run.
+                                  globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                                  "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                                 maxLength: 128
                                 type: string
                               name:
@@ -1579,8 +1579,8 @@ spec:
                       type: integer
                     resource:
                       description: |-
-                        resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the
-                        service account of the workflow, so it has only the permissions of that service account.
+                        resource creates, applies, patches, deletes or reads a Kubernetes object. It runs in a Pod with the service account
+                        of the workflow. So it has only the permissions of that service account.
                       properties:
                         action:
                           description: action is the operation.
@@ -1999,8 +1999,8 @@ spec:
                                         type: string
                                       globalName:
                                         description: |-
-                                          globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                                          in the from of a later argument, and status.outputs of the run.
+                                          globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                                          "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                                         maxLength: 128
                                         type: string
                                       http:
@@ -2093,8 +2093,8 @@ spec:
                                         type: array
                                       globalName:
                                         description: |-
-                                          globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                                          in later steps and in the exit handler, and status.outputs of the run.
+                                          globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                                          "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                                         maxLength: 128
                                         type: string
                                       name:
@@ -2156,8 +2156,8 @@ spec:
                               type: object
                             continueOn:
                               description: |-
-                                continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
-                                fail the DAG or the steps.
+                                continueOn lets the run go on after this task or step fails. The tasks after it run. Its failure does not fail the
+                                DAG or the steps.
                               properties:
                                 error:
                                   description: 'error: the step could not run (phase
@@ -2199,8 +2199,8 @@ spec:
                                             type: string
                                           globalName:
                                             description: |-
-                                              globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
-                                              in the from of a later argument, and status.outputs of the run.
+                                              globalName makes an output artifact a workflow output with this name. A later argument reads it in from as
+                                              "{{workflow.outputs.artifacts.<name>}}". The run shows it in status.outputs.
                                             maxLength: 128
                                             type: string
                                           http:
@@ -2296,8 +2296,8 @@ spec:
                                             type: array
                                           globalName:
                                             description: |-
-                                              globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
-                                              in later steps and in the exit handler, and status.outputs of the run.
+                                              globalName makes an output parameter a workflow output with this name. Later steps and the exit handler read it as
+                                              "{{workflow.outputs.parameters.<name>}}". The run shows it in status.outputs.
                                             maxLength: 128
                                             type: string
                                           name:
@@ -2475,8 +2475,9 @@ spec:
                       type: object
                     synchronization:
                       description: |-
-                        synchronization is a lock that each node of this container, script, resource, http or task template holds while it
-                        runs. Nodes of all runs in the namespace share a lock with the same name, also with the lock of a run.
+                        synchronization is a lock that each node of this template holds while it runs. Only container, script, resource,
+                        http and task templates can have it. Nodes of all runs in the namespace share a lock with the same name. A run lock
+                        with that name is the same lock.
                       properties:
                         mutex:
                           description: Mutex lets one run with the lock name run at

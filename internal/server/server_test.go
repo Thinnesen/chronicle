@@ -355,7 +355,7 @@ func TestCursor(t *testing.T) {
 	}
 }
 
-// checkKind checks that an object of the API has its kind and API version, so that it can go back to kubectl apply.
+// checkKind checks that an object of the API has its kind and API version. Then it can go back to kubectl apply.
 func checkKind(t *testing.T, obj *structpb.Struct, kind string) {
 	t.Helper()
 	if f := obj.Fields; f["kind"].GetStringValue() != kind || f["apiVersion"].GetStringValue() != "chronicle.thinnesen.com/v1alpha1" {

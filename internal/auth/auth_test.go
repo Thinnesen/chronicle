@@ -263,7 +263,7 @@ func (f flakyStore) Get(id string) (*Session, error) {
 	return f.Store.Get(id)
 }
 
-// A store that does not answer is not the end of the session: the user keeps the session and tries again later.
+// A store that does not answer does not end the session. The user keeps the session and tries again later.
 func TestSessionStoreOutage(t *testing.T) {
 	down := false
 	e := newEnvWithStore(t, true, flakyStore{NewMemoryStore(time.Hour, time.Hour), &down})

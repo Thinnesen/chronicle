@@ -264,9 +264,9 @@ func (b *boundary) leaves() []*task {
 	return out
 }
 
-// branchPhase is the outcome that a task passes down its branch: its own phase when it ran,
-// or the worst outcome of its dependencies when it was skipped or omitted.
-// A dependency failure that the task tests for, for example with "!a.Failed", does not pass down.
+// branchPhase is the outcome that a task passes down its branch. A task that ran passes its own phase. A task that was
+// skipped or omitted passes the worst outcome of its dependencies. A dependency failure that the task tests for, for
+// example with "!a.Failed", does not pass down.
 func (b *boundary) branchPhase(name string, memo map[string]v1alpha1.NodePhase) v1alpha1.NodePhase {
 	if p, ok := memo[name]; ok {
 		return p

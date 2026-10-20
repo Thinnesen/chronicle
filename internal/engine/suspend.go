@@ -69,8 +69,8 @@ func suspendOutputs(t *v1alpha1.Template, given []v1alpha1.Parameter) *v1alpha1.
 // ErrNotWaiting means that an approval names a node that is not a suspend node that waits.
 var ErrNotWaiting = errors.New("the run has no suspend node with this name or ID that waits for an approval")
 
-// CheckApproval returns ErrNotWaiting when the approved node does not wait, and an error when the approval gives a
-// value that the template of the node does not allow. The API checks it before it saves the approval.
+// CheckApproval returns ErrNotWaiting when the approved node does not wait. It returns an error when the approval gives
+// a value that the template of the node does not allow. The API checks this before it saves the approval.
 func CheckApproval(wf *v1alpha1.Workflow, a v1alpha1.Approval) error {
 	spec := &wf.Spec.WorkflowTemplateSpec
 	if wf.Status.StoredSpec != nil {

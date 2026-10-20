@@ -1,6 +1,6 @@
 import { expect, test as base } from "@playwright/test";
 
-// test fails each test in which the strict Content Security Policy blocks a part of the page, for example a style
+// test fails each test in which the strict Content Security Policy blocks a part of the page. An example is a style
 // that a component injects. WebKit for Linux also reports a native <select>, so the check runs in Chromium only.
 export const test = base.extend<{ csp: undefined }>({
   csp: [

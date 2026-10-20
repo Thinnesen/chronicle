@@ -33,8 +33,8 @@ type WorkflowTemplateSpec struct {
 	// +optional
 	Parallelism *int32 `json:"parallelism,omitempty"`
 
-	// synchronization lets only a limited number of runs with the same lock run at the same time in a namespace,
-	// for example one deployment at a time. A run that waits for the lock is Pending.
+	// synchronization limits the number of runs with the same lock that run at the same time in a namespace. An example is
+	// one deployment at a time. A run that waits for the lock is Pending.
 	// +optional
 	Synchronization *Synchronization `json:"synchronization,omitempty"`
 

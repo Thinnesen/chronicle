@@ -5,8 +5,8 @@ import (
 	"regexp"
 )
 
-// inline turns the inline template of a DAG task or a step into a named template, because chronicle has no
-// inline templates. The name is "<parent template>-<task>", made unique.
+// inline turns the inline template of a DAG task or a step into a named template. chronicle has no inline templates.
+// The name is "<parent template>-<task>", made unique.
 func (c *converter) inline(in obj, path string) (string, error) {
 	base := invalidName.ReplaceAllString(c.parent+"-"+fmt.Sprint(in[fName]), "-")
 	name := base

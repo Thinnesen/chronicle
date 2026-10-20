@@ -82,8 +82,9 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 	}
 }
 
-// changeTracker finds the node changes that are news for the user: a new phase, or a new reason why a pending node
-// waits, for example ErrImagePull. Kubernetes switches between some reasons on each retry, so each one comes once.
+// changeTracker finds the node changes that are news for the user. A change is a new phase, or a new reason why a
+// pending node waits, for example ErrImagePull. Kubernetes switches between some reasons at each retry, so each reason
+// comes once.
 type changeTracker struct {
 	phase   map[string]v1alpha1.NodePhase
 	reasons map[string]bool
@@ -109,8 +110,8 @@ func (t *changeTracker) changes(all []v1alpha1.NodeStatus) []v1alpha1.NodeStatus
 	return out
 }
 
-// changeOrder sorts the node changes of one poll by the time of the change. At the same time, an end comes
-// before a start, a child ends before its parent, and a parent starts before its child.
+// changeOrder sorts the node changes of one poll by the time of the change. At the same time, an end comes before a
+// start. A child ends before its parent, and a parent starts before its child.
 func changeOrder(a, b v1alpha1.NodeStatus) int {
 	at, aEnd := changeTime(a)
 	bt, bEnd := changeTime(b)

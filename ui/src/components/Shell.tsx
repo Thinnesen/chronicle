@@ -11,8 +11,8 @@ import { BrandMark } from "./BrandMark";
 import { CommandPalette } from "./CommandPalette";
 import "./Shell.css";
 
-// Shell is the frame of all pages: a sidebar with the namespace and the sections, and a top bar with the
-// breadcrumbs, the search and the user. On a narrow screen the sidebar is a drawer.
+// Shell is the frame of all pages. A sidebar has the namespace and the sections. A top bar has the breadcrumbs, the
+// search and the user. On a narrow screen the sidebar is a drawer.
 export function Shell() {
   const { session } = useRouteContext({ from: "/app" });
   const [palette, setPalette] = useState(false);

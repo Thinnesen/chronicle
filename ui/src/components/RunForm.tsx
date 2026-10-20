@@ -7,8 +7,9 @@ import type { TemplateSummary } from "../gen/chronicle/v1/template_pb";
 import { actionError } from "../lib/errors";
 import { useToast } from "./Toast";
 
-// RunForm starts a run of a template. Each workflow parameter is a field; a list of permitted values is a select.
-// A parameter that reads a ConfigMap is optional: an empty field is not sent, so that the run reads the ConfigMap.
+// RunForm starts a run of a template. Each workflow parameter is a field. A list of permitted values is a select. A
+// parameter that reads a ConfigMap is optional. The form does not send an empty field, so the run reads the
+// ConfigMap.
 export function RunForm({ namespace, template }: { namespace: string; template: TemplateSummary }) {
   const fromConfigMap = (name: string) => !!template.parameters.find((p) => p.name === name)?.configMapName;
   const required = (p: TemplateSummary["parameters"][number]) => !p.hasDefault && !p.configMapName;

@@ -43,8 +43,8 @@ func (c *converter) warn(path, format string, args ...any) {
 	c.warnings = append(c.warnings, Warning{Path: path, Message: fmt.Sprintf(format, args...)})
 }
 
-// pick copies the keys in copied as they are, skips the keys in handled (the caller converts them),
-// and warns about each other key.
+// pick copies the keys in copied as they are. It skips the keys in handled, because the caller converts them. It warns
+// about each other key.
 func (c *converter) pick(in obj, path string, copied []string, handled ...string) obj {
 	out := obj{}
 	for _, k := range slices.Sorted(maps.Keys(in)) {

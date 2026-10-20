@@ -3,7 +3,7 @@ import { Graph, layout } from "@dagrejs/dagre";
 import { isStation, nodeLabel, type GraphEdge, type NodeStatus } from "./workflow";
 
 export const station = { width: 192, height: 44 };
-// narrowStation is the card on a phone, where the graph runs from top to bottom and the items of a fan-out must fit
+// narrowStation is the card on a phone. There the graph runs from top to bottom, and the items of a fan-out must fit
 // side by side.
 export const narrowStation = { width: 152, height: 44 };
 export const junction = { height: 24, maxWidth: 176 };
@@ -85,9 +85,9 @@ function sortSiblings(placed: Placed[], edges: GraphEdge[], direction: "LR" | "T
   }
 }
 
-// alignToParents keeps chains straight after sortSiblings: in each rank, the nodes with one parent and the same size
-// take the slots in the order of their parents, for example the exit hooks of parallel steps. The ranks go in order,
-// so a parent has its final slot before its children move.
+// alignToParents keeps chains straight after sortSiblings. In each rank, the nodes with one parent and the same size
+// take the slots in the order of their parents. An example is the exit hooks of parallel steps. The ranks go in
+// order, so a parent has its final slot before its children move.
 function alignToParents(placed: Placed[], edges: GraphEdge[], direction: "LR" | "TB"): void {
   const parents = new Map<string, string[]>();
   for (const e of edges) parents.set(e.to, [...(parents.get(e.to) ?? []), e.from]);

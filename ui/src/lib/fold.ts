@@ -1,6 +1,7 @@
 import type { GraphEdge, NodeStatus } from "./workflow";
 
-// By default, a fan-out with more children than limit shows only keep of them and one "more" node, as Argo Workflows does.
+// By default, a fan-out with more children than limit shows only keep of them and one "more" node. Argo Workflows
+// does the same.
 export const limit = 8;
 export const keep = 5;
 

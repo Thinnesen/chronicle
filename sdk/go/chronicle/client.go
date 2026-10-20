@@ -34,8 +34,8 @@ func NewClient(server, token string) (*Client, error) {
 	return newClient(server, bearer{token: token, next: http.DefaultTransport}), nil
 }
 
-// NewClientFromTokenFile returns a client that reads its token from a file before each call. Use it with a token
-// that Kubernetes rotates, such as a projected service account token, so that a long-running worker keeps working.
+// NewClientFromTokenFile returns a client that reads its token from a file before each call. Use it with a token that
+// Kubernetes rotates, such as a projected service account token. Then a long-running worker keeps working.
 func NewClientFromTokenFile(server, path string) (*Client, error) {
 	if server == "" {
 		return nil, errors.New("give the server URL")

@@ -32,7 +32,7 @@ const lockPoll = 5 * time.Second
 // lockPrefix starts the name of the Lease of each lock.
 const lockPrefix = "chronicle-lock-"
 
-// holder is a run that holds a lock, or one node of a run when the lock belongs to a template.
+// holder is a run that holds a lock. For the lock of a template, it is one node of a run.
 type holder struct {
 	UID  string `json:"uid"`
 	Name string `json:"name"`
@@ -44,8 +44,8 @@ func lockOf(spec *chroniclev1alpha1.WorkflowTemplateSpec) (string, int, bool) {
 	return spec.Synchronization.Lock()
 }
 
-// reader reads past the cache: the Lease and its holders, so that two reconciles never see an old holder list,
-// and ConfigMaps, which the manager does not cache.
+// reader reads past the cache. It reads the Lease and its holders, so two reconciles never see an old holder list. It
+// also reads ConfigMaps, which the manager does not cache.
 func (r *WorkflowReconciler) reader() client.Reader {
 	if r.APIReader != nil {
 		return r.APIReader
@@ -58,8 +58,8 @@ func (r *WorkflowReconciler) acquire(ctx context.Context, wf *chroniclev1alpha1.
 	return r.acquireAs(ctx, wf.Namespace, name, limit, holder{UID: string(wf.UID), Name: wf.Name})
 }
 
-// acquireAs takes the lock for a run or a node if a slot is free. It returns false and a message when it must wait.
-// The Lease update has the resource version of the read, so a concurrent change makes it fail and nothing is lost.
+// acquireAs takes the lock for a run or a node if a slot is free. It returns false and a message when it must wait. The
+// Lease update has the resource version of the read. So a concurrent change makes it fail, and nothing is lost.
 func (r *WorkflowReconciler) acquireAs(ctx context.Context, namespace, name string, limit int, me holder) (bool, string, error) {
 	var lease coordinationv1.Lease
 	err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: lockPrefix + name}, &lease)
@@ -122,8 +122,8 @@ func (r *WorkflowReconciler) releaseWhere(ctx context.Context, namespace, name s
 	return nil
 }
 
-// liveHolders drops the holders whose run was deleted or finished, for example a run that was deleted while it ran,
-// and the node holders whose node has ended.
+// liveHolders drops the holders whose run was deleted or has finished. An example is a run that was deleted while it
+// ran. It also drops the node holders whose node has ended.
 func (r *WorkflowReconciler) liveHolders(ctx context.Context, namespace string, all []holder) ([]holder, error) {
 	var out []holder
 	runs := map[string]*chroniclev1alpha1.Workflow{}

@@ -60,7 +60,8 @@ func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path, sc scop
 	}
 }
 
-// checkPassedArtifact checks an output artifact of a dag or steps template: it names an artifact of a task or a step.
+// checkPassedArtifact checks an output artifact of a dag or steps template. It must name an artifact of a task or a
+// step.
 func (c *checker) checkPassedArtifact(a v1alpha1.Artifact, path *field.Path, sc scope) {
 	if a.From == "" || a.Path != "" || a.Key != "" {
 		c.errs = append(c.errs, field.Invalid(path, a.Name,
@@ -123,7 +124,8 @@ func (c *checker) checkFrom(from string, path *field.Path, sc scope, hint func(s
 	c.errs = append(c.errs, field.Invalid(path, from, msg))
 }
 
-// checkSource checks the source of an artifact: at most one of from, raw and http, and the placeholders of a URL.
+// checkSource checks the source of an artifact. An artifact has at most one of from, raw and http. The placeholders of
+// a URL must be in the scope.
 func (c *checker) checkSource(a v1alpha1.Artifact, path *field.Path, sc scope) {
 	n := 0
 	for _, set := range []bool{a.From != "", a.Raw != nil, a.HTTP != nil} {
@@ -162,8 +164,8 @@ func (c *checker) checkWorkflowArtifacts(spec *v1alpha1.WorkflowTemplateSpec, en
 	return given
 }
 
-// checkWorkflowInputs checks a template that the workflow calls: the workflow arguments, or the template itself,
-// must give each artifact that it needs.
+// checkWorkflowInputs checks a template that the workflow calls. The workflow arguments or the template itself must
+// give each artifact that it needs.
 func (c *checker) checkWorkflowInputs(t *v1alpha1.Template, given map[string]bool, path *field.Path) {
 	for _, in := range t.Inputs.Artifacts {
 		if !in.Optional && !given[in.Name] && !hasSource(in) {

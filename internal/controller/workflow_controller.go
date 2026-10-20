@@ -286,8 +286,8 @@ func (r *WorkflowReconciler) observePods(ctx context.Context, wf *chroniclev1alp
 	return pods, nil
 }
 
-// applyWorkers is the number of actions of one run that the controller applies at the same time. A large fan-out
-// starts many Pods in one step, and one API call after the other made the first status wait for all of them.
+// applyWorkers is the number of actions of one run that the controller applies at the same time. A large fan-out starts
+// many Pods in one step. One API call after the other made the first status wait for all of them.
 const applyWorkers = 8
 
 // lockStart is the wait before the step that starts a node which has just taken its lock.

@@ -91,8 +91,8 @@ type Approval struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 
-	// user is the user who decided. The chronicle API sets it. The admission webhook refuses a new approval whose
-	// user is not the user of the request, so a recorded user is always true. An approval without a user is allowed.
+	// user is the user who decided. The chronicle API sets it. The admission webhook refuses a new approval when its user
+	// is not the user of the request. So a recorded user is always true. An approval without a user is allowed.
 	// +kubebuilder:validation:MaxLength=512
 	// +optional
 	User string `json:"user,omitempty"`

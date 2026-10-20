@@ -81,8 +81,8 @@ func (a *TokenReviewAuthenticator) store(key [32]byte, id *Identity) {
 	a.cache[key] = cachedIdentity{id: id, expires: time.Now().Add(tokenCacheTTL)}
 }
 
-// Impersonable tells if the server may impersonate the identity. Names with the "system:" prefix are
-// refused, except the user and the groups of a service account that a TokenReview confirmed.
+// Impersonable tells if the server may impersonate the identity. It refuses names with the "system:" prefix. The
+// exception is the user and the groups of a service account that a TokenReview confirmed.
 func (id *Identity) Impersonable() bool {
 	isSystem := func(s string) bool { return strings.HasPrefix(s, "system:") }
 	if !id.ServiceAccount {

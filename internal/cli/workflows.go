@@ -115,7 +115,7 @@ func readObject(file string) (*structpb.Struct, error) {
 	return structpb.NewStruct(m)
 }
 
-// merge adds the keys of a "<<" merge value (a map or a list of maps) that m does not have yet.
+// merge adds the keys of a "<<" merge value that m does not have yet. The merge value is a map or a list of maps.
 func merge(m map[string]any, v any) {
 	maps, ok := v.([]any)
 	if !ok {

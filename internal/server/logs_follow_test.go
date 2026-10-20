@@ -19,7 +19,8 @@ import (
 	"github.com/Thinnesen/chronicle/internal/auth"
 )
 
-// TestFollowLogs follows a run in which a step starts after the request: the stream waits for it, and ends with the run.
+// TestFollowLogs follows a run in which a step starts after the request. The stream waits for the step and ends with
+// the run.
 func TestFollowLogs(t *testing.T) {
 	setup(t)
 	followPoll = 50 * time.Millisecond

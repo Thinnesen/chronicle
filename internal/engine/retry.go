@@ -7,8 +7,8 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// runRetry runs the attempts of a retry node. A new attempt starts when the last one failed,
-// the policy permits a retry, the limit is not reached and the backoff is over.
+// runRetry runs the attempts of a retry node. A new attempt starts when the last one failed and the policy permits a
+// retry. Also, the limit must not be reached, and the backoff must be over.
 func (e *engine) runRetry(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, depth int) v1alpha1.NodeStatus {
 	rs := t.RetryStrategy
 	var last v1alpha1.NodeStatus

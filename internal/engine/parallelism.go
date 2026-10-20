@@ -11,8 +11,8 @@ import (
 // waitingForSlot starts the message of a Pod node that waits for a free slot of a parallelism limit.
 const waitingForSlot = "waiting for a free slot"
 
-// noSlot tells if a new Pod for node n would exceed a parallelism limit: of the workflow, or of a DAG or steps node
-// above n. It returns the first full limit, the workflow first and then from the inside out.
+// noSlot tells if a new Pod for node n would go over a parallelism limit. The limit is of the workflow, or of a DAG or
+// steps node above n. It returns the first full limit: the workflow first, then from the inside out.
 func (e *engine) noSlot(n v1alpha1.NodeStatus) (int32, bool) {
 	if !e.limited() {
 		return 0, false
@@ -40,8 +40,8 @@ func (e *engine) noSlot(n v1alpha1.NodeStatus) (int32, bool) {
 	return 0, false
 }
 
-// limited tells if the workflow or one of its templates has a parallelism limit. Without one, the engine skips the
-// count of the slots, which would cost a pass over all nodes for each new Pod.
+// limited tells if the workflow or one of its templates has a parallelism limit. Without one, the engine does not count
+// the slots. The count would cost a pass over all nodes for each new Pod.
 func (e *engine) limited() bool {
 	if e.in.Spec.Parallelism != nil {
 		return true
@@ -54,10 +54,10 @@ func (e *engine) limited() bool {
 	return false
 }
 
-// slotHolders counts the unfinished Pod nodes below root, other than except, that hold a slot: their Pod exists,
-// or the engine asked for it in an earlier step. A Pod that the cache does not show yet thus still counts.
-// For the whole workflow, an unfinished Pod without a node in the status counts too: the status can be older than the
-// Pods, for example after a failed status update.
+// slotHolders counts the unfinished Pod nodes below root, other than except, that hold a slot. A node holds a slot when
+// its Pod exists, or when the engine asked for it in an earlier step. So a Pod that the cache does not show yet still
+// counts. For the whole workflow, an unfinished Pod without a node in the status counts too. The status can be older
+// than the Pods, for example after a failed status update.
 func (e *engine) slotHolders(root, except string) int {
 	count := 0
 	known := make(map[string]bool, len(e.nodes))

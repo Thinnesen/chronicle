@@ -143,8 +143,8 @@ func (p *Provider) token(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"access_token": at, "token_type": "Bearer", "expires_in": 300, "id_token": p.IDToken(claims, g.clientID, time.Hour)})
 }
 
-// AccessClaims returns the claims of the user of an access token. Claims that start with "x-" are only here,
-// not in the ID token, for example "x-graph-groups" for a mock Microsoft Graph.
+// AccessClaims returns the claims of the user of an access token. Claims that start with "x-" are only here, not in the
+// ID token. An example is "x-graph-groups" for a mock Microsoft Graph.
 func (p *Provider) AccessClaims(r *http.Request) (map[string]any, bool) {
 	at, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	p.mu.Lock()

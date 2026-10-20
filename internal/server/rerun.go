@@ -78,7 +78,8 @@ func rerunOf(old *v1alpha1.Workflow) *v1alpha1.Workflow {
 	}
 }
 
-// rerunPrefix keeps the name of the run without a random suffix that GenerateName added, so that re-runs keep one name stem.
+// rerunPrefix removes the random suffix that GenerateName added to the name of the run. So all re-runs keep one name
+// stem.
 func rerunPrefix(name string) string {
 	if i := strings.LastIndexByte(name, '-'); i > 0 && len(name)-i == 6 {
 		return name[:i+1]

@@ -30,8 +30,8 @@ const tabs: { id: RunSearch["tab"]; label: string; icon: typeof Network }[] = [
   { id: "spec", label: "Spec", icon: FileCode2 },
 ];
 
-// RunPage shows one run: the header with the actions, the graph, the timeline or the spec, and the selected node
-// in a drawer. It updates while the run is active.
+// RunPage shows one run: the header with the actions, the graph, the timeline or the spec, and the selected node in a
+// drawer. It updates while the run is active.
 export function RunPage() {
   const { namespace, name } = runRoute.useParams();
   const { node: selected, tab } = runRoute.useSearch();
@@ -182,7 +182,7 @@ function ParamList({ label, params }: { label: string; params: { name: string; v
   );
 }
 
-// SpecView shows the run as its author wrote it and, for a run of a template, the spec that the run uses.
+// SpecView shows the run as its author wrote it. For a run of a template, it also shows the spec that the run uses.
 function SpecView({ wf }: { wf: Workflow }) {
   const stored = wf.spec.workflowTemplateRef ? wf.status?.storedSpec : undefined;
   return (

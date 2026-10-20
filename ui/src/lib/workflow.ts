@@ -89,9 +89,9 @@ export function isStation(n: NodeStatus): boolean {
   return n.type === "Pod" || n.type === "Suspend" || n.type === "Task";
 }
 
-// buildGraph returns the edges between the nodes of a run. The status has a tree (parent to children);
-// the edges between DAG tasks come from the dependencies in the spec. A dependency starts at the exits
-// of a node (see exits), so that a later task never looks like a part of a retry or a fan-out.
+// buildGraph returns the edges between the nodes of a run. The status has a tree (parent to children). The edges
+// between DAG tasks come from the dependencies in the spec. A dependency starts at the exits of a node (see exits).
+// So a later task never looks like a part of a retry or a fan-out.
 export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.status?.nodes ?? {}): GraphEdge[] {
   const byName = new Map(Object.values(nodes).map((n) => [n.name, n]));
   const templates = new Map((wf.status?.storedSpec?.templates ?? wf.spec.templates ?? []).map((t) => [t.name, t]));
@@ -100,7 +100,7 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
     if (from && to) edges.push({ from: from.id, to: to.id });
   };
   const exitsOf = (n: NodeStatus) => exits(n, nodes, byName, templates);
-  // A task with an exit hook is done when its hook is done, so the tasks after it start at the hook.
+  // A task with an exit hook is done when its hook is done. So the tasks after it start at the hook.
   const after = (n: NodeStatus) => {
     const hook = byName.get(`${n.name}.onExit`);
     return hook ? [hook] : exitsOf(n);
@@ -155,8 +155,8 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
   return edges;
 }
 
-// withPlan returns the nodes of a run and planned nodes for the parts of a started DAG or steps node that
-// have no node yet, so that the graph shows the whole plan while the run is active (as Dagster does).
+// withPlan returns the nodes of a run and planned nodes for the parts of a started DAG or steps node without a node
+// yet. So the graph shows the whole plan while the run is active, as Dagster does.
 export function withPlan(wf: Workflow): Record<string, NodeStatus> {
   const nodes = wf.status?.nodes ?? {};
   const names = new Set(Object.values(nodes).map((n) => n.name));
@@ -206,8 +206,8 @@ export function plannedSteps(wf: Workflow): number {
   return Object.values(withPlan(wf)).filter((n) => n.planned && isStation(n)).length;
 }
 
-// exits returns the nodes where the work of a node ends: the node itself, the last attempt of a retry,
-// the items of a fan-out, the leaf tasks of a DAG or the last group of steps.
+// exits returns the nodes where the work of a node ends. These are the node itself, the last attempt of a retry, the
+// items of a fan-out, the leaf tasks of a DAG or the last group of steps.
 function exits(
   n: NodeStatus,
   nodes: Record<string, NodeStatus>,
@@ -276,8 +276,8 @@ export function runParameters(wf: Workflow): Parameter[] {
   return wf.status?.storedSpec?.arguments?.parameters ?? wf.spec.arguments?.parameters ?? [];
 }
 
-// previewOf returns a run without status for a template object whose entrypoint is a DAG, so that the graph can
-// show the plan of the template before it runs. It returns undefined for other templates.
+// previewOf returns a run without status for a template object whose entrypoint is a DAG. Then the graph can show the
+// plan of the template before it runs. It returns undefined for other templates.
 export function previewOf(template: { metadata?: { name?: string; namespace?: string }; spec?: Workflow["spec"] & { entrypoint?: string } }): Workflow | undefined {
   const spec = template.spec;
   const entry = spec?.templates?.find((t) => t.name === spec.entrypoint);

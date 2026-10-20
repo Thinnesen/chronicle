@@ -39,8 +39,8 @@ func TestSources(t *testing.T) {
 	}
 }
 
-// TestInstallDownloadsInputs checks that the init container puts the input artifacts into the volume, and that a
-// failed download leaves its error in the termination message.
+// TestInstallDownloadsInputs checks that the init container puts the input artifacts into the volume. It also checks
+// that a failed download leaves its error in the termination message.
 func TestInstallDownloadsInputs(t *testing.T) {
 	dir := t.TempDir()
 	term := filepath.Join(dir, "term")

@@ -18,8 +18,8 @@ func (downQueue) ForWorkflow(context.Context, string) ([]archive.Task, error) {
 	return nil, errors.New("down")
 }
 
-// TestObserveTasksOnlyWhenNeeded checks that a run without an open task node does not read the queue, so that an
-// outage of the database does not stop the runs that do not use task workers.
+// TestObserveTasksOnlyWhenNeeded checks that a run without an open task node does not read the queue. So an outage of
+// the database does not stop the runs without task workers.
 func TestObserveTasksOnlyWhenNeeded(t *testing.T) {
 	r := &WorkflowReconciler{Tasks: downQueue{}}
 	run := func(nodes map[string]chroniclev1alpha1.NodeStatus) *chroniclev1alpha1.Workflow {

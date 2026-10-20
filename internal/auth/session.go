@@ -99,7 +99,8 @@ func (m *MemoryStore) ended(s *Session, now time.Time) bool {
 	return !now.Before(s.ExpiresAt) || now.Sub(s.lastUsed) >= m.idle
 }
 
-// SessionKey is the key of a session in a store: a hash of the session ID, so that a store never holds a usable cookie value.
+// SessionKey is the key of a session in a store. It is a hash of the session ID, so a store never holds a usable cookie
+// value.
 func SessionKey(sessionID string) string {
 	h := sha256.Sum256([]byte(sessionID))
 	return hex.EncodeToString(h[:])

@@ -29,8 +29,8 @@ func (e *engine) runBoundary(t *v1alpha1.Template, n v1alpha1.NodeStatus, prefix
 	return e.save(n)
 }
 
-// resolveOutputs resolves the output parameters of a DAG or steps template, and the artifacts that it passes on from
-// its tasks or steps.
+// resolveOutputs resolves the output parameters of a DAG or steps template. It also resolves the artifacts that the
+// template passes on from its tasks or steps.
 func resolveOutputs(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.Outputs, error) {
 	if len(t.Outputs.Parameters) == 0 && len(t.Outputs.Artifacts) == 0 {
 		return nil, nil

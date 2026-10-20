@@ -11,8 +11,8 @@ import (
 	"github.com/Thinnesen/chronicle/internal/executor"
 )
 
-// httpContainer runs "chronicle-exec http". A header value from a Secret comes in through an environment
-// variable, so that the controller never reads the Secret and the value is not in the Pod spec.
+// httpContainer runs "chronicle-exec http". A header value from a Secret comes in through an environment variable. So
+// the controller never reads the Secret, and the value is not in the Pod spec.
 func httpContainer(h *v1alpha1.HTTPTemplate, executorImage string) corev1.Container {
 	spec := executor.HTTPSpec{Method: string(h.Method), URL: h.URL, Body: h.Body}
 	env := []corev1.EnvVar{{Name: executor.EnvHTTP}}

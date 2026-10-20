@@ -20,9 +20,9 @@ func UsesConfigMaps(spec *v1alpha1.WorkflowTemplateSpec) bool {
 	return found
 }
 
-// ConfigMapValues reads each ConfigMap value into the spec, once at the start of a run, so that all steps see the
-// same value. A workflow parameter gets the value; a given value wins. An input parameter gets it as its default,
-// so that a caller can still give a value. A missing key keeps the default, or is an error without one.
+// ConfigMapValues reads each ConfigMap value into the spec, once at the start of a run. So all steps see the same
+// value. A workflow parameter gets the value, but a given value wins. An input parameter gets it as its default, so a
+// caller can still give a value. A missing key keeps the default. Without a default, a missing key is an error.
 func ConfigMapValues(ctx context.Context, g ConfigMapGetter, spec *v1alpha1.WorkflowTemplateSpec) error {
 	var err error
 	eachConfigMapParam(spec, func(p *v1alpha1.Parameter, workflow bool) {

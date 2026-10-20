@@ -41,7 +41,7 @@ func TestUIHandler(t *testing.T) {
 	}
 }
 
-// checkNonce checks that each page has a new style nonce, and that the page and the CSP have the same one.
+// checkNonce checks that each page has a new style nonce. It also checks that the page and the CSP have the same nonce.
 func checkNonce(t *testing.T, h http.Handler) {
 	t.Helper()
 	seen := map[string]bool{}

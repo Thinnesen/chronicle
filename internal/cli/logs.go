@@ -94,7 +94,7 @@ func (a *app) streamLogs(ctx context.Context, client chroniclev1connect.LogServi
 	return stream.Err()
 }
 
-// healable tells if a stream error can go away by itself, such as a lost connection or a server that restarts.
+// healable tells if a stream error can go away by itself. Examples are a lost connection and a server that restarts.
 func healable(err error) bool {
 	switch connect.CodeOf(err) {
 	case connect.CodeUnavailable, connect.CodeUnknown, connect.CodeInternal, connect.CodeDeadlineExceeded:

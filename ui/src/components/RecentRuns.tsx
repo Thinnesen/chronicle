@@ -16,8 +16,8 @@ export function useRecentRuns(namespace: string) {
   });
 }
 
-// RecentRuns shows the last runs of a template or a schedule as marks, the newest on the right, with the share that
-// succeeded. A broken pipeline stands out in a list at once.
+// RecentRuns shows the last runs of a template or a schedule as marks, the newest on the right. It also shows the
+// share that succeeded. A broken pipeline stands out in a list at once.
 export function RecentRuns({ runs }: { runs: WorkflowSummary[] }) {
   const last = runs.slice(0, shown).reverse();
   if (last.length === 0) return <span className="recent-none">No runs yet</span>;

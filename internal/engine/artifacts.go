@@ -46,8 +46,8 @@ func passedInput(from string, inputs *v1alpha1.Inputs) *v1alpha1.Artifact {
 	return nil
 }
 
-// inputArtifact gives an input artifact of a template its content: the argument, or else the raw text or the URL
-// of the template. It returns false when there is none.
+// inputArtifact gives an input artifact of a template its content. This is the argument, or else the raw text or the
+// URL of the template. It returns false when there is none.
 func inputArtifact(in v1alpha1.Artifact, args map[string]v1alpha1.Artifact, resolve expr.Resolver) (v1alpha1.Artifact, bool, error) {
 	src, ok := args[in.Name]
 	if !ok && in.Raw == nil && in.HTTP == nil {

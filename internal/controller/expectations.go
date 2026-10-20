@@ -13,9 +13,10 @@ import (
 // createdTTL is how long a created Pod counts without the cache. The cache shows a new Pod in much less time.
 const createdTTL = time.Minute
 
-// createdPods remembers the Pods that the controller created and the cache does not show yet, like the expectations
-// of the ReplicaSet controller. A reconcile with a stale cache, or after a status update that failed with a conflict,
-// would else not see such a Pod: it could start the Pod of another node and exceed a parallelism limit.
+// createdPods remembers the Pods that the controller created and the cache does not show yet. The ReplicaSet controller
+// has the same expectations. Without them, a reconcile with a stale cache would not see such a Pod. The same is true
+// after a status update that failed with a conflict. Then it could start the Pod of another node and go over a
+// parallelism limit.
 type createdPods struct {
 	mu   sync.Mutex
 	pods map[types.UID]map[string]time.Time

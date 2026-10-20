@@ -1,6 +1,6 @@
-// Package convert turns Argo Workflows YAML (Workflow, WorkflowTemplate, ClusterWorkflowTemplate and
-// CronWorkflow) into chronicle resources. It keeps the fields that chronicle supports, drops the others
-// with a warning, and validates the result with the rules of the admission webhook.
+// Package convert turns Argo Workflows YAML into chronicle resources: Workflow, WorkflowTemplate,
+// ClusterWorkflowTemplate and CronWorkflow. It keeps the fields that chronicle supports. It drops the others with a
+// warning. It validates the result with the rules of the admission webhook.
 package convert
 
 import (

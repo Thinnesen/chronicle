@@ -78,8 +78,8 @@ impl Client {
         })
     }
 
-    /// Returns a client that reads its token from a file before each call. Use it with a token that Kubernetes
-    /// rotates, such as a projected service account token, so that a long-running worker keeps working.
+    /// Returns a client that reads its token from a file before each call. Use it with a token that Kubernetes rotates,
+    /// such as a projected service account token. Then a long-running worker keeps working.
     pub fn from_token_file(server: &str, path: impl AsRef<Path>) -> Result<Self, ApiError> {
         let token = read_token(path.as_ref())?;
         let mut client = Client::new(server, &token)?;

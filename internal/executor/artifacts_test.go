@@ -14,8 +14,8 @@ import (
 	"github.com/Thinnesen/chronicle/internal/artifact"
 )
 
-// TestArtifacts downloads an input artifact, runs a command that copies it, and saves the output and the log
-// in the S3 store of $CHRONICLE_TEST_S3 (see "make s3-up").
+// TestArtifacts downloads an input artifact and runs a command that copies it. It saves the output and the log in the
+// S3 store of $CHRONICLE_TEST_S3 (see "make s3-up").
 func TestArtifacts(t *testing.T) {
 	endpoint := os.Getenv("CHRONICLE_TEST_S3")
 	if endpoint == "" {
