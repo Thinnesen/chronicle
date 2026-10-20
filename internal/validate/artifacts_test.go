@@ -82,3 +82,17 @@ templates:
   http: {url: "https://e.com"}`, want: []string{"cannot have input artifacts"}},
 	}, true)
 }
+
+func TestWithSequence(t *testing.T) {
+	const c = "- {name: c, inputs: {parameters: [{name: x}]}, container: {image: x, args: ['{{inputs.parameters.x}}']}}"
+	call := func(seq string) string {
+		return "entrypoint: main\narguments: {parameters: [{name: num, value: '3'}]}\ntemplates:\n- name: main\n  dag:\n    tasks:\n" +
+			"    - {name: s, template: c, withSequence: " + seq + ", arguments: {parameters: [{name: x, value: '{{item}}'}]}}\n" + c
+	}
+	runCases(t, []specCase{
+		{name: "count from a parameter", spec: call(`{count: "{{workflow.parameters.num}}", format: "r%02d"}`)},
+		{name: "count and end", spec: call("{count: 2, end: 3}"), want: []string{"give count or end"}},
+		{name: "unknown placeholder", spec: call(`{end: "{{workflow.parameters.nope}}"}`), want: []string{`unknown placeholder "workflow.parameters.nope"`}},
+		{name: "bad format", spec: call(`{count: 2, format: "%s"}`), want: []string{"format must have one number verb"}},
+	}, true)
+}

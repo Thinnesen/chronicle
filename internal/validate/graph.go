@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -156,7 +157,7 @@ func (c *checker) callOutputs(prefix string, call v1alpha1.Call) []string {
 		return []string{prefix + ".outputs.*"}
 	}
 	names := c.outputNames(prefix, call.Template)
-	if len(call.WithItems) > 0 || call.WithParam != "" {
+	if call.FanOut() {
 		names = slices.DeleteFunc(names, func(n string) bool { return isArtifact(n) || strings.HasSuffix(n, ".exitCode") })
 		// A fan-out also has all output parameters of each item, as a JSON list of objects.
 		if t, ok := c.templates[call.Template]; ok && len(t.Outputs.Parameters) > 0 {
@@ -205,4 +206,34 @@ func (c *checker) childOutputs(t *v1alpha1.Template) []string {
 		}
 	}
 	return names
+}
+
+// checkFanOut checks withItems, withParam and withSequence: at most one, and the placeholders that they use.
+func (c *checker) checkFanOut(call v1alpha1.Call, path *field.Path, sc scope, hint func(string) string) {
+	n := 0
+	for _, set := range []bool{len(call.WithItems) > 0, call.WithParam != "", call.WithSequence != nil} {
+		if set {
+			n++
+		}
+	}
+	if n > 1 {
+		c.errs = append(c.errs, field.Forbidden(path, "use one of withItems, withParam and withSequence"))
+	}
+	c.checkText(call.WithParam, path.Child("withParam"), sc, hint)
+	seq := call.WithSequence
+	if seq == nil {
+		return
+	}
+	sp := path.Child("withSequence")
+	if (seq.Count == nil) == (seq.End == nil) {
+		c.errs = append(c.errs, field.Required(sp, "give count or end"))
+	}
+	for name, v := range map[string]*intstr.IntOrString{"count": seq.Count, "start": seq.Start, "end": seq.End} {
+		if v != nil && v.Type == intstr.String {
+			c.checkText(v.StrVal, sp.Child(name), sc, hint)
+		}
+	}
+	if err := expr.CheckSequenceFormat(seq.Format); err != nil {
+		c.errs = append(c.errs, field.Invalid(sp.Child("format"), seq.Format, err.Error()))
+	}
 }

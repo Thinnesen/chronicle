@@ -136,7 +136,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 
 - `when` compares values with `==`, `!=`, `<`, `<=`, `>` and `>=`, and combines conditions with `&&`, `||` and `!`. Two numbers compare as numbers. `=~` and `!~` match a regular expression (Go RE2 syntax), for example `{{tasks.flip.outputs.result}} =~ '^hea'`. A false condition gives the node the phase Skipped.
 - A placeholder value in `when` is always one operand. A value such as `x || true` cannot change the condition.
-- `withItems` runs the template once for each item. `withParam` does the same for a JSON list, for example `{{tasks.list.outputs.result}}`.
+- `withItems` runs the template once for each item. `withParam` does the same for a JSON list, for example `{{tasks.list.outputs.result}}`. `withSequence` does it for a range of numbers: `withSequence: {count: "{{workflow.parameters.days}}", start: 1, format: "day-%02d"}` gives `day-01`, `day-02` and so on. Give `count` or `end`; the values can be placeholders. A fan-out has at most 1000 items.
 - `parallelism` limits the Pods that run at the same time: `spec.parallelism` for the whole run, and `parallelism` on a `dag` or `steps` template for the Pods below it. A step without a free slot waits with the message "waiting for a free slot".
 
 ## 7. Retries, timeouts and deadlines

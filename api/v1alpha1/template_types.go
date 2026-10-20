@@ -350,6 +350,10 @@ type Call struct {
 	// +optional
 	WithParam string `json:"withParam,omitempty"`
 
+	// withSequence runs the template once for each number of a range. "{{item}}" is the number as text.
+	// +optional
+	WithSequence *Sequence `json:"withSequence,omitempty"`
+
 	// continueOn lets the run go on after this task or step fails: the tasks after it run, and its failure does not
 	// fail the DAG or the steps.
 	// +optional

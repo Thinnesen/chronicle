@@ -2,7 +2,6 @@ package convert
 
 import (
 	"fmt"
-	"regexp"
 	"slices"
 )
 
@@ -152,54 +151,9 @@ func (c *converter) call(in obj, path string, extra ...string) (obj, error) {
 		out["arguments"] = args
 	}
 	if seq := asObj(in["withSequence"]); seq != nil {
-		items, err := sequence(seq)
-		if err != nil {
-			return nil, fmt.Errorf("%s.withSequence: %w", path, err)
-		}
-		out["withItems"] = items
+		out["withSequence"] = c.pick(seq, join(path, "withSequence"), []string{"count", "start", "end", "format"})
 	}
 	return out, nil
-}
-
-// sequenceFormat is a format with exactly one integer verb, as Argo gives it to Sprintf.
-var sequenceFormat = regexp.MustCompile(`^([^%]|%%)*%[-+ #0]*[0-9]*[dxXob]([^%]|%%)*$`)
-
-// sequence expands an Argo withSequence with literal numbers into withItems.
-func sequence(seq obj) ([]any, error) {
-	format := "%d"
-	if f, ok := seq["format"]; ok {
-		format, _ = f.(string)
-		if !sequenceFormat.MatchString(format) {
-			return nil, fmt.Errorf("format must have one number verb, such as %%02d or %%x: %q", format)
-		}
-	}
-	start, end := int64(0), int64(-1)
-	var err error
-	if v, ok := seq["start"]; ok {
-		if start, err = asInt(v); err != nil {
-			return nil, err
-		}
-	}
-	switch {
-	case seq["count"] != nil:
-		n, err := asInt(seq["count"])
-		if err != nil {
-			return nil, fmt.Errorf("count must be a number, not a placeholder: %w", err)
-		}
-		end = start + n - 1
-	case seq["end"] != nil:
-		if end, err = asInt(seq["end"]); err != nil {
-			return nil, fmt.Errorf("end must be a number, not a placeholder: %w", err)
-		}
-	}
-	if end-start >= 1000 {
-		return nil, fmt.Errorf("more than 1000 items")
-	}
-	items := []any{}
-	for i := start; i <= end; i++ {
-		items = append(items, fmt.Sprintf(format, i))
-	}
-	return items, nil
 }
 
 func (c *converter) dag(in obj, path string) (obj, error) {

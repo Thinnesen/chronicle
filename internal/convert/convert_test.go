@@ -110,7 +110,7 @@ func TestRules(t *testing.T) {
 			templates: "  - {name: main, steps: [[{name: s, template: c, withSequence: {count: \"3\"}, " +
 				"arguments: {parameters: [{name: i, value: '{{item}}'}, {name: extra, value: v}]}}]]}\n" +
 				"  - {name: c, inputs: {parameters: [{name: i}]}, container: {image: x, args: ['{{inputs.parameters.i}}']}}",
-			want: []string{"- \"0\"\n", "- \"2\"\n", `argument "extra" is not an input of template "c"`},
+			want: []string{"withSequence:\n          count: \"3\"", `argument "extra" is not an input of template "c"`},
 		},
 		{
 			name: "inline templates become named templates",
@@ -137,7 +137,7 @@ func TestRules(t *testing.T) {
 			templates: "  - {name: main, steps: [[{name: s, template: c, withSequence: {start: \"9\", count: \"2\", format: \"day-%02d\"}, " +
 				"arguments: {parameters: [{name: i, value: '{{item}}'}]}}]]}\n" +
 				"  - {name: c, inputs: {parameters: [{name: i}]}, container: {image: x, args: ['{{inputs.parameters.i}}']}}",
-			want: []string{"- day-09\n", "- day-10\n"},
+			want: []string{"format: day-%02d"},
 		},
 		{
 			name:      "a sequence with a format that is not one number",

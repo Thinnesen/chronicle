@@ -324,7 +324,7 @@ func TestSpecCalls(t *testing.T) {
 	runCases(t, []specCase{
 		{name: "items", spec: task("withItems: [a, {k: 1}], arguments: {parameters: [{name: x, value: '{{item}} {{item.k}}'}]}")},
 		{name: "param list and when", spec: task("withParam: '{{tasks.g.outputs.result}}', when: '{{item}} != skip && {{tasks.g.outputs.result}} == x', arguments: {parameters: [{name: x, value: '{{item}}'}]}")},
-		{name: "items and param list", spec: task("withItems: [a], withParam: '[]', arguments: {parameters: [{name: x, value: v}]}"), want: []string{"use withItems or withParam, not both"}},
+		{name: "items and param list", spec: task("withItems: [a], withParam: '[]', arguments: {parameters: [{name: x, value: v}]}"), want: []string{"use one of withItems, withParam and withSequence"}},
 		{name: "item without fan-out", spec: task("arguments: {parameters: [{name: x, value: '{{item}}'}]}"), want: []string{`unknown placeholder "item"`}},
 		{name: "bad when", spec: task("when: 'a ==', arguments: {parameters: [{name: x, value: v}]}"), want: []string{"templates[0].dag.tasks[1].when: Invalid value"}},
 		{name: "unknown placeholder in when", spec: task("when: '{{nope}} == a', arguments: {parameters: [{name: x, value: v}]}"), want: []string{`unknown placeholder "nope"`}},

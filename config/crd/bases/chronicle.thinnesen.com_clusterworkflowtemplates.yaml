@@ -835,6 +835,42 @@ spec:
                                   each item of a JSON list, for example "{{tasks.a.outputs.result}}".
                                 maxLength: 4096
                                 type: string
+                              withSequence:
+                                description: withSequence runs the template once for
+                                  each number of a range. "{{item}}" is the number
+                                  as text.
+                                properties:
+                                  count:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: count is the number of items. The
+                                      items are start, start+1 and so on.
+                                    x-kubernetes-int-or-string: true
+                                  end:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: end is the last number. It is in
+                                      the range.
+                                    x-kubernetes-int-or-string: true
+                                  format:
+                                    description: format makes an item text from the
+                                      number, with one integer verb, for example "day-%02d".
+                                      The default is "%d".
+                                    maxLength: 256
+                                    type: string
+                                  start:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: start is the first number. The default
+                                      is 0.
+                                    x-kubernetes-int-or-string: true
+                                type: object
+                                x-kubernetes-validations:
+                                - message: give count or end
+                                  rule: has(self.count) != has(self.end)
                             required:
                             - name
                             type: object
@@ -1871,6 +1907,42 @@ spec:
                                 item of a JSON list, for example "{{tasks.a.outputs.result}}".
                               maxLength: 4096
                               type: string
+                            withSequence:
+                              description: withSequence runs the template once for
+                                each number of a range. "{{item}}" is the number as
+                                text.
+                              properties:
+                                count:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: count is the number of items. The items
+                                    are start, start+1 and so on.
+                                  x-kubernetes-int-or-string: true
+                                end:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: end is the last number. It is in the
+                                    range.
+                                  x-kubernetes-int-or-string: true
+                                format:
+                                  description: format makes an item text from the
+                                    number, with one integer verb, for example "day-%02d".
+                                    The default is "%d".
+                                  maxLength: 256
+                                  type: string
+                                start:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: start is the first number. The default
+                                    is 0.
+                                  x-kubernetes-int-or-string: true
+                              type: object
+                              x-kubernetes-validations:
+                              - message: give count or end
+                                rule: has(self.count) != has(self.end)
                           required:
                           - name
                           type: object

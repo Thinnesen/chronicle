@@ -135,3 +135,28 @@ func TestEngineRuntimeErrors(t *testing.T) {
 		})
 	}
 }
+
+// TestWithSequence expands a sequence at run time, so that its count can come from a parameter.
+func TestWithSequence(t *testing.T) {
+	s := newSim(t, dagSpec(`
+    - {name: seq, template: p, withSequence: {count: "{{workflow.parameters.n}}", start: 1, format: "r%d"}, arguments: {parameters: [{name: x, value: "{{item}}"}]}}
+    - {name: none, template: p, withSequence: {end: 0, start: 1}, arguments: {parameters: [{name: x, value: "{{item}}"}]}}`)+`
+- {name: p, inputs: {parameters: [{name: x}]}, container: {image: alpine, command: [run], args: ["{{inputs.parameters.x}}"]}}`, nil)
+	s.in.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "n", Value: new("3")}}
+	st := s.run()
+	if st.Phase != v1alpha1.WorkflowSucceeded {
+		t.Fatalf("phase = %s: %s", st.Phase, st.Message)
+	}
+	var args []string
+	for _, name := range []string{"wf.seq(0:r1)", "wf.seq(1:r2)", "wf.seq(2:r3)"} {
+		if p, ok := s.pods[name]; ok {
+			args = append(args, p.Template.Container.Args[0])
+		}
+	}
+	if strings.Join(args, ",") != "r1,r2,r3" {
+		t.Errorf("args = %v, pods %v", args, phases(st))
+	}
+	if got := phases(st)["wf.none"]; got != v1alpha1.NodeSkipped {
+		t.Errorf("an empty sequence is %s", got)
+	}
+}

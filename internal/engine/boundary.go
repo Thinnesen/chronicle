@@ -63,7 +63,7 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 			continue
 		case !ok && !t.depends.Eval(b.lookup):
 			b.finishEarly(t, t.nodeName, v1alpha1.NodeOmitted, "the depends condition is false", b.nodeID)
-		case len(t.call.WithItems) > 0 || t.call.WithParam != "":
+		case t.call.FanOut():
 			b.runGroup(t)
 		default:
 			b.runOne(t, t.nodeName, nil, b.nodeID)

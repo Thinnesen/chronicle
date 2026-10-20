@@ -216,11 +216,8 @@ func (c *checker) checkCall(call v1alpha1.Call, path *field.Path, sc scope, hint
 		c.errs = append(c.errs, field.NotFound(path.Child("template"), name))
 		return
 	}
-	if len(call.WithItems) > 0 && call.WithParam != "" {
-		c.errs = append(c.errs, field.Forbidden(path.Child("withParam"), "use withItems or withParam, not both"))
-	}
-	c.checkText(call.WithParam, path.Child("withParam"), sc, hint)
-	if len(call.WithItems) > 0 || call.WithParam != "" {
+	c.checkFanOut(call, path, sc, hint)
+	if call.FanOut() {
 		sc = sc.with("item", itemPrefix)
 	}
 	c.checkWhen(call.When, path.Child("when"), sc, hint)
