@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildGraph, plannedSteps, taskDependencies, withPlan, type Workflow } from "./workflow";
+import { buildGraph, cardLabel, plannedSteps, taskDependencies, withPlan, type Workflow } from "./workflow";
 
 const wf: Workflow = {
   metadata: { name: "wf", namespace: "ns" },
@@ -102,5 +102,17 @@ describe("taskDependencies", () => {
     expect(taskDependencies({ name: "t", depends: "(a || b-2.Failed) && !c_3.AllFailed" })).toEqual(["a", "b-2", "c_3"]);
     expect(taskDependencies({ name: "t", dependencies: ["x"] })).toEqual(["x"]);
     expect(taskDependencies({ name: "t" })).toEqual([]);
+  });
+});
+
+describe("cardLabel", () => {
+  it.each([
+    ["train", "train"],
+    ["train(0)", "train(0)"],
+    ["odd-or-even(0:1)", "1"],
+    ['divide-by-2(1:{"evenness":"even","num":"2"})', "evenness=even num=2"],
+    ["each(2:x)(1)", "each(2:x)(1)"],
+  ])("%s gives %s", (displayName, want) => {
+    expect(cardLabel({ id: "n", name: "wf.n", type: "Pod", displayName })).toBe(want);
   });
 });

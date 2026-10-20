@@ -1,14 +1,14 @@
 import "@xyflow/react/dist/style.css";
 import "./RunGraph.css";
 
-import { Background, Controls, Handle, Position, ReactFlow, useReactFlow, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
+import { Background, Controls, Handle, Position, ReactFlow, useReactFlow, useViewport, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
 import { Box, ChevronsDown, Cpu, Hand } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { fold } from "../lib/fold";
 import { place } from "../lib/layout";
 import { duration } from "../lib/time";
-import { buildGraph, isStation, nodeLabel, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
+import { buildGraph, cardLabel, isStation, nodeLabel, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Lamp } from "./Lamp";
 
 type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number>; preview?: boolean };
@@ -55,7 +55,7 @@ function StationNode({ data }: NodeProps<Node<NodeData>>) {
       <Lamp phase={phase} size={16} />
       <span className="station-text">
         <span className="station-name" title={nodeLabel(n)}>
-          {nodeLabel(n)}
+          {cardLabel(n)}
         </span>
         <span className={`station-meta${!data.preview && waitReason(n) ? " is-warning" : ""}`}>{meta(n, data)}</span>
       </span>
@@ -124,6 +124,25 @@ function Frame({ box, options, selected, vertical }: { box: React.RefObject<HTML
     return () => observer.disconnect();
   }, [box, flow, options, selected, vertical]);
   return null;
+}
+
+// Fades shows a fade at each side of the box where the graph goes on, so that a long run shows that it can pan.
+function Fades({ box, vertical }: { box: React.RefObject<HTMLDivElement | null>; vertical: boolean }) {
+  const { x, y, zoom } = useViewport();
+  const flow = useReactFlow();
+  const el = box.current;
+  const nodes = flow.getNodes();
+  if (!el || nodes.length === 0) return null;
+  const b = flow.getNodesBounds(nodes);
+  const start = vertical ? b.y * zoom + y : b.x * zoom + x;
+  const end = vertical ? (b.y + b.height) * zoom + y : (b.x + b.width) * zoom + x;
+  const room = vertical ? el.clientHeight : el.clientWidth;
+  return (
+    <>
+      {start < -4 && <div className="graph-fade is-start" aria-hidden="true" />}
+      {end > room + 4 && <div className="graph-fade is-end" aria-hidden="true" />}
+    </>
+  );
 }
 
 const narrowQuery = "(max-width: 40rem)";
@@ -228,6 +247,7 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
         <Background gap={20} size={1} />
         <Controls showInteractive={false} position="bottom-right" fitViewOptions={{ ...fit, minZoom: 0.2 }} />
         <Frame box={box} options={fit} selected={selected} vertical={narrow} />
+        <Fades box={box} vertical={narrow} />
       </ReactFlow>
     </div>
   );

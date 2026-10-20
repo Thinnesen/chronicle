@@ -24,6 +24,44 @@
   }
 }
 
+.run-graph .graph-fade {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  inset-block: 0;
+  inline-size: 3rem;
+  --fade-to: var(--surface);
+}
+
+.run-graph .graph-fade.is-start {
+  inset-inline-start: 0;
+  background: linear-gradient(to right, var(--fade-to), transparent);
+}
+
+.run-graph .graph-fade.is-end {
+  inset-inline-end: 0;
+  background: linear-gradient(to left, var(--fade-to), transparent);
+}
+
+@media (max-width: 40rem) {
+  .run-graph .graph-fade {
+    inset-block: auto;
+    inset-inline: 0;
+    inline-size: auto;
+    block-size: 3rem;
+  }
+
+  .run-graph .graph-fade.is-start {
+    inset-block-start: 0;
+    background: linear-gradient(to bottom, var(--fade-to), transparent);
+  }
+
+  .run-graph .graph-fade.is-end {
+    inset-block-end: 0;
+    background: linear-gradient(to top, var(--fade-to), transparent);
+  }
+}
+
 .run-graph .react-flow__handle {
   opacity: 0;
   pointer-events: none;
