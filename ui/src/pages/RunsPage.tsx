@@ -164,7 +164,6 @@ function RunsBoard({ namespace }: { namespace?: string }) {
             <tbody>
               {shown.map((w) => {
                 const started = toDate(w.startedAt);
-                const created = started ?? toDate(w.createdAt);
                 const end = toDate(w.finishedAt)?.getTime() ?? now;
                 const p = w.phase || "Pending";
                 const startAt = toDate(w.startAt);
@@ -230,7 +229,7 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                     <td>
                       <ProgressTrack done={w.nodesDone} total={w.nodesTotal} phase={p} />
                     </td>
-                    <td className="board-time">{created && !startAt ? <time title={created.toLocaleString()}>{ago(created, new Date(now))}</time> : "–"}</td>
+                    <td className="board-time">{started ? <time title={started.toLocaleString()}>{ago(started, new Date(now))}</time> : "–"}</td>
                     <td className="board-num">{started ? duration(end - started.getTime()) : "–"}</td>
                   </tr>
                 );

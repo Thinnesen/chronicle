@@ -161,6 +161,15 @@ test("shows the start time of a scheduled run in the list", async ({ page }) => 
   await expect(row.locator(".board-time")).toHaveText("–");
 });
 
+test("leaves the Started cell empty for a run that never started", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) =>
+    r.fulfill({ json: { workflows: [{ namespace: "team-a", name: "broken-run", uid: "u8", phase: "Error", createdAt: new Date(now - 60_000).toISOString() }] } }),
+  );
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("row").filter({ hasText: "broken-run" }).locator(".board-time")).toHaveText("–");
+});
+
 test("names the parent of a child run in the list", async ({ page }) => {
   await mockAPI(page);
   await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) =>
@@ -171,4 +180,19 @@ test("names the parent of a child run in the list", async ({ page }) => {
   await page.goto("/ns/team-a");
   const row = page.getByRole("row").filter({ hasText: "release-q4-0a1b2c3d" });
   await expect(row.getByRole("link", { name: "release-q4", exact: true })).toHaveAttribute("href", "/ns/team-a/runs/release-q4");
+});
+
+test("says that a run ended before any step started", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
+    r.fulfill({
+      json: {
+        summary: { namespace: "team-a", name: "broken-run", uid: "u8", phase: "Error", message: "the template etl has no parameter \"dayy\"" },
+        workflow: { metadata: { name: "broken-run", namespace: "team-a" }, spec: { workflowTemplateRef: { name: "etl" } }, status: { phase: "Error" } },
+      },
+    }),
+  );
+  await page.goto("/ns/team-a/runs/broken-run");
+  await expect(page.getByText("The run ended before any step started.")).toBeVisible();
+  await expect(page.getByText("The controller starts it in a moment.")).toHaveCount(0);
 });

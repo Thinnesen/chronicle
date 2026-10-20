@@ -163,7 +163,7 @@ function NamespacePicker() {
         }
       >
         {!params.namespace && pathname !== "/runs" && <option value="">Choose a namespace</option>}
-        {list.length > 1 && <option value={allNamespaces}>All namespaces</option>}
+        {(list.length > 1 || pathname === "/runs") && <option value={allNamespaces}>All namespaces</option>}
         {/* A namespace from a link that is not in the list still shows, so the picker never names another one. */}
         {params.namespace && !list.some((n) => n.name === params.namespace) && <option value={params.namespace}>{params.namespace}</option>}
         {list.map((n) => (

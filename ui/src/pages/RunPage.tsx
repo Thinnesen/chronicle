@@ -192,9 +192,11 @@ export function RunPage() {
         <div className="run-view card" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
           {!hasNodes && tab !== "spec" && (
             <p className="run-waiting quiet">
-              {later
-                ? `The run starts at ${clock(later, new Date(now))}, in ${duration(later.getTime() - now)}.`
-                : "The run has not started yet. The controller starts it in a moment."}
+              {finished.has(phase)
+                ? "The run ended before any step started."
+                : later
+                  ? `The run starts at ${clock(later, new Date(now))}, in ${duration(later.getTime() - now)}.`
+                  : "The run has not started yet. The controller starts it in a moment."}
             </p>
           )}
           {hasNodes && tab === undefined && (

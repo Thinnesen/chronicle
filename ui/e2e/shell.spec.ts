@@ -45,6 +45,12 @@ test("lists the runs of all namespaces", async ({ page }, info) => {
   await expect(page).toHaveURL(/\/ns\/team-b$/);
 });
 
+test("names the view of all namespaces in the picker, also with one namespace", async ({ page }) => {
+  await mockAPI(page, { namespaces: ["team-a"] });
+  await page.goto("/runs");
+  await expect(page.getByRole("combobox", { name: "Namespace" })).toHaveValue("*");
+});
+
 test("opens the only namespace at once", async ({ page }) => {
   await mockAPI(page, { namespaces: ["team-a"] });
   await page.goto("/");
