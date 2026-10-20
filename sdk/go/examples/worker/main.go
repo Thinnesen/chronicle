@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/Thinnesen/chronicle/sdk/go/chronicle"
@@ -27,11 +26,8 @@ func main() {
 }
 
 func run(server, namespace, tokenFile string) error {
-	token, err := os.ReadFile(tokenFile)
-	if err != nil {
-		return fmt.Errorf("read the token: %w", err)
-	}
-	client, err := chronicle.NewClient(server, strings.TrimSpace(string(token)))
+	// The client reads the file for each call, so a projected token that Kubernetes rotates keeps working.
+	client, err := chronicle.NewClientFromTokenFile(server, tokenFile)
 	if err != nil {
 		return err
 	}

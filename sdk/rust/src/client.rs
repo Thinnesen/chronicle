@@ -1,6 +1,7 @@
 //! The client for the chronicle API server. It uses the Connect protocol with JSON.
 
 use std::fmt;
+use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -33,10 +34,22 @@ fn api_error(code: &str, message: impl fmt::Display) -> ApiError {
 /// The API error codes that can go away by themselves, for example while the server restarts.
 const HEALABLE: [&str; 4] = ["unavailable", "unknown", "internal", "deadline_exceeded"];
 
+fn read_token(path: &Path) -> Result<String, ApiError> {
+    let token = std::fs::read_to_string(path)
+        .map_err(|e| api_error("invalid_argument", format!("read the token file: {e}")))?;
+    let token = token.trim();
+    if token.is_empty() {
+        return Err(api_error("invalid_argument", "the token file is empty"));
+    }
+    Ok(token.to_string())
+}
+
 /// Submits workflows. The token is an OIDC ID token, or a service account token with the audience "chronicle".
 pub struct Client {
     server: String,
     token: String,
+    // token_file is read again before each call when it is set.
+    token_file: Option<PathBuf>,
     agent: ureq::Agent,
 }
 
@@ -60,8 +73,18 @@ impl Client {
         Ok(Client {
             server: server.trim_end_matches('/').into(),
             token: token.into(),
+            token_file: None,
             agent,
         })
+    }
+
+    /// Returns a client that reads its token from a file before each call. Use it with a token that Kubernetes
+    /// rotates, such as a projected service account token, so that a long-running worker keeps working.
+    pub fn from_token_file(server: &str, path: impl AsRef<Path>) -> Result<Self, ApiError> {
+        let token = read_token(path.as_ref())?;
+        let mut client = Client::new(server, &token)?;
+        client.token_file = Some(path.as_ref().to_path_buf());
+        Ok(client)
     }
 
     /// Starts a run of the workflow in a namespace and returns the name of the run.
@@ -150,6 +173,13 @@ impl Client {
         }
     }
 
+    fn bearer(&self) -> Result<String, ApiError> {
+        match &self.token_file {
+            Some(path) => read_token(path),
+            None => Ok(self.token.clone()),
+        }
+    }
+
     /// Calls a method of the API. timeout replaces the default of 30 s, for example for a long poll.
     pub(crate) fn call(
         &self,
@@ -164,7 +194,7 @@ impl Client {
             req = req.config().timeout_global(Some(t)).build();
         }
         let mut resp = req
-            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Authorization", format!("Bearer {}", self.bearer()?))
             .send_json(&body)
             .map_err(|e| api_error("unavailable", e))?;
         let status = resp.status();

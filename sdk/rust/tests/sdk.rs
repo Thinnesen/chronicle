@@ -74,16 +74,14 @@ fn reports_mistakes() {
     }
 }
 
-/// serve answers one request with each (status, body) of answers. It returns the first request.
+/// serve answers one request with each (status, body) of answers. It returns the requests.
 fn serve(
     listener: TcpListener,
     answers: Vec<(&'static str, &'static str)>,
-) -> thread::JoinHandle<String> {
+) -> thread::JoinHandle<Vec<String>> {
     thread::spawn(move || {
-        let mut first = String::new();
-        for (i, ((status, answer), stream)) in
-            answers.into_iter().zip(listener.incoming()).enumerate()
-        {
+        let mut all = Vec::new();
+        for ((status, answer), stream) in answers.into_iter().zip(listener.incoming()) {
             let mut stream = stream.unwrap();
             let mut reader = BufReader::new(stream.try_clone().unwrap());
             let mut head = String::new();
@@ -101,16 +99,14 @@ fn serve(
             }
             let mut body = vec![0; length];
             reader.read_exact(&mut body).unwrap();
-            if i == 0 {
-                first = head + &String::from_utf8(body).unwrap();
-            }
+            all.push(head + &String::from_utf8(body).unwrap());
             let resp = format!(
                 "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{answer}",
                 answer.len()
             );
             stream.write_all(resp.as_bytes()).unwrap();
         }
-        first
+        all
     })
 }
 
@@ -134,7 +130,7 @@ fn submits_through_the_api() {
     assert_eq!(client.submit("team-a", &w).unwrap(), "hello-x1");
     let err = client.submit("team-a", &w).unwrap_err();
     assert_eq!(err.code, "permission_denied");
-    let request = server.join().unwrap();
+    let request = server.join().unwrap().remove(0);
     assert!(
         request.starts_with("POST /chronicle.v1.WorkflowService/SubmitWorkflow"),
         "{request}"
@@ -186,9 +182,40 @@ fn submits_a_template_with_parameters() {
         .submit_template("team-a", "cluster/etl", &[("day", "2026-10-19")])
         .unwrap();
     assert_eq!(name, "etl-x1");
-    let request = server.join().unwrap();
+    let request = server.join().unwrap().remove(0);
     let body: Value = serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(body["template"]["name"], "etl");
     assert_eq!(body["template"]["clusterScope"], true);
     assert_eq!(body["parameters"]["day"], "2026-10-19");
+}
+
+#[test]
+fn reads_a_rotated_token_file_again() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let server = serve(
+        listener,
+        vec![
+            ("200 OK", r#"{"summary":{"phase":"Running"}}"#),
+            ("200 OK", r#"{"summary":{"phase":"Running"}}"#),
+        ],
+    );
+    let file = std::env::temp_dir().join(format!("chronicle-token-{}", std::process::id()));
+    std::fs::write(&file, "first\n").unwrap();
+    let client = Client::from_token_file(&url, &file).unwrap();
+    client.phase("team-a", "x").unwrap();
+    std::fs::write(&file, "second").unwrap();
+    client.phase("team-a", "x").unwrap();
+    let requests = server.join().unwrap();
+    let _ = std::fs::remove_file(&file);
+    assert!(
+        requests[0].to_lowercase().contains("bearer first"),
+        "{}",
+        requests[0]
+    );
+    assert!(
+        requests[1].to_lowercase().contains("bearer second"),
+        "{}",
+        requests[1]
+    );
 }

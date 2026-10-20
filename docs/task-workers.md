@@ -41,6 +41,33 @@ kubectl create rolebinding mail-worker -n team-a --clusterrole=chronicle-task-wo
 kubectl create token mail-worker -n team-a --audience=chronicle   # or a projected token in the worker Pod
 ```
 
+In the cluster, run the worker as a Deployment with a projected token. Kubernetes rotates the token file, so the worker must read it again: build the client with `NewClientFromTokenFile` (Go), `Client.from_token_file` (Python) or `Client::from_token_file` (Rust).
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: mail-worker, namespace: team-a}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: mail-worker}}
+  template:
+    metadata: {labels: {app: mail-worker}}
+    spec:
+      serviceAccountName: mail-worker
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: worker
+        image: registry.example.com/mail-worker@sha256:<digest>
+        args: [--server, https://chronicle.example.com, --namespace, team-a, --token-file, /var/run/chronicle/token]
+        securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+        volumeMounts: [{name: token, mountPath: /var/run/chronicle, readOnly: true}]
+      volumes:
+      - name: token
+        projected:
+          sources: [{serviceAccountToken: {audience: chronicle, expirationSeconds: 3600, path: token}}]
+```
+
 ## 3. Run the worker
 
 Go:

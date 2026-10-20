@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -59,8 +61,9 @@ type submitStub struct {
 }
 
 func (s *submitStub) GetWorkflow(
-	context.Context, *connect.Request[chroniclev1.GetWorkflowRequest],
+	_ context.Context, r *connect.Request[chroniclev1.GetWorkflowRequest],
 ) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
+	s.auth = r.Header().Get("Authorization")
 	p := s.phases[0]
 	if len(s.phases) > 1 {
 		s.phases = s.phases[1:]
@@ -133,5 +136,40 @@ func TestSubmitTemplate(t *testing.T) {
 	src := stub.req.GetTemplate()
 	if src.GetName() != "etl" || !src.GetClusterScope() || stub.req.Parameters["day"] != "2026-10-19" {
 		t.Errorf("request = %+v", stub.req)
+	}
+}
+
+// TestTokenFile checks that a client reads a rotated token file again, as Kubernetes rotates a projected token.
+func TestTokenFile(t *testing.T) {
+	stub := &submitStub{phases: []string{"Running", "Running"}}
+	mux := http.NewServeMux()
+	mux.Handle(chroniclev1connect.NewWorkflowServiceHandler(stub))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	file := filepath.Join(t.TempDir(), "token")
+	if err := os.WriteFile(file, []byte("first\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := NewClientFromTokenFile(srv.URL, file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen []string
+	for _, tok := range []string{"", "second"} {
+		if tok != "" {
+			if err := os.WriteFile(file, []byte(tok), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := c.Phase(context.Background(), "team-a", "x"); err != nil {
+			t.Fatal(err)
+		}
+		seen = append(seen, stub.auth)
+	}
+	if seen[0] != "Bearer first" || seen[1] != "Bearer second" {
+		t.Errorf("tokens = %v", seen)
+	}
+	if _, err := NewClientFromTokenFile(srv.URL, filepath.Join(t.TempDir(), "none")); err == nil {
+		t.Error("a missing token file must fail")
 	}
 }

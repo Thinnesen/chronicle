@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -30,11 +31,27 @@ func NewClient(server, token string) (*Client, error) {
 	if server == "" || token == "" {
 		return nil, errors.New("give the server URL and a token")
 	}
-	hc := &http.Client{Transport: bearer{token: token, next: http.DefaultTransport}}
+	return newClient(server, bearer{token: token, next: http.DefaultTransport}), nil
+}
+
+// NewClientFromTokenFile returns a client that reads its token from a file before each call. Use it with a token
+// that Kubernetes rotates, such as a projected service account token, so that a long-running worker keeps working.
+func NewClientFromTokenFile(server, path string) (*Client, error) {
+	if server == "" {
+		return nil, errors.New("give the server URL")
+	}
+	if _, err := readToken(path); err != nil {
+		return nil, err
+	}
+	return newClient(server, bearer{file: path, next: http.DefaultTransport}), nil
+}
+
+func newClient(server string, rt http.RoundTripper) *Client {
+	hc := &http.Client{Transport: rt}
 	return &Client{
 		Workflows: chroniclev1connect.NewWorkflowServiceClient(hc, server),
 		Tasks:     chroniclev1connect.NewTaskServiceClient(hc, server),
-	}, nil
+	}
 }
 
 // Submit starts a run of the workflow in a namespace and returns the name of the run.
@@ -116,13 +133,35 @@ func healable(err error) bool {
 }
 
 // bearer adds the token to each request.
+// bearer sends the token, or the token in a file, which it reads again for each call.
 type bearer struct {
 	token string
+	file  string
 	next  http.RoundTripper
 }
 
 func (b bearer) RoundTrip(r *http.Request) (*http.Response, error) {
+	token := b.token
+	if b.file != "" {
+		t, err := readToken(b.file)
+		if err != nil {
+			return nil, err
+		}
+		token = t
+	}
 	r = r.Clone(r.Context())
-	r.Header.Set("Authorization", "Bearer "+b.token)
+	r.Header.Set("Authorization", "Bearer "+token)
 	return b.next.RoundTrip(r)
+}
+
+func readToken(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read the token file: %w", err)
+	}
+	t := strings.TrimSpace(string(data))
+	if t == "" {
+		return "", fmt.Errorf("the token file %s is empty", path)
+	}
+	return t, nil
 }

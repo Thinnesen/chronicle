@@ -138,3 +138,21 @@ def test_wait():
         assert not answers
     finally:
         server.shutdown()
+
+
+def test_token_file(tmp_path):
+    """The client reads a rotated token file again, as Kubernetes rotates a projected token."""
+    server = HTTPServer(("127.0.0.1", 0), _Stub)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        token = tmp_path / "token"
+        token.write_text("first\n")
+        client = chronicle.Client.from_token_file(f"http://127.0.0.1:{server.server_port}", token)
+        client.phase("team-a", "x")
+        token.write_text("second")
+        client.phase("team-a", "x")
+        assert [r[1] for r in _Stub.requests[-2:]] == ["Bearer first", "Bearer second"]
+        with pytest.raises(OSError):
+            chronicle.Client.from_token_file("http://127.0.0.1:1", tmp_path / "none")
+    finally:
+        server.shutdown()

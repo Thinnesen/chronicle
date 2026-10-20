@@ -12,8 +12,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let [server, namespace, token_file] = args.as_slice() else {
         return Err("usage: worker <server> <namespace> <token-file>".into());
     };
-    let token = std::fs::read_to_string(token_file)?;
-    let mut worker = Worker::new(Client::new(server, token.trim())?, namespace).concurrency(2);
+    // The client reads the file for each call, so a projected token that Kubernetes rotates keeps working.
+    let mut worker =
+        Worker::new(Client::from_token_file(server, token_file)?, namespace).concurrency(2);
     worker.register("rust-greet", |input, _| {
         Ok(json!({"greeting": format!("Rust says hello to {}", input["who"])}))
     });

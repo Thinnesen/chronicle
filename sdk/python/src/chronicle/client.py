@@ -7,6 +7,7 @@ import ssl
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -17,6 +18,13 @@ _PREFIX = "/chronicle.v1."
 
 # _HEALABLE are the API error codes that can go away by themselves, for example while the server restarts.
 _HEALABLE = frozenset({"unavailable", "unknown", "internal", "deadline_exceeded"})
+
+
+def _read_token(path: Path) -> str:
+    token = path.read_text().strip()
+    if not token:
+        raise ValueError(f"the token file {path} is empty")
+    return token
 
 
 class APIError(RuntimeError):
@@ -41,8 +49,20 @@ class Client:
             raise ValueError("give a token")
         self._server = server.rstrip("/")
         self._token = token
+        self._token_file: Path | None = None
         self._timeout = timeout
         self._context = context
+
+    @classmethod
+    def from_token_file(cls, server: str, path: str | Path, **kwargs: Any) -> Client:
+        """Return a client that reads its token from a file before each call.
+
+        Use it with a token that Kubernetes rotates, such as a projected service account token, so that a long-running
+        worker keeps working. A file that cannot be read raises OSError.
+        """
+        client = cls(server, _read_token(Path(path)), **kwargs)
+        client._token_file = Path(path)
+        return client
 
     def submit(self, namespace: str, workflow: Workflow) -> str:
         """Start a run of the workflow in a namespace and return the name of the run."""
@@ -85,13 +105,16 @@ class Client:
                 raise TimeoutError(f"the run {name} did not finish in {timeout} seconds")
             time.sleep(interval)
 
+    def _bearer(self) -> str:
+        return _read_token(self._token_file) if self._token_file else self._token
+
     def _call(
         self, method: str, body: dict[str, Any], service: str = "WorkflowService", timeout: float | None = None
     ) -> dict[str, Any]:
         request = urllib.request.Request(  # noqa: S310 - the scheme is checked in __init__
             self._server + _PREFIX + service + "/" + method,
             data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": "Bearer " + self._token},
+            headers={"Content-Type": "application/json", "Authorization": "Bearer " + self._bearer()},
             method="POST",
         )
         try:

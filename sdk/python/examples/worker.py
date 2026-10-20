@@ -18,7 +18,8 @@ def main() -> None:
     parser.add_argument("--namespace", default="default")
     parser.add_argument("--token-file", type=Path, required=True)
     args = parser.parse_args()
-    client = chronicle.Client(args.server, args.token_file.read_text().strip())
+    # The client reads the file for each call, so a projected token that Kubernetes rotates keeps working.
+    client = chronicle.Client.from_token_file(args.server, args.token_file)
     worker = chronicle.Worker(client, args.namespace, concurrency=2)
 
     @worker.task("python-greet")
