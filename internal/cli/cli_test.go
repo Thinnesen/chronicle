@@ -16,6 +16,7 @@ import (
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -52,6 +53,7 @@ type stub struct {
 	exitHandler   bool               // the run has an exit handler node
 	clusterHidden bool               // the caller may not list cluster templates
 	child         bool               // the run is a child run, and its node a starts a child run
+	startAt       *time.Time         // the start time of a run that waits for it
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -99,7 +101,7 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 	wf, _ := structpb.NewStruct(map[string]any{"metadata": meta, "spec": spec, "status": status})
 	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf, Tries: s.tries,
 		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: phase, NodesTotal: 1,
-			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil, Parent: parent}}), nil
+			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil, Parent: parent, StartAt: startAt(s.startAt)}}), nil
 }
 
 func (s *stub) ListWorkflows(_ context.Context, r *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
@@ -285,6 +287,21 @@ func TestDeleteAndNamespaces(t *testing.T) {
 	out, err = run(t, s, "namespaces")
 	if err != nil || out != "team-a\tsubmit\nteam-b\tview\n" {
 		t.Errorf("namespaces: err %v, output %q", err, out)
+	}
+}
+
+func startAt(t *time.Time) *timestamppb.Timestamp {
+	if t == nil {
+		return nil
+	}
+	return timestamppb.New(*t)
+}
+
+func TestGetWaiting(t *testing.T) {
+	at := time.Date(2026, 10, 21, 3, 0, 0, 0, time.UTC)
+	out, err := run(t, &stub{phase: "Pending", startAt: &at}, "get", "later")
+	if err != nil || !strings.Contains(out, "Starts:    "+at.Local().Format(time.DateTime)) {
+		t.Errorf("err %v, output:\n%s", err, out)
 	}
 }
 

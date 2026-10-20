@@ -107,6 +107,9 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 	if s.Message != "" {
 		_, _ = fmt.Fprintf(out, "Message:   %s\n", s.Message)
 	}
+	if s.StartAt != nil {
+		_, _ = fmt.Fprintf(out, "Starts:    %s\n", s.StartAt.AsTime().Local().Format(time.DateTime))
+	}
 	if s.StartedAt != nil {
 		started := s.StartedAt.AsTime().Local().Format(time.DateTime)
 		_, _ = fmt.Fprintf(out, "Started:   %s\nDuration:  %s\n", started, took(wf.Status.StartedAt, wf.Status.FinishedAt))
