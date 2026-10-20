@@ -41,6 +41,8 @@ func TestStreamLogs(t *testing.T) {
 		// The init container of logs.d failed, so its main container never started and has no log.
 		"logs-4": {ID: "logs-4", Name: "logs.d", Type: v1alpha1.NodePod, PodName: "logs-4", Phase: v1alpha1.NodeError, Message: `input artifact "x": not found`,
 			StartedAt: &metav1.Time{Time: time.Unix(40, 0)}},
+		// The Pod of logs.e was deleted, and the namespace does not archive logs.
+		"logs-5": {ID: "logs-5", Name: "logs.e", Type: v1alpha1.NodePod, PodName: "logs-5", Phase: v1alpha1.NodeSucceeded, StartedAt: &metav1.Time{Time: time.Unix(50, 0)}},
 	}
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)
@@ -60,6 +62,9 @@ func TestStreamLogs(t *testing.T) {
 		mu.Unlock()
 		if pod == "logs-4" {
 			return nil, apierrors.NewBadRequest(`container "main" in pod "logs-4" is waiting to start: PodInitializing`)
+		}
+		if pod == "logs-5" {
+			return nil, apierrors.NewNotFound(corev1.Resource("pods"), pod)
 		}
 		return io.NopCloser(strings.NewReader("2026-01-01T00:00:00.5Z hello from " + pod + "\nno time here\n")), nil
 	}
@@ -98,8 +103,12 @@ func TestStreamLogs(t *testing.T) {
 	if _, err := stream("alice", "logs.d"); code(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), `the step did not start: input artifact "x": not found`) {
 		t.Errorf("a step whose main container never started: %v", err)
 	}
-	if len(tails) != 5 || tails[0] != 5 {
+	if len(tails) != 6 || tails[0] != 5 {
 		t.Errorf("tail lines = %v", tails)
+	}
+	// A whole run leaves out a step without a log; the log of that one step is an error.
+	if _, err := stream("alice", "logs.e"); code(err) != connect.CodeNotFound {
+		t.Errorf("a step whose Pod was deleted: %v", err)
 	}
 	if _, err := stream("alice", "logs.c"); code(err) != connect.CodeFailedPrecondition {
 		t.Errorf("a step that has not started: %v", err)

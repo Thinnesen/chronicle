@@ -77,6 +77,11 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 			}
 			continue
 		}
+		// The log of a whole run leaves out a step whose Pod is gone without an archived log. The other steps still
+		// have their logs.
+		if apierrors.IsNotFound(err) && m.Node == "" {
+			continue
+		}
 		errs = append(errs, err)
 	}
 	return toConnect(errors.Join(errs...))

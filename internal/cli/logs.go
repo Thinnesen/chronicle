@@ -58,7 +58,11 @@ func (a *app) printLogs(ctx context.Context, client chroniclev1connect.LogServic
 	for {
 		err := a.streamLogs(ctx, client, req, req.Node != "", printed)
 		if err == nil && len(printed) == 0 && !req.Follow {
-			_, _ = fmt.Fprintln(a.errOut, "No step of the run has a log yet. Use -f to wait for the steps.")
+			if req.Try != nil {
+				_, _ = fmt.Fprintln(a.errOut, "No step of this try has a log.")
+			} else {
+				_, _ = fmt.Fprintln(a.errOut, "No step of the run has a log yet. Use -f to wait for the steps.")
+			}
 		}
 		// With --tail, a new stream starts at another line, so the command cannot skip the printed lines.
 		if err == nil || !req.Follow || req.TailLines > 0 || !healable(err) {
