@@ -17,12 +17,13 @@ import (
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
-// maxListNamespaces limits a list of all namespaces, because it lists each namespace as the caller.
-const maxListNamespaces = 100
+// maxListNamespaces limits a list of all namespaces, because it lists each namespace as the caller. A caller who may
+// list Workflows in the whole cluster gets one list instead, without this limit. Tests change it.
+var maxListNamespaces = 100
 
 func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
 	m := req.Msg
-	namespaces, err := s.listNamespaces(ctx, m)
+	namespaces, cluster, err := s.listNamespaces(ctx, m)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +31,7 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 	if err != nil {
 		return nil, err
 	}
-	live, err := s.liveRuns(ctx, m, namespaces, after)
+	live, err := s.liveRuns(ctx, m, namespaces, cluster, after)
 	if err != nil {
 		return nil, err
 	}
@@ -56,33 +57,40 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 }
 
 // listNamespaces returns the namespaces of a list: the one of the request, or all where the caller can list Workflows.
-func (s *workflowService) listNamespaces(ctx context.Context, m *chroniclev1.ListWorkflowsRequest) ([]string, error) {
+// cluster is true when the caller may list Workflows in the whole cluster.
+func (s *workflowService) listNamespaces(ctx context.Context, m *chroniclev1.ListWorkflowsRequest) (names []string, cluster bool, err error) {
 	if !m.AllNamespaces {
 		if m.Namespace == "" {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("give a namespace"))
+			return nil, false, connect.NewError(connect.CodeInvalidArgument, errors.New("give a namespace"))
 		}
-		return []string{m.Namespace}, nil
+		return []string{m.Namespace}, false, nil
 	}
 	if m.Namespace != "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("give a namespace or all namespaces, not both"))
+		return nil, false, connect.NewError(connect.CodeInvalidArgument, errors.New("give a namespace or all namespaces, not both"))
 	}
+	c, err := s.clients.clientFor(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	cluster = allowed(ctx, c, "", "list")
 	access, err := s.namespaces.access(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	if len(access) > maxListNamespaces {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
+	if !cluster && len(access) > maxListNamespaces {
+		return nil, false, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("you can see %d namespaces, and a list of all namespaces has at most %d: choose a namespace", len(access), maxListNamespaces))
 	}
-	names := make([]string, len(access))
+	names = make([]string, len(access))
 	for i, a := range access {
 		names[i] = a.Name
 	}
-	return names, nil
+	return names, cluster, nil
 }
 
 // liveRuns lists the Workflows of the namespaces as the caller, after the cursor and in the phases of the request.
-func (s *workflowService) liveRuns(ctx context.Context, m *chroniclev1.ListWorkflowsRequest, namespaces []string, after *cursor) ([]v1alpha1.Workflow, error) {
+func (s *workflowService) liveRuns(ctx context.Context, m *chroniclev1.ListWorkflowsRequest, namespaces []string, cluster bool,
+	after *cursor) ([]v1alpha1.Workflow, error) {
 	c, err := s.clients.clientFor(ctx)
 	if err != nil {
 		return nil, err
@@ -92,6 +100,13 @@ func (s *workflowService) liveRuns(ctx context.Context, m *chroniclev1.ListWorkf
 		if sel, err = labels.Parse(m.LabelSelector); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
+	}
+	if cluster {
+		live, err := listIn(ctx, c, "", sel)
+		if err != nil {
+			return nil, toConnect(err)
+		}
+		return keep(live, m, namespaces, after), nil
 	}
 	lists := make([][]v1alpha1.Workflow, len(namespaces))
 	errs := make([]error, len(namespaces))
@@ -110,11 +125,15 @@ func (s *workflowService) liveRuns(ctx context.Context, m *chroniclev1.ListWorkf
 			return nil, toConnect(err)
 		}
 	}
-	live := slices.Concat(lists...)
+	return keep(slices.Concat(lists...), m, namespaces, after), nil
+}
+
+// keep removes the runs outside the namespaces and the phases of the request, and those before the cursor.
+func keep(live []v1alpha1.Workflow, m *chroniclev1.ListWorkflowsRequest, namespaces []string, after *cursor) []v1alpha1.Workflow {
 	return slices.DeleteFunc(live, func(wf v1alpha1.Workflow) bool {
-		return len(m.Phases) > 0 && !slices.Contains(m.Phases, string(wf.Status.Phase)) ||
+		return !slices.Contains(namespaces, wf.Namespace) || len(m.Phases) > 0 && !slices.Contains(m.Phases, string(wf.Status.Phase)) ||
 			after.before(wf.CreationTimestamp.Time, wf.Name, wf.Namespace)
-	}), nil
+	})
 }
 
 // listIn lists the Workflows of one namespace. The UI polls this list. ResourceVersion "0" serves it from the watch

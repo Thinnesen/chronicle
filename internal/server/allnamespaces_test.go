@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -63,6 +64,29 @@ func TestListAllNamespaces(t *testing.T) {
 		if k[:7] != "team-a/" && k[:7] != "team-c/" {
 			t.Errorf("erin saw %s outside her namespaces", k)
 		}
+	}
+
+	// A user who may list Workflows in the whole cluster gets one cluster-wide list, without the limit of namespaces.
+	for _, o := range []client.Object{
+		&rbacv1.ClusterRole{Name: "chronicle-test-reader", Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{"chronicle.thinnesen.com"}, Resources: []string{"workflows"}, Verbs: []string{"get", "list"},
+		}}},
+		&rbacv1.ClusterRoleBinding{Name: "chronicle-test-olga",
+			RoleRef:  rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: "chronicle-test-reader"},
+			Subjects: []rbacv1.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: "olga"}}},
+	} {
+		if err := admin.Create(ctx, o); client.IgnoreAlreadyExists(err) != nil {
+			t.Fatal(err)
+		}
+	}
+	defer func(old int) { maxListNamespaces = old }(maxListNamespaces)
+	maxListNamespaces = 1
+	all, err := newClient(srv, "olga").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{AllNamespaces: true}))
+	if err != nil || !slices.ContainsFunc(all.Msg.Workflows, func(w *chroniclev1.WorkflowSummary) bool { return w.Namespace == "team-d" }) {
+		t.Errorf("olga: %v", err)
+	}
+	if _, err := newClient(srv, "erin").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{AllNamespaces: true})); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Errorf("erin over the limit: %v", err)
 	}
 
 	none, err := newClient(srv, "bob").ListWorkflows(ctx, connect.NewRequest(&chroniclev1.ListWorkflowsRequest{AllNamespaces: true}))

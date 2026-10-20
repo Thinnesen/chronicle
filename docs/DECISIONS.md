@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A list of all namespaces uses one cluster-wide list when the caller may list Workflows in the whole cluster, for example a platform admin. Then the limit of 100 namespaces does not apply. Other callers keep the list for each namespace, as the caller.
+
 - 2026-10-20: The controller counts the depth of a child run from the chain of parent runs that exist and control it, not from the depth annotation, which a user can write. The annotation stays for people. The walk stops at the limit (10). Found by the security review of the child runs. The review also found that a user can create a Workflow that poses as a child run of their own run, with a fake owner reference, before the controller creates the real one. That stays inside the namespace of the user, who can already change the parent run, so chronicle accepts it.
 
 - 2026-10-20: A Workflow that references a template can give only the parameters that the template declares. Before, the controller added an unknown parameter, which no step could use, so a typo fell back to the default without a sign. The submit API refused it already; now child runs, kubectl and cron runs get the same rule, and such a run ends in Error with the name of the parameter. Found by soak test 2 (T2).
