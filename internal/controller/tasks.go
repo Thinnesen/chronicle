@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +23,8 @@ type TaskQueue interface {
 
 // observeTasks returns the state of the tasks of a workflow by task ID.
 func (r *WorkflowReconciler) observeTasks(ctx context.Context, wf *chroniclev1alpha1.Workflow) (map[string]engine.TaskResult, error) {
-	if r.Tasks == nil {
+	// Only an open task node needs the queue. So an outage of its database stops only the runs with task workers.
+	if r.Tasks == nil || !slices.ContainsFunc(slices.Collect(maps.Values(wf.Status.Nodes)), openTask) {
 		return nil, nil
 	}
 	list, err := r.Tasks.ForWorkflow(ctx, string(wf.UID))
@@ -33,6 +36,10 @@ func (r *WorkflowReconciler) observeTasks(ctx context.Context, wf *chroniclev1al
 		out[t.ID] = taskResult(t)
 	}
 	return out, nil
+}
+
+func openTask(n chroniclev1alpha1.NodeStatus) bool {
+	return n.Type == chroniclev1alpha1.NodeTask && n.FinishedAt == nil
 }
 
 func taskResult(t archive.Task) engine.TaskResult {
