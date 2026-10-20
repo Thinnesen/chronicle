@@ -99,7 +99,11 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 		return fmt.Errorf("unknown output format %q: use yaml or json", format)
 	}
 	s := resp.Summary
-	_, _ = fmt.Fprintf(out, "Name:      %s/%s\nPhase:     %s\n", s.Namespace, s.Name, cmpOr(s.Phase, "Pending"))
+	_, _ = fmt.Fprintf(out, "Name:      %s/%s\n", s.Namespace, s.Name)
+	if parent := wf.Annotations["chronicle.thinnesen.com/parent"]; parent != "" {
+		_, _ = fmt.Fprintf(out, "Parent:    %s\n", parent)
+	}
+	_, _ = fmt.Fprintf(out, "Phase:     %s\n", cmpOr(s.Phase, "Pending"))
 	if s.Message != "" {
 		_, _ = fmt.Fprintf(out, "Message:   %s\n", s.Message)
 	}
@@ -150,7 +154,11 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 }
 
 func printNode(out io.Writer, all map[string]v1alpha1.NodeStatus, n v1alpha1.NodeStatus, indent string) {
-	_, _ = fmt.Fprintf(out, "%s%s %s\t%s\t%s\n", indent, symbol(n.Phase), cmpOr(n.DisplayName, n.Name), took(n.StartedAt, n.FinishedAt), n.Message)
+	msg := n.Message
+	if msg == "" && n.ChildWorkflow != "" {
+		msg = "child run " + n.ChildWorkflow
+	}
+	_, _ = fmt.Fprintf(out, "%s%s %s\t%s\t%s\n", indent, symbol(n.Phase), cmpOr(n.DisplayName, n.Name), took(n.StartedAt, n.FinishedAt), msg)
 	for _, id := range n.Children {
 		printNode(out, all, all[id], indent+"  ")
 	}

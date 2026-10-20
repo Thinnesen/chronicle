@@ -2,7 +2,7 @@ import "@xyflow/react/dist/style.css";
 import "./RunGraph.css";
 
 import { Background, Controls, Handle, Position, ReactFlow, useNodesInitialized, useReactFlow, useViewport, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
-import { Box, ChevronsDown, Cpu, Globe, Hand, Timer } from "lucide-react";
+import { Box, ChevronsDown, Cpu, Globe, Hand, Timer, Workflow as ChildIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { fold } from "../lib/fold";
@@ -35,7 +35,7 @@ function meta(n: NodeStatus, data: NodeData): string {
   return waitReason(n) ?? (nodeDuration(n, data.now) || n.phase || "Pending");
 }
 
-const kindIcon = { Pod: Box, Task: Cpu, Suspend: Hand } as const;
+const kindIcon = { Pod: Box, Task: Cpu, Suspend: Hand, ChildWorkflow: ChildIcon } as const;
 
 function Handles({ vertical }: { vertical: boolean }) {
   return (

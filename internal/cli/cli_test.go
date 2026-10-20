@@ -49,6 +49,7 @@ type stub struct {
 	tries         []*chroniclev1.Try // the earlier tries of the run
 	exitHandler   bool               // the run has an exit handler node
 	clusterHidden bool               // the caller may not list cluster templates
+	child         bool               // the run is a child run, and its node a starts a child run
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {
@@ -86,7 +87,13 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 		// An earlier try comes from the archive, with its own retry count.
 		phase, status["restarts"] = fmt.Sprintf("Failed in try %d", *r.Msg.Try), *r.Msg.Try
 	}
-	wf, _ := structpb.NewStruct(map[string]any{"metadata": map[string]any{"name": r.Msg.Name}, "spec": spec, "status": status})
+	meta := map[string]any{"name": r.Msg.Name}
+	if s.child {
+		meta["annotations"] = map[string]any{"chronicle.thinnesen.com/parent": "release-q4"}
+		n1 := nodes["n1"].(map[string]any)
+		n1["type"], n1["childWorkflow"] = "ChildWorkflow", r.Msg.Name+"-0a1b2c3d"
+	}
+	wf, _ := structpb.NewStruct(map[string]any{"metadata": meta, "spec": spec, "status": status})
 	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf, Tries: s.tries,
 		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: phase, NodesTotal: 1,
 			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil}}), nil
@@ -227,6 +234,13 @@ func TestCommands(t *testing.T) {
 		if _, err := run(t, s, bad...); err == nil {
 			t.Errorf("%v returned no error", bad)
 		}
+	}
+}
+
+func TestGetChild(t *testing.T) {
+	out, err := run(t, &stub{phase: "Running", child: true}, "get", "nightly")
+	if err != nil || !strings.Contains(out, "Parent:    release-q4") || !strings.Contains(out, "child run nightly-0a1b2c3d") {
+		t.Errorf("err %v, output:\n%s", err, out)
 	}
 }
 

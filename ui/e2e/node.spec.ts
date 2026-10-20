@@ -117,3 +117,31 @@ test("a step that cannot start opens on its events and explains the empty log", 
   await expect(panel).toContainText("The step has not started yet.");
   await expect(panel.getByRole("alert")).toHaveCount(0);
 });
+
+test("links a child run and its parent", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
+    r.fulfill({
+      json: {
+        summary: { namespace: "team-a", name: "nightly-x1", uid: "u7", phase: "Running", nodesDone: 0, nodesTotal: 1 },
+        workflow: {
+          metadata: { name: "nightly-x1", namespace: "team-a", annotations: { "chronicle.thinnesen.com/parent": "release-q4" } },
+          spec: { templates: [{ name: "load", childWorkflow: { workflowTemplateRef: { name: "etl" } } }] },
+          status: {
+            phase: "Running",
+            nodes: { c1: { id: "c1", name: "nightly-x1", displayName: "nightly-x1", type: "ChildWorkflow", templateName: "load", phase: "Running", childWorkflow: "nightly-x1-0a1b2c3d", startedAt: "2026-10-18T13:59:00Z" } },
+          },
+        },
+        tries: [],
+      },
+    }),
+  );
+  await page.goto("/ns/team-a/runs/nightly-x1?node=c1");
+  await expect(page.getByRole("link", { name: "release-q4" })).toHaveAttribute("href", "/ns/team-a/runs/release-q4");
+  const drawer = page.getByRole("complementary", { name: "Step nightly-x1" });
+  await expect(drawer.locator("dt", { hasText: "Child run" }).locator("+ dd").getByRole("link", { name: "nightly-x1-0a1b2c3d" })).toHaveAttribute(
+    "href",
+    "/ns/team-a/runs/nightly-x1-0a1b2c3d",
+  );
+  await expect(drawer.getByRole("tab", { name: "Logs" })).toHaveCount(0);
+});

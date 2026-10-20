@@ -14,7 +14,7 @@ import { RefreshError } from "../components/RefreshError";
 import { TryContext } from "../lib/tryContext";
 import { ago, clock, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { nodeLabel, plannedSteps, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
+import { nodeLabel, parentOf, plannedSteps, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
 import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
 import { useTitle } from "../lib/useTitle";
@@ -63,6 +63,7 @@ export function RunPage() {
   // A run with a start time in the future waits for it, with the phase Pending.
   const startAt = !started && wf.spec.startAt ? new Date(wf.spec.startAt) : undefined;
   const later = startAt && startAt.getTime() > now ? startAt : undefined;
+  const parent = parentOf(wf);
   const nodes = wf.status?.nodes ?? {};
   const node = selected ? nodes[selected] : undefined;
   // Before the first reconcile, a new run has no nodes yet.
@@ -87,6 +88,16 @@ export function RunPage() {
               <dd>
                 <Link to="/ns/$namespace/templates/$name" params={{ namespace, name: s.template }}>
                   {s.template}
+                </Link>
+              </dd>
+            </div>
+          )}
+          {parent && (
+            <div>
+              <dt>Parent</dt>
+              <dd>
+                <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: parent }} search={{}}>
+                  {parent}
                 </Link>
               </dd>
             </div>

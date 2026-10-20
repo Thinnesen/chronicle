@@ -13,7 +13,7 @@ export interface NodeStatus {
   id: string;
   name: string;
   displayName?: string;
-  type: "Pod" | "DAG" | "Steps" | "StepGroup" | "TaskGroup" | "Retry" | "Suspend" | "Task";
+  type: "Pod" | "DAG" | "Steps" | "StepGroup" | "TaskGroup" | "Retry" | "Suspend" | "Task" | "ChildWorkflow";
   templateName?: string;
   phase?: string;
   startedAt?: string;
@@ -21,6 +21,8 @@ export interface NodeStatus {
   message?: string;
   children?: string[];
   podName?: string;
+  // childWorkflow is the name of the child run of a ChildWorkflow node.
+  childWorkflow?: string;
   logKey?: string;
   // planned is true for a DAG task or a step that has not started yet. Only the graph draws it.
   planned?: boolean;
@@ -67,6 +69,7 @@ export interface Template {
   steps?: { name: string; template?: string }[][];
   task?: { name: string };
   http?: { url: string; method?: string };
+  childWorkflow?: { workflowTemplateRef: { name: string; clusterScope?: boolean } };
   container?: { volumeMounts?: VolumeMount[] };
   script?: { volumeMounts?: VolumeMount[] };
 }
@@ -78,7 +81,7 @@ export interface VolumeMount {
 }
 
 export interface Workflow {
-  metadata: { name: string; namespace: string; creationTimestamp?: string };
+  metadata: { name: string; namespace: string; creationTimestamp?: string; annotations?: Record<string, string> };
   spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; startAt?: string; approvals?: { node: string }[] };
   status?: {
     phase?: string;
@@ -94,9 +97,9 @@ export interface GraphEdge {
   to: string;
 }
 
-// A station does work (a Pod, a task or a suspend). A junction only groups other nodes.
+// A station does work (a Pod, a task, a suspend or a child run). A junction only groups other nodes.
 export function isStation(n: NodeStatus): boolean {
-  return n.type === "Pod" || n.type === "Suspend" || n.type === "Task";
+  return n.type === "Pod" || n.type === "Suspend" || n.type === "Task" || n.type === "ChildWorkflow";
 }
 
 // buildGraph returns the edges between the nodes of a run. The status has a tree (parent to children). The edges
@@ -176,6 +179,7 @@ export function withPlan(wf: Workflow): Record<string, NodeStatus> {
     if (t?.dag) return "DAG";
     if (t?.steps) return "Steps";
     if (t?.suspend) return "Suspend";
+    if (t?.childWorkflow) return "ChildWorkflow";
     return t?.task ? "Task" : "Pod";
   };
   const out = { ...nodes };
@@ -310,4 +314,9 @@ export function previewOf(template: { metadata?: { name?: string; namespace?: st
     spec,
     status: { nodes: { [name]: { id: name, name, type: "DAG", templateName: entry.name } } },
   };
+}
+
+// parentOf returns the name of the parent run of a child run, or undefined.
+export function parentOf(wf: Workflow): string | undefined {
+  return wf.metadata.annotations?.["chronicle.thinnesen.com/parent"];
 }

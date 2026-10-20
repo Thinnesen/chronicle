@@ -167,6 +167,16 @@ function Details({ node, namespace, mounts }: { node: NodeStatus; namespace: str
             <dd>{node.templateName}</dd>
           </>
         )}
+        {node.childWorkflow && (
+          <>
+            <dt>Child run</dt>
+            <dd>
+              <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: node.childWorkflow }}>
+                {node.childWorkflow}
+              </Link>
+            </dd>
+          </>
+        )}
         {node.cache && (
           <>
             <dt>Cache</dt>
