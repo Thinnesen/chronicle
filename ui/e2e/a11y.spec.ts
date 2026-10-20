@@ -8,8 +8,11 @@ const pages = [
   "/ns/team-a",
   "/ns/team-a/runs/etl-nightly-8k2pq?node=n1",
   "/ns/team-a/runs/etl-nightly-8k2pq?tab=timeline",
+  "/ns/team-a/runs/etl-nightly-8k2pq?node=n5",
+  "/ns/team-a/runs/etl-nightly-8k2pq?node=n6",
   "/ns/team-a/templates",
   "/ns/team-a/templates/deploy-api",
+  "/ns/team-a/cron",
   "/ns/team-a/cron/etl-nightly",
   "/ns/team-a/tasks",
 ];
@@ -17,7 +20,8 @@ const pages = [
 for (const scheme of ["light", "dark"] as const) {
   test(`has no accessibility violations in ${scheme} mode`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
-    await mockAPI(page);
+    // A waiting approval and a step that cannot start add the warning colors to the pages.
+    await mockAPI(page, { gate: true, stuck: true });
     for (const path of pages) {
       await page.goto(path);
       await page.getByRole("banner").waitFor();
