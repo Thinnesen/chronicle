@@ -133,6 +133,18 @@ func TestRules(t *testing.T) {
 			want: []string{"method: POST", "secretKeyRef:", "http.successCondition: chronicle has no expressions", "http.timeoutSeconds: chronicle does not support"},
 		},
 		{
+			name: "a sequence with a format",
+			templates: "  - {name: main, steps: [[{name: s, template: c, withSequence: {start: \"9\", count: \"2\", format: \"day-%02d\"}, " +
+				"arguments: {parameters: [{name: i, value: '{{item}}'}]}}]]}\n" +
+				"  - {name: c, inputs: {parameters: [{name: i}]}, container: {image: x, args: ['{{inputs.parameters.i}}']}}",
+			want: []string{"- day-09\n", "- day-10\n"},
+		},
+		{
+			name:      "a sequence with a format that is not one number",
+			templates: "  - {name: main, steps: [[{name: s, template: c, withSequence: {count: \"2\", format: \"%s-%d\"}}]]}\n  - {name: c, container: {image: x}}",
+			err:       "format must have one number verb",
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

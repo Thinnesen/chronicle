@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 )
 
@@ -160,10 +161,17 @@ func (c *converter) call(in obj, path string, extra ...string) (obj, error) {
 	return out, nil
 }
 
+// sequenceFormat is a format with exactly one integer verb, as Argo gives it to Sprintf.
+var sequenceFormat = regexp.MustCompile(`^([^%]|%%)*%[-+ #0]*[0-9]*[dxXob]([^%]|%%)*$`)
+
 // sequence expands an Argo withSequence with literal numbers into withItems.
 func sequence(seq obj) ([]any, error) {
-	if _, ok := seq["format"]; ok {
-		return nil, fmt.Errorf("format is not supported: use withItems")
+	format := "%d"
+	if f, ok := seq["format"]; ok {
+		format, _ = f.(string)
+		if !sequenceFormat.MatchString(format) {
+			return nil, fmt.Errorf("format must have one number verb, such as %%02d or %%x: %q", format)
+		}
 	}
 	start, end := int64(0), int64(-1)
 	var err error
@@ -189,7 +197,7 @@ func sequence(seq obj) ([]any, error) {
 	}
 	items := []any{}
 	for i := start; i <= end; i++ {
-		items = append(items, fmt.Sprint(i))
+		items = append(items, fmt.Sprintf(format, i))
 	}
 	return items, nil
 }
