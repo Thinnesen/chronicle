@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
+import logging
 import socket
 import threading
 import time
@@ -15,6 +15,8 @@ from .client import APIError, Client
 
 # The server answers a poll after at most 30 seconds.
 _POLL_TIMEOUT = 40.0
+
+_log = logging.getLogger("chronicle")
 
 
 class NonRetryable(Exception):
@@ -144,9 +146,12 @@ class Worker:
             return  # The task was cancelled or the lease was lost: the server refuses a result.
         body = {"namespace": self._namespace, "id": d.info.id, "lease": d.lease}
         body.update({"outputJson": output} if failure is None else {"error": failure, "retryable": retryable})
-        # When the task timed out meanwhile, the server refuses the result and the workflow handles it.
-        with contextlib.suppress(APIError):
+        # When the task timed out meanwhile, or the result is too large, the server refuses the result. The workflow
+        # handles the task; the worker logs it.
+        try:
             self._client._call("CompleteTask", body, service="TaskService")
+        except APIError as err:
+            _log.warning("the server did not take the result of task %s: %s", d.info.id, err)
 
     def _call(self, d: _Delivery) -> tuple[str, str | None, bool]:
         fn = self._funcs.get(d.info.name)

@@ -36,7 +36,7 @@ A soak test ran all features three times on the demo cluster. Fix them in this o
 
 High:
 - S1. (done) A stopped or terminated run cannot be retried: spec.shutdown stays set. The retry ends at once, runs the exit handler again, and can start a Pod that runs while the run shows Failed. Stop on a finished run has the same effect.
-- S2. A task result above 64 KiB leaves the node Running forever: the server refuses CompleteTask and the SDKs ignore the error. A crashed worker without heartbeatTimeout also leaves the node Running forever.
+- S2. (done) A task result above 64 KiB leaves the node Running forever: the server refuses CompleteTask and the SDKs ignore the error. A crashed worker without heartbeatTimeout also leaves the node Running forever.
 
 Bugs:
 - S3. `approve -p <unknown>=x` approves anyway.

@@ -81,6 +81,10 @@ func (e *engine) runTask(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1
 	return e.save(n)
 }
 
+// defaultHeartbeatTimeout fails a task whose worker went silent, when the template sets no heartbeatTimeout. The SDK
+// workers send a heartbeat each 5 s, so 1 minute is 12 lost heartbeats.
+const defaultHeartbeatTimeout = time.Minute
+
 // watchTask checks the timeouts of a task that has not finished.
 func (e *engine) watchTask(t *v1alpha1.Template, n *v1alpha1.NodeStatus, task TaskResult) {
 	spec := t.Task
@@ -95,8 +99,12 @@ func (e *engine) watchTask(t *v1alpha1.Template, n *v1alpha1.NodeStatus, task Ta
 		if task.HeartbeatAt != nil {
 			last = task.HeartbeatAt
 		}
-		if d := spec.HeartbeatTimeout; d != nil && last != nil && e.reached(last.Add(d.Duration)) {
-			e.failTask(n, fmt.Sprintf("the worker sent no heartbeat for %s", d.Duration))
+		d := defaultHeartbeatTimeout
+		if spec.HeartbeatTimeout != nil {
+			d = spec.HeartbeatTimeout.Duration
+		}
+		if last != nil && e.reached(last.Add(d)) {
+			e.failTask(n, fmt.Sprintf("the worker sent no heartbeat for %s", d))
 			return
 		}
 		e.setPhase(n, v1alpha1.NodeRunning, "")

@@ -238,8 +238,14 @@ impl Job {
             }
             Err(TaskError::Fatal(m)) => body["error"] = m.into(),
         }
-        // When the task timed out meanwhile, the server refuses the result and the workflow handles it.
-        let _ = self.client.call("TaskService", "CompleteTask", body, None);
+        // When the task timed out meanwhile, or the result is too large, the server refuses the result. The workflow
+        // handles the task; the worker reports it on stderr.
+        if let Err(err) = self.client.call("TaskService", "CompleteTask", body, None) {
+            eprintln!(
+                "chronicle: the server did not take the result of task {}: {err}",
+                info.id
+            );
+        }
     }
 
     fn beat(

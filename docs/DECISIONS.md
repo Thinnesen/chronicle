@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A task never waits forever. A result larger than 64 KiB fails the task (not retryable), and the worker gets the error. A worker that sends no heartbeat for 1 minute fails the attempt, also when the template sets no `heartbeatTimeout`. The SDK workers send a heartbeat each 5 s. Temporal requires a timeout on each activity for the same reason. The SDKs log a refused result. Found by the soak test.
+
 - 2026-10-20: A retry of a stopped run works. The API removes `spec.shutdown` and `spec.suspend` with the retry, and the CRD rule allows that removal only with a new retry of a finished run. The API also removes the approvals of the suspend nodes that the retry runs again, so an old approval cannot pass the new try. Stop, terminate, suspend and resume of a finished run are refused. The engine starts no Pod or task while it stops an entrypoint: the controller applies a create and a delete in parallel, so such a Pod could run while the run showed Failed. Found by the soak test.
 
 - 2026-10-20: The archive can delete old rows (`--archive-retention`, Helm value `archive.retention`). The leader controller deletes finished runs, finished tasks and step cache entries older than the limit, once an hour, in batches of 500. Indexes on the time columns keep each batch cheap. The default keeps all rows, so an upgrade deletes nothing. The bucket of the archived logs needs its own lifecycle rule; chronicle does not delete objects. Sources: Dagster #4497, Temporal #2617.

@@ -24,12 +24,12 @@ The worker is a library call in your program, not a separate tool. Add the SDK t
   task:
     name: send-mail        # the task type that a worker registers
     queue: mail            # optional, the default is "default"
-    heartbeatTimeout: 30s  # optional: fail the attempt when the worker is silent for 30 s
+    heartbeatTimeout: 30s  # optional: fail the attempt when the worker is silent for 30 s (default 1m)
     scheduleToStartTimeout: 10m  # optional: fail the attempt when no worker takes it in 10 min
 ```
 
 - The worker gets the input parameters as a JSON object of strings.
-- The result must be JSON. It becomes `outputs.result`. The fields of a result object become the output parameters with the same names. A result can have at most 64 KiB.
+- The result must be JSON. It becomes `outputs.result`. The fields of a result object become the output parameters with the same names. A result can have at most 64 KiB. A larger result fails the task, and the worker logs the refusal.
 
 ## 2. Give the worker access
 

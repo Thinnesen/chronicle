@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -153,8 +154,11 @@ func (w *Worker) handle(ctx context.Context, t *chroniclev1.Task) {
 	req := connect.NewRequest(&chroniclev1.CompleteTaskRequest{
 		Namespace: w.namespace, Id: t.Id, Lease: t.Lease, OutputJson: output, Error: failure, Retryable: retryable,
 	})
-	// The result goes out also when the worker stops, so that the task does not wait for a timeout.
-	_, _ = w.client.Tasks.CompleteTask(context.WithoutCancel(ctx), req)
+	// The result goes out also when the worker stops, so that the task does not wait for a timeout. A refused result
+	// (for example a result that is too large, or a task that timed out) is logged; the workflow handles the task.
+	if _, err := w.client.Tasks.CompleteTask(context.WithoutCancel(ctx), req); err != nil {
+		slog.Warn("chronicle: the server did not take the result of the task", "task", t.Id, "error", err)
+	}
 }
 
 // call runs the function. A panic becomes a final error.

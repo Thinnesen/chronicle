@@ -102,7 +102,7 @@ type TaskTemplate struct {
 	// +optional
 	Queue string `json:"queue,omitempty"`
 
-	// heartbeatTimeout fails the attempt when the worker sends no heartbeat for this time.
+	// heartbeatTimeout fails the attempt when the worker sends no heartbeat for this time. The default is 1 minute.
 	// +optional
 	HeartbeatTimeout *metav1.Duration `json:"heartbeatTimeout,omitempty"`
 

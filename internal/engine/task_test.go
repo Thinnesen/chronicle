@@ -142,3 +142,19 @@ func TestRetryKey(t *testing.T) {
 		}
 	}
 }
+
+// TestTaskDefaultHeartbeatTimeout fails a task of a worker that went silent, also when the template sets no
+// heartbeatTimeout. Before, such a node stayed Running forever.
+func TestTaskDefaultHeartbeatTimeout(t *testing.T) {
+	in := taskInputFor(t, "entrypoint: t\ntemplates:\n- {name: t, task: {name: x}}")
+	first, _ := next[EnqueueTask](&in, 0)
+	start := at(1)
+	in.Tasks[first[0].TaskID] = TaskResult{Phase: v1alpha1.NodeRunning, StartedAt: &start}
+	if _, r := next[CancelTask](&in, 50); r.Status.Phase != v1alpha1.WorkflowRunning {
+		t.Fatalf("phase after 50 s = %s", r.Status.Phase)
+	}
+	cancels, r := next[CancelTask](&in, 62)
+	if len(cancels) != 1 || r.Status.Phase != v1alpha1.WorkflowFailed || !strings.Contains(cancels[0].Reason, "no heartbeat for 1m0s") {
+		t.Fatalf("after 62 s: cancels %+v, phase %s", cancels, r.Status.Phase)
+	}
+}

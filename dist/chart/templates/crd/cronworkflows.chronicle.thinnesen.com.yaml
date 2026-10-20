@@ -2901,7 +2901,8 @@ spec:
                           properties:
                             heartbeatTimeout:
                               description: heartbeatTimeout fails the attempt when
-                                the worker sends no heartbeat for this time.
+                                the worker sends no heartbeat for this time. The default
+                                is 1 minute.
                               type: string
                             name:
                               description: name of the task type that a worker registers.

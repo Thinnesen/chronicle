@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,10 +97,19 @@ func (s *taskService) CompleteTask(ctx context.Context, req *connect.Request[chr
 	if err := s.authorize(ctx, m.Namespace); err != nil {
 		return nil, err
 	}
-	if len(m.OutputJson) > engine.MaxTaskResult || len(m.Error) > engine.MaxTaskResult {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("the result is larger than 64 KiB"))
+	if len(m.OutputJson) > engine.MaxTaskResult {
+		// The task fails, so that its node does not wait forever. The worker gets the error too.
+		const tooLarge = "the result of the task is larger than 64 KiB: return less, or save large data as an artifact"
+		if err := s.store.Complete(ctx, m.Namespace, m.Id, m.Lease, "", tooLarge, false); err != nil {
+			return nil, taskError(err)
+		}
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New(tooLarge))
 	}
-	if err := s.store.Complete(ctx, m.Namespace, m.Id, m.Lease, m.OutputJson, m.Error, m.Retryable); err != nil {
+	failure := m.Error
+	if len(failure) > engine.MaxTaskResult {
+		failure = strings.ToValidUTF8(failure[:engine.MaxTaskResult], "") + " (cut)"
+	}
+	if err := s.store.Complete(ctx, m.Namespace, m.Id, m.Lease, m.OutputJson, failure, m.Retryable); err != nil {
 		return nil, taskError(err)
 	}
 	return connect.NewResponse(&chroniclev1.CompleteTaskResponse{}), nil
