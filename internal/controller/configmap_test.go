@@ -42,7 +42,7 @@ templates:
 	It("refuses a ConfigMap without the label", func() {
 		wf := reconcileWith(ctx, testReconciler(), newWorkflow(ctx, spec(configMap(false))))
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowError))
-		Expect(wf.Status.Message).To(ContainSubstring(`has no label chronicle.thinnesen.com/parameters: "true"`))
+		Expect(wf.Status.Message).To(HaveSuffix(`has no label chronicle.thinnesen.com/parameters: "true"; add it to share its values with workflows`))
 		Expect(podsOf(ctx, wf)).To(BeEmpty())
 	})
 })

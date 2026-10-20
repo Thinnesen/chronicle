@@ -66,12 +66,15 @@ func (r *WorkflowReconciler) lockLimit(ctx context.Context, namespace string, li
 		return limit, nil
 	}
 	v, found, err := configMapGetter{r.reader(), namespace}.ConfigMapValue(ctx, from.Name, from.Key)
+	if apierrors.IsNotFound(err) {
+		return 0, resolve.Invalidf("the limit of a lock: ConfigMap %q does not exist", from.Name)
+	}
 	if err != nil {
 		return 0, fmt.Errorf("the limit of a lock: %w", err)
 	}
 	n, perr := strconv.Atoi(strings.TrimSpace(v))
 	if !found || perr != nil || n < 1 {
-		return 0, fmt.Errorf("the limit of a lock: ConfigMap %q needs a number of 1 or more in key %q: %w", from.Name, from.Key, resolve.ErrInvalid)
+		return 0, resolve.Invalidf("the limit of a lock: ConfigMap %q needs a number of 1 or more in key %q", from.Name, from.Key)
 	}
 	return n, nil
 }

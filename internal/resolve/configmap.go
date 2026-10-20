@@ -39,7 +39,7 @@ func ConfigMapValues(ctx context.Context, g ConfigMapGetter, spec *v1alpha1.Work
 		case gerr != nil:
 			err = fmt.Errorf("parameter %q: %w", p.Name, gerr)
 		case !found && p.Default == nil:
-			err = fmt.Errorf("parameter %q: ConfigMap %q has no key %q: %w", p.Name, ref.Name, ref.Key, ErrInvalid)
+			err = Invalidf("parameter %q: ConfigMap %q has no key %q", p.Name, ref.Name, ref.Key)
 		case found && workflow:
 			p.Value = &v
 		case found:

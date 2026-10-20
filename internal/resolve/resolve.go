@@ -12,6 +12,16 @@ import (
 // ErrInvalid marks a reference that cannot resolve until the workflow or the templates change.
 var ErrInvalid = errors.New("invalid template reference")
 
+// Invalidf returns an error that is ErrInvalid but has only the given message.
+func Invalidf(format string, args ...any) error {
+	return invalidError(fmt.Sprintf(format, args...))
+}
+
+type invalidError string
+
+func (e invalidError) Error() string      { return string(e) }
+func (invalidError) Is(target error) bool { return target == ErrInvalid }
+
 // maxTemplates is the limit of the CRD schema for the templates of a spec.
 const maxTemplates = 200
 

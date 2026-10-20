@@ -26,8 +26,8 @@ func (g configMapGetter) ConfigMapValue(ctx context.Context, name, key string) (
 		return "", false, fmt.Errorf("read ConfigMap %q: %w", name, err)
 	}
 	if cm.Labels[LabelParameters] != "true" {
-		return "", false, fmt.Errorf("ConfigMap %q has no label %s: \"true\"; add it to share its values with workflows: %w",
-			name, LabelParameters, resolve.ErrInvalid)
+		return "", false, resolve.Invalidf("ConfigMap %q has no label %s: \"true\"; add it to share its values with workflows",
+			name, LabelParameters)
 	}
 	v, ok := cm.Data[key]
 	return v, ok, nil
