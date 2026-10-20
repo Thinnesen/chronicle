@@ -28,7 +28,7 @@ func TestArgoExamples(t *testing.T) {
 		{file: "cron-workflow.yaml"},
 		{file: "timeouts-step.yaml"},
 		{file: "retry-backoff.yaml", warning: "retryStrategy.backoff.cap: chronicle does not support this field"},
-		{file: "exit-handlers.yaml", err: `unknown placeholder "workflow.failures"`},
+		{file: "exit-handlers.yaml"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {

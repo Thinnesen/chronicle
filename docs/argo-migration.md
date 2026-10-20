@@ -14,7 +14,7 @@ chronicle convert -f argo-workflow.yaml | kubectl create -n team-a -f -
 - `--strict` makes the command fail when there is a warning. Use it in CI.
 - The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid, for example when it uses a placeholder that chronicle does not have.
 
-In a test with the 190 examples of Argo Workflows (October 2026), 43 converted without a warning, 81 converted with warnings, and 66 failed because they use features from the last table.
+In a test with the 190 examples of Argo Workflows (October 2026), 52 converted without a warning, 77 converted with warnings, and 61 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and global outputs.
 
 ## What changes
 
@@ -56,7 +56,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 43 converted w
 
 DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps, `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
-Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `steps.*.outputs.*` and `item`.
+Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
 ## Not supported
 
@@ -67,10 +67,10 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
 | `continueOn` | Use `depends` with `.Failed` in a DAG. |
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
-| Global outputs (`globalName`, `workflow.outputs.*`) and `workflow.failures` | Not planned for the first version. |
+| Global outputs (`globalName`, `workflow.outputs.*`) | Not planned for the first version. |
 | `inline` templates in tasks or steps | Write a named template. |
 | `synchronization.semaphore` with a ConfigMap limit, template-level `synchronization`, `memoize`, `metrics` | Not supported. A workflow `mutex` converts; set a semaphore limit by hand. |
 | `http`, `plugin`, `data` and `containerSet` templates | Not supported. Task workers (M7) cover calls to services. |
 | Artifacts that a workflow gives (`arguments.artifacts` on the Workflow) | A workflow cannot give artifacts. Make them in a first step. |
 | Parameters from a ConfigMap (`valueFrom.configMapKeyRef`) | Give the value in the Workflow, or read the ConfigMap in a step. |
-| `outputs.result` of a container without a command, exit codes as placeholders (`exitCode`), `{{retries}}`, `{{pod.name}}` | Not supported. |
+| `outputs.result` of a container without a command, exit codes as placeholders (`exitCode`) | Not supported. |

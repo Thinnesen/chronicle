@@ -168,7 +168,8 @@ func (c *checker) outputNames(prefix, template string) []string {
 	if !ok {
 		return nil
 	}
-	var names []string
+	// The phase of a finished task or step, for example to report it.
+	names := []string{prefix + ".status"}
 	for _, p := range t.Outputs.Parameters {
 		names = append(names, prefix+".outputs.parameters."+p.Name)
 	}

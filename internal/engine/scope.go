@@ -3,7 +3,9 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +31,56 @@ func (e *engine) globals() map[string]string {
 			g["workflow.parameters."+p.Name] = *v
 		}
 	}
+	g["workflow.serviceAccountName"] = e.in.Spec.ServiceAccountName
+	g["workflow.duration"] = strconv.FormatFloat(e.in.Now.Sub(e.startedAt).Seconds(), 'f', -1, 64)
+	g["workflow.failures"] = e.failures()
 	return g
+}
+
+// failures returns the failed steps of the run as JSON, in the form of Argo: the display name, the message, the
+// template, the phase, the Pod and the end of each step. An exit handler can send them in a notification.
+func (e *engine) failures() string {
+	type failure struct {
+		DisplayName  string `json:"displayName"`
+		Message      string `json:"message"`
+		TemplateName string `json:"templateName"`
+		Phase        string `json:"phase"`
+		PodName      string `json:"podName"`
+		FinishedAt   string `json:"finishedAt"`
+	}
+	out := []failure{}
+	for _, id := range slices.Sorted(maps.Keys(e.nodes)) {
+		n := e.nodes[id]
+		if (n.Phase != v1alpha1.NodeFailed && n.Phase != v1alpha1.NodeError) || !isWork(n.Type) {
+			continue
+		}
+		f := failure{DisplayName: n.DisplayName, Message: n.Message, TemplateName: n.TemplateName, Phase: string(n.Phase), PodName: n.PodName}
+		if n.FinishedAt != nil {
+			f.FinishedAt = n.FinishedAt.UTC().Format(time.RFC3339)
+		}
+		out = append(out, f)
+	}
+	slices.SortStableFunc(out, func(a, b failure) int { return strings.Compare(a.FinishedAt+a.DisplayName, b.FinishedAt+b.DisplayName) })
+	data, _ := json.Marshal(out) // A slice of strings always encodes.
+	return string(data)
+}
+
+// isWork tells if a node does work: a Pod, a suspend or a task.
+func isWork(t v1alpha1.NodeType) bool {
+	return t == v1alpha1.NodePod || t == v1alpha1.NodeSuspend || t == v1alpha1.NodeTask
+}
+
+// nodeScope returns a resolver for the template of a node that runs as a Pod: the input scope, and the Pod name,
+// the node name and the number of the retry.
+func (e *engine) nodeScope(c call, n v1alpha1.NodeStatus) expr.Resolver {
+	inputs := e.inputScope(n.Inputs)
+	own := map[string]string{"pod.name": n.PodName, "node.name": c.nodeName, "retries": strconv.Itoa(c.retry)}
+	return func(name string) (string, bool) {
+		if v, ok := own[name]; ok {
+			return v, true
+		}
+		return inputs(name)
+	}
 }
 
 func paramValue(p v1alpha1.Parameter) *string {
@@ -131,9 +182,12 @@ func resolveArtifacts(args v1alpha1.Arguments, resolve expr.Resolver) map[string
 	return out
 }
 
-// nodeOutput returns an output of a node: "outputs.result" or "outputs.parameters.x".
+// nodeOutput returns an output of a node: "outputs.result", "outputs.parameters.x", or "status" (its phase).
 // For a task group, it returns a JSON list with the output of each item.
 func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
+	if key == "status" {
+		return string(n.Phase), true
+	}
 	if n.Type != v1alpha1.NodeTaskGroup {
 		return outputOf(n.Outputs, key)
 	}

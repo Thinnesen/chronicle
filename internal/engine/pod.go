@@ -19,7 +19,7 @@ func (e *engine) runPod(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1a
 			n.Message = fmt.Sprintf("%s (parallelism %d)", waitingForSlot, limit)
 			break
 		}
-		resolved, err := substituteTemplate(t, e.inputScope(n.Inputs))
+		resolved, err := substituteTemplate(t, e.nodeScope(c, n))
 		if err != nil {
 			e.setPhase(&n, v1alpha1.NodeError, err.Error())
 			break

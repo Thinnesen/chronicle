@@ -46,10 +46,15 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{workflow.parameters.<name>}}` | A workflow parameter. |
 | `{{workflow.creationTimestamp}}`, `{{workflow.scheduledTime}}` | The creation time, and the planned time of a cron run (RFC 3339). |
 | `{{workflow.status}}` | The phase of the run, in the exit handler. |
+| `{{workflow.duration}}` | The seconds since the start of the run, for example in the exit handler. |
+| `{{workflow.failures}}` | The failed steps as JSON (display name, message, template, phase, Pod, end), for the exit handler. |
+| `{{workflow.serviceAccountName}}` | The service account of the run. |
 | `{{inputs.parameters.<name>}}` | An input parameter of the template. |
 | `{{tasks.<task>.outputs.result}}` | The standard output of a DAG task (at most 3 KiB). |
 | `{{tasks.<task>.outputs.parameters.<name>}}` | An output parameter of a DAG task. |
 | `{{steps.<step>.outputs.result}}`, `{{steps.<step>.outputs.parameters.<name>}}` | The same for a step. |
+| `{{tasks.<task>.status}}`, `{{steps.<step>.status}}` | The phase of a finished task or step. |
+| `{{pod.name}}`, `{{node.name}}`, `{{retries}}` | In a container, script or resource template: its Pod, its node and the number of its retry (from 0). |
 | `{{item}}`, `{{item.<key>}}` | The item of a fan-out. |
 
 - Put a placeholder in an environment variable, not in a script or a shell command. A script `source` cannot have placeholders. Thus a parameter value can never become shell code.

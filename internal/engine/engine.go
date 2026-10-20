@@ -208,8 +208,9 @@ type call struct {
 	args map[string]string
 	// artifacts are the keys of the argument artifacts.
 	artifacts map[string]string
-	// attempt is true for one attempt of a retry node.
+	// attempt is true for one attempt of a retry node, and retry is its number, from 0.
 	attempt bool
+	retry   int
 }
 
 type engine struct {

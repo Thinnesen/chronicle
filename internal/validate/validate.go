@@ -26,7 +26,8 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 		c.templates[spec.Templates[i].Name] = &spec.Templates[i]
 	}
 	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid", "workflow.status",
-		"workflow.creationTimestamp", "workflow.scheduledTime"} {
+		"workflow.creationTimestamp", "workflow.scheduledTime", "workflow.serviceAccountName", "workflow.duration",
+		"workflow.failures"} {
 		c.globals[g] = true
 	}
 	for i, p := range spec.Arguments.Parameters {
@@ -113,17 +114,19 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 		c.errs = append(c.errs, field.Invalid(path.Child("parallelism"), *t.Parallelism, "only a dag or steps template can limit its parallelism"))
 	}
 	c.checkOutputs(t, path.Child("outputs", "parameters"), sc.with(c.childOutputs(t)...))
+	// A template that runs as a Pod also knows its Pod, its node and the number of its retry.
+	pod := sc.with("pod.name", "node.name", "retries")
 	switch {
 	case t.Container != nil:
-		c.checkContainer(t.Container, path.Child("container"), sc)
+		c.checkContainer(t.Container, path.Child("container"), pod)
 	case t.Script != nil:
-		c.checkContainer(&t.Script.ContainerTemplate, path.Child("script"), sc)
+		c.checkContainer(&t.Script.ContainerTemplate, path.Child("script"), pod)
 		if strings.Contains(t.Script.Source, "{{") {
 			c.errs = append(c.errs, field.Invalid(path.Child("script", "source"), "{{...}}",
 				"a script source cannot have placeholders: use environment variables"))
 		}
 	case t.Resource != nil:
-		c.checkManifest(t.Resource, path.Child("resource"), sc)
+		c.checkManifest(t.Resource, path.Child("resource"), pod)
 	case t.DAG != nil:
 		c.checkDAG(t.DAG, path.Child("dag"), sc)
 	case t.Steps != nil:
