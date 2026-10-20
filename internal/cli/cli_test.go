@@ -31,6 +31,7 @@ type stub struct {
 	chroniclev1connect.UnimplementedTemplateServiceHandler
 	chroniclev1connect.UnimplementedCronServiceHandler
 	chroniclev1connect.UnimplementedNamespaceServiceHandler
+	chroniclev1connect.UnimplementedTaskServiceHandler
 	phase    string
 	requests []any
 	// listed is the last list request.
@@ -117,6 +118,14 @@ func (s *stub) ListNamespaces(context.Context, *connect.Request[chroniclev1.List
 	}}), nil
 }
 
+func (s *stub) ListTasks(_ context.Context, r *connect.Request[chroniclev1.ListTasksRequest]) (*connect.Response[chroniclev1.ListTasksResponse], error) {
+	s.requests = append(s.requests, r.Msg)
+	return connect.NewResponse(&chroniclev1.ListTasksResponse{Tasks: []*chroniclev1.TaskSummary{
+		{Id: "u1/n7", Name: "send-mail", Queue: "mail", State: "running", Workflow: "etl-x7", NodeName: "etl-x7.notify", Worker: "mailer-6d9f"},
+		{Id: "u1/n9", Name: "send-mail", Queue: "mail", State: "failed", Workflow: "etl-x7", NodeName: "etl-x7.retry", Message: "no heartbeat for 1m0s"},
+	}}), nil
+}
+
 func (s *stub) ApproveNode(_ context.Context, r *connect.Request[chroniclev1.ApproveNodeRequest]) (*connect.Response[chroniclev1.ApproveNodeResponse], error) {
 	s.requests = append(s.requests, r.Msg)
 	return connect.NewResponse(&chroniclev1.ApproveNodeResponse{}), nil
@@ -159,6 +168,7 @@ func run(t *testing.T, s *stub, args ...string) (string, error) {
 	mux.Handle(chroniclev1connect.NewTemplateServiceHandler(s))
 	mux.Handle(chroniclev1connect.NewCronServiceHandler(s))
 	mux.Handle(chroniclev1connect.NewNamespaceServiceHandler(s))
+	mux.Handle(chroniclev1connect.NewTaskServiceHandler(s))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	cfgPath := filepath.Join(t.TempDir(), "config.json")
@@ -248,6 +258,20 @@ func TestCommands(t *testing.T) {
 		if _, err := run(t, s, bad...); err == nil {
 			t.Errorf("%v returned no error", bad)
 		}
+	}
+}
+
+func TestTasks(t *testing.T) {
+	s := &stub{}
+	out, err := run(t, s, "tasks", "--state", "Running,failed")
+	if err != nil || !strings.Contains(out, "mailer-6d9f") || !strings.Contains(out, "no heartbeat for 1m0s") || !strings.Contains(out, "etl-x7.notify") {
+		t.Errorf("err %v, output:\n%s", err, out)
+	}
+	if req := s.requests[0].(*chroniclev1.ListTasksRequest); req.Namespace != "team-a" || strings.Join(req.States, ",") != "running,failed" {
+		t.Errorf("request %+v", req)
+	}
+	if _, err := run(t, s, "tasks", "--state", "lost"); err == nil {
+		t.Error("an unknown state gave no error")
 	}
 }
 

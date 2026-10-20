@@ -124,6 +124,10 @@ triggers:
 
 Use `max`, because each controller replica exports the same values. The metrics have at most 200 queues. The rest add up in the queue `other`.
 
+## See the tasks
+
+The Tasks page of the UI and `chronicle tasks --state pending,running` list the tasks of a namespace, newest first, with their queue, step, worker and message.
+
 ## Traces
 
 When chronicle exports traces (see [observability](observability.md)), each task has the W3C trace context of its node: `Traceparent` (Go), `task.traceparent` (Python) or `task.traceparent` (Rust). Make it the parent of the spans of the work. Then the work shows under the node in the trace of the run. Without traces, the value is empty. In Go:

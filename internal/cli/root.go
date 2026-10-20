@@ -45,7 +45,7 @@ func NewCommand() *cobra.Command {
 	root.PersistentFlags().StringVarP(&a.namespace, "namespace", "n", "", "The namespace. The default comes from the login.")
 	root.AddCommand(a.loginCommand(), a.submitCommand(), a.listCommand(), a.getCommand(), a.watchCommand(), a.logsCommand(),
 		a.deleteCommand(), a.approveCommand(), a.namespacesCommand(), a.retryCommand(), a.rerunCommand(), a.convertCommand(),
-		a.templatesCommand(), a.cronCommand(), a.lintCommand())
+		a.templatesCommand(), a.cronCommand(), a.lintCommand(), a.tasksCommand())
 	for _, c := range a.controlCommands() {
 		root.AddCommand(c)
 	}
