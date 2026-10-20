@@ -16,7 +16,8 @@ func TestSequence(t *testing.T) {
 		{0, 2, "", []string{"0", "1", "2"}, false},
 		{9, 10, "day-%02d", []string{"day-09", "day-10"}, false},
 		{10, 11, "user%02X", []string{"user0A", "user0B"}, false},
-		{5, 4, "", []string{}, false}, // count 0
+		{3, 1, "", []string{"3", "2", "1"}, false}, // counts down, as in Argo
+		{math.MinInt64 + 1, math.MinInt64, "", []string{"-9223372036854775807", "-9223372036854775808"}, false},
 		{0, 1, "%s", nil, true},
 		{0, 1, "%d-%d", nil, true},
 		{0, 1000, "", nil, true},                      // more than 1000 items

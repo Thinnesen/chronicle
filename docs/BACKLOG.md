@@ -50,7 +50,7 @@ Bugs:
 
 Smaller:
 - S11. (done) Docs say a parameter value never becomes shell code, but placeholders in command or args go into `sh -c` as text.
-- S12. A descending withSequence gives zero items (Argo counts down).
+- S12. (done) A descending withSequence gives zero items (Argo counts down).
 - S13. Unknown workflow parameters are accepted by `submit --from`, `rerun -p` and SubmitTemplate.
 - S14. (bad node done) `retry --node <bad>` exits 0 without --watch; display names are refused.
 - S15. `chronicle logs <run>` stops at the first missing Pod.

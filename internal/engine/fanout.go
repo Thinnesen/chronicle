@@ -102,6 +102,9 @@ func sequenceItems(seq *v1alpha1.Sequence, resolve expr.Resolver) ([]apiextensio
 		if count < 0 || count > 0 && start > math.MaxInt64-(count-1) {
 			return nil, fmt.Errorf("withSequence: count %d does not fit after start %d", count, start)
 		}
+		if count == 0 {
+			return []apiextensionsv1.JSON{}, nil
+		}
 		end = start + count - 1
 	}
 	if err != nil {

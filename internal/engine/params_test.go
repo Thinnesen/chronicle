@@ -142,7 +142,8 @@ func TestEngineRuntimeErrors(t *testing.T) {
 func TestWithSequence(t *testing.T) {
 	s := newSim(t, dagSpec(`
     - {name: seq, template: p, withSequence: {count: "{{workflow.parameters.n}}", start: 1, format: "r%d"}, arguments: {parameters: [{name: x, value: "{{item}}"}]}}
-    - {name: none, template: p, withSequence: {end: 0, start: 1}, arguments: {parameters: [{name: x, value: "{{item}}"}]}}`)+`
+    - {name: none, template: p, withSequence: {count: 0, start: 1}, arguments: {parameters: [{name: x, value: "{{item}}"}]}}
+    - {name: down, template: p, withSequence: {start: 3, end: 1}, arguments: {parameters: [{name: x, value: "{{item}}"}]}}`)+`
 - {name: p, inputs: {parameters: [{name: x}]}, container: {image: alpine, command: [run], args: ["{{inputs.parameters.x}}"]}}`, nil)
 	s.in.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "n", Value: new("3")}}
 	st := s.run()
@@ -160,6 +161,10 @@ func TestWithSequence(t *testing.T) {
 	}
 	if got := phases(st)["wf.none"]; got != v1alpha1.NodeSkipped {
 		t.Errorf("an empty sequence is %s", got)
+	}
+	// An end before the start counts down, as in Argo.
+	if _, ok := s.pods["wf.down(2:1)"]; !ok {
+		t.Errorf("no item 1 in a sequence from 3 down to 1: %v", phases(st))
 	}
 }
 
