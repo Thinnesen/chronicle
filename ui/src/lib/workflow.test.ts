@@ -56,6 +56,9 @@ describe("buildGraph", () => {
     const edges = buildGraph(withHook).map((e) => `${e.from}>${e.to}`);
     expect(edges).toContain("X>H");
     expect(edges.filter((e) => e.endsWith(">H"))).toHaveLength(1);
+    // The next group waits for the hook.
+    expect(edges).toContain("H>G1");
+    expect(edges).not.toContain("X>G1");
   });
 
   it("connects the exit handler after the last steps", () => {

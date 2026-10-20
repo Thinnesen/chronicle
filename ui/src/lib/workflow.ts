@@ -100,6 +100,11 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
     if (from && to) edges.push({ from: from.id, to: to.id });
   };
   const exitsOf = (n: NodeStatus) => exits(n, nodes, byName, templates);
+  // A task with an exit hook is done when its hook is done, so the tasks after it start at the hook.
+  const after = (n: NodeStatus) => {
+    const hook = byName.get(`${n.name}.onExit`);
+    return hook ? [hook] : exitsOf(n);
+  };
   for (const n of Object.values(nodes)) {
     const t = n.templateName ? templates.get(n.templateName) : undefined;
     if (n.type === "DAG" && t?.dag) {
@@ -109,7 +114,7 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
         if (deps.length === 0) add(n, child);
         for (const d of deps) {
           const dep = byName.get(`${n.name}.${d}`);
-          for (const e of dep ? exitsOf(dep) : []) add(e, child);
+          for (const e of dep ? after(dep) : []) add(e, child);
         }
       }
       continue;
@@ -124,7 +129,7 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
         for (const p of prev) add(p, group);
         const steps = (group.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c);
         for (const step of steps) add(group, step);
-        prev = steps.flatMap(exitsOf);
+        prev = steps.flatMap(after);
       }
       continue;
     }
@@ -142,7 +147,8 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
     }
   }
   // An exit handler comes after the nodes where its run, task or step ends.
-  for (const hook of Object.values(nodes)) {
+  // In name order, so that the hooks of parallel steps stay in the order of their steps.
+  for (const hook of Object.values(nodes).sort((a, b) => a.name.localeCompare(b.name))) {
     const owner = hook.name.endsWith(".onExit") ? byName.get(hook.name.slice(0, -".onExit".length)) : undefined;
     for (const e of owner ? exitsOf(owner) : []) add(e, hook);
   }

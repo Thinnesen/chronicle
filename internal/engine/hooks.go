@@ -48,6 +48,9 @@ func (b *boundary) runHook(t *task) {
 	}
 	artifacts := resolveArtifacts(h.Arguments.Artifacts, b.e.nodes[b.nodeID].Inputs, resolve)
 	n := b.e.execute(call{template: h.Template, nodeName: name, args: args, artifacts: artifacts}, b.depth+1)
+	// The name tells the hooks of parallel steps apart in the UI and the CLI.
+	n.DisplayName = t.name + ".onExit"
+	b.e.save(n)
 	b.e.addChild(b.nodeID, n.ID)
 }
 

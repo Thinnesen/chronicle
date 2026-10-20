@@ -42,6 +42,9 @@ func TestStepExitHook(t *testing.T) {
 			if !ok || hook.Template.Container.Command[1] != tt.status {
 				t.Fatalf("hook %+v", hook)
 			}
+			if d := nodeByName(st, "wf[0].build.onExit").DisplayName; d != "build.onExit" {
+				t.Errorf("display name %q", d)
+			}
 			_, deployed := s.pods["wf[1].deploy"]
 			if st.Phase != tt.phase || deployed != tt.deploy {
 				t.Errorf("phase %s (%s), deploy ran %v", st.Phase, st.Message, deployed)
