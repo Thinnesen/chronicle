@@ -58,6 +58,11 @@ func (a *TokenReviewAuthenticator) review(ctx context.Context, raw string) (*Ide
 	if !tr.Status.Authenticated {
 		return nil, errors.New("the token is not valid for chronicle: it expired, or it was not made with --audience=" + strings.Join(a.Audiences, ","))
 	}
+	// The API contract: a server that knows audiences returns the audiences of the token that match. Without one, the
+	// server did not check the audience, and the token could be for another service.
+	if !slices.ContainsFunc(tr.Status.Audiences, func(aud string) bool { return slices.Contains(a.Audiences, aud) }) {
+		return nil, errors.New("the API server did not confirm the audience of the token: make it with --audience=" + strings.Join(a.Audiences, ","))
+	}
 	u := tr.Status.User
 	if !strings.HasPrefix(u.Username, "system:serviceaccount:") {
 		return nil, errors.New("only service account tokens are accepted")
