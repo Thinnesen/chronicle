@@ -67,7 +67,7 @@ export function SubmitDialog({ namespace, open, onOpenChange }: { namespace: str
           >
             <label className="field">
               <span>Workflow</span>
-              <textarea className="yaml-input" rows={16} spellCheck={false} value={text} onChange={(e) => setText(e.target.value)} />
+              <textarea className="yaml-input" rows={16} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off" value={text} onChange={(e) => setText(e.target.value)} />
             </label>
             {problem && (
               <p className="submit-problem" role="alert">
