@@ -10,8 +10,9 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// chronicleDir holds the executor and the input artifacts in each Pod. A user volume cannot hide it.
-const chronicleDir = "/var/run/chronicle"
+// chronicleDirs hold the executor and the input artifacts in each Pod. A user volume cannot be at them, below them or
+// above them.
+var chronicleDirs = []string{"/var/run/chronicle", "/var/run/chronicle-inputs"}
 
 // checkVolumes checks the names of the volumes and the volume claim templates, and remembers them for the mounts.
 func (c *checker) checkVolumes(spec *v1alpha1.WorkflowTemplateSpec, p *field.Path) {
@@ -48,8 +49,8 @@ func (c *checker) checkMounts(ct *v1alpha1.ContainerTemplate, t *v1alpha1.Templa
 		switch {
 		case at == "/":
 			c.errs = append(c.errs, field.Invalid(mp.Child("mountPath"), m.MountPath, "a volume cannot hide the root directory"))
-		case at == chronicleDir || strings.HasPrefix(at, chronicleDir):
-			c.errs = append(c.errs, field.Invalid(mp.Child("mountPath"), m.MountPath, "chronicle uses the paths below "+chronicleDir))
+		case slices.ContainsFunc(chronicleDirs, func(d string) bool { return within(at, d) || within(d, at) }):
+			c.errs = append(c.errs, field.Invalid(mp.Child("mountPath"), m.MountPath, "chronicle uses the paths below /var/run/chronicle"))
 		case used[at] != "":
 			c.errs = append(c.errs, field.Invalid(mp.Child("mountPath"), m.MountPath, used[at]))
 		}
@@ -58,4 +59,9 @@ func (c *checker) checkMounts(ct *v1alpha1.ContainerTemplate, t *v1alpha1.Templa
 			c.errs = append(c.errs, field.Invalid(mp.Child("subPath"), m.SubPath, "give a relative path in the volume, without .."))
 		}
 	}
+}
+
+// within tells if the clean path p is dir or below it.
+func within(p, dir string) bool {
+	return p == dir || strings.HasPrefix(p, dir+"/")
 }

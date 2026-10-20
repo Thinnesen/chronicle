@@ -6,8 +6,8 @@ import (
 )
 
 // VolumeClaimTemplate is a new, empty volume for each run. The steps of the run share it. The controller creates the
-// claim <run>-<name> before the first Pod. A run that succeeds deletes its claims. A run that fails keeps them, so that
-// a retry finds the files of the steps that succeeded.
+// claim <run>-<name>-<8 letters of the run UID> before the first Pod. A run that succeeds deletes its claims. A run that
+// fails keeps them, so that a retry finds the files of the steps that succeeded.
 type VolumeClaimTemplate struct {
 	// name of the volume. A volumeMount uses it.
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`

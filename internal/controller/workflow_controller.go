@@ -95,11 +95,6 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if res, wait, err := r.gate(ctx, &wf, spec, observed); wait || err != nil {
 		return res, err
 	}
-	if err := r.claims(ctx, &wf, spec); errors.Is(err, resolve.ErrInvalid) {
-		return r.setError(ctx, &wf, err.Error())
-	} else if err != nil {
-		return ctrl.Result{}, err
-	}
 	pods, err := r.observePods(ctx, &wf)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -126,6 +121,11 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// The phase after restart: the first reconcile of a retry must also respect the limit.
 	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(wf.Status.Phase) {
 		return r.failTooLarge(ctx, &wf, size)
+	}
+	if err := r.claims(ctx, &wf, spec, &res.Status); errors.Is(err, resolve.ErrInvalid) {
+		return r.setError(ctx, &wf, err.Error())
+	} else if err != nil {
+		return ctrl.Result{}, err
 	}
 	took, problems, err := r.applyAll(ctx, &wf, spec, res.Actions)
 	if err != nil {

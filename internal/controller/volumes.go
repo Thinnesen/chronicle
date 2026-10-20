@@ -17,34 +17,37 @@ import (
 // conditionVolumes tells that the claims of the volume claim templates of a run exist.
 const conditionVolumes = "Volumes"
 
-// claimName is the name of the claim of a volume claim template in a run.
+// claimName is the name of the claim of a volume claim template in a run. The part of the UID makes the name unique.
+// Without it, run a-b with claim c and run a with claim b-c would share a name, and one run could block the other.
 func claimName(wf *chroniclev1alpha1.Workflow, template string) string {
-	return wf.Name + "-" + template
+	return wf.Name + "-" + template + "-" + string(wf.UID)[:min(8, len(wf.UID))]
 }
 
 // claims creates the claims of an unfinished run, and deletes them when the run has succeeded. A failed run keeps
 // them, so that a retry finds the files of the steps that succeeded. The owner reference deletes them with the run.
-func (r *WorkflowReconciler) claims(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec) error {
+// status is the result of the engine, so a spec that is not valid gets no claims.
+func (r *WorkflowReconciler) claims(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec,
+	status *chroniclev1alpha1.WorkflowStatus) error {
 	if len(spec.VolumeClaimTemplates) == 0 {
 		return nil
 	}
-	created := meta.IsStatusConditionTrue(wf.Status.Conditions, conditionVolumes)
+	created := meta.IsStatusConditionTrue(status.Conditions, conditionVolumes)
 	switch {
-	case !finished(wf.Status.Phase) && !created:
+	case !finished(status.Phase) && !created:
 		for _, t := range spec.VolumeClaimTemplates {
 			if err := r.createClaim(ctx, wf, t); err != nil {
 				return err
 			}
 		}
-		setVolumes(wf, true, "Created")
-	case wf.Status.Phase == chroniclev1alpha1.WorkflowSucceeded && created:
+		setVolumes(status, true, "Created", wf.Generation)
+	case status.Phase == chroniclev1alpha1.WorkflowSucceeded && created:
 		for _, t := range spec.VolumeClaimTemplates {
 			pvc := &corev1.PersistentVolumeClaim{Name: claimName(wf, t.Name), Namespace: wf.Namespace}
 			if err := r.Delete(ctx, pvc); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("delete the claim %s: %w", pvc.Name, err)
 			}
 		}
-		setVolumes(wf, false, "Deleted")
+		setVolumes(status, false, "Deleted", wf.Generation)
 	}
 	return nil
 }
@@ -87,12 +90,12 @@ func (r *WorkflowReconciler) createClaim(ctx context.Context, wf *chroniclev1alp
 	return nil
 }
 
-func setVolumes(wf *chroniclev1alpha1.Workflow, created bool, reason string) {
+func setVolumes(st *chroniclev1alpha1.WorkflowStatus, created bool, reason string, generation int64) {
 	status := metav1.ConditionFalse
 	if created {
 		status = metav1.ConditionTrue
 	}
-	meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: conditionVolumes, Status: status, Reason: reason, ObservedGeneration: wf.Generation})
+	meta.SetStatusCondition(&st.Conditions, metav1.Condition{Type: conditionVolumes, Status: status, Reason: reason, ObservedGeneration: generation})
 }
 
 // mountVolumes adds the volume mounts of a template to its main container, and the volumes to the Pod.
