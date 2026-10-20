@@ -4,7 +4,7 @@ package v1alpha1
 // for it. The node gets the phase and the output parameters of the child run. The parent run owns the child run: a stop
 // of the parent stops the child, and a delete of the parent deletes the child.
 type ChildWorkflowTemplate struct {
-	// workflowTemplateRef names the template of the child run.
+	// workflowTemplateRef names the template of the child run. The name can have placeholders.
 	// +required
 	WorkflowTemplateRef WorkflowTemplateRef `json:"workflowTemplateRef"`
 

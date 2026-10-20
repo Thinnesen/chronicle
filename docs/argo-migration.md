@@ -36,6 +36,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 72 converted w
 | A placeholder as a whole YAML value in a resource manifest | The same placeholder in quotes | chronicle parses the manifest before it puts the values in. So a value can never add YAML. |
 | An argument that the template does not declare | Dropped | Argo ignores it. chronicle rejects it. |
 | `resource.action: replace` | `apply` | |
+| A resource step that creates a Workflow from a `workflowTemplateRef` (workflow of workflows) | A `childWorkflow` template | chronicle links the runs, takes the outputs and stops the child with the parent. A step with outputs or a Workflow with inline templates stays a resource step. |
 | Suspend output `valueFrom.supplied` with `valueFrom.default` | `default` | The value comes from the approval. |
 | `volumeClaimTemplates` (full PersistentVolumeClaims) | `volumeClaimTemplates` with `name`, `storage`, `storageClassName` and `accessModes` | The converter drops other fields, such as `dataSource`, because they could copy the data of another claim. |
 | Artifact locations (`s3`, `gcs`, `git`, `http`, `raw` and others) | Dropped | chronicle keeps all artifacts in the repository of the namespace. See [artifacts.md](artifacts.md). |

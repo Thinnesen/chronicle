@@ -8,6 +8,7 @@ import (
 
 // checkChild checks the arguments of a child run. Each needs a value, which can have placeholders.
 func (c *checker) checkChild(w *v1alpha1.ChildWorkflowTemplate, path *field.Path, sc scope) {
+	c.checkText(w.WorkflowTemplateRef.Name, path.Child("workflowTemplateRef", "name"), sc, nil)
 	args := path.Child("arguments")
 	if len(w.Arguments.Artifacts) > 0 {
 		c.errs = append(c.errs, field.Forbidden(args.Child("artifacts"), "a child run cannot get artifacts"))

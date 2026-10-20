@@ -668,7 +668,7 @@ spec:
                           type: object
                         workflowTemplateRef:
                           description: workflowTemplateRef names the template of the
-                            child run.
+                            child run. The name can have placeholders.
                           properties:
                             clusterScope:
                               description: clusterScope is true for a ClusterWorkflowTemplate.
@@ -4523,7 +4523,7 @@ spec:
                               type: object
                             workflowTemplateRef:
                               description: workflowTemplateRef names the template
-                                of the child run.
+                                of the child run. The name can have placeholders.
                               properties:
                                 clusterScope:
                                   description: clusterScope is true for a ClusterWorkflowTemplate.

@@ -64,14 +64,14 @@ func (e *engine) runChild(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v
 	case n.Phase == v1alpha1.NodePending && e.in.Depth >= MaxChildDepth:
 		e.setPhase(&n, v1alpha1.NodeError, fmt.Sprintf("the child runs are nested too deeply (more than %d)", MaxChildDepth))
 	case n.Phase == v1alpha1.NodePending:
-		params, err := e.childParameters(c, t, n)
+		ref, params, err := e.childCall(c, t, n)
 		if err != nil {
 			e.setPhase(&n, v1alpha1.NodeError, err.Error())
 			break
 		}
 		n.Message = "starting the child run " + n.ChildWorkflow
 		e.actions = append(e.actions, CreateWorkflow{Name: n.ChildWorkflow, NodeID: n.ID, NodeName: c.nodeName,
-			TemplateRef: t.ChildWorkflow.WorkflowTemplateRef, Parameters: params})
+			TemplateRef: ref, Parameters: params})
 		e.reached(e.in.Now.Add(childPollInterval))
 	default:
 		e.setPhase(&n, v1alpha1.NodeError, "the child run "+n.ChildWorkflow+" was deleted")
@@ -79,21 +79,27 @@ func (e *engine) runChild(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v
 	return e.save(n)
 }
 
-// childParameters resolves the placeholders in the arguments of the child run.
-func (e *engine) childParameters(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) ([]v1alpha1.Parameter, error) {
-	params := make([]v1alpha1.Parameter, 0, len(t.ChildWorkflow.Arguments.Parameters))
+// childCall resolves the placeholders in the template name and in the arguments of the child run.
+func (e *engine) childCall(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) (v1alpha1.WorkflowTemplateRef, []v1alpha1.Parameter, error) {
 	resolve := e.nodeScope(c, n)
+	ref := t.ChildWorkflow.WorkflowTemplateRef
+	name, err := expr.Substitute(ref.Name, resolve)
+	if err != nil {
+		return ref, nil, err
+	}
+	ref.Name = name
+	params := make([]v1alpha1.Parameter, 0, len(t.ChildWorkflow.Arguments.Parameters))
 	for _, p := range t.ChildWorkflow.Arguments.Parameters {
 		if p.Value == nil {
-			return nil, fmt.Errorf("the argument %q of the child run has no value", p.Name)
+			return ref, nil, fmt.Errorf("the argument %q of the child run has no value", p.Name)
 		}
 		v, err := expr.Substitute(*p.Value, resolve)
 		if err != nil {
-			return nil, err
+			return ref, nil, err
 		}
 		params = append(params, v1alpha1.Parameter{Name: p.Name, Value: &v})
 	}
-	return params, nil
+	return ref, params, nil
 }
 
 // applyChild sets the phase of a node from its child run, and copies the outputs of a child run that succeeded.

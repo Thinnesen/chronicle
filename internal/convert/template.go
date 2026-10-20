@@ -53,7 +53,16 @@ func (c *converter) template(in obj, path string) (obj, error) {
 		}
 	}
 	if v, ok := in["resource"]; ok {
-		out["resource"] = c.resource(asObj(v), join(path, "resource"))
+		// A child run has no jsonPath outputs, so a resource step with outputs stays as it is.
+		var child obj
+		if in["outputs"] == nil {
+			child = c.childFromResource(asObj(v), join(path, "resource"))
+		}
+		if child != nil {
+			out["childWorkflow"] = child
+		} else {
+			out["resource"] = c.resource(asObj(v), join(path, "resource"))
+		}
 	}
 	if v, ok := in["http"]; ok {
 		out["http"] = c.http(asObj(v), join(path, "http"))

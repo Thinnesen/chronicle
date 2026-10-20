@@ -213,6 +213,21 @@ func TestRules(t *testing.T) {
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",
 			want: []string{`name: "{{inputs.parameters.job}}"`},
 		},
+		{
+			name: "a resource step that creates an Argo Workflow becomes a child run",
+			templates: "  - name: main\n    inputs: {parameters: [{name: t, value: etl}, {name: m, value: hi}]}\n    resource:\n      action: create\n" +
+				"      successCondition: status.phase == Succeeded\n      manifest: |\n        apiVersion: argoproj.io/v1alpha1\n        kind: Workflow\n" +
+				"        metadata: {generateName: child-}\n        spec:\n          arguments:\n            parameters:\n            - name: message\n" +
+				"              value: {{inputs.parameters.m}}\n          workflowTemplateRef:\n            name: {{inputs.parameters.t}}\n",
+			want: []string{"childWorkflow:\n      arguments:\n        parameters:\n        - name: message\n          value: '{{inputs.parameters.m}}'\n      workflowTemplateRef:\n        name: '{{inputs.parameters.t}}'",
+				"resource: the step that creates an Argo Workflow is now a childWorkflow"},
+		},
+		{
+			name: "an Argo Workflow with inline templates stays a resource step",
+			templates: "  - name: main\n    resource:\n      action: create\n      manifest: |\n        apiVersion: argoproj.io/v1alpha1\n        kind: Workflow\n" +
+				"        metadata: {generateName: child-}\n        spec: {entrypoint: c, templates: [{name: c, container: {image: x}}]}\n",
+			want: []string{"resource:\n      action: create"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

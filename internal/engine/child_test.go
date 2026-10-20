@@ -117,3 +117,16 @@ func TestChildWorkflowDepth(t *testing.T) {
 		t.Errorf("node = %s %q", n.Phase, n.Message)
 	}
 }
+
+// TestChildWorkflowTemplateName resolves a placeholder in the name of the template of the child run.
+func TestChildWorkflowTemplateName(t *testing.T) {
+	in := childInput(t)
+	for i := range in.Spec.Templates {
+		if c := in.Spec.Templates[i].ChildWorkflow; c != nil {
+			c.WorkflowTemplateRef.Name = "etl-{{workflow.parameters.day}}"
+		}
+	}
+	if created, _ := next[CreateWorkflow](&in, 0); len(created) != 1 || created[0].TemplateRef.Name != "etl-2026-10-20" {
+		t.Fatalf("create = %+v", created)
+	}
+}
