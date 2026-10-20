@@ -24,7 +24,7 @@ export function clock(d: Date, now = new Date()): string {
 // ago formats a past time like "just now", "4 min ago" or "3 h ago", and older times like clock.
 export function ago(d: Date, now = new Date()): string {
   const s = Math.round((now.getTime() - d.getTime()) / 1000);
-  if (s < 10) return "just now";
+  if (s < 3) return "just now";
   if (s < 60) return `${s} s ago`;
   if (s < 3600) return `${Math.round(s / 60)} min ago`;
   if (s < 86_400) return `${Math.floor(s / 3600)} h ago`;
