@@ -33,6 +33,12 @@ func (s *workflowService) RetryWorkflow(ctx context.Context, req *connect.Reques
 		wf.Spec.Restart = &v1alpha1.Restart{Generation: gen, FromNode: m.Node}
 		return nil
 	})
+	if connect.CodeOf(err) == connect.CodeNotFound {
+		if _, archived, aerr := s.getAny(ctx, m.Namespace, m.Name); aerr == nil && archived {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				errors.New("the run is only in the archive, so it cannot continue: re-run it to start it again"))
+		}
+	}
 	return respond(&chroniclev1.RetryWorkflowResponse{Summary: sum}, err)
 }
 

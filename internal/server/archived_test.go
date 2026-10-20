@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,6 +96,11 @@ func TestArchivedRuns(t *testing.T) {
 	}
 	if _, err := alice.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "never"})); code(err) != connect.CodeNotFound {
 		t.Errorf("a run that is nowhere: %v", err)
+	}
+	// A retry continues the Workflow object, which is gone. The answer tells to re-run instead.
+	_, err = alice.RetryWorkflow(ctx, connect.NewRequest(&chroniclev1.RetryWorkflowRequest{Namespace: "team-a", Name: "gone"}))
+	if code(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "re-run") {
+		t.Errorf("retry an archived run: %v", err)
 	}
 }
 
