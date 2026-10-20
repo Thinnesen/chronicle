@@ -10,7 +10,7 @@ import { RunPage } from "./pages/RunPage";
 import { CronPage } from "./pages/CronPage";
 import { CronsPage } from "./pages/CronsPage";
 import { TasksPage } from "./pages/TasksPage";
-import { RunsPage } from "./pages/RunsPage";
+import { AllRunsPage, RunsPage } from "./pages/RunsPage";
 import { TemplatePage } from "./pages/TemplatePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { basePath } from "./lib/base";
@@ -44,15 +44,15 @@ export interface RunsSearch {
   phase?: string;
 }
 
-export const runsRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/ns/$namespace",
-  component: RunsPage,
-  validateSearch: (s: Record<string, unknown>): RunsSearch => ({
-    q: typeof s.q === "string" && s.q !== "" ? s.q : undefined,
-    phase: typeof s.phase === "string" && s.phase !== "" ? s.phase : undefined,
-  }),
+const runsSearch = (s: Record<string, unknown>): RunsSearch => ({
+  q: typeof s.q === "string" && s.q !== "" ? s.q : undefined,
+  phase: typeof s.phase === "string" && s.phase !== "" ? s.phase : undefined,
 });
+
+export const runsRoute = createRoute({ getParentRoute: () => appRoute, path: "/ns/$namespace", component: RunsPage, validateSearch: runsSearch });
+
+// allRunsRoute lists the runs of all namespaces that the user can see.
+const allRunsRoute = createRoute({ getParentRoute: () => appRoute, path: "/runs", component: AllRunsPage, validateSearch: runsSearch });
 
 // RunSearch is the state of the run page in the URL: the selected node and the tab. The default tab is the graph.
 export interface RunSearch {
@@ -95,7 +95,7 @@ export const tasksRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([homeRoute, runsRoute, runRoute, templatesRoute, templateRoute, cronsRoute, cronRoute, tasksRoute]),
+  appRoute.addChildren([homeRoute, allRunsRoute, runsRoute, runRoute, templatesRoute, templateRoute, cronsRoute, cronRoute, tasksRoute]),
 ]);
 
 export function newRouter(queryClient: QueryClient) {

@@ -26,7 +26,7 @@ In CI, log in with a service account token that has the audience `chronicle`:
 kubectl create token ci -n team-a --audience=chronicle | chronicle login --server https://chronicle.example.com --token-file -
 ```
 
-Then, for example: `chronicle submit --from etl -p day=2026-10-19 --log`, `chronicle list`, `chronicle approve <run>`. Run `chronicle --help` for all commands.
+Then, for example: `chronicle submit --from etl -p day=2026-10-19 --log`, `chronicle list` (`-A` for all your namespaces), `chronicle approve <run>`. Run `chronicle --help` for all commands.
 
 `chronicle lint` and `chronicle convert` need no login. Check your workflow files in CI before a merge:
 

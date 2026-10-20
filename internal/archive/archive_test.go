@@ -2,6 +2,7 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -40,6 +41,28 @@ func run(uid, name string, phase v1alpha1.WorkflowPhase, created time.Time, labe
 	}
 }
 
+// TestListNamespaces checks that a run with the same name and time in another namespace comes after it, also across pages.
+func TestListNamespaces(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	t0 := time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC)
+	for i, ns := range []string{"team-b", "team-a", "team-c"} {
+		wf := run(fmt.Sprintf("44444444-4444-4444-4444-44444444444%d", i), "a", v1alpha1.WorkflowFailed, t0, nil)
+		wf.Namespace = ns
+		if err := s.Save(ctx, wf, 1, 2); err != nil {
+			t.Fatal(err)
+		}
+	}
+	both, err := s.List(ctx, Query{Namespaces: []string{"team-a", "team-b"}, Limit: 3})
+	if err != nil || len(both) != 2 || both[0].Namespace != "team-a" || both[1].Namespace != "team-b" {
+		t.Fatalf("two namespaces: %v %+v", err, both)
+	}
+	next, err := s.List(ctx, Query{Namespaces: []string{"team-a", "team-b"}, Limit: 1, After: &Position{CreatedAt: t0, Name: "a", Namespace: "team-a"}})
+	if err != nil || len(next) != 1 || next[0].Namespace != "team-b" {
+		t.Fatalf("page across namespaces: %v %+v", err, next)
+	}
+}
+
 func TestStore(t *testing.T) {
 	s := openTest(t)
 	ctx := context.Background()
@@ -60,19 +83,19 @@ func TestStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	all, err := s.List(ctx, Query{Namespace: "team-a", Limit: 10})
+	all, err := s.List(ctx, Query{Namespaces: []string{"team-a"}, Limit: 10})
 	if err != nil || len(all) != 3 || all[0].UID != "33333333-3333-3333-3333-333333333333" || all[1].Phase != "Succeeded" || all[1].NodesDone != 2 {
 		t.Fatalf("list: %v %+v", err, all)
 	}
-	data, err := s.List(ctx, Query{Namespace: "team-a", Labels: map[string]string{"team": "data"}, Phases: []string{"Succeeded"}, Limit: 10})
+	data, err := s.List(ctx, Query{Namespaces: []string{"team-a"}, Labels: map[string]string{"team": "data"}, Phases: []string{"Succeeded"}, Limit: 10})
 	if err != nil || len(data) != 1 || data[0].Name != "a" || data[0].Labels["team"] != "data" || data[0].StartedAt == nil {
 		t.Fatalf("filtered: %v %+v", err, data)
 	}
-	page, err := s.List(ctx, Query{Namespace: "team-a", Limit: 1, After: &Position{CreatedAt: all[0].CreatedAt, Name: all[0].Name}})
+	page, err := s.List(ctx, Query{Namespaces: []string{"team-a"}, Limit: 1, After: &Position{CreatedAt: all[0].CreatedAt, Name: all[0].Name, Namespace: "team-a"}})
 	if err != nil || len(page) != 1 || page[0].Name != "b" {
 		t.Fatalf("page: %v %+v", err, page)
 	}
-	other, err := s.List(ctx, Query{Namespace: "team-b", Limit: 10})
+	other, err := s.List(ctx, Query{Namespaces: []string{"team-b"}, Limit: 10})
 	if err != nil || len(other) != 0 {
 		t.Fatalf("another namespace: %v %+v", err, other)
 	}

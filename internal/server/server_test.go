@@ -342,12 +342,13 @@ func TestHTTPJSON(t *testing.T) {
 
 func TestCursor(t *testing.T) {
 	t0 := time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
-	c, err := parseCursor(cursor{Time: t0, Name: "b"}.token())
+	c, err := parseCursor(cursor{Time: t0, Name: "b", Namespace: "team-b"}.token())
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Newest first, then by name: a newer run and "a" at the same time were on an earlier page.
-	if !c.before(t0.Add(time.Second), "z") || !c.before(t0, "a") || !c.before(t0, "b") || c.before(t0, "c") || c.before(t0.Add(-time.Second), "a") {
+	// Newest first, then by name, then by namespace: a newer run and "a" at the same time were on an earlier page.
+	if !c.before(t0.Add(time.Second), "z", "") || !c.before(t0, "a", "z") || !c.before(t0, "b", "team-a") || !c.before(t0, "b", "team-b") ||
+		c.before(t0, "b", "team-c") || c.before(t0, "c", "") || c.before(t0.Add(-time.Second), "a", "") {
 		t.Error("wrong order")
 	}
 	if _, err := parseCursor("4"); code(err) != connect.CodeInvalidArgument {

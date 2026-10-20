@@ -7,12 +7,12 @@ import { workflows } from "../api/client";
 
 const named = 3;
 
-// WaitingRuns names the runs of a namespace that wait for an approval, because their phase stays Running. It reads
-// all running runs, so that it also finds a run that has waited for days.
-export function WaitingRuns({ namespace }: { namespace: string }) {
+// WaitingRuns names the runs of a namespace, or of all namespaces without one, that wait for an approval, because their
+// phase stays Running. It reads all running runs, so that it also finds a run that has waited for days.
+export function WaitingRuns({ namespace }: { namespace?: string }) {
   const { data } = useQuery({
-    queryKey: ["runs", namespace, "Running", "waiting"],
-    queryFn: () => workflows.listWorkflows({ namespace, limit: 200, phases: ["Running"] }),
+    queryKey: ["runs", namespace ?? "*", "Running", "waiting"],
+    queryFn: () => workflows.listWorkflows({ namespace, allNamespaces: !namespace, limit: 200, phases: ["Running"] }),
     refetchInterval: 10_000,
   });
   const waiting = data?.workflows.filter((w) => w.approvalsWaiting > 0) ?? [];
@@ -25,7 +25,7 @@ export function WaitingRuns({ namespace }: { namespace: string }) {
         {waiting.slice(0, named).map((w, i) => (
           <Fragment key={w.uid}>
             {i > 0 && ", "}
-            <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: w.name }}>
+            <Link to="/ns/$namespace/runs/$name" params={{ namespace: w.namespace, name: w.name }}>
               {w.name}
             </Link>
           </Fragment>

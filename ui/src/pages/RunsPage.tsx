@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 
@@ -13,7 +13,7 @@ import { SubmitDialog } from "../components/Lazy";
 import { ago, duration, toDate } from "../lib/time";
 import { WaitingRuns } from "../components/WaitingRuns";
 import { useNow } from "../lib/useNow";
-import { runsRoute } from "../router";
+import { runsRoute, type RunsSearch } from "../router";
 import "./RunsPage.css";
 import { useTitle } from "../lib/useTitle";
 import { loadError } from "../lib/errors";
@@ -31,28 +31,42 @@ function matches(phase: string | undefined, filter: string | undefined): boolean
   return filter === "Failed" ? lampKind(phase || "Pending") === "danger" : phase === filter;
 }
 
-// RunsPage lists the runs of a namespace, newest first: the activity of 24 hours, the filters and a dense table.
+// RunsPage lists the runs of a namespace.
 export function RunsPage() {
   const { namespace } = runsRoute.useParams();
-  useTitle(`Runs in ${namespace}`);
-  const { q, phase } = runsRoute.useSearch();
-  const navigate = useNavigate({ from: runsRoute.fullPath });
+  return <RunsBoard namespace={namespace} />;
+}
+
+// AllRunsPage lists the runs of all namespaces that the user can see.
+export function AllRunsPage() {
+  return <RunsBoard />;
+}
+
+// RunsBoard lists runs, newest first: the activity of 24 hours, the filters and a dense table. Without a namespace,
+// it lists the runs of all namespaces, with a namespace column.
+function RunsBoard({ namespace }: { namespace?: string }) {
+  const all = !namespace;
+  useTitle(all ? "Runs in all namespaces" : `Runs in ${namespace}`);
+  const { q, phase } = useSearch({ strict: false }) as RunsSearch;
+  const navigate = useNavigate();
+  const setSearch = (change: RunsSearch) => void navigate({ to: ".", search: (s: RunsSearch) => ({ ...s, ...change }), replace: true });
   const now = useNow(true);
-  const canSubmit = useCanEdit(namespace);
+  const canSubmit = useCanEdit(namespace ?? "");
+  const scope = { namespace, allNamespaces: all };
   const [submitting, setSubmitting] = useState(false);
   // The newest 200 runs without a filter give the counts and the activity. A phase filter asks the server, so older
   // runs are found too. "Show more" loads the next page of the table.
   const table = useInfiniteQuery({
-    queryKey: ["runs", namespace, phase],
+    queryKey: ["runs", namespace ?? "*", phase],
     queryFn: ({ pageParam }) =>
-      workflows.listWorkflows({ namespace, limit: 200, pageToken: pageParam, phases: phase === "Failed" ? ["Failed", "Error"] : phase ? [phase] : [] }),
+      workflows.listWorkflows({ ...scope, limit: 200, pageToken: pageParam, phases: phase === "Failed" ? ["Failed", "Error"] : phase ? [phase] : [] }),
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
     refetchInterval: 5000,
   });
-  const all = useQuery({
-    queryKey: ["runs", namespace, "counts"],
-    queryFn: () => workflows.listWorkflows({ namespace, limit: 200, phases: [] }),
+  const counts = useQuery({
+    queryKey: ["runs", namespace ?? "*", "counts"],
+    queryFn: () => workflows.listWorkflows({ ...scope, limit: 200, phases: [] }),
     refetchInterval: 5000,
     enabled: !!phase,
   });
@@ -60,7 +74,7 @@ export function RunsPage() {
   const shown = table.data?.pages
     .flatMap((p) => p.workflows)
     .filter((w) => w.name.toLowerCase().includes(term) || w.template.toLowerCase().includes(term));
-  const first = phase ? all.data : table.data?.pages[0];
+  const first = phase ? counts.data : table.data?.pages[0];
   const runs = first?.workflows ?? [];
   const started = runs.map((w) => ({ phase: w.phase, start: toDate(w.startedAt) ?? toDate(w.createdAt) }));
   // A full page whose oldest run is less than 24 hours old does not have all runs of the 24 hours.
@@ -71,7 +85,7 @@ export function RunsPage() {
       <header className="page-head">
         <div>
           <h1>Runs</h1>
-          <p className="quiet">All runs in {namespace}, newest first.</p>
+          <p className="quiet">{all ? "All runs in your namespaces, newest first." : `All runs in ${namespace}, newest first.`}</p>
         </div>
         {canSubmit && (
           <button type="button" className="button button-primary" onClick={() => setSubmitting(true)}>
@@ -80,7 +94,7 @@ export function RunsPage() {
           </button>
         )}
       </header>
-      {submitting && <SubmitDialog namespace={namespace} open={submitting} onOpenChange={setSubmitting} />}
+      {submitting && namespace && <SubmitDialog namespace={namespace} open={submitting} onOpenChange={setSubmitting} />}
       <WaitingRuns namespace={namespace} />
       {!(table.error && !table.data) && <ActivityStrip runs={started} now={now} partial={partial} />}
       <div className="board-filters">
@@ -91,7 +105,7 @@ export function RunsPage() {
             type="search"
             placeholder="Search by run or template"
             value={q ?? ""}
-            onChange={(e) => void navigate({ search: (s) => ({ ...s, q: e.target.value || undefined }), replace: true })}
+            onChange={(e) => setSearch({ q: e.target.value || undefined })}
           />
         </label>
         <div className="chips" role="radiogroup" aria-label="Phase">
@@ -102,7 +116,7 @@ export function RunsPage() {
               role="radio"
               className="chip"
               aria-checked={phase === f.phase}
-              onClick={() => void navigate({ search: (s) => ({ ...s, phase: f.phase }), replace: true })}
+              onClick={() => setSearch({ phase: f.phase })}
             >
               {f.phase && <Lamp phase={f.phase} size={12} />}
               {f.label}
@@ -112,7 +126,7 @@ export function RunsPage() {
         </div>
       </div>
       {table.isPending && <p className="quiet">Loading the runs…</p>}
-      {table.error && !table.data && <p role="alert">{loadError("runs", namespace, table.error)}</p>}
+      {table.error && !table.data && <p role="alert">{loadError("runs", namespace ?? "all namespaces", table.error)}</p>}
       {table.data && <RefreshError error={table.error} />}
       {table.data?.pages.some((p) => p.archiveUnavailable) && (
         <p className="refresh-error" role="status">
@@ -132,6 +146,11 @@ export function RunsPage() {
               <tr>
                 <th scope="col">Status</th>
                 <th scope="col">Run</th>
+                {all && (
+                  <th scope="col" className="board-ns">
+                    Namespace
+                  </th>
+                )}
                 <th scope="col" className="board-template">
                   Template
                 </th>
@@ -155,9 +174,10 @@ export function RunsPage() {
                     </td>
                     <td className="board-run">
                       <span className="board-name">
-                        <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: w.name }}>
+                        <Link to="/ns/$namespace/runs/$name" params={{ namespace: w.namespace, name: w.name }}>
                           {w.name}
                         </Link>
+                        {all && <span className="board-ns-inline">{w.namespace}</span>}
                         {w.archived && <span className="badge">Archived</span>}
                         {w.approvalsWaiting > 0 && <span className="badge badge-caution">Needs approval</span>}
                         {w.waitingReason && (
@@ -172,13 +192,20 @@ export function RunsPage() {
                         </span>
                       )}
                     </td>
+                    {all && (
+                      <td className="board-ns">
+                        <Link to="/ns/$namespace" params={{ namespace: w.namespace }}>
+                          {w.namespace}
+                        </Link>
+                      </td>
+                    )}
                     <td className="board-template">
                       {w.template ? (
                         <button
                           type="button"
                           className="board-filter"
                           aria-label={`Show the runs of ${w.template}`}
-                          onClick={() => void navigate({ search: (s) => ({ ...s, q: w.template }), replace: true })}
+                          onClick={() => setSearch({ q: w.template })}
                         >
                           {w.template}
                         </button>

@@ -127,7 +127,8 @@ function Breadcrumbs() {
   const { pathname } = useLocation();
   const parts = pathname.split("/").filter(Boolean);
   const section = parts[2] === "runs" || parts.length === 2 ? "Runs" : (sections.find((s) => s.to.endsWith(`/${parts[2]}`))?.label ?? "");
-  const crumbs = [params.namespace, params.namespace && section, params.name].filter((c): c is string => !!c);
+  const crumbs =
+    pathname === "/runs" ? ["All namespaces", "Runs"] : [params.namespace, params.namespace && section, params.name].filter((c): c is string => !!c);
   return (
     <nav className="breadcrumbs" aria-label="Breadcrumbs">
       {crumbs.map((c, i) => (
@@ -140,8 +141,12 @@ function Breadcrumbs() {
   );
 }
 
+// allNamespaces is the value of the picker for the runs of all namespaces.
+const allNamespaces = "*";
+
 function NamespacePicker() {
   const params = useParams({ strict: false }) as { namespace?: string };
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const { data } = useQuery({ queryKey: ["namespaces"], queryFn: () => namespaces.listNamespaces({}) });
   const list = data?.namespaces ?? [];
@@ -151,8 +156,14 @@ function NamespacePicker() {
   return (
     <label className="ns-picker">
       <span className="ns-label">Namespace</span>
-      <select value={params.namespace ?? ""} onChange={(e) => void navigate({ to: "/ns/$namespace", params: { namespace: e.target.value } })}>
-        {!params.namespace && <option value="">Choose a namespace</option>}
+      <select
+        value={pathname === "/runs" ? allNamespaces : (params.namespace ?? "")}
+        onChange={(e) =>
+          void (e.target.value === allNamespaces ? navigate({ to: "/runs" }) : navigate({ to: "/ns/$namespace", params: { namespace: e.target.value } }))
+        }
+      >
+        {!params.namespace && pathname !== "/runs" && <option value="">Choose a namespace</option>}
+        {list.length > 1 && <option value={allNamespaces}>All namespaces</option>}
         {/* A namespace from a link that is not in the list still shows, so the picker never names another one. */}
         {params.namespace && !list.some((n) => n.name === params.namespace) && <option value={params.namespace}>{params.namespace}</option>}
         {list.map((n) => (

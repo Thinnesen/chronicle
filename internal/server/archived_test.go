@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ func (f fakeReader) List(_ context.Context, q archive.Query) ([]archive.Row, err
 	var out []archive.Row
 	for _, r := range f.rows {
 		after := q.After == nil || r.CreatedAt.Before(q.After.CreatedAt) || r.CreatedAt.Equal(q.After.CreatedAt) && r.Name > q.After.Name
-		if r.Namespace == q.Namespace && after && len(out) < q.Limit {
+		if slices.Contains(q.Namespaces, r.Namespace) && after && len(out) < q.Limit {
 			out = append(out, r)
 		}
 	}

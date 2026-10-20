@@ -143,7 +143,7 @@ type Row struct {
 
 // Query selects archived runs of one namespace, newest first.
 type Query struct {
-	Namespace string
+	Namespaces []string
 	// Labels must all be on the run.
 	Labels map[string]string
 	Phases []string
@@ -152,29 +152,29 @@ type Query struct {
 	After *Position
 }
 
-// Position is a place in the order of a list: newest first, then by name.
+// Position is a place in the order of a list: newest first, then by name, then by namespace.
 type Position struct {
-	CreatedAt time.Time
-	Name      string
+	CreatedAt       time.Time
+	Name, Namespace string
 }
 
 // List returns the runs that match the query.
 func (s *Store) List(ctx context.Context, q Query) ([]Row, error) {
-	args := []any{q.Namespace, jsonObject(q.Labels)}
-	where := `namespace = $1 AND labels @> $2`
+	args := []any{q.Namespaces, jsonObject(q.Labels)}
+	where := `namespace = ANY($1) AND labels @> $2`
 	if len(q.Phases) > 0 {
 		args = append(args, q.Phases)
 		where += ` AND phase = ANY($` + strconv.Itoa(len(args)) + `)`
 	}
 	if q.After != nil {
-		args = append(args, q.After.CreatedAt, q.After.Name)
-		t, n := strconv.Itoa(len(args)-1), strconv.Itoa(len(args))
-		where += ` AND (created_at < $` + t + ` OR created_at = $` + t + ` AND name > $` + n + `)`
+		args = append(args, q.After.CreatedAt, q.After.Name, q.After.Namespace)
+		t, n, ns := strconv.Itoa(len(args)-2), strconv.Itoa(len(args)-1), strconv.Itoa(len(args))
+		where += ` AND (created_at < $` + t + ` OR created_at = $` + t + ` AND (name, namespace) > ($` + n + `, $` + ns + `))`
 	}
 	args = append(args, q.Limit)
 	rows, err := s.pool.Query(ctx, `
 SELECT uid, namespace, name, phase, message, template, labels, created_at, started_at, finished_at, nodes_done, nodes_total
-FROM workflow_runs WHERE `+where+` ORDER BY created_at DESC, name LIMIT $`+strconv.Itoa(len(args)), args...)
+FROM workflow_runs WHERE `+where+` ORDER BY created_at DESC, name, namespace LIMIT $`+strconv.Itoa(len(args)), args...)
 	if err != nil {
 		return nil, fmt.Errorf("list the archived runs: %w", err)
 	}

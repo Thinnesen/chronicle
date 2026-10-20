@@ -82,6 +82,7 @@ button {
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+  text-decoration: none;
   white-space: nowrap;
   transition: background var(--duration), border-color var(--duration);
 }

@@ -29,7 +29,7 @@ type ArchiveReader interface {
 // archivedRuns returns the archived runs after the cursor that the live list does not have. The caller already listed
 // the namespace with its own permissions, so it may read the archive of the namespace too. It reads more than one page,
 // because the archive can also have the live runs.
-func (s *workflowService) archivedRuns(ctx context.Context, m *chroniclev1.ListWorkflowsRequest, live []v1alpha1.Workflow, after *cursor, limit int) ([]*chroniclev1.WorkflowSummary, error) {
+func (s *workflowService) archivedRuns(ctx context.Context, m *chroniclev1.ListWorkflowsRequest, namespaces []string, live []v1alpha1.Workflow, after *cursor, limit int) ([]*chroniclev1.WorkflowSummary, error) {
 	if s.archive == nil {
 		return nil, nil
 	}
@@ -38,9 +38,9 @@ func (s *workflowService) archivedRuns(ctx context.Context, m *chroniclev1.ListW
 		// The archive filters only by label equality. Other selectors show only live runs.
 		return nil, nil
 	}
-	q := archive.Query{Namespace: m.Namespace, Labels: match, Phases: m.Phases, Limit: limit + len(live) + 1}
+	q := archive.Query{Namespaces: namespaces, Labels: match, Phases: m.Phases, Limit: limit + len(live) + 1}
 	if after != nil {
-		q.After = &archive.Position{CreatedAt: after.Time, Name: after.Name}
+		q.After = &archive.Position{CreatedAt: after.Time, Name: after.Name, Namespace: after.Namespace}
 	}
 	rows, err := s.archive.List(ctx, q)
 	if err != nil {

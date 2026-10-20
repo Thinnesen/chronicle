@@ -39,6 +39,9 @@ export function HomePage() {
           <h1>Choose a namespace</h1>
           <p className="quiet">You can see the runs of these namespaces.</p>
         </div>
+        <Link className="button" to="/runs">
+          All namespaces
+        </Link>
       </header>
       <ul className="item-list">
         {list.map((n) => (

@@ -79,6 +79,8 @@ message ListWorkflowsRequest {
   int32 limit = 4;
   // page_token is the next_page_token of the previous page.
   string page_token = 5;
+  // all_namespaces lists the runs of all namespaces where the caller can list Workflows. Leave namespace empty.
+  bool all_namespaces = 6;
 }
 
 message ListWorkflowsResponse {

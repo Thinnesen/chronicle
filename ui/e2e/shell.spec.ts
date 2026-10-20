@@ -25,6 +25,26 @@ test("lets the user choose a namespace and shows its runs", async ({ page }) => 
   await expect(page).toHaveTitle("Runs in team-a - chronicle");
 });
 
+test("lists the runs of all namespaces", async ({ page }, info) => {
+  await mockAPI(page);
+  await page.goto("/");
+  await page.getByRole("link", { name: "All namespaces" }).click();
+  await expect(page).toHaveURL(/\/runs$/);
+  await expect(page).toHaveTitle("Runs in all namespaces - chronicle");
+  await expect(page.getByRole("combobox", { name: "Namespace" })).toHaveValue("*");
+  await expect(page.getByRole("link", { name: "report-weekly-p0d3s" })).toHaveAttribute("href", "/ns/team-b/runs/report-weekly-p0d3s");
+  await expect(page.getByRole("button", { name: "New run" })).toHaveCount(0);
+  const row = page.getByRole("row").filter({ hasText: "report-weekly-p0d3s" });
+  // A phone shows the namespace in the run cell, without its own column.
+  if (info.project.name === "phone") {
+    await expect(row.getByText("team-b", { exact: true }).filter({ visible: true })).toBeVisible();
+    return;
+  }
+  await expect(page.getByRole("columnheader", { name: "Namespace" })).toBeVisible();
+  await row.getByRole("link", { name: "team-b", exact: true }).click();
+  await expect(page).toHaveURL(/\/ns\/team-b$/);
+});
+
 test("opens the only namespace at once", async ({ page }) => {
   await mockAPI(page, { namespaces: ["team-a"] });
   await page.goto("/");

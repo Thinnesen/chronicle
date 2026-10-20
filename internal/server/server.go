@@ -52,7 +52,8 @@ func NewHandler(opts Options) (http.Handler, error) {
 	audit := &auditor{log: ctrl.Log.WithName("audit"), events: own}
 	interceptors := append([]connect.Interceptor{audit.interceptor()}, opts.Interceptors...)
 	limit := connect.WithHandlerOptions(connect.WithReadMaxBytes(4<<20), connect.WithInterceptors(interceptors...))
-	workflows := &workflowService{clients: clients, archive: opts.Archive}
+	namespaces := &namespaceService{clients: clients, own: own, cache: map[string]cachedAccess{}}
+	workflows := &workflowService{clients: clients, archive: opts.Archive, namespaces: namespaces}
 	path, h := chroniclev1connect.NewWorkflowServiceHandler(workflows, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewLogServiceHandler(&logService{workflows: workflows, open: clients.podLogs, stores: opts.Artifacts}, limit)
@@ -67,7 +68,7 @@ func NewHandler(opts Options) (http.Handler, error) {
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	path, h = chroniclev1connect.NewCronServiceHandler(&cronService{clients: clients}, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
-	path, h = chroniclev1connect.NewNamespaceServiceHandler(&namespaceService{clients: clients, own: own, cache: map[string]cachedAccess{}}, limit)
+	path, h = chroniclev1connect.NewNamespaceServiceHandler(namespaces, limit)
 	mux.Handle(path, authenticate(opts.Authenticators, h))
 	return mux, nil
 }

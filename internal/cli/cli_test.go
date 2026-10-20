@@ -32,7 +32,9 @@ type stub struct {
 	chroniclev1connect.UnimplementedCronServiceHandler
 	phase    string
 	requests []any
-	auth     string
+	// listed is the last list request.
+	listed *chroniclev1.ListWorkflowsRequest
+	auth   string
 	// restarted is the Restarted condition status of an applied retry ("True" or "False"), or empty.
 	restarted string
 	// breakLogs makes the first log stream fail after two lines, as during a server restart.
@@ -90,8 +92,9 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil}}), nil
 }
 
-func (s *stub) ListWorkflows(context.Context, *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
-	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{ArchiveUnavailable: s.archiveDown, Workflows: []*chroniclev1.WorkflowSummary{{Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3, ApprovalsWaiting: 1}, {Name: "run-2", Phase: "Running", WaitingReason: "Unschedulable"}, {Name: "run-3", Phase: "Succeeded", Archived: true}}}), nil
+func (s *stub) ListWorkflows(_ context.Context, r *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
+	s.listed = r.Msg
+	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{ArchiveUnavailable: s.archiveDown, Workflows: []*chroniclev1.WorkflowSummary{{Namespace: "team-a", Name: "run-1", Phase: "Running", NodesDone: 1, NodesTotal: 3, ApprovalsWaiting: 1}, {Name: "run-2", Phase: "Running", WaitingReason: "Unschedulable"}, {Name: "run-3", Phase: "Succeeded", Archived: true}}}), nil
 }
 
 func (s *stub) ApproveNode(_ context.Context, r *connect.Request[chroniclev1.ApproveNodeRequest]) (*connect.Response[chroniclev1.ApproveNodeResponse], error) {
@@ -224,6 +227,14 @@ func TestCommands(t *testing.T) {
 		if _, err := run(t, s, bad...); err == nil {
 			t.Errorf("%v returned no error", bad)
 		}
+	}
+}
+
+func TestListAllNamespaces(t *testing.T) {
+	s := &stub{}
+	out, err := run(t, s, "list", "-A")
+	if err != nil || !strings.HasPrefix(out, "NAMESPACE") || !strings.Contains(out, "team-a") || !s.listed.AllNamespaces || s.listed.Namespace != "" {
+		t.Errorf("err %v, request %v, output:\n%s", err, s.listed, out)
 	}
 }
 

@@ -38,13 +38,22 @@ type cachedAccess struct {
 }
 
 func (s *namespaceService) ListNamespaces(ctx context.Context, _ *connect.Request[chroniclev1.ListNamespacesRequest]) (*connect.Response[chroniclev1.ListNamespacesResponse], error) {
+	result, err := s.access(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&chroniclev1.ListNamespacesResponse{Namespaces: result}), nil
+}
+
+// access returns the namespaces where the caller can list Workflows.
+func (s *namespaceService) access(ctx context.Context) ([]*chroniclev1.NamespaceAccess, error) {
 	c, err := s.clients.clientFor(ctx)
 	if err != nil {
 		return nil, err
 	}
 	key := cacheKey(auth.IdentityFrom(ctx))
 	if hit, ok := s.cached(key); ok {
-		return connect.NewResponse(&chroniclev1.ListNamespacesResponse{Namespaces: hit}), nil
+		return hit, nil
 	}
 	var list corev1.NamespaceList
 	if err := s.own.List(ctx, &list); err != nil {
@@ -65,7 +74,7 @@ func (s *namespaceService) ListNamespaces(ctx context.Context, _ *connect.Reques
 	wg.Wait()
 	result = slices.DeleteFunc(result, func(a *chroniclev1.NamespaceAccess) bool { return a == nil })
 	s.store(key, result)
-	return connect.NewResponse(&chroniclev1.ListNamespacesResponse{Namespaces: result}), nil
+	return result, nil
 }
 
 // allowed asks the API server if the caller (the impersonated client) can do the verb on Workflows in the namespace.

@@ -13,6 +13,8 @@ export const runs = [
 ];
 
 // run is a DAG run: fetch and validate ran, train runs, report waits.
+// otherRun is in another namespace. Only the list of all namespaces has it.
+const otherRun = { namespace: "team-b", name: "report-weekly-p0d3s", uid: "u8", phase: "Succeeded", createdAt: ts(-600), startedAt: ts(-590), finishedAt: ts(-500), template: "report-weekly", nodesDone: 2, nodesTotal: 2 };
 const oldRun = { namespace: "team-a", name: "etl-nightly-old01", uid: "u9", phase: "Succeeded", createdAt: ts(-900000), startedAt: ts(-900000), finishedAt: ts(-899000), nodesDone: 4, nodesTotal: 4 };
 
 export function run(phase: string, gate = false, archived = false, stuck = false) {
@@ -135,7 +137,8 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     const phases: string[] = body.phases ?? [];
     // The unfiltered list has a second page with one old run.
     if (body.pageToken === "p2") return r.fulfill({ json: { workflows: [oldRun] } });
-    r.fulfill({ json: { workflows: runs.filter((w) => phases.length === 0 || phases.includes(w.phase)), nextPageToken: phases.length === 0 ? "p2" : "" } });
+    const all = body.allNamespaces ? [...runs, otherRun].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : runs;
+    r.fulfill({ json: { workflows: all.filter((w) => phases.length === 0 || phases.includes(w.phase)), nextPageToken: phases.length === 0 ? "p2" : "" } });
   });
   await page.route("**/chronicle.v1.WorkflowService/ListNodeEvents", (r) =>
     r.fulfill({

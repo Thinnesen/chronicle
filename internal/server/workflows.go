@@ -1,17 +1,13 @@
 package server
 
 import (
-	"cmp"
 	"context"
 	"errors"
-	"slices"
 
 	"connectrpc.com/connect"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -22,55 +18,8 @@ type workflowService struct {
 	clients *clientFactory
 	// archive holds finished runs whose Workflow was deleted, or is nil.
 	archive ArchiveReader
-}
-
-func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
-	m := req.Msg
-	c, err := s.client(ctx, m.Namespace)
-	if err != nil {
-		return nil, err
-	}
-	// The UI polls this list. ResourceVersion "0" serves it from the watch cache of the API server, not from etcd.
-	opts := []client.ListOption{client.InNamespace(m.Namespace), &client.ListOptions{Raw: &metav1.ListOptions{ResourceVersion: "0"}}}
-	if m.LabelSelector != "" {
-		sel, err := labels.Parse(m.LabelSelector)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
-		opts = append(opts, client.MatchingLabelsSelector{Selector: sel})
-	}
-	var list v1alpha1.WorkflowList
-	if err := c.List(ctx, &list, opts...); err != nil {
-		return nil, toConnect(err)
-	}
-	after, err := parseCursor(m.PageToken)
-	if err != nil {
-		return nil, err
-	}
-	live := slices.DeleteFunc(list.Items, func(wf v1alpha1.Workflow) bool {
-		return len(m.Phases) > 0 && !slices.Contains(m.Phases, string(wf.Status.Phase)) || after.before(wf.CreationTimestamp.Time, wf.Name)
-	})
-	items := make([]*chroniclev1.WorkflowSummary, 0, len(live))
-	for i := range live {
-		items = append(items, summary(&live[i]))
-	}
-	limit := pageSize(m.Limit)
-	// Without the archive, the live runs still come, with a mark. So the list does not fail as a whole.
-	archived, archiveErr := s.archivedRuns(ctx, m, live, after, limit)
-	if archiveErr != nil {
-		log.FromContext(ctx).Error(archiveErr, "The archive did not answer", "namespace", m.Namespace)
-	}
-	items = append(items, archived...)
-	slices.SortFunc(items, func(a, b *chroniclev1.WorkflowSummary) int {
-		return cmp.Or(b.CreatedAt.AsTime().Compare(a.CreatedAt.AsTime()), cmp.Compare(a.Name, b.Name))
-	})
-	next := ""
-	if len(items) > limit {
-		items = items[:limit]
-		last := items[limit-1]
-		next = cursor{Time: last.CreatedAt.AsTime(), Name: last.Name}.token()
-	}
-	return connect.NewResponse(&chroniclev1.ListWorkflowsResponse{Workflows: items, NextPageToken: next, ArchiveUnavailable: archiveErr != nil}), nil
+	// namespaces finds the namespaces of the caller for a list of all namespaces.
+	namespaces *namespaceService
 }
 
 func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {

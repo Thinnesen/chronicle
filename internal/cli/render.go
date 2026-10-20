@@ -16,10 +16,16 @@ import (
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
-func printList(out io.Writer, runs []*chroniclev1.WorkflowSummary) {
+func printList(out io.Writer, runs []*chroniclev1.WorkflowSummary, namespaces bool) {
 	w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
+	if namespaces {
+		_, _ = fmt.Fprint(w, "NAMESPACE\t")
+	}
 	_, _ = fmt.Fprintln(w, "NAME\tPHASE\tPROGRESS\tSTARTED\tDURATION\tMESSAGE")
 	for _, r := range runs {
+		if namespaces {
+			_, _ = fmt.Fprint(w, r.Namespace+"\t")
+		}
 		started, duration := "-", "-"
 		if r.StartedAt != nil {
 			started = ago(r.StartedAt.AsTime())

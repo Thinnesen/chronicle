@@ -188,26 +188,30 @@ func keyValues(pairs []string) (map[string]string, error) {
 func (a *app) listCommand() *cobra.Command {
 	var selector string
 	var phases []string
+	var all bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List the runs in a namespace, newest first",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ns, err := a.ns()
-			if err != nil {
-				return err
+			req := &chroniclev1.ListWorkflowsRequest{LabelSelector: selector, Phases: phases, AllNamespaces: all}
+			if !all {
+				ns, err := a.ns()
+				if err != nil {
+					return err
+				}
+				req.Namespace = ns
 			}
 			c, err := a.workflows(cmd.Context())
 			if err != nil {
 				return err
 			}
-			resp, err := c.ListWorkflows(cmd.Context(), connect.NewRequest(&chroniclev1.ListWorkflowsRequest{
-				Namespace: ns, LabelSelector: selector, Phases: phases}))
+			resp, err := c.ListWorkflows(cmd.Context(), connect.NewRequest(req))
 			if err != nil {
 				return err
 			}
-			printList(a.out, resp.Msg.Workflows)
+			printList(a.out, resp.Msg.Workflows, all)
 			if resp.Msg.ArchiveUnavailable {
 				_, _ = fmt.Fprintln(a.errOut, "The archive did not answer: the list shows only the runs in the cluster.")
 			}
@@ -216,6 +220,7 @@ func (a *app) listCommand() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&selector, "selector", "l", "", "A label selector, for example team=a.")
 	cmd.Flags().StringSliceVar(&phases, "phase", nil, "Show only runs in these phases, for example Running,Failed.")
+	cmd.Flags().BoolVarP(&all, "all-namespaces", "A", false, "List the runs of all namespaces that you can see.")
 	return cmd
 }
 

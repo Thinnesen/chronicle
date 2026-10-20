@@ -199,7 +199,9 @@ type ListWorkflowsRequest struct {
 	// limit is the page size. The default and the maximum are 500.
 	Limit int32 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	// page_token is the next_page_token of the previous page.
-	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// all_namespaces lists the runs of all namespaces where the caller can list Workflows. Leave namespace empty.
+	AllNamespaces bool `protobuf:"varint,6,opt,name=all_namespaces,json=allNamespaces,proto3" json:"all_namespaces,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -267,6 +269,13 @@ func (x *ListWorkflowsRequest) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListWorkflowsRequest) GetAllNamespaces() bool {
+	if x != nil {
+		return x.AllNamespaces
+	}
+	return false
 }
 
 type ListWorkflowsResponse struct {
@@ -1758,14 +1767,15 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x0ewaiting_reason\x18\x0f \x01(\tR\rwaitingReason\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcf\x01\n" +
 	"\x14ListWorkflowsRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12%\n" +
 	"\x0elabel_selector\x18\x02 \x01(\tR\rlabelSelector\x12\x16\n" +
 	"\x06phases\x18\x03 \x03(\tR\x06phases\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\"\xad\x01\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\x12%\n" +
+	"\x0eall_namespaces\x18\x06 \x01(\bR\rallNamespaces\"\xad\x01\n" +
 	"\x15ListWorkflowsResponse\x12;\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1d.chronicle.v1.WorkflowSummaryR\tworkflows\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12/\n" +
