@@ -95,6 +95,15 @@ func TestRules(t *testing.T) {
 			want: []string{"parallelism: 5", "- dag:", "parallelism: 2", "spec.templates[1].parallelism: only a dag or steps template"},
 		},
 		{
+			name: "template defaults",
+			templates: "  - {name: main, steps: [[{name: a, template: c}, {name: b, template: d}]]}\n" +
+				"  - {name: c, container: {image: x, command: [run]}}\n" +
+				"  - {name: d, retryStrategy: {limit: 5}, script: {image: py, source: date}}\n" +
+				"  templateDefaults: {retryStrategy: {limit: \"2\"}, container: {imagePullPolicy: Always}}",
+			want: []string{"- container:\n      command:\n      - run\n      image: x\n      imagePullPolicy: Always\n    name: c\n    retryStrategy:\n      limit: 2",
+				"retryStrategy:\n      limit: 5\n    script:\n      image: py\n      source: date"},
+		},
+		{
 			name: "volumes, claims and mounts",
 			templates: "  - {name: main, container: {image: x, command: [run], volumeMounts: [{name: work, mountPath: /work}, {name: data, mountPath: /data}, " +
 				"{name: tmp, mountPath: /scratch, readOnly: true}]}}\n" +

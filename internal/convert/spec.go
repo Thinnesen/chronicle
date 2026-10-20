@@ -15,7 +15,7 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 	if forWorkflow {
 		copied = append(copied, "workflowTemplateRef")
 	}
-	out := c.pick(in, path, copied, "templates", "arguments", "podGC", "ttlStrategy", "synchronization", "volumes", "volumeClaimTemplates")
+	out := c.pick(in, path, copied, "templates", "arguments", "podGC", "ttlStrategy", "synchronization", "volumes", "volumeClaimTemplates", "templateDefaults")
 	c.volumes = map[string]bool{}
 	if v := c.volumeClaimTemplates(asList(in["volumeClaimTemplates"]), join(path, "volumeClaimTemplates")); len(v) > 0 {
 		out["volumeClaimTemplates"] = v
@@ -59,8 +59,9 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 	for _, t := range asList(in["templates"]) {
 		c.names[fmt.Sprint(asObj(t)[fName])] = true
 	}
+	defaults := asObj(in["templateDefaults"])
 	for i, t := range asList(in["templates"]) {
-		ct, err := c.template(asObj(t), index(join(path, "templates"), i))
+		ct, err := c.template(withDefaults(asObj(t), defaults), index(join(path, "templates"), i))
 		if err != nil {
 			return nil, err
 		}

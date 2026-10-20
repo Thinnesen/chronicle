@@ -74,6 +74,9 @@ In a test with the 190 examples of Argo Workflows (October 2026), 71 converted w
 - `raw` and `http` input artifacts with `mode`, also in the workflow `arguments.artifacts`.
 - `memoize` with key and maxAge. chronicle keeps the results in its archive database, not in a ConfigMap.
 - `podGC`, `ttlStrategy` and `serviceAccountName`.
+- `templateDefaults`. The converter puts the defaults into each template. The values of a template win.
+- `synchronization`: one `mutex` or `semaphore` for each run and each template. A semaphore keeps its ConfigMap limit.
+- `volumeClaimTemplates`, and `emptyDir`, `secret` and `configMap` volumes with `volumeMounts`.
 - CronWorkflow: `timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits and `suspend`.
 
 Placeholders:
