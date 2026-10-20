@@ -40,7 +40,7 @@ func TestArtifactsAndArchivedLogs(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = admin.Delete(ctx, wf) })
-	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{"files-1": {ID: "files-1", Name: "files", Type: v1alpha1.NodePod, PodName: "files-1",
+	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{"files-1": {ID: "files-1", Name: "files", Type: v1alpha1.NodePod, PodName: "files-1", Phase: v1alpha1.NodeSucceeded,
 		LogKey: "p/main.log", Outputs: &v1alpha1.Outputs{Artifacts: []v1alpha1.Artifact{{Name: "data", Key: "p/data.tgz"}}}}}
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)

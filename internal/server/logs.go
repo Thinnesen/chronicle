@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -53,22 +54,82 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 		defer mu.Unlock()
 		return stream.Send(r)
 	}
-	// Without follow, the nodes come one after the other in the order of their start, so the output reads like the run.
-	// With follow, all nodes stream at the same time, because a running node never ends its stream.
-	if !m.Follow {
-		var errs []error
-		for _, n := range nodes {
-			errs = append(errs, s.streamNode(ctx, m.Namespace, n, opts, send))
-		}
-		return toConnect(errors.Join(errs...))
+	if m.Follow {
+		return toConnect(s.follow(ctx, m, wf, opts, send))
 	}
-	errs := make([]error, len(nodes))
+	// Without follow, the nodes come one after the other in the order of their start, so the output reads like the run.
+	// A step that has not started has no log yet.
+	var errs []error
+	for _, n := range nodes {
+		if !started(n) {
+			if m.Node != "" {
+				return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("the step has not started yet%s", detail(n.Message)))
+			}
+			continue
+		}
+		errs = append(errs, s.streamNode(ctx, m.Namespace, n, opts, send))
+	}
+	return toConnect(errors.Join(errs...))
+}
+
+// followPoll is the wait between two reads of a followed run. Tests make it short.
+var followPoll = 2 * time.Second
+
+// follow streams the logs of all steps at the same time, because a running step never ends its stream. It reads the
+// run again until it ends, and starts the stream of each step when the step starts.
+func (s *logService) follow(ctx context.Context, m *chroniclev1.StreamLogsRequest, wf *v1alpha1.Workflow, opts *corev1.PodLogOptions,
+	send func(*chroniclev1.StreamLogsResponse) error) error {
+	streamed := map[string]bool{}
+	var mu sync.Mutex
+	var errs []error
 	var wg sync.WaitGroup
-	for i, n := range nodes {
-		wg.Go(func() { errs[i] = s.streamNode(ctx, m.Namespace, n, opts, send) })
+	defer wg.Wait()
+	for {
+		for _, n := range podNodes(wf, m.Node) {
+			if streamed[n.ID] || !started(n) {
+				continue
+			}
+			streamed[n.ID] = true
+			wg.Go(func() {
+				if err := s.streamNode(ctx, m.Namespace, n, opts, send); err != nil {
+					mu.Lock()
+					errs = append(errs, err)
+					mu.Unlock()
+				}
+			})
+		}
+		if finishedPhase(wf.Status.Phase) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(followPoll):
+		}
+		next, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow)
+		if err != nil {
+			return err
+		}
+		wf = next
 	}
 	wg.Wait()
-	return toConnect(errors.Join(errs...))
+	return errors.Join(errs...)
+}
+
+// started tells if the container of a Pod step has started, so that it has a log.
+func started(n v1alpha1.NodeStatus) bool {
+	return n.Phase != "" && n.Phase != v1alpha1.NodePending
+}
+
+func finishedPhase(p v1alpha1.WorkflowPhase) bool {
+	return p == v1alpha1.WorkflowSucceeded || p == v1alpha1.WorkflowFailed || p == v1alpha1.WorkflowError
+}
+
+func detail(msg string) string {
+	if msg == "" {
+		return ""
+	}
+	return ": " + msg
 }
 
 func (s *logService) streamNode(ctx context.Context, namespace string, n v1alpha1.NodeStatus, opts *corev1.PodLogOptions, send func(*chroniclev1.StreamLogsResponse) error) error {

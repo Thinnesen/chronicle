@@ -33,8 +33,10 @@ func TestStreamLogs(t *testing.T) {
 	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{
 		"logs": {ID: "logs", Name: "logs", Type: v1alpha1.NodeDAG},
 		// logs.b started first, so its lines come first.
-		"logs-1": {ID: "logs-1", Name: "logs.a", Type: v1alpha1.NodePod, PodName: "logs-1", StartedAt: &metav1.Time{Time: time.Unix(20, 0)}},
-		"logs-2": {ID: "logs-2", Name: "logs.b", Type: v1alpha1.NodePod, PodName: "logs-2", StartedAt: &metav1.Time{Time: time.Unix(10, 0)}},
+		"logs-1": {ID: "logs-1", Name: "logs.a", Type: v1alpha1.NodePod, PodName: "logs-1", Phase: v1alpha1.NodeSucceeded, StartedAt: &metav1.Time{Time: time.Unix(20, 0)}},
+		"logs-2": {ID: "logs-2", Name: "logs.b", Type: v1alpha1.NodePod, PodName: "logs-2", Phase: v1alpha1.NodeRunning, StartedAt: &metav1.Time{Time: time.Unix(10, 0)}},
+		// A step that has not started has no log yet, so a log without follow leaves it out.
+		"logs-3": {ID: "logs-3", Name: "logs.c", Type: v1alpha1.NodePod, PodName: "logs-3", Phase: v1alpha1.NodePending, StartedAt: &metav1.Time{Time: time.Unix(30, 0)}},
 	}
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)
@@ -88,6 +90,9 @@ func TestStreamLogs(t *testing.T) {
 	}
 	if len(tails) != 3 || tails[0] != 5 {
 		t.Errorf("tail lines = %v", tails)
+	}
+	if _, err := stream("alice", "logs.c"); code(err) != connect.CodeFailedPrecondition {
+		t.Errorf("a step that has not started: %v", err)
 	}
 	if _, err := stream("alice", "nope"); code(err) != connect.CodeNotFound {
 		t.Errorf("unknown node: %v", err)

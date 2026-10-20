@@ -41,6 +41,9 @@ func (a *app) logsCommand() *cobra.Command {
 			printed := map[string]int{}
 			for {
 				err := a.streamLogs(cmd.Context(), client, req, node != "", printed)
+				if err == nil && len(printed) == 0 && !follow {
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "No step of the run has a log yet. Use -f to wait for the steps.")
+				}
 				// With --tail, a new stream starts at another line, so the command cannot skip the printed lines.
 				if err == nil || !follow || tail > 0 || !healable(err) {
 					return err
