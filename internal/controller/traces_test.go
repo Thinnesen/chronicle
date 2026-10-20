@@ -50,8 +50,9 @@ func TestRunSpans(t *testing.T) {
 	wf.Status = chroniclev1alpha1.WorkflowStatus{
 		Phase: chroniclev1alpha1.WorkflowFailed, Message: "load failed", Restarts: 1, StartedAt: at(10), FinishedAt: at(40),
 		Nodes: map[string]chroniclev1alpha1.NodeStatus{
-			"dag":  {ID: "dag", Name: "etl-x7", Children: []string{"old", "load", "skip"}, StartedAt: at(10), FinishedAt: at(40)},
-			"old":  {ID: "old", Name: "etl-x7.extract", StartedAt: at(1), FinishedAt: at(5)},
+			"dag":  {ID: "dag", Name: "etl-x7", Children: []string{"old", "load", "skip", "fast"}, StartedAt: at(10), FinishedAt: at(40)},
+			"old":  {ID: "old", Name: "etl-x7.extract", StartedAt: at(9), FinishedAt: at(10)},
+			"fast": {ID: "fast", Name: "etl-x7.check", StartedAt: at(10), FinishedAt: at(10)},
 			"load": {ID: "load", Name: "etl-x7.load", Phase: chroniclev1alpha1.NodeFailed, Message: "exit code 1", StartedAt: at(12)},
 			"skip": {ID: "skip", Name: "etl-x7.report", Phase: chroniclev1alpha1.NodeOmitted},
 		},
@@ -60,11 +61,11 @@ func TestRunSpans(t *testing.T) {
 	if run.ID != "1" || run.Error != "load failed" || !run.End.Equal(at(40).Time) {
 		t.Errorf("run span %+v", run)
 	}
-	// The node from the earlier try and the node that never started have no span.
-	if len(nodes) != 2 {
+	// The node from the earlier try and the node that never started have no span. A fast node of this try has one.
+	if len(nodes) != 3 || nodes[1].ID != "1/fast" {
 		t.Fatalf("node spans %+v", nodes)
 	}
-	load := nodes[1]
+	load := nodes[2]
 	if nodes[0].ID != "1/dag" || nodes[0].Parent != "" || load.ID != "1/load" || load.Parent != "1/dag" {
 		t.Errorf("keys %s<-%s, %s<-%s", nodes[0].ID, nodes[0].Parent, load.ID, load.Parent)
 	}

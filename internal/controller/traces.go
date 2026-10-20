@@ -63,8 +63,9 @@ func runSpans(wf *chroniclev1alpha1.Workflow) (telemetry.NodeSpan, []telemetry.N
 		}
 	}
 	ran := func(n chroniclev1alpha1.NodeStatus) bool {
-		// A node that finished before the try started comes from an earlier try.
-		return n.StartedAt != nil && (n.FinishedAt == nil || !n.FinishedAt.Time.Before(start))
+		// A retry creates the nodes that it runs again, so a node that started before the try comes from an earlier try.
+		// Its finish time can be in the same second as the start of the try.
+		return n.StartedAt != nil && !n.StartedAt.Time.Before(start)
 	}
 	var nodes []telemetry.NodeSpan
 	for id, n := range st.Nodes {
