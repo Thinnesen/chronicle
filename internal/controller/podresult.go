@@ -20,8 +20,9 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 	if t := main.State.Terminated; t != nil {
 		return terminated(t, pod.Annotations[AnnotationArtifactPrefix])
 	}
-	if init := containerStatus(pod.Status.InitContainerStatuses, "init"); init.State.Terminated != nil && init.State.Terminated.ExitCode != 0 {
-		return engine.PodResult{Phase: v1alpha1.NodeError, Message: "the executor did not install: " + init.State.Terminated.Reason}
+	executorInit := containerStatus(pod.Status.InitContainerStatuses, "init")
+	if t := executorInit.State.Terminated; t != nil && t.ExitCode != 0 {
+		return engine.PodResult{Phase: v1alpha1.NodeError, Message: "the executor did not install: " + t.Reason}
 	}
 	switch pod.Status.Phase {
 	case corev1.PodFailed, corev1.PodSucceeded:
@@ -29,12 +30,23 @@ func podResult(pod *corev1.Pod) engine.PodResult {
 	case corev1.PodRunning:
 		return engine.PodResult{Phase: v1alpha1.NodeRunning}
 	}
-	r := engine.PodResult{Phase: v1alpha1.NodePending}
-	// ContainerCreating and PodInitializing are normal steps of a start, not news for the user.
-	if w := main.State.Waiting; w != nil && w.Reason != "ContainerCreating" && w.Reason != "PodInitializing" {
-		r.Message = reasonMessage(w.Reason, w.Message)
+	return engine.PodResult{Phase: v1alpha1.NodePending, Message: pendingMessage(pod, executorInit, main)}
+}
+
+// pendingMessage tells why a Pod does not start: no node can take it, or a container waits, for example for its image.
+func pendingMessage(pod *corev1.Pod, executorInit, main corev1.ContainerStatus) string {
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && c.Reason != "" {
+			return reasonMessage(c.Reason, c.Message)
+		}
 	}
-	return r
+	for _, s := range []corev1.ContainerStatus{executorInit, main} {
+		// ContainerCreating and PodInitializing are normal steps of a start, not news for the user.
+		if w := s.State.Waiting; w != nil && w.Reason != "ContainerCreating" && w.Reason != "PodInitializing" {
+			return reasonMessage(w.Reason, w.Message)
+		}
+	}
+	return ""
 }
 
 func containerStatus(list []corev1.ContainerStatus, name string) corev1.ContainerStatus {

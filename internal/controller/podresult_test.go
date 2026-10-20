@@ -28,6 +28,12 @@ func TestPodResult(t *testing.T) {
 		{"waiting without a message", corev1.PodStatus{Phase: corev1.PodPending, ContainerStatuses: main(corev1.ContainerState{
 			Waiting: &corev1.ContainerStateWaiting{Reason: "CreateContainerConfigError"}})},
 			v1alpha1.NodePending, "CreateContainerConfigError"},
+		{"unschedulable", corev1.PodStatus{Phase: corev1.PodPending, Conditions: []corev1.PodCondition{{Type: corev1.PodScheduled,
+			Status: corev1.ConditionFalse, Reason: "Unschedulable", Message: "0/3 nodes have enough memory"}}},
+			v1alpha1.NodePending, "Unschedulable: 0/3 nodes have enough memory"},
+		{"executor image pull", corev1.PodStatus{Phase: corev1.PodPending, InitContainerStatuses: []corev1.ContainerStatus{{Name: "init",
+			State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ErrImagePull", Message: "denied"}}}}},
+			v1alpha1.NodePending, "ErrImagePull: denied"},
 		{"running", corev1.PodStatus{Phase: corev1.PodRunning, ContainerStatuses: main(corev1.ContainerState{Running: &corev1.ContainerStateRunning{}})},
 			v1alpha1.NodeRunning, ""},
 		{"out of memory", corev1.PodStatus{Phase: corev1.PodFailed, ContainerStatuses: main(corev1.ContainerState{
