@@ -33,11 +33,12 @@ A `task` step adds durable work, as Temporal activities do. It gives the work to
 
 Features:
 
-- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods. It has retries, timeouts, exit handlers, approvals, fan-out, a step cache, parallelism limits, locks (one deployment at a time) and shared volumes. Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends.
+- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods. It has retries, timeouts, exit handlers, approvals, fan-out, a step cache, parallelism limits, locks (one deployment at a time) and shared volumes. Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends. A step can start a child run of another template and wait for its outputs, and a run can wait for a start time.
 - **Remembers** every run, every attempt, its logs and its outputs. Retry the failed steps, retry from any step, or re-run with changed parameters.
 - **Shows what needs you**: the runs that wait for an approval, and the steps that Kubernetes cannot start. The UI and the CLI show the reason, for example a missing image.
+- **Fits your observability**: Prometheus metrics, Kubernetes Events and OpenTelemetry traces. Each run is one trace, and your steps and task workers can add their own spans to it.
 - **Logs you in properly**: OIDC with PKCE for the UI, and the device flow for the CLI. Microsoft 365 (Entra ID) is a first-class provider. Permissions are plain Kubernetes RBAC, the same as for `kubectl` and GitOps.
-- **Keeps teams apart**: a few lines of Helm values map an IdP group to a team and its namespaces. Each team sees and runs only its own work.
+- **Keeps teams apart**: a few lines of Helm values map an IdP group to a team and its namespaces. Each team sees and runs only its own work, and a person in several teams sees all their runs on one page.
 - **Stays GitOps-first**: every definition is a custom resource. Deploy it with Argo CD or Flux, as an app of apps. Resources from Git are read-only in the UI, and runs work from both.
 - **Speaks your language**: the SDKs for Go, Python and Rust define and submit workflows as code. They also run durable task workers with heartbeats and retries.
 - **Migrates from Argo**: `chronicle convert` turns Argo Workflows YAML into chronicle resources. `chronicle lint` checks your files in CI without a server.
