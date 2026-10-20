@@ -4,6 +4,8 @@ A `task` template runs a function in your own process instead of a container. A 
 
 Task templates need the archive database (`archive.existingSecret` in the Helm chart). The queue is a table in it.
 
+The worker is a library call in your program, not a separate tool: add the SDK to your project (see [install.md](install.md)) and run the program, for example as a Deployment in the team namespace.
+
 ## 1. Write the template
 
 ```yaml
