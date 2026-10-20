@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/internal/schedule"
 )
 
 // cronService implements the CronService API.
@@ -101,4 +103,45 @@ func cronSummary(cw *v1alpha1.CronWorkflow) *chroniclev1.CronSummary {
 		s.Template = ref.Name
 	}
 	return s
+}
+
+// maxBackfill limits the runs of one backfill.
+const maxBackfill = 100
+
+func (s *cronService) BackfillCronWorkflow(ctx context.Context, req *connect.Request[chroniclev1.BackfillCronWorkflowRequest]) (*connect.Response[chroniclev1.BackfillCronWorkflowResponse], error) {
+	m := req.Msg
+	if m.From == nil || m.To == nil || m.To.AsTime().Before(m.From.AsTime()) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("give from and to, and to must not be before from"))
+	}
+	c, err := s.clients.clientFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var cw v1alpha1.CronWorkflow
+	if err := c.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, &cw); err != nil {
+		return nil, toConnect(err)
+	}
+	sched, err := schedule.Parse(cw.Spec.Schedules, cw.Spec.Timezone)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	times, err := sched.Between(m.From.AsTime(), m.To.AsTime(), maxBackfill)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	resp := &chroniclev1.BackfillCronWorkflowResponse{}
+	for _, at := range times {
+		wf := schedule.NewRun(&cw, at)
+		// The caller creates the run. Without blockOwnerDeletion, the caller needs no rights on the CronWorkflow itself.
+		wf.OwnerReferences[0].BlockOwnerDeletion = nil
+		switch err := c.Create(ctx, wf); {
+		case apierrors.IsAlreadyExists(err):
+			resp.Existing = append(resp.Existing, wf.Name)
+		case err != nil:
+			return nil, toConnect(err)
+		default:
+			resp.Created = append(resp.Created, wf.Name)
+		}
+	}
+	return connect.NewResponse(resp), nil
 }

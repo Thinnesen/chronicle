@@ -31,6 +31,9 @@ service CronService {
   rpc SuspendCronWorkflow(SuspendCronWorkflowRequest) returns (SuspendCronWorkflowResponse);
   // ResumeCronWorkflow starts new runs again. It is refused for a CronWorkflow that a GitOps tool manages.
   rpc ResumeCronWorkflow(ResumeCronWorkflowRequest) returns (ResumeCronWorkflowResponse);
+  // BackfillCronWorkflow starts the runs of the schedule times in a range, for example for days that a CronWorkflow
+  // missed. It skips a time that already has its run.
+  rpc BackfillCronWorkflow(BackfillCronWorkflowRequest) returns (BackfillCronWorkflowResponse);
 }
 
 // TemplateParameter is a workflow parameter of a template, for a run form.
@@ -130,4 +133,19 @@ message ResumeCronWorkflowRequest {
 
 message ResumeCronWorkflowResponse {
   CronSummary summary = 1;
+}
+
+message BackfillCronWorkflowRequest {
+  string namespace = 1;
+  string name = 2;
+  // from and to are the range of the schedule times, both included. A range can have at most 100 times.
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+}
+
+message BackfillCronWorkflowResponse {
+  // created are the names of the new runs.
+  repeated string created = 1;
+  // existing are the names of the runs that the schedule times already had.
+  repeated string existing = 2;
 }

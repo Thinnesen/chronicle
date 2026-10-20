@@ -53,6 +53,9 @@ const (
 	// CronServiceResumeCronWorkflowProcedure is the fully-qualified name of the CronService's
 	// ResumeCronWorkflow RPC.
 	CronServiceResumeCronWorkflowProcedure = "/chronicle.v1.CronService/ResumeCronWorkflow"
+	// CronServiceBackfillCronWorkflowProcedure is the fully-qualified name of the CronService's
+	// BackfillCronWorkflow RPC.
+	CronServiceBackfillCronWorkflowProcedure = "/chronicle.v1.CronService/BackfillCronWorkflow"
 )
 
 // TemplateServiceClient is a client for the chronicle.v1.TemplateService service.
@@ -167,6 +170,9 @@ type CronServiceClient interface {
 	SuspendCronWorkflow(context.Context, *connect.Request[v1.SuspendCronWorkflowRequest]) (*connect.Response[v1.SuspendCronWorkflowResponse], error)
 	// ResumeCronWorkflow starts new runs again. It is refused for a CronWorkflow that a GitOps tool manages.
 	ResumeCronWorkflow(context.Context, *connect.Request[v1.ResumeCronWorkflowRequest]) (*connect.Response[v1.ResumeCronWorkflowResponse], error)
+	// BackfillCronWorkflow starts the runs of the schedule times in a range, for example for days that a CronWorkflow
+	// missed. It skips a time that already has its run.
+	BackfillCronWorkflow(context.Context, *connect.Request[v1.BackfillCronWorkflowRequest]) (*connect.Response[v1.BackfillCronWorkflowResponse], error)
 }
 
 // NewCronServiceClient constructs a client for the chronicle.v1.CronService service. By default, it
@@ -206,15 +212,22 @@ func NewCronServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(cronServiceMethods.ByName("ResumeCronWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
+		backfillCronWorkflow: connect.NewClient[v1.BackfillCronWorkflowRequest, v1.BackfillCronWorkflowResponse](
+			httpClient,
+			baseURL+CronServiceBackfillCronWorkflowProcedure,
+			connect.WithSchema(cronServiceMethods.ByName("BackfillCronWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // cronServiceClient implements CronServiceClient.
 type cronServiceClient struct {
-	listCronWorkflows   *connect.Client[v1.ListCronWorkflowsRequest, v1.ListCronWorkflowsResponse]
-	getCronWorkflow     *connect.Client[v1.GetCronWorkflowRequest, v1.GetCronWorkflowResponse]
-	suspendCronWorkflow *connect.Client[v1.SuspendCronWorkflowRequest, v1.SuspendCronWorkflowResponse]
-	resumeCronWorkflow  *connect.Client[v1.ResumeCronWorkflowRequest, v1.ResumeCronWorkflowResponse]
+	listCronWorkflows    *connect.Client[v1.ListCronWorkflowsRequest, v1.ListCronWorkflowsResponse]
+	getCronWorkflow      *connect.Client[v1.GetCronWorkflowRequest, v1.GetCronWorkflowResponse]
+	suspendCronWorkflow  *connect.Client[v1.SuspendCronWorkflowRequest, v1.SuspendCronWorkflowResponse]
+	resumeCronWorkflow   *connect.Client[v1.ResumeCronWorkflowRequest, v1.ResumeCronWorkflowResponse]
+	backfillCronWorkflow *connect.Client[v1.BackfillCronWorkflowRequest, v1.BackfillCronWorkflowResponse]
 }
 
 // ListCronWorkflows calls chronicle.v1.CronService.ListCronWorkflows.
@@ -237,6 +250,11 @@ func (c *cronServiceClient) ResumeCronWorkflow(ctx context.Context, req *connect
 	return c.resumeCronWorkflow.CallUnary(ctx, req)
 }
 
+// BackfillCronWorkflow calls chronicle.v1.CronService.BackfillCronWorkflow.
+func (c *cronServiceClient) BackfillCronWorkflow(ctx context.Context, req *connect.Request[v1.BackfillCronWorkflowRequest]) (*connect.Response[v1.BackfillCronWorkflowResponse], error) {
+	return c.backfillCronWorkflow.CallUnary(ctx, req)
+}
+
 // CronServiceHandler is an implementation of the chronicle.v1.CronService service.
 type CronServiceHandler interface {
 	ListCronWorkflows(context.Context, *connect.Request[v1.ListCronWorkflowsRequest]) (*connect.Response[v1.ListCronWorkflowsResponse], error)
@@ -245,6 +263,9 @@ type CronServiceHandler interface {
 	SuspendCronWorkflow(context.Context, *connect.Request[v1.SuspendCronWorkflowRequest]) (*connect.Response[v1.SuspendCronWorkflowResponse], error)
 	// ResumeCronWorkflow starts new runs again. It is refused for a CronWorkflow that a GitOps tool manages.
 	ResumeCronWorkflow(context.Context, *connect.Request[v1.ResumeCronWorkflowRequest]) (*connect.Response[v1.ResumeCronWorkflowResponse], error)
+	// BackfillCronWorkflow starts the runs of the schedule times in a range, for example for days that a CronWorkflow
+	// missed. It skips a time that already has its run.
+	BackfillCronWorkflow(context.Context, *connect.Request[v1.BackfillCronWorkflowRequest]) (*connect.Response[v1.BackfillCronWorkflowResponse], error)
 }
 
 // NewCronServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -280,6 +301,12 @@ func NewCronServiceHandler(svc CronServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(cronServiceMethods.ByName("ResumeCronWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
+	cronServiceBackfillCronWorkflowHandler := connect.NewUnaryHandler(
+		CronServiceBackfillCronWorkflowProcedure,
+		svc.BackfillCronWorkflow,
+		connect.WithSchema(cronServiceMethods.ByName("BackfillCronWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/chronicle.v1.CronService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CronServiceListCronWorkflowsProcedure:
@@ -290,6 +317,8 @@ func NewCronServiceHandler(svc CronServiceHandler, opts ...connect.HandlerOption
 			cronServiceSuspendCronWorkflowHandler.ServeHTTP(w, r)
 		case CronServiceResumeCronWorkflowProcedure:
 			cronServiceResumeCronWorkflowHandler.ServeHTTP(w, r)
+		case CronServiceBackfillCronWorkflowProcedure:
+			cronServiceBackfillCronWorkflowHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -313,4 +342,8 @@ func (UnimplementedCronServiceHandler) SuspendCronWorkflow(context.Context, *con
 
 func (UnimplementedCronServiceHandler) ResumeCronWorkflow(context.Context, *connect.Request[v1.ResumeCronWorkflowRequest]) (*connect.Response[v1.ResumeCronWorkflowResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.CronService.ResumeCronWorkflow is not implemented"))
+}
+
+func (UnimplementedCronServiceHandler) BackfillCronWorkflow(context.Context, *connect.Request[v1.BackfillCronWorkflowRequest]) (*connect.Response[v1.BackfillCronWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chronicle.v1.CronService.BackfillCronWorkflow is not implemented"))
 }

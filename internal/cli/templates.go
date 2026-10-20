@@ -82,7 +82,7 @@ func parameterList(params []*chroniclev1.TemplateParameter) string {
 func (a *app) cronCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cron",
-		Short: "List, suspend and resume the schedules (CronWorkflows)",
+		Short: "List, suspend, resume and backfill the schedules (CronWorkflows)",
 	}
 	cmd.AddCommand(&cobra.Command{
 		Use:     "list",
@@ -126,6 +126,7 @@ func (a *app) cronCommand() *cobra.Command {
 			})
 		},
 	})
+	cmd.AddCommand(a.backfillCommand())
 	return cmd
 }
 

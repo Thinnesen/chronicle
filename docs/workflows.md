@@ -301,6 +301,7 @@ spec:
 ```
 
 - `workflowTemplateRef` runs a `WorkflowTemplate`. Add `clusterScope: true` for a `ClusterWorkflowTemplate`.
+- `chronicle cron backfill etl-nightly --from 2026-10-01 --to 2026-10-07` starts the runs of the schedule times in a range, for example for days that the schedule missed. A time that has its run already is skipped, because each run has the name `<cron>-<schedule time>`. The concurrency policy does not hold back these runs.
 - A task or a step can call a template of another template with `templateRef: {name: <template object>, template: <template name>}`.
 
 ## 12. Clean up
@@ -310,7 +311,7 @@ spec:
 
 ## 13. A YAML trap
 
-kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. Then a parameter `value: yes` or a parameter named `n` is not a string. The API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans.
+kubectl reads YAML 1.1, which reads `y`, `n`, `yes`, `no`, `on` and `off` as booleans. Then a parameter `value: yes` or a parameter named `n` is not a string. The API refuses the object with "must be of type string". Put such words in quotes: `value: "yes"`. `chronicle submit -f` reads YAML 1.2, where only `true` and `false` are booleans. `chronicle lint` warns about such words.
 
 ## 14. When a step does not start
 

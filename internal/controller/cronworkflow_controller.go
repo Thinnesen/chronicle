@@ -3,8 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"maps"
-	"strconv"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -23,8 +21,8 @@ import (
 
 // The label and annotation on Workflows that a CronWorkflow created.
 const (
-	LabelCronWorkflow       = "chronicle.thinnesen.com/cron-workflow"
-	AnnotationScheduledTime = "chronicle.thinnesen.com/scheduled-time"
+	LabelCronWorkflow       = schedule.LabelCronWorkflow
+	AnnotationScheduledTime = schedule.AnnotationScheduledTime
 )
 
 // CronWorkflowReconciler creates Workflows on the schedules of CronWorkflows.
@@ -127,7 +125,7 @@ func (r *CronWorkflowReconciler) apply(ctx context.Context, cw *chroniclev1alpha
 		}
 		return nil
 	}
-	wf := newRun(cw, *plan.Run)
+	wf := schedule.NewRun(cw, *plan.Run)
 	if err := r.Create(ctx, wf); err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("create the run %s: %w", wf.Name, err)
 	}
@@ -136,26 +134,6 @@ func (r *CronWorkflowReconciler) apply(ctx context.Context, cw *chroniclev1alpha
 }
 
 // newRun returns the Workflow for a schedule time. Its name comes from the time, so a second create fails.
-func newRun(cw *chroniclev1alpha1.CronWorkflow, at time.Time) *chroniclev1alpha1.Workflow {
-	labels := maps.Clone(cw.Spec.WorkflowMetadata.Labels)
-	if labels == nil {
-		labels = map[string]string{}
-	}
-	labels[LabelCronWorkflow] = cw.Name
-	annotations := maps.Clone(cw.Spec.WorkflowMetadata.Annotations)
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations[AnnotationScheduledTime] = at.UTC().Format(time.RFC3339)
-	return &chroniclev1alpha1.Workflow{
-		Name:            cw.Name + "-" + strconv.FormatInt(at.Unix(), 10),
-		Namespace:       cw.Namespace,
-		Labels:          labels,
-		Annotations:     annotations,
-		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(cw, chroniclev1alpha1.GroupVersion.WithKind("CronWorkflow"))},
-		Spec:            *cw.Spec.WorkflowSpec.DeepCopy(),
-	}
-}
 
 func ownedBy(list []chroniclev1alpha1.Workflow, cw *chroniclev1alpha1.CronWorkflow) []chroniclev1alpha1.Workflow {
 	var out []chroniclev1alpha1.Workflow

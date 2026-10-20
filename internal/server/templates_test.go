@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -88,5 +90,48 @@ func TestTemplatesAndCrons(t *testing.T) {
 	}
 	if _, err := crons.GetCronWorkflow(ctx, connect.NewRequest(&chroniclev1.GetCronWorkflowRequest{Namespace: "team-a", Name: "nightly"})); err != nil {
 		t.Errorf("get cron: %v", err)
+	}
+}
+
+func TestCronBackfill(t *testing.T) {
+	srv := setup(t)
+	ctx := context.Background()
+	cw := &v1alpha1.CronWorkflow{Name: "backfill", Namespace: "team-a", Spec: v1alpha1.CronWorkflowSpec{Schedules: []string{"0 3 * * *"},
+		WorkflowSpec: v1alpha1.WorkflowSpec{WorkflowTemplateRef: &v1alpha1.WorkflowTemplateRef{Name: "deploy"}}}}
+	if err := admin.Create(ctx, cw); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Delete(ctx, cw) })
+	crons := chroniclev1connect.NewCronServiceClient(srv.Client(), srv.URL, userHeader("alice", ""))
+	// A backfill starts the runs of three nights. A second backfill finds them.
+	backfill := func(c chroniclev1connect.CronServiceClient, days int) (*chroniclev1.BackfillCronWorkflowResponse, error) {
+		from := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+		resp, err := c.BackfillCronWorkflow(ctx, connect.NewRequest(&chroniclev1.BackfillCronWorkflowRequest{Namespace: "team-a", Name: "backfill",
+			From: timestamppb.New(from), To: timestamppb.New(from.Add(time.Duration(days)*24*time.Hour - time.Second))}))
+		if err != nil {
+			return nil, err
+		}
+		return resp.Msg, nil
+	}
+	first, err := backfill(crons, 3)
+	if err != nil || len(first.Created) != 3 || first.Created[0] != "backfill-1790823600" {
+		t.Fatalf("backfill: %v %+v", err, first)
+	}
+	for _, name := range first.Created {
+		t.Cleanup(func() { _ = admin.Delete(ctx, &v1alpha1.Workflow{Name: name, Namespace: "team-a"}) })
+	}
+	var run v1alpha1.Workflow
+	if err := admin.Get(ctx, client.ObjectKey{Namespace: "team-a", Name: first.Created[0]}, &run); err != nil ||
+		run.Labels["chronicle.thinnesen.com/cron-workflow"] != "backfill" || len(run.OwnerReferences) != 1 {
+		t.Errorf("backfilled run: %v %+v", err, run.ObjectMeta)
+	}
+	if again, err := backfill(crons, 3); err != nil || len(again.Created) != 0 || len(again.Existing) != 3 {
+		t.Errorf("second backfill: %v %+v", err, again)
+	}
+	if _, err := backfill(crons, 365); code(err) != connect.CodeInvalidArgument {
+		t.Errorf("a backfill of a year: %v", err)
+	}
+	if _, err := backfill(chroniclev1connect.NewCronServiceClient(srv.Client(), srv.URL, userHeader("carol", "oidc:viewers")), 1); code(err) != connect.CodePermissionDenied {
+		t.Errorf("a backfill of a viewer: %v", err)
 	}
 }
