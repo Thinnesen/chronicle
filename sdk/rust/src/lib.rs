@@ -9,6 +9,7 @@ use serde_json::{Map, Value, json};
 
 mod client;
 mod continue_on;
+mod http;
 mod worker;
 mod workflow;
 pub use client::{ApiError, Client};
@@ -46,9 +47,10 @@ enum Kind {
     Script,
     Dag,
     Task,
+    Http,
 }
 
-/// A step definition: a container, a script or a DAG of tasks.
+/// A step definition: a container, a script, an http request, a task or a DAG of tasks.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Template {
     name: String,
@@ -151,7 +153,7 @@ impl Template {
     }
 
     fn container_field(mut self, key: &str, value: Value) -> Self {
-        if self.kind == Kind::Dag || self.kind == Kind::Task {
+        if self.kind != Kind::Container && self.kind != Kind::Script {
             self.error = Some(format!("template {:?} has no container", self.name));
             return self;
         }
@@ -282,6 +284,9 @@ impl Template {
             }
             Kind::Task => {
                 out.insert("task".into(), Value::Object(self.body.clone()));
+            }
+            Kind::Http => {
+                out.insert("http".into(), Value::Object(self.body.clone()));
             }
         }
         if !self.inputs.is_empty() {

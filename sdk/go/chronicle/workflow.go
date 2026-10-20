@@ -1,6 +1,6 @@
 // Package chronicle defines chronicle workflows as Go code, renders them as YAML and submits them.
 //
-// Build templates with Container, Script and DAG. Add tasks to a DAG with Template.Task. Use the
+// Build templates with Container, Script, HTTP and DAG. Add tasks to a DAG with Template.Task. Use the
 // placeholders that Workflow.Param, Template.Input and the Task outputs return to connect the steps.
 package chronicle
 

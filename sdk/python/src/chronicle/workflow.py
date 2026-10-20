@@ -13,7 +13,7 @@ class WorkflowError(ValueError):
 
 
 class Template:
-    """Template is a step definition: a container, a script or a DAG of tasks."""
+    """Template is a step definition: a container, a script, an http request, a task or a DAG of tasks."""
 
     def __init__(self, name: str, body: dict[str, Any], kind: str) -> None:
         self.name = name
@@ -85,6 +85,27 @@ class Template:
         self._extra["timeout"] = duration
         return self
 
+    def _http(self) -> dict[str, Any]:
+        if self._kind != "http":
+            raise WorkflowError(f"template {self.name!r} is not an http template")
+        return self._body
+
+    def header(self, name: str, value: str) -> Template:
+        """Add a header to the request of an http template."""
+        self._http().setdefault("headers", []).append({"name": name, "value": value})
+        return self
+
+    def header_from_secret(self, name: str, secret: str, key: str) -> Template:
+        """Add a header whose value is the key of a Secret in the namespace, for example a token."""
+        header = {"name": name, "valueFrom": {"secretKeyRef": {"name": secret, "key": key}}}
+        self._http().setdefault("headers", []).append(header)
+        return self
+
+    def body(self, body: str) -> Template:
+        """Set the body of the request of an http template. It can have placeholders."""
+        self._http()["body"] = body
+        return self
+
     def task(self, name: str, template: Template) -> Task:
         """Add a task to a DAG template. The task runs template."""
         if self._kind != "dag":
@@ -141,6 +162,15 @@ def task_template(
     if schedule_to_start_timeout:
         body["scheduleToStartTimeout"] = schedule_to_start_timeout
     return Template(name, body, "task")
+
+
+def http_template(name: str, url: str, *, method: str | None = None) -> Template:
+    """Return a template that sends one request from a Pod. A status from 200 to 299 is success, and the
+    response body is the result. The URL can have placeholders."""
+    body: dict[str, Any] = {"url": url}
+    if method:
+        body["method"] = method
+    return Template(name, body, "http")
 
 
 def dag(name: str) -> Template:

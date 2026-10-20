@@ -25,6 +25,7 @@ name, err = c.SubmitTemplate(ctx, "team-a", "etl", map[string]string{"day": "202
 
 - `Spec`, `YAML` and `Submit` validate the workflow with the same rules as the admission webhook.
 - Placeholders connect the steps: `Workflow.Param`, `Template.Input`, `Task.Result`, `Task.Output` and `Task.Artifact`.
+- Templates: `Container`, `Script`, `DAG` and `HTTP`. An http template sends one request, for example from the exit handler: `w.OnExit(chronicle.HTTP("notify", url).Method("POST").HeaderFromSecret("Authorization", "chat", "token"))`.
 - The token is an OIDC ID token, or a Kubernetes service account token with the audience `chronicle` (`kubectl create token <sa> --audience chronicle`).
 - Examples: `example_test.go` (artifacts, retries) and `examples/fanout` (fan-out with `WithItems`).
 

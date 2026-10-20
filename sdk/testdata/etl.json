@@ -17,6 +17,7 @@
       ]
     },
     "entrypoint": "main",
+    "onExit": "notify",
     "parallelism": 4,
     "synchronization": {
       "mutex": {
@@ -134,6 +135,29 @@
           ]
         },
         "name": "echo"
+      },
+      {
+        "http": {
+          "body": "{\"text\": \"{{workflow.name}} is {{workflow.status}}\"}",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "key": "token",
+                  "name": "chat"
+                }
+              }
+            }
+          ],
+          "method": "POST",
+          "url": "https://chat.example.com/hooks/data"
+        },
+        "name": "notify"
       }
     ]
   }

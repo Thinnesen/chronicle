@@ -42,6 +42,9 @@ func TestSpecErrors(t *testing.T) {
 			c.Task("a", echo)
 			return New("x-").Entrypoint(c)
 		}, `template "c" is not a DAG`},
+		{"method on a container", func() *Workflow {
+			return New("x-").Entrypoint(Container("c", "busybox").Method("POST"))
+		}, `template "c" is not an http template`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

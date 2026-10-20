@@ -2,7 +2,7 @@
 
 from .client import APIError, Client
 from .worker import NonRetryable, TaskInfo, Worker
-from .workflow import Task, Template, Workflow, WorkflowError, container, dag, script, task_template
+from .workflow import Task, Template, Workflow, WorkflowError, container, dag, http_template, script, task_template
 
 __all__ = [
     "APIError",
@@ -16,6 +16,7 @@ __all__ = [
     "WorkflowError",
     "container",
     "dag",
+    "http_template",
     "script",
     "task_template",
 ]

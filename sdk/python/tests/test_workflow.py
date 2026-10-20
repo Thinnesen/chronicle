@@ -27,7 +27,10 @@ def etl() -> chronicle.Workflow:
     f = main.task("fetch", fetch)
     c = main.task("count", count).after(f).artifact_arg("rows", f.artifact("rows")).continue_on(failed=True)
     main.task("report", echo).after(c).arg("msg", f"fetched {f.result()} rows")
-    return w.entrypoint(main)
+    notify = chronicle.http_template("notify", "https://chat.example.com/hooks/data", method="POST")
+    notify.header("Content-Type", "application/json").header_from_secret("Authorization", "chat", "token")
+    notify.body('{"text": "{{workflow.name}} is {{workflow.status}}"}')
+    return w.entrypoint(main).on_exit(notify)
 
 
 def test_matches_the_go_sdk():
@@ -40,6 +43,7 @@ def test_matches_the_go_sdk():
         (lambda: chronicle.Workflow("x-").to_dict(), "no entrypoint"),
         (lambda: chronicle.container("c", "busybox").task("a", chronicle.dag("d")), "is not a DAG"),
         (lambda: chronicle.script("s", "busybox", "echo {{inputs.parameters.x}}"), "cannot have placeholders"),
+        (lambda: chronicle.container("c", "busybox").header("A", "b"), "is not an http template"),
         (
             lambda: _two_templates_with_one_name().to_dict(),
             "two different templates have the name 'c'",

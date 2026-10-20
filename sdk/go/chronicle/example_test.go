@@ -32,7 +32,10 @@ func etl() *chronicle.Workflow {
 	f := main.Task("fetch", fetch)
 	c := main.Task("count", count).After(f).ArtifactArg("rows", f.Artifact("rows")).ContinueOn(true, false)
 	main.Task("report", echo).After(c).Arg("msg", "fetched "+f.Result()+" rows")
-	return w.Entrypoint(main)
+	notify := chronicle.HTTP("notify", "https://chat.example.com/hooks/data").Method("POST").
+		Header("Content-Type", "application/json").HeaderFromSecret("Authorization", "chat", "token").
+		Body(`{"text": "{{workflow.name}} is {{workflow.status}}"}`)
+	return w.Entrypoint(main).OnExit(notify)
 }
 
 // TestSharedFixture keeps sdk/testdata/etl.json current. Run it with UPDATE=1 to write the file.
@@ -84,6 +87,7 @@ func Example() {
 	//     - name: day
 	//       value: "2026-10-17"
 	//   entrypoint: main
+	//   onExit: notify
 	//   parallelism: 4
 	//   synchronization:
 	//     mutex:
@@ -150,4 +154,17 @@ func Example() {
 	//       parameters:
 	//       - name: msg
 	//     name: echo
+	//   - http:
+	//       body: '{"text": "{{workflow.name}} is {{workflow.status}}"}'
+	//       headers:
+	//       - name: Content-Type
+	//         value: application/json
+	//       - name: Authorization
+	//         valueFrom:
+	//           secretKeyRef:
+	//             key: token
+	//             name: chat
+	//       method: POST
+	//       url: https://chat.example.com/hooks/data
+	//     name: notify
 }

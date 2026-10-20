@@ -36,6 +36,13 @@ fn etl() -> Workflow {
         .mutex("etl")
         .param("day", "2026-10-17")
         .entrypoint(Template::dag("main").parallelism(2).tasks([f, c, r]))
+        .on_exit(
+            Template::http("notify", "https://chat.example.com/hooks/data")
+                .method("POST")
+                .header("Content-Type", "application/json")
+                .header_from_secret("Authorization", "chat", "token")
+                .body(r#"{"text": "{{workflow.name}} is {{workflow.status}}"}"#),
+        )
 }
 
 #[test]
@@ -59,6 +66,11 @@ fn reports_mistakes() {
                 "echo {{inputs.parameters.x}}",
             )),
             "cannot have placeholders",
+        ),
+        (
+            Workflow::new("x-")
+                .entrypoint(Template::container("c", "busybox", ["true"]).method("POST")),
+            "is not an http template",
         ),
         (
             Workflow::new("x-").entrypoint(Template::dag("main").tasks([
