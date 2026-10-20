@@ -24,8 +24,9 @@ export function bucket(runs: Started[], now: number): Record<LampKind, number>[]
   return out;
 }
 
-// ActivityStrip shows the runs of the last 24 hours as stacked bars, with the totals next to it.
-export function ActivityStrip({ runs, now }: { runs: Started[]; now: number }) {
+// ActivityStrip shows the runs of the last 24 hours as stacked bars, with the totals next to it. partial means that the
+// runs are only the newest part of the last 24 hours, so the totals are lower bounds.
+export function ActivityStrip({ runs, now, partial = false }: { runs: Started[]; now: number; partial?: boolean }) {
   const slotsOf = bucket(runs, now);
   const max = Math.max(1, ...slotsOf.map((s) => stack.reduce((n, k) => n + s[k], 0)));
   const total = slotsOf.reduce((n, s) => n + stack.reduce((m, k) => m + s[k], 0), 0);
@@ -37,11 +38,17 @@ export function ActivityStrip({ runs, now }: { runs: Started[]; now: number }) {
       <dl className="activity-stats">
         <div>
           <dt>Runs in 24 h</dt>
-          <dd>{total}</dd>
+          <dd title={partial ? `Only the newest ${runs.length} runs count` : undefined}>
+            {total}
+            {partial && "+"}
+          </dd>
         </div>
         <div>
           <dt>Failed</dt>
-          <dd className={failed > 0 ? "activity-bad" : undefined}>{failed}</dd>
+          <dd className={failed > 0 ? "activity-bad" : undefined}>
+            {failed}
+            {partial && "+"}
+          </dd>
         </div>
         <div>
           <dt>Success rate</dt>

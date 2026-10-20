@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"strings"
 
 	"connectrpc.com/connect"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +26,8 @@ func toConnect(err error) error {
 	case apierrors.IsUnauthorized(err):
 		code = connect.CodeUnauthenticated
 	case apierrors.IsInvalid(err), apierrors.IsBadRequest(err):
-		code = connect.CodeInvalidArgument
+		// A rule on the whole object has no field path, and Kubernetes writes "<nil>" for it.
+		return connect.NewError(connect.CodeInvalidArgument, errors.New(strings.ReplaceAll(err.Error(), "<nil>: ", "")))
 	case apierrors.IsAlreadyExists(err):
 		code = connect.CodeAlreadyExists
 	case apierrors.IsConflict(err):

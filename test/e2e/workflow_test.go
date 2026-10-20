@@ -81,7 +81,7 @@ func workflowSpecs() {
 			},
 			Entry("a DAG with outputs and fan-out", "dag-succeeds.yaml", "dag-succeeds", "Succeeded", ""),
 			Entry("a failing DAG", "dag-fails.yaml", "dag-fails", "Failed", `task "boom" failed`),
-			Entry("a resource template that is limited to its service account", "resource.yaml", "resource", "Failed", `task "denied" failed`),
+			Entry("a resource template that is limited to its service account", "resource.yaml", "resource", "Failed", `step "denied" failed`),
 			Entry("a retry, a timeout and an exit handler", "retry-timeout.yaml", "retry-timeout", "Succeeded", ""),
 			Entry("a fan-out with a parallelism limit and a mutex", "limited.yaml", "limited", "Succeeded", ""),
 		)

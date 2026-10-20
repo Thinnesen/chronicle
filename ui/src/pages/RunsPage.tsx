@@ -62,6 +62,10 @@ export function RunsPage() {
     .filter((w) => w.name.toLowerCase().includes(term) || w.template.toLowerCase().includes(term));
   const first = phase ? all.data : table.data?.pages[0];
   const runs = first?.workflows ?? [];
+  const started = runs.map((w) => ({ phase: w.phase, start: toDate(w.startedAt) ?? toDate(w.createdAt) }));
+  // A full page whose oldest run is less than 24 hours old does not have all runs of the 24 hours.
+  const oldest = started.at(-1)?.start;
+  const partial = !!first?.nextPageToken && !!oldest && now - oldest.getTime() < 24 * 3_600_000;
   return (
     <section>
       <header className="page-head">
@@ -78,7 +82,7 @@ export function RunsPage() {
       </header>
       {submitting && <SubmitDialog namespace={namespace} open={submitting} onOpenChange={setSubmitting} />}
       <WaitingRuns namespace={namespace} />
-      <ActivityStrip runs={runs.map((w) => ({ phase: w.phase, start: toDate(w.startedAt) ?? toDate(w.createdAt) }))} now={now} />
+      <ActivityStrip runs={started} now={now} partial={partial} />
       <div className="board-filters">
         <label className="search-field">
           <Search aria-hidden="true" />

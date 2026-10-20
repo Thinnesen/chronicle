@@ -66,7 +66,7 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 		case !ok && (stopped != "" || b.e.in.Suspend || !b.ready(t)):
 			continue
 		case !ok && !t.depends.Eval(b.lookup):
-			b.finishEarly(t, t.nodeName, v1alpha1.NodeOmitted, "the depends condition is false", b.nodeID)
+			b.finishEarly(t, t.nodeName, v1alpha1.NodeOmitted, b.omittedReason(), b.nodeID)
 		case t.call.FanOut():
 			b.runGroup(t)
 		default:
@@ -181,7 +181,7 @@ func (b *boundary) stopReason() string {
 		if !ok || !isFailure(n.Phase) || b.handledByAny(t.name, n.Phase) || b.continues(t.name, n.Phase) {
 			continue
 		}
-		return fmt.Sprintf("not started because task %q failed", t.name)
+		return fmt.Sprintf("not started because %s %q failed", b.word(), t.name)
 	}
 	return ""
 }
@@ -239,7 +239,7 @@ func (b *boundary) outcome(stopped string) (v1alpha1.NodePhase, string) {
 	for _, t := range b.leaves() {
 		p := b.branchPhase(t.name, memo)
 		if isFailure(p) && msg == "" {
-			msg = fmt.Sprintf("task %q failed", b.failedTask(t.name, memo))
+			msg = fmt.Sprintf("%s %q failed", b.word(), b.failedTask(t.name, memo))
 		}
 		phase = worse(phase, p)
 	}
@@ -304,4 +304,16 @@ func (b *boundary) failedTask(name string, memo map[string]v1alpha1.NodePhase) s
 		}
 	}
 	return name
+}
+
+// word is "task" in a DAG and "step" in a steps template, for messages.
+func (b *boundary) word() string { return strings.TrimSuffix(b.prefix, "s") }
+
+// omittedReason tells why a node does not run. A steps template has no depends; its next group runs after the earlier
+// groups succeeded.
+func (b *boundary) omittedReason() string {
+	if b.prefix == "steps" {
+		return "an earlier step failed"
+	}
+	return "the depends condition is false"
 }

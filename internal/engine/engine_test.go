@@ -126,7 +126,7 @@ templates:
   - - {name: e, template: c}` + pod,
 			outcomes: map[string]v1alpha1.NodePhase{"wf[0].b": failed},
 			phase:    v1alpha1.WorkflowFailed,
-			message:  `task "b" failed`,
+			message:  `step "b" failed`,
 			waves:    [][]string{{"wf[0].a", "wf[0].b"}},
 			nodes: map[string]v1alpha1.NodePhase{"wf[0]": failed, "wf[1]": omitted, "wf[2]": omitted,
 				"wf[0].a": succeeded, "wf[0].b": failed, "wf[1].d": omitted, "wf[2].e": omitted},
@@ -162,7 +162,7 @@ templates:
 			name:    "recursion without end",
 			spec:    "entrypoint: main\ntemplates:\n- {name: main, steps: [[{name: again, template: main}]]}",
 			phase:   v1alpha1.WorkflowError,
-			message: `task "again" failed`,
+			message: `step "again" failed`,
 		},
 		{
 			name:    "an invalid spec",
