@@ -39,8 +39,8 @@ High:
 - S2. (done) A task result above 64 KiB leaves the node Running forever: the server refuses CompleteTask and the SDKs ignore the error. A crashed worker without heartbeatTimeout also leaves the node Running forever.
 
 Bugs:
-- S3. `approve -p <unknown>=x` approves anyway.
-- S4. A suspend output default outside its enum is admitted.
+- S3. (done) `approve -p <unknown>=x` approves anyway.
+- S4. (done) A suspend output default outside its enum is admitted.
 - S5. The logs of stopped, terminated and timed-out steps are lost, also with archiveLogs.
 - S6. (done) stop, suspend and resume of a finished run report success. Suspend then retry gives a Suspended run with an empty tree.
 - S7. Converter: templateDefaults.timeout replaces a template activeDeadlineSeconds.

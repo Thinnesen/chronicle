@@ -91,8 +91,14 @@ func CheckApproval(wf *v1alpha1.Workflow, a v1alpha1.Approval) error {
 	return ErrNotWaiting
 }
 
-// checkEnums returns an error when an approval value is not one of the allowed values of its output parameter.
+// checkEnums returns an error when an approval names an unknown output parameter, or gives a value that is not one of
+// the allowed values. A typo in a name must not approve with the defaults.
 func checkEnums(t *v1alpha1.Template, given []v1alpha1.Parameter) error {
+	for _, g := range given {
+		if !slices.ContainsFunc(t.Outputs.Parameters, func(p v1alpha1.Parameter) bool { return p.Name == g.Name }) {
+			return fmt.Errorf("the step has no output parameter %q", g.Name)
+		}
+	}
 	for _, p := range t.Outputs.Parameters {
 		for _, g := range given {
 			if g.Name == p.Name && g.Value != nil && len(p.Enum) > 0 && !slices.Contains(p.Enum, *g.Value) {

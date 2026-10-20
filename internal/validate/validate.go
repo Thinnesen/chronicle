@@ -173,6 +173,7 @@ func (c *checker) checkOutputs(t *v1alpha1.Template, path *field.Path, sc scope)
 	leaf := t.Container != nil || t.Script != nil
 	for i, p := range t.Outputs.Parameters {
 		pp := path.Index(i)
+		c.checkEnum(&p, pp)
 		if readsConfigMap(&p) {
 			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "configMapKeyRef"), "only a workflow parameter or an input parameter can read a ConfigMap"))
 			continue

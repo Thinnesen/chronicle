@@ -313,6 +313,11 @@ func TestSpecParameters(t *testing.T) {
 			spec: "entrypoint: c\ntemplates: [{name: c, inputs: {parameters: [{name: e, default: z, enum: [a]}]}, container: {image: x}}]",
 			want: []string{`templates[0].inputs.parameters[0].default: Unsupported value: "z"`},
 		},
+		{
+			name: "suspend output default not in enum",
+			spec: "entrypoint: c\ntemplates: [{name: c, suspend: {}, outputs: {parameters: [{name: env, default: dev, enum: [staging, prod]}]}}]",
+			want: []string{`templates[0].outputs.parameters[0].default: Unsupported value: "dev"`},
+		},
 	}, true)
 }
 
