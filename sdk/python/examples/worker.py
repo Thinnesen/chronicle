@@ -6,7 +6,6 @@ uv run examples/worker.py --server https://chronicle.example.com --namespace tea
 import argparse
 import faulthandler
 import signal
-import threading
 from pathlib import Path
 
 import chronicle
@@ -27,9 +26,7 @@ def main() -> None:
         return {"greeting": f"Python says hello to {data['who']}"}
 
     # SIGTERM and Ctrl-C stop the polling; running tasks get the grace period.
-    stop = threading.Event()
-    signal.signal(signal.SIGTERM, lambda *_: stop.set())
-    signal.signal(signal.SIGINT, lambda *_: stop.set())
+    stop = chronicle.stop_on_signals()
     # SIGUSR1 prints the stack of each thread, to find out where a worker waits.
     faulthandler.register(signal.SIGUSR1, all_threads=True)
     worker.run(stop)

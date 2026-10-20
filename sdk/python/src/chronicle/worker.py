@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import signal
 import socket
 import threading
 import time
@@ -45,6 +46,24 @@ class _Delivery:
     info: TaskInfo
     lease: str
     input_json: str
+
+
+def stop_on_signals() -> threading.Event:
+    """Return an event that SIGTERM or Ctrl-C sets. Give it to Worker.run.
+
+    After the first signal, the handler ignores more signals. A second signal inside Event.set would wait for the lock
+    that the first handler holds, forever.
+    """
+    stop = threading.Event()
+
+    def on_stop(*_: object) -> None:
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        stop.set()
+
+    signal.signal(signal.SIGTERM, on_stop)
+    signal.signal(signal.SIGINT, on_stop)
+    return stop
 
 
 class Worker:

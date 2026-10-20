@@ -46,7 +46,7 @@ Bugs:
 - S7. (done) Converter: templateDefaults.timeout replaces a template activeDeadlineSeconds.
 - S8. (done) `chronicle get` after a retry leaves out kept nodes. The workflow onExit node is never shown.
 - S9. (done) Stale lock messages on Running runs. A node that timed out while it waited for a lock ends with "waiting for the lock".
-- S10. The Python example worker deadlocks on a second SIGTERM (Event.set in the signal handler).
+- S10. (done) The Python example worker deadlocks on a second SIGTERM (Event.set in the signal handler).
 
 Smaller:
 - S11. Docs say a parameter value never becomes shell code, but placeholders in command or args go into `sh -c` as text.

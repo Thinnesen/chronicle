@@ -1,7 +1,7 @@
 """chronicle defines chronicle workflows as Python code, renders them and submits them."""
 
 from .client import APIError, Client
-from .worker import NonRetryable, TaskInfo, Worker
+from .worker import NonRetryable, TaskInfo, Worker, stop_on_signals
 from .workflow import Task, Template, Workflow, WorkflowError, container, dag, http_template, script, task_template
 
 __all__ = [
@@ -18,5 +18,6 @@ __all__ = [
     "dag",
     "http_template",
     "script",
+    "stop_on_signals",
     "task_template",
 ]

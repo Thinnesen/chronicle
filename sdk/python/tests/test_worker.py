@@ -107,8 +107,7 @@ def greet(data, task):
     started.set()
     threading.Event().wait()  # never returns
 
-stop = threading.Event()
-signal.signal(signal.SIGTERM, lambda *_: stop.set())
+stop = chronicle.stop_on_signals()
 threading.Thread(target=lambda: started.wait() and print("started", flush=True), daemon=True).start()
 worker.run(stop)
 """
@@ -124,6 +123,8 @@ def test_a_hanging_task_does_not_keep_the_process_alive():
     try:
         assert proc.stdout.readline().strip() == "started"
         start = time.monotonic()
+        # A second signal right after the first one must not lock the handler.
+        proc.send_signal(signal.SIGTERM)
         proc.send_signal(signal.SIGTERM)
         proc.wait(timeout=15)
         assert time.monotonic() - start < 10

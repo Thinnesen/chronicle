@@ -94,7 +94,7 @@ worker = chronicle.Worker(chronicle.Client(server, token), "team-a", queue="mail
 def send_mail(data, task):
     return {"messageID": mailer.send(data["to"], data["subject"], key=task.idempotency_key)}
 
-worker.run(stop_event)
+worker.run(chronicle.stop_on_signals())  # SIGTERM or Ctrl-C stops the worker
 ```
 
 Rust:
