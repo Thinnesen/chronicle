@@ -346,8 +346,8 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 			}
 		}
 		pod := buildPod(wf, spec, a, r.ExecutorImage, files)
-		if r.Tracer != nil {
-			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, traceparentEnv(wf, a.NodeID))
+		if tp := r.traceparent(wf, a.NodeID); tp != "" {
+			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, corev1.EnvVar{Name: envTraceparent, Value: tp})
 		}
 		if err := r.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("create the Pod of node %s: %w", a.NodeName, err)

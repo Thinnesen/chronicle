@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/telemetry"
 )
@@ -21,9 +19,13 @@ func spanKey(wf *chroniclev1alpha1.Workflow, node string) string {
 	return strconv.Itoa(int(wf.Status.Restarts)) + "/" + node
 }
 
-// traceparentEnv returns the variable that makes the spans of a Pod children of its node span.
-func traceparentEnv(wf *chroniclev1alpha1.Workflow, node string) corev1.EnvVar {
-	return corev1.EnvVar{Name: envTraceparent, Value: telemetry.Traceparent(string(wf.UID), spanKey(wf, node))}
+// traceparent returns the trace context that makes the spans of a step children of its node span.
+// It is empty without traces.
+func (r *WorkflowReconciler) traceparent(wf *chroniclev1alpha1.Workflow, node string) string {
+	if r.Tracer == nil {
+		return ""
+	}
+	return telemetry.Traceparent(string(wf.UID), spanKey(wf, node))
 }
 
 // traceRun records the spans of a finished run, when traces are on.

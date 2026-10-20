@@ -26,6 +26,9 @@ type TaskInfo struct {
 	ID, Name, Workflow, NodeName string
 	// IdempotencyKey is the same for all attempts of a node. Use it to make a repeated task harmless.
 	IdempotencyKey string
+	// Traceparent is the W3C trace context of the node, or empty when chronicle exports no traces.
+	// Make it the parent of the spans of the work.
+	Traceparent string
 }
 
 // WorkerOptions configure a Worker.
@@ -172,7 +175,8 @@ func (w *Worker) call(ctx context.Context, t *chroniclev1.Task) (output, failure
 	if err := json.Unmarshal([]byte(t.InputJson), &input); err != nil {
 		return "", "the task input is not a JSON object: " + err.Error(), false
 	}
-	info := TaskInfo{ID: t.Id, Name: t.Name, Workflow: t.Workflow, NodeName: t.NodeName, IdempotencyKey: t.IdempotencyKey}
+	info := TaskInfo{ID: t.Id, Name: t.Name, Workflow: t.Workflow, NodeName: t.NodeName,
+		IdempotencyKey: t.IdempotencyKey, Traceparent: t.Traceparent}
 	fn, ok := w.funcs[t.Name]
 	if !ok {
 		return "", fmt.Sprintf("the worker has no function for the task %q", t.Name), false

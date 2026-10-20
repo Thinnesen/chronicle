@@ -40,6 +40,9 @@ message Task {
   string node_name = 6;
   // lease is the secret of this delivery. Give it with each heartbeat and with the result.
   string lease = 7;
+  // traceparent is the W3C trace context of the node, or empty when chronicle exports no traces.
+  // Make it the parent of the spans of the work.
+  string traceparent = 8;
 }
 
 message PollTaskResponse {

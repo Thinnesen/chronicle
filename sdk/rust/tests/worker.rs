@@ -65,7 +65,7 @@ fn serve_one(mut stream: TcpStream, queue: &Mutex<Queue>) {
 
 #[test]
 fn runs_tasks_and_honours_cancel() {
-    let task = |id: &str| json!({"id": id, "name": id, "inputJson": "{\"who\":\"world\"}", "lease": format!("l-{id}"), "idempotencyKey": "k"});
+    let task = |id: &str| json!({"id": id, "name": id, "inputJson": "{\"who\":\"world\"}", "lease": format!("l-{id}"), "idempotencyKey": "k", "traceparent": "tp"});
     let queue = Arc::new(Mutex::new(Queue {
         tasks: ["greet", "flaky", "broken", "panics", "slow"]
             .iter()
@@ -88,7 +88,7 @@ fn runs_tasks_and_honours_cancel() {
         .heartbeat(Duration::from_millis(30))
         .grace_period(Duration::from_secs(2));
     worker.register("greet", |input, info| {
-        Ok(json!({"greeting": format!("hello {}", input["who"]), "key": info.idempotency_key}))
+        Ok(json!({"greeting": format!("hello {}", input["who"]), "key": info.idempotency_key, "trace": info.traceparent}))
     });
     worker.register("flaky", |_, _| {
         Err(TaskError::retryable("the mail server timed out"))
@@ -126,7 +126,7 @@ fn runs_tasks_and_honours_cancel() {
     let r = &q.results;
     assert_eq!(
         serde_json::from_str::<Value>(r["greet"]["outputJson"].as_str().unwrap()).unwrap(),
-        json!({"greeting": "hello world", "key": "k"})
+        json!({"greeting": "hello world", "key": "k", "trace": "tp"})
     );
     assert_eq!(
         (

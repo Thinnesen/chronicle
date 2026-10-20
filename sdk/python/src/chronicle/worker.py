@@ -34,6 +34,9 @@ class TaskInfo:
     node_name: str
     # idempotency_key is the same for all attempts of a node. Use it to make a repeated task harmless.
     idempotency_key: str
+    # traceparent is the W3C trace context of the node, or empty when chronicle exports no traces.
+    # Make it the parent of the spans of the work.
+    traceparent: str = ""
     # cancelled is set when the workflow does not need the result any more. Check it in long work.
     cancelled: threading.Event = field(default_factory=threading.Event)
 
@@ -149,6 +152,7 @@ class Worker:
             workflow=task.get("workflow", ""),
             node_name=task.get("nodeName", ""),
             idempotency_key=task.get("idempotencyKey", ""),
+            traceparent=task.get("traceparent", ""),
         )
         return _Delivery(info, task.get("lease", ""), task.get("inputJson", "{}"))
 

@@ -12,7 +12,7 @@ func newTask(i int) NewTask {
 	return NewTask{
 		ID: fmt.Sprintf("u1/n%d", i), Namespace: "team-a", WorkflowUID: "11111111-0000-0000-0000-000000000001", Workflow: "wf",
 		NodeID: fmt.Sprintf("n%d", i), NodeName: fmt.Sprintf("wf.t%d", i), IdempotencyKey: fmt.Sprintf("u1/wf.t%d", i),
-		Queue: "default", Name: "greet", Input: `{"who":"world"}`,
+		Queue: "default", Name: "greet", Input: `{"who":"world"}`, Traceparent: fmt.Sprintf("00-%032d-%016d-01", 1, i),
 	}
 }
 
@@ -42,6 +42,9 @@ func TestTaskQueue(t *testing.T) {
 				t.Error(err)
 			}
 			if task != nil {
+				if task.Traceparent != fmt.Sprintf("00-%032d-%016d-01", 1, task.NodeID[1]-'0') {
+					t.Errorf("traceparent of %s = %q", task.ID, task.Traceparent)
+				}
 				mu.Lock()
 				got = append(got, taken{task.ID, lease})
 				mu.Unlock()

@@ -124,6 +124,16 @@ triggers:
 
 Use `max`, because each controller replica exports the same values. The metrics have at most 200 queues. The rest add up in the queue `other`.
 
+## Traces
+
+When chronicle exports traces (see [observability](observability.md)), each task has the W3C trace context of its node: `Traceparent` (Go), `task.traceparent` (Python) or `task.traceparent` (Rust). Make it the parent of the spans of the work. Then the work shows under the node in the trace of the run. Without traces, the value is empty. In Go:
+
+```go
+ctx = propagation.TraceContext{}.Extract(ctx, propagation.MapCarrier{"traceparent": t.Traceparent})
+ctx, span := tracer.Start(ctx, "send mail")
+defer span.End()
+```
+
 ## Delivery, retries and cancellation
 
 - Delivery is at-least-once. A worker can lose its connection after the work is done. Then the same work can run again in the next attempt. All attempts of a node have the same idempotency key. Use it to make a repeated call harmless.

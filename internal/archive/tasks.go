@@ -32,6 +32,8 @@ type NewTask struct {
 	Queue, Name                          string
 	// Input is a JSON object.
 	Input string
+	// Traceparent is the W3C trace context of the node, or empty without traces.
+	Traceparent string
 }
 
 // Task is a task in the queue.
@@ -44,22 +46,22 @@ type Task struct {
 	StartedAt, HeartbeatAt, FinishedAt *time.Time
 }
 
-const taskColumns = `id, namespace, workflow_uid::text, workflow, node_id, node_name, idempotency_key, queue, name, input::text,
+const taskColumns = `id, namespace, workflow_uid::text, workflow, node_id, node_name, idempotency_key, queue, name, input::text, traceparent,
 	state, message, worker, coalesce(output::text, ''), created_at, started_at, heartbeat_at, finished_at`
 
 func scanTask(row pgx.Row) (Task, error) {
 	var t Task
 	err := row.Scan(&t.ID, &t.Namespace, &t.WorkflowUID, &t.Workflow, &t.NodeID, &t.NodeName, &t.IdempotencyKey,
-		&t.Queue, &t.Name, &t.Input, &t.State, &t.Message, &t.Worker, &t.Output, &t.CreatedAt,
+		&t.Queue, &t.Name, &t.Input, &t.Traceparent, &t.State, &t.Message, &t.Worker, &t.Output, &t.CreatedAt,
 		&t.StartedAt, &t.HeartbeatAt, &t.FinishedAt)
 	return t, err
 }
 
 // Enqueue puts a task into the queue. A second enqueue of the same ID does nothing.
 func (s *Store) Enqueue(ctx context.Context, t NewTask) error {
-	_, err := s.pool.Exec(ctx, `INSERT INTO tasks (id, namespace, workflow_uid, workflow, node_id, node_name, idempotency_key, queue, name, input)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb) ON CONFLICT (id) DO NOTHING`,
-		t.ID, t.Namespace, t.WorkflowUID, t.Workflow, t.NodeID, t.NodeName, t.IdempotencyKey, t.Queue, t.Name, t.Input)
+	_, err := s.pool.Exec(ctx, `INSERT INTO tasks (id, namespace, workflow_uid, workflow, node_id, node_name, idempotency_key, queue, name, input, traceparent)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11) ON CONFLICT (id) DO NOTHING`,
+		t.ID, t.Namespace, t.WorkflowUID, t.Workflow, t.NodeID, t.NodeName, t.IdempotencyKey, t.Queue, t.Name, t.Input, t.Traceparent)
 	if err != nil {
 		return fmt.Errorf("enqueue the task %s: %w", t.ID, err)
 	}

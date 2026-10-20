@@ -71,6 +71,7 @@ func (r *WorkflowReconciler) applyTask(ctx context.Context, wf *chroniclev1alpha
 		err := r.Tasks.Enqueue(ctx, archive.NewTask{
 			ID: a.TaskID, Namespace: wf.Namespace, WorkflowUID: string(wf.UID), Workflow: wf.Name,
 			NodeID: a.NodeID, NodeName: a.NodeName, IdempotencyKey: a.IdempotencyKey, Queue: a.Queue, Name: a.Name, Input: a.Input,
+			Traceparent: r.traceparent(wf, a.NodeID),
 		})
 		if err != nil {
 			return fmt.Errorf("enqueue the task of node %s: %w", a.NodeName, err)

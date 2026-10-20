@@ -15,7 +15,14 @@ class _Queue:
     def __init__(self) -> None:
         names = ["greet", "flaky", "broken", "slow"]
         self.tasks = [
-            {"id": n, "name": n, "inputJson": '{"who": "world"}', "lease": "l-" + n, "idempotencyKey": "k"}
+            {
+                "id": n,
+                "name": n,
+                "inputJson": '{"who": "world"}',
+                "lease": "l-" + n,
+                "idempotencyKey": "k",
+                "traceparent": "tp",
+            }
             for n in names
         ]
         self.results: dict[str, dict] = {}
@@ -60,7 +67,7 @@ def test_worker():
 
     @worker.task("greet")
     def greet(data, task):
-        return {"greeting": "hello " + data["who"], "key": task.idempotency_key}
+        return {"greeting": "hello " + data["who"], "key": task.idempotency_key, "trace": task.traceparent}
 
     @worker.task("flaky")
     def flaky(data, task):
@@ -83,7 +90,7 @@ def test_worker():
     runner.join(10)
     server.shutdown()
 
-    assert json.loads(queue.results["greet"]["outputJson"]) == {"greeting": "hello world", "key": "k"}
+    assert json.loads(queue.results["greet"]["outputJson"]) == {"greeting": "hello world", "key": "k", "trace": "tp"}
     assert queue.results["flaky"]["error"] == "TimeoutError: the mail server timed out"
     assert queue.results["flaky"]["retryable"] is True
     assert queue.results["broken"] == {

@@ -67,7 +67,7 @@ func (s *taskService) PollTask(ctx context.Context, req *connect.Request[chronic
 		if task != nil {
 			return connect.NewResponse(&chroniclev1.PollTaskResponse{Task: &chroniclev1.Task{
 				Id: task.ID, Name: task.Name, InputJson: task.Input, IdempotencyKey: task.IdempotencyKey,
-				Workflow: task.Workflow, NodeName: task.NodeName, Lease: lease,
+				Workflow: task.Workflow, NodeName: task.NodeName, Lease: lease, Traceparent: task.Traceparent,
 			}}), nil
 		}
 		select {

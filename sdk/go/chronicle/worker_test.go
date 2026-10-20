@@ -67,7 +67,8 @@ func (s *taskStub) result(id string) *chroniclev1.CompleteTaskRequest {
 // A fifth task is cancelled through its heartbeat, so its context ends and no result goes out.
 func TestWorker(t *testing.T) {
 	task := func(id, name string) *chroniclev1.Task {
-		return &chroniclev1.Task{Id: id, Name: name, InputJson: `{"who":"world"}`, Lease: "l-" + id, IdempotencyKey: "k"}
+		return &chroniclev1.Task{Id: id, Name: name, InputJson: `{"who":"world"}`, Lease: "l-" + id,
+			IdempotencyKey: "k", Traceparent: "tp"}
 	}
 	stub := &taskStub{
 		tasks: []*chroniclev1.Task{
@@ -88,7 +89,7 @@ func TestWorker(t *testing.T) {
 	opts := WorkerOptions{Concurrency: 3, Heartbeat: 20 * time.Millisecond, GracePeriod: time.Second}
 	w := NewWorker(client, "team-a", opts)
 	w.Register("greet", func(_ context.Context, info TaskInfo, in map[string]string) (any, error) {
-		return map[string]string{"greeting": "hello " + in["who"], "key": info.IdempotencyKey}, nil
+		return map[string]string{"greeting": "hello " + in["who"], "key": info.IdempotencyKey, "trace": info.Traceparent}, nil
 	})
 	w.Register("flaky", func(context.Context, TaskInfo, map[string]string) (any, error) {
 		return nil, errors.New("the mail server timed out")
@@ -121,7 +122,7 @@ func TestWorker(t *testing.T) {
 		output, failure string
 		retryable       bool
 	}{
-		"ok":    {output: `{"greeting":"hello world","key":"k"}`},
+		"ok":    {output: `{"greeting":"hello world","key":"k","trace":"tp"}`},
 		"retry": {failure: "the mail server timed out", retryable: true},
 		"final": {failure: "the address is not valid"},
 		"panic": {failure: "panic in the task function: boom"},

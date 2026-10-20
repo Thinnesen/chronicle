@@ -44,6 +44,9 @@ pub struct TaskInfo {
     pub node_name: String,
     /// The same for all attempts of a node. Use it to make a repeated task harmless.
     pub idempotency_key: String,
+    /// The W3C trace context of the node, or empty when chronicle exports no traces.
+    /// Make it the parent of the spans of the work.
+    pub traceparent: String,
     cancelled: Arc<AtomicBool>,
 }
 
@@ -218,6 +221,7 @@ impl Job {
             workflow: text("workflow"),
             node_name: text("nodeName"),
             idempotency_key: text("idempotencyKey"),
+            traceparent: text("traceparent"),
             cancelled: cancelled.clone(),
         };
         let lease = text("lease");

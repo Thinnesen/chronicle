@@ -31,4 +31,4 @@ The server and the controller export OpenTelemetry traces when `OTEL_EXPORTER_OT
 - Each Pod gets the variable `TRACEPARENT` with the span of its node. An OpenTelemetry SDK that reads the variable makes the spans of the step children of the node span.
 - A retry makes a new run span in the same trace (`chronicle.try`). It has only the nodes that ran in that try.
 
-Task workers do not get a trace context yet.
+Each task has the same trace context for its worker (see [task workers](task-workers.md#traces)).

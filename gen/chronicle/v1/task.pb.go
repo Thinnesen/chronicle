@@ -104,7 +104,10 @@ type Task struct {
 	Workflow       string `protobuf:"bytes,5,opt,name=workflow,proto3" json:"workflow,omitempty"`
 	NodeName       string `protobuf:"bytes,6,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
 	// lease is the secret of this delivery. Give it with each heartbeat and with the result.
-	Lease         string `protobuf:"bytes,7,opt,name=lease,proto3" json:"lease,omitempty"`
+	Lease string `protobuf:"bytes,7,opt,name=lease,proto3" json:"lease,omitempty"`
+	// traceparent is the W3C trace context of the node, or empty when chronicle exports no traces.
+	// Make it the parent of the spans of the work.
+	Traceparent   string `protobuf:"bytes,8,opt,name=traceparent,proto3" json:"traceparent,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -184,6 +187,13 @@ func (x *Task) GetNodeName() string {
 func (x *Task) GetLease() string {
 	if x != nil {
 		return x.Lease
+	}
+	return ""
+}
+
+func (x *Task) GetTraceparent() string {
+	if x != nil {
+		return x.Traceparent
 	}
 	return ""
 }
@@ -699,7 +709,7 @@ const file_chronicle_v1_task_proto_rawDesc = "" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x14\n" +
 	"\x05queue\x18\x02 \x01(\tR\x05queue\x12\x14\n" +
 	"\x05names\x18\x03 \x03(\tR\x05names\x12\x16\n" +
-	"\x06worker\x18\x04 \x01(\tR\x06worker\"\xc1\x01\n" +
+	"\x06worker\x18\x04 \x01(\tR\x06worker\"\xe3\x01\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -708,7 +718,8 @@ const file_chronicle_v1_task_proto_rawDesc = "" +
 	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12\x1a\n" +
 	"\bworkflow\x18\x05 \x01(\tR\bworkflow\x12\x1b\n" +
 	"\tnode_name\x18\x06 \x01(\tR\bnodeName\x12\x14\n" +
-	"\x05lease\x18\a \x01(\tR\x05lease\":\n" +
+	"\x05lease\x18\a \x01(\tR\x05lease\x12 \n" +
+	"\vtraceparent\x18\b \x01(\tR\vtraceparent\":\n" +
 	"\x10PollTaskResponse\x12&\n" +
 	"\x04task\x18\x01 \x01(\v2\x12.chronicle.v1.TaskR\x04task\"Z\n" +
 	"\x14HeartbeatTaskRequest\x12\x1c\n" +

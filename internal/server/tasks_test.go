@@ -54,6 +54,7 @@ func (f *fakeTasks) Complete(_ context.Context, _, id, lease, output, failure st
 }
 
 func TestTaskService(t *testing.T) {
+	const traceparent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
 	setup(t)
 	ctx := context.Background()
 	for _, o := range []client.Object{
@@ -68,7 +69,8 @@ func TestTaskService(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	store := &fakeTasks{pending: &archive.Task{ID: "u/n1", Name: "greet", Input: `{"who":"x"}`, IdempotencyKey: "u/wf.a"}}
+	store := &fakeTasks{pending: &archive.Task{ID: "u/n1", Name: "greet", Input: `{"who":"x"}`, IdempotencyKey: "u/wf.a",
+		Traceparent: traceparent}}
 	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}, Tasks: store})
 	if err != nil {
 		t.Fatal(err)
@@ -81,7 +83,8 @@ func TestTaskService(t *testing.T) {
 	poll := connect.NewRequest(&chroniclev1.PollTaskRequest{Namespace: "team-a", Names: []string{"greet"}, Worker: "w1"})
 	as("worker", poll)
 	got, err := c.PollTask(ctx, poll)
-	if err != nil || got.Msg.Task.GetLease() != "lease-1" || got.Msg.Task.InputJson != `{"who":"x"}` || got.Msg.Task.IdempotencyKey != "u/wf.a" {
+	if err != nil || got.Msg.Task.GetLease() != "lease-1" || got.Msg.Task.InputJson != `{"who":"x"}` || got.Msg.Task.IdempotencyKey != "u/wf.a" ||
+		got.Msg.Task.Traceparent != traceparent {
 		t.Fatalf("poll: %v %+v", err, got)
 	}
 	beat := connect.NewRequest(&chroniclev1.HeartbeatTaskRequest{Namespace: "team-a", Id: "u/n1", Lease: "lease-1"})
