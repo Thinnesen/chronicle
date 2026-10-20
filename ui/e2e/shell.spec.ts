@@ -61,6 +61,19 @@ test("finds a run with the command palette", async ({ page }) => {
   await expect(page).toHaveURL(/\/runs\/train-model-4rq9z$/);
 });
 
+test("finds a template and a schedule with the command palette", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/ns/team-a");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox").fill("deploy-api");
+  await page.getByRole("option", { name: /deploy-api/ }).filter({ hasText: "Template" }).click();
+  await expect(page).toHaveURL(/\/templates\/deploy-api$/);
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox").fill("cleanup");
+  await page.getByRole("option", { name: /cleanup/ }).click();
+  await expect(page).toHaveURL(/\/cron\/cleanup$/);
+});
+
 test("goes to the login page when the session ends on an open page", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");

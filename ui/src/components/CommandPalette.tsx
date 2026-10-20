@@ -4,12 +4,12 @@ import { Command } from "cmdk";
 import { CalendarClock, Cpu, FileCode2, Folder, Monitor, Moon, Sun, Workflow } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { namespaces, workflows } from "../api/client";
+import { crons, namespaces, templates, workflows } from "../api/client";
 import { applyTheme } from "../theme";
 import { Lamp } from "./Lamp";
 import "./CommandPalette.css";
 
-// CommandPalette finds runs, sections and namespaces with the keyboard. Cmd+K or Ctrl+K opens it.
+// CommandPalette finds runs, templates, schedules, sections and namespaces with the keyboard. Cmd+K or Ctrl+K opens it.
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const params = useParams({ strict: false }) as { namespace?: string };
   const namespace = params.namespace;
@@ -20,13 +20,23 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     enabled: open && !!namespace,
   });
   const spaces = useQuery({ queryKey: ["namespaces"], queryFn: () => namespaces.listNamespaces({}), enabled: open });
+  const tmpl = useQuery({
+    queryKey: ["templates", namespace],
+    queryFn: () => templates.listTemplates({ namespace: namespace ?? "" }),
+    enabled: open && !!namespace,
+  });
+  const cron = useQuery({
+    queryKey: ["crons", namespace],
+    queryFn: () => crons.listCronWorkflows({ namespace: namespace ?? "" }),
+    enabled: open && !!namespace,
+  });
   const go = (fn: () => void) => {
     onOpenChange(false);
     fn();
   };
   return (
     <Command.Dialog open={open} onOpenChange={onOpenChange} label="Command palette" className="palette" overlayClassName="palette-overlay">
-      <Command.Input className="palette-input" placeholder={namespace ? `Search runs, sections and namespaces in ${namespace}` : "Search namespaces"} />
+      <Command.Input className="palette-input" placeholder={namespace ? `Search runs, templates and schedules in ${namespace}` : "Search namespaces"} />
       <Command.List className="palette-list">
         <Command.Empty className="palette-empty">No result.</Command.Empty>
         {namespace && (
@@ -56,6 +66,34 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 onSelect={() => go(() => void navigate({ to: "/ns/$namespace/runs/$name", params: { namespace, name: w.name } }))}
               >
                 {w.name}
+              </Item>
+            ))}
+          </Command.Group>
+        )}
+        {namespace && (tmpl.data?.templates.length ?? 0) + (cron.data?.cronWorkflows.length ?? 0) > 0 && (
+          <Command.Group heading="Templates and schedules" className="palette-group">
+            {tmpl.data?.templates.map((t) => (
+              <Item
+                key={`${t.clusterScope}/${t.name}`}
+                value={`template ${t.name} ${t.description}`}
+                icon={<FileCode2 />}
+                hint={t.clusterScope ? "Cluster template" : "Template"}
+                onSelect={() =>
+                  go(() => void navigate({ to: "/ns/$namespace/templates/$name", params: { namespace, name: t.name }, search: { cluster: t.clusterScope || undefined } }))
+                }
+              >
+                {t.name}
+              </Item>
+            ))}
+            {cron.data?.cronWorkflows.map((c) => (
+              <Item
+                key={c.name}
+                value={`schedule ${c.name} ${c.description}`}
+                icon={<CalendarClock />}
+                hint="Schedule"
+                onSelect={() => go(() => void navigate({ to: "/ns/$namespace/cron/$name", params: { namespace, name: c.name } }))}
+              >
+                {c.name}
               </Item>
             ))}
           </Command.Group>
