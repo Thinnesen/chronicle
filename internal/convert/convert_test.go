@@ -98,10 +98,10 @@ func TestRules(t *testing.T) {
 			name: "template defaults",
 			templates: "  - {name: main, steps: [[{name: a, template: c}, {name: b, template: d}, {name: e, inline: {container: {image: z}}}]]}\n" +
 				"  - {name: c, container: {image: x, command: [run]}}\n" +
-				"  - {name: d, retryStrategy: {limit: 5}, script: {image: py, source: date}}\n" +
-				"  templateDefaults: {retryStrategy: {limit: \"2\"}, container: {imagePullPolicy: Always}}",
+				"  - {name: d, retryStrategy: {limit: 5}, activeDeadlineSeconds: 60, script: {image: py, source: date}}\n" +
+				"  templateDefaults: {retryStrategy: {limit: \"2\"}, timeout: 5m, container: {imagePullPolicy: Always}}",
 			want: []string{"- container:\n      command:\n      - run\n      image: x\n      imagePullPolicy: Always\n    name: c\n    retryStrategy:\n      limit: 2",
-				"retryStrategy:\n      limit: 5\n    script:\n      image: py\n      source: date",
+				"retryStrategy:\n      limit: 5\n    script:\n      image: py\n      source: date\n    timeout: 60s",
 				"- container:\n      image: z\n      imagePullPolicy: Always\n    name: main-e"},
 		},
 		{
