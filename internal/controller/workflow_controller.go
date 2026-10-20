@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -37,6 +38,9 @@ type WorkflowReconciler struct {
 	Recorder events.EventRecorder
 	// APIReader reads objects that the manager does not cache, such as the artifact repository ConfigMap.
 	APIReader client.Reader
+	// Workers is the number of runs that the controller reconciles at the same time. A run is never reconciled
+	// twice at the same time.
+	Workers int
 
 	created createdPods
 }
@@ -297,5 +301,6 @@ func (r *WorkflowReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&chroniclev1alpha1.Workflow{}).
 		Owns(&corev1.Pod{}).
 		Named("workflow").
+		WithOptions(controller.Options{MaxConcurrentReconciles: max(r.Workers, 1)}).
 		Complete(r)
 }

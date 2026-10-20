@@ -78,6 +78,9 @@ func main() {
 		Development: true,
 	}
 	var executorImage, archiveDSNFile string
+	var workflowWorkers int
+	flag.IntVar(&workflowWorkers, "workflow-workers", 8,
+		"The number of runs that the controller reconciles at the same time.")
 	flag.StringVar(&archiveDSNFile, "archive-dsn-file", "",
 		"A file with the PostgreSQL DSN of the archive. Without it, runs are not archived.")
 	flag.StringVar(&executorImage, "executor-image", os.Getenv("CHRONICLE_EXECUTOR_IMAGE"),
@@ -193,6 +196,7 @@ func main() {
 		ExecutorImage: executorImage,
 		APIReader:     mgr.GetAPIReader(),
 		Recorder:      mgr.GetEventRecorder("chronicle-controller"),
+		Workers:       workflowWorkers,
 	}
 	if archiveDSNFile != "" {
 		store, err := archive.OpenFile(context.Background(), archiveDSNFile)
