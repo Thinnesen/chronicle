@@ -22,6 +22,11 @@ const (
 // converter collects the warnings of one document.
 type converter struct {
 	warnings []Warning
+	// parent is the name of the template that the converter is in. names are the template names in use,
+	// and inlined are the templates made from inline templates.
+	parent  string
+	names   map[string]bool
+	inlined []any
 }
 
 // Warning is a part of the Argo document that chronicle does not support. The converter drops it.

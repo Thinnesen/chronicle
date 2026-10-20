@@ -41,6 +41,10 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 			[]string{"secondsAfterCompletion", "secondsAfterSuccess", "secondsAfterFailure"})
 	}
 	templates := []any{}
+	c.names, c.inlined = map[string]bool{}, nil
+	for _, t := range asList(in["templates"]) {
+		c.names[fmt.Sprint(asObj(t)[fName])] = true
+	}
 	for i, t := range asList(in["templates"]) {
 		ct, err := c.template(asObj(t), index(join(path, "templates"), i))
 		if err != nil {
@@ -48,6 +52,7 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 		}
 		templates = append(templates, ct)
 	}
+	templates = append(templates, c.inlined...)
 	if len(templates) > 0 {
 		c.dropUnknownArgs(templates, join(path, "templates"))
 		out["templates"] = templates
@@ -124,7 +129,14 @@ var callFields = []string{fName, "template", "templateRef", "when", "withItems",
 
 // call converts the parts that a DAG task and a step share.
 func (c *converter) call(in obj, path string, extra ...string) (obj, error) {
-	out := c.pick(in, path, append(callFields, extra...), "arguments", "withSequence")
+	out := c.pick(in, path, append(callFields, extra...), "arguments", "withSequence", "inline")
+	if _, ok := in["inline"]; ok {
+		name, err := c.inline(in, path)
+		if err != nil {
+			return nil, err
+		}
+		out["template"] = name
+	}
 	if a := asObj(in["arguments"]); a != nil {
 		args := c.pick(a, join(path, "arguments"), nil, "parameters", "artifacts")
 		if ps, ok := a["parameters"]; ok {

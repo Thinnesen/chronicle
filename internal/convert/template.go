@@ -9,6 +9,8 @@ import (
 
 // template converts one Argo template.
 func (c *converter) template(in obj, path string) (obj, error) {
+	defer func(p string) { c.parent = p }(c.parent)
+	c.parent, _ = in[fName].(string)
 	out := c.pick(in, path, []string{fName, "dag", "steps"},
 		"inputs", "outputs", "container", "script", "suspend", "resource", "retryStrategy", "timeout", "activeDeadlineSeconds", "parallelism")
 	var err error

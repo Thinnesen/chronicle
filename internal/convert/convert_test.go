@@ -113,6 +113,12 @@ func TestRules(t *testing.T) {
 			want: []string{"- \"0\"\n", "- \"2\"\n", `argument "extra" is not an input of template "c"`},
 		},
 		{
+			name: "inline templates become named templates",
+			templates: "  - {name: main, steps: [[{name: a, inline: {container: {image: x}}}], [{name: b.c, inline: {container: {image: z}}}]]}\n" +
+				"  - {name: main-a, container: {image: w}}",
+			want: []string{"template: main-a-2", "name: main-a-2", "template: main-b-c", "spec.templates[0].steps[0][0].inline: the inline template is now the template \"main-a-2\""},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

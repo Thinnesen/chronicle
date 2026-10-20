@@ -14,7 +14,7 @@ chronicle convert -f argo-workflow.yaml | kubectl create -n team-a -f -
 - `--strict` makes the command fail when there is a warning. Use it in CI.
 - The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid, for example when it uses a placeholder that chronicle does not have.
 
-In a test with the 190 examples of Argo Workflows (October 2026), 53 converted without a warning, 77 converted with warnings, and 60 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and artifacts that the workflow gives.
+In a test with the 190 examples of Argo Workflows (October 2026), 53 converted without a warning, 81 converted with warnings, and 56 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and artifacts that the workflow gives.
 
 ## What changes
 
@@ -54,7 +54,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 53 converted w
 
 ## Supported as in Argo
 
-DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
+DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, `inline` templates (the converter makes a named template `<parent>-<task>`), and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
 Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.mainEntrypoint`, `workflow.creationTimestamp.*` (strftime letters, `RFC3339`, `s`), `workflow.labels.*`, `workflow.annotations.*`, `workflow.parameters.json`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
@@ -66,7 +66,6 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Pod fields: `securityContext`, `volumes`, `volumeMounts`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
-| `inline` templates in tasks or steps | Write a named template. |
 | `synchronization.semaphore` with a ConfigMap limit, template-level `synchronization`, `memoize`, `metrics` | Not supported. A workflow `mutex` converts; set a semaphore limit by hand. |
 | `http`, `plugin`, `data` and `containerSet` templates | Not supported. Task workers (M7) cover calls to services. |
 | Artifacts that a workflow gives (`arguments.artifacts` on the Workflow) | A workflow cannot give artifacts. Make them in a first step. |
