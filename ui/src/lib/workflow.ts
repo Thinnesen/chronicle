@@ -242,6 +242,14 @@ export function taskDependencies(task: DAGTask): string[] {
   return [...new Set(names.filter((x) => !results.has(x)))];
 }
 
+// queuedFor tells what a pending step waits for before chronicle creates its Pod: a lock or a free slot.
+export function queuedFor(n: NodeStatus): "lock" | "slot" | undefined {
+  if (n.phase !== "Pending") return undefined;
+  if (n.message?.startsWith("waiting for the lock")) return "lock";
+  if (n.message?.startsWith("waiting for a free slot")) return "slot";
+  return undefined;
+}
+
 // nodeLabel is the short name of a node for the graph.
 export function nodeLabel(n: NodeStatus): string {
   return n.displayName || n.name;

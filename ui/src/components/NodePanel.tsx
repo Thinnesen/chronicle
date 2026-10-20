@@ -10,7 +10,7 @@ import { useToast } from "./Toast";
 
 import { clock, duration } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { artifactSource, artifactURL, nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
+import { artifactSource, artifactURL, nodeLabel, queuedFor, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
 import { ApprovalForm } from "./ApprovalForm";
 import { CopyButton } from "./CopyButton";
 import { Lamp } from "./Lamp";
@@ -42,12 +42,14 @@ export function NodePanel(props: PanelProps) {
 
 function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: PanelProps) {
   const phase = node.phase || "Pending";
-  // A Pod that has not started has no log yet; its events tell why it waits, for example a missing image.
-  const [tab, setTab] = useState<Tab>(!node.podName ? "details" : phase === "Pending" ? "events" : "logs");
+  // A step that waits for a lock or a slot has no Pod yet. A Pod that has not started has no log yet; its events tell
+  // why it waits, for example a missing image.
+  const hasPod = !!node.podName && !queuedFor(node);
+  const [tab, setTab] = useState<Tab>(!hasPod ? "details" : phase === "Pending" ? "events" : "logs");
   const retry = retryOf(node, nodes);
   const tabs: { id: Tab; label: string }[] = [
     { id: "details", label: "Summary" },
-    ...(node.podName ? [{ id: "logs" as const, label: "Logs" }, { id: "events" as const, label: "Events" }] : []),
+    ...(hasPod ? [{ id: "logs" as const, label: "Logs" }, { id: "events" as const, label: "Events" }] : []),
     ...(retry ? [{ id: "attempts" as const, label: `Attempts (${retry.children?.length ?? 0})` }] : []),
   ];
   return (
@@ -186,7 +188,7 @@ function Details({ node, namespace }: { node: NodeStatus; namespace: string }) {
             <dd>{node.outputs.exitCode}</dd>
           </>
         )}
-        {node.podName && (
+        {node.podName && !queuedFor(node) && (
           <>
             <dt>Pod</dt>
             <dd className="copyable">

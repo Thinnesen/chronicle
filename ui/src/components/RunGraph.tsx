@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { fold } from "../lib/fold";
 import { place } from "../lib/layout";
 import { duration } from "../lib/time";
-import { buildGraph, cardLabel, isStation, nodeLabel, templateOf, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
+import { buildGraph, cardLabel, isStation, nodeLabel, queuedFor, templateOf, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Lamp } from "./Lamp";
 
 type NodeData = { status: NodeStatus; http?: boolean; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number>; preview?: boolean };
@@ -30,8 +30,8 @@ function meta(n: NodeStatus, data: NodeData): string {
   if (data.preview) return n.templateName !== nodeLabel(n) ? (n.templateName ?? "") : "";
   if (n.planned) return "Not started";
   if (n.cache?.hit) return "From the cache";
-  if (n.phase === "Pending" && n.message?.startsWith("waiting for a free slot")) return "Waiting for a slot";
-  if (n.phase === "Pending" && n.message?.startsWith("waiting for the lock")) return "Waiting for a lock";
+  const queued = queuedFor(n);
+  if (queued) return `Waiting for a ${queued}`;
   return waitReason(n) ?? (nodeDuration(n, data.now) || n.phase || "Pending");
 }
 

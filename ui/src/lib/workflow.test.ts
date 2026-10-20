@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildGraph, cardLabel, plannedSteps, taskDependencies, withPlan, type Workflow } from "./workflow";
+import { buildGraph, cardLabel, plannedSteps, queuedFor, taskDependencies, withPlan, type Workflow } from "./workflow";
 
 const wf: Workflow = {
   metadata: { name: "wf", namespace: "ns" },
@@ -139,5 +139,16 @@ describe("cardLabel", () => {
     ["each(2:x)(1)", "each(2:x)(1)"],
   ])("%s gives %s", (displayName, want) => {
     expect(cardLabel({ id: "n", name: "wf.n", type: "Pod", displayName })).toBe(want);
+  });
+});
+
+describe("queuedFor", () => {
+  it.each([
+    ["Pending", "waiting for the lock gpu", "lock"],
+    ["Pending", "waiting for a free slot (3 of 3 run)", "slot"],
+    ["Pending", "ErrImagePull: back-off", undefined],
+    ["Running", "waiting for the lock gpu", undefined],
+  ] as const)("%s with %s gives %s", (phase, message, want) => {
+    expect(queuedFor({ id: "n", name: "wf.n", type: "Pod", phase, message })).toBe(want);
   });
 });
