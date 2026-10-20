@@ -51,6 +51,8 @@ kubectl create secret generic chronicle-archive -n chronicle-system \
 
 The controller and the server apply the schema migrations at start. Back up the database like any other PostgreSQL database. With an archive, the TTL and the history limits delete a run only after the archive has it.
 
+By default the archive keeps all rows. Set `archive.retention`, for example `2160h` (90 days), to delete older rows. Then the leader controller deletes, once an hour and in small batches, the runs that finished before that time with their earlier tries, the finished tasks, and the step cache entries. A run that is still in Kubernetes stays visible there. The archived logs in the artifact repository are not deleted: use a lifecycle rule of the bucket for them.
+
 More than one server replica (`server.replicas`) needs the archive, because the login sessions are there. The chart refuses more replicas with a login and without an archive.
 
 ## 5. Artifacts and archived logs

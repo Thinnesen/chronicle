@@ -287,3 +287,6 @@ userRoles:
 archive:
   existingSecret: ""
   key: dsn
+  # retention deletes archived runs, finished tasks and step cache entries older than this, for example 2160h
+  # (90 days). Empty keeps them.
+  retention: ""

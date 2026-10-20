@@ -96,6 +96,9 @@ spec:
         - --executor-image={{ include "chronicle.image" . }}
         {{- if .Values.archive.existingSecret }}
         - --archive-dsn-file=/etc/chronicle/archive/{{ .Values.archive.key }}
+        {{- with .Values.archive.retention }}
+        - --archive-retention={{ . }}
+        {{- end }}
         {{- end }}
         {{- if and .Values.certManager.enabled .Values.webhook.enabled }}
         - --webhook-cert-path=/tmp/k8s-webhook-server/serving-certs

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -79,10 +80,13 @@ func main() {
 	}
 	var executorImage, archiveDSNFile string
 	var workflowWorkers int
+	var archiveRetention time.Duration
 	flag.IntVar(&workflowWorkers, "workflow-workers", 8,
 		"The number of runs that the controller reconciles at the same time.")
 	flag.StringVar(&archiveDSNFile, "archive-dsn-file", "",
 		"A file with the PostgreSQL DSN of the archive. Without it, runs are not archived.")
+	flag.DurationVar(&archiveRetention, "archive-retention", 0,
+		"Delete archived runs, finished tasks and step cache entries older than this, for example 2160h. 0 keeps them.")
 	flag.StringVar(&executorImage, "executor-image", os.Getenv("CHRONICLE_EXECUTOR_IMAGE"),
 		"The image with the chronicle-exec binary for workflow Pods. The default is $CHRONICLE_EXECUTOR_IMAGE.")
 	opts.BindFlags(flag.CommandLine)
@@ -208,6 +212,13 @@ func main() {
 		workflows.Archive = store
 		workflows.Tasks = store
 		workflows.Cache = store
+		if archiveRetention > 0 {
+			pruner := &controller.ArchivePruner{Store: store, Retention: archiveRetention, Every: time.Hour}
+			if err := mgr.Add(pruner); err != nil {
+				setupLog.Error(err, "Failed to add the archive pruner")
+				os.Exit(1)
+			}
+		}
 	}
 	if err := workflows.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "workflow")
