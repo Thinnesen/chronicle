@@ -92,7 +92,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	res := engine.Run(engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
-		CreatedAt: wf.CreationTimestamp, ScheduledTime: wf.Annotations[AnnotationScheduledTime],
+		CreatedAt: wf.CreationTimestamp, ScheduledTime: wf.Annotations[AnnotationScheduledTime], Labels: wf.Labels,
 		Spec: spec, Status: wf.Status, Pods: pods, Tasks: tasks, TasksEnabled: r.Tasks != nil,
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,

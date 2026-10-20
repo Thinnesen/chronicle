@@ -23,6 +23,8 @@ type Input struct {
 	// CreatedAt is the creation time of the Workflow. ScheduledTime is the schedule time of a cron run, or empty.
 	CreatedAt     metav1.Time
 	ScheduledTime string
+	// Labels are the labels of the Workflow, for {{workflow.labels.<key>}}.
+	Labels map[string]string
 	// Spec is the resolved workflow definition.
 	Spec *v1alpha1.WorkflowTemplateSpec
 	// Status is the status from the last run of the engine.

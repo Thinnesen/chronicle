@@ -97,3 +97,17 @@ templates:
 		t.Errorf("inputs of use = %+v", in)
 	}
 }
+
+func TestWorkflowLabels(t *testing.T) {
+	s := newSim(t, `
+entrypoint: main
+templates:
+- name: main
+  container: {image: x, command: [echo, "{{workflow.labels.team}}"]}
+`, nil)
+	s.in.Labels = map[string]string{"team": "data"}
+	s.run()
+	if cmd := s.pods[wfName].Template.Container.Command; cmd[1] != "data" {
+		t.Errorf("command = %v", cmd)
+	}
+}

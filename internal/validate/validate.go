@@ -27,7 +27,7 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 	}
 	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid", "workflow.status",
 		"workflow.creationTimestamp", "workflow.scheduledTime", "workflow.serviceAccountName", "workflow.duration",
-		"workflow.failures"} {
+		"workflow.failures", "workflow.labels.*"} {
 		c.globals[g] = true
 	}
 	for i, p := range spec.Arguments.Parameters {

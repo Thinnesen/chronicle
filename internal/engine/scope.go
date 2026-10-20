@@ -31,6 +31,9 @@ func (e *engine) globals() map[string]string {
 			g["workflow.parameters."+p.Name] = *v
 		}
 	}
+	for k, v := range e.in.Labels {
+		g["workflow.labels."+k] = v
+	}
 	g["workflow.serviceAccountName"] = e.in.Spec.ServiceAccountName
 	g["workflow.duration"] = strconv.FormatFloat(e.in.Now.Sub(e.startedAt).Seconds(), 'f', -1, 64)
 	g["workflow.failures"] = e.failures()

@@ -49,6 +49,7 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{workflow.duration}}` | The seconds since the start of the run, for example in the exit handler. |
 | `{{workflow.failures}}` | The failed steps as JSON (display name, message, template, phase, Pod, end), for the exit handler. |
 | `{{workflow.serviceAccountName}}` | The service account of the run. |
+| `{{workflow.labels.<key>}}` | A label of the run, for example the label `chronicle.thinnesen.com/cron-workflow` of a cron run. |
 | `{{inputs.parameters.<name>}}` | An input parameter of the template. |
 | `{{tasks.<task>.outputs.result}}` | The standard output of a DAG task (at most 3 KiB). |
 | `{{tasks.<task>.outputs.parameters.<name>}}` | An output parameter of a DAG task. |

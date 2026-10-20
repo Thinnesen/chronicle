@@ -56,7 +56,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 52 converted w
 
 DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
-Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
+Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.labels.*`, `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
 ## Not supported
 
