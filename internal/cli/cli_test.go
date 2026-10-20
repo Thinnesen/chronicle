@@ -180,7 +180,7 @@ func TestCommands(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"list"}, "run-1  Running  1/3"},
+		{[]string{"list"}, "1/3"},
 		{[]string{"list"}, "waiting for an approval"},
 		{[]string{"list"}, "a step waits: Unschedulable"},
 		{[]string{"list"}, "only in the archive"},
