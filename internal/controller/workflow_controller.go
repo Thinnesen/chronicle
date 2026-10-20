@@ -108,7 +108,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Spec: spec, Status: wf.Status, Pods: in.Pods, Tasks: in.Tasks, TasksEnabled: r.Tasks != nil, CacheEnabled: r.Cache != nil,
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals, HeldLocks: in.HeldLocks,
-		Children: in.Children, Depth: depth(&wf),
+		Children: in.Children, Depth: in.Depth,
 	}
 	res, err := r.runWithCache(ctx, &wf, in)
 	if err != nil {

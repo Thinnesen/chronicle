@@ -36,7 +36,9 @@ type ChildResult struct {
 // CreateWorkflow asks the controller to create the child run of a node. The create must be idempotent.
 type CreateWorkflow struct {
 	Name, NodeID, NodeName string
-	TemplateRef            v1alpha1.WorkflowTemplateRef
+	// Depth is the depth of the parent run. The child run shows it plus one in an annotation.
+	Depth       int
+	TemplateRef v1alpha1.WorkflowTemplateRef
 	// Parameters are the resolved arguments of the child run.
 	Parameters []v1alpha1.Parameter
 }
@@ -90,7 +92,7 @@ func (e *engine) runChild(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v
 		}
 		n.Message = "starting the child run " + n.ChildWorkflow
 		e.actions = append(e.actions, CreateWorkflow{Name: n.ChildWorkflow, NodeID: n.ID, NodeName: c.nodeName,
-			TemplateRef: ref, Parameters: params})
+			TemplateRef: ref, Parameters: params, Depth: e.in.Depth})
 		e.reached(e.in.Now.Add(childPollInterval))
 	default:
 		e.setPhase(&n, v1alpha1.NodeError, "the child run "+n.ChildWorkflow+" was deleted")

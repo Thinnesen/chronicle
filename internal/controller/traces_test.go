@@ -74,14 +74,3 @@ func TestRunSpans(t *testing.T) {
 		t.Errorf("load span %+v", load)
 	}
 }
-
-// TestDepth trusts no negative depth: a user can set the annotation on their own run, and a negative value would lift
-// the limit of nested child runs.
-func TestDepth(t *testing.T) {
-	for value, want := range map[string]int{"": 0, "3": 3, "-1000": 0, "x": 0} {
-		wf := &chroniclev1alpha1.Workflow{Annotations: map[string]string{AnnotationDepth: value}}
-		if got := depth(wf); got != want {
-			t.Errorf("depth(%q) = %d, want %d", value, got, want)
-		}
-	}
-}

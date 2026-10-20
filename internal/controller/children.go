@@ -37,7 +37,10 @@ func (r *WorkflowReconciler) observe(ctx context.Context, wf *chroniclev1alpha1.
 	if in.Children, err = r.observeChildren(ctx, wf); err != nil {
 		return in, err
 	}
-	in.HeldLocks, err = r.heldLocks(ctx, wf, spec)
+	if in.HeldLocks, err = r.heldLocks(ctx, wf, spec); err != nil {
+		return in, err
+	}
+	in.Depth, err = r.depth(ctx, wf)
 	return in, err
 }
 
@@ -76,10 +79,26 @@ func openChild(n chroniclev1alpha1.NodeStatus) bool {
 	return n.Type == chroniclev1alpha1.NodeChildWorkflow && !engine.IsTerminal(n.Phase)
 }
 
-// depth returns the number of parent runs above a run. A user can set the annotation, so a negative value counts as 0.
-func depth(wf *chroniclev1alpha1.Workflow) int {
-	d, _ := strconv.Atoi(wf.Annotations[AnnotationDepth])
-	return max(d, 0)
+// depth returns the number of parent runs above a run, from the chain of runs that control it. A user can write the
+// depth annotation, so it does not count. The walk stops after MaxChildDepth parents.
+func (r *WorkflowReconciler) depth(ctx context.Context, wf *chroniclev1alpha1.Workflow) (int, error) {
+	d, cur := 0, wf
+	for d < engine.MaxChildDepth {
+		ref := metav1.GetControllerOf(cur)
+		if ref == nil || ref.Kind != "Workflow" || ref.APIVersion != chroniclev1alpha1.GroupVersion.String() {
+			return d, nil
+		}
+		var parent chroniclev1alpha1.Workflow
+		err := r.Get(ctx, client.ObjectKey{Namespace: wf.Namespace, Name: ref.Name}, &parent)
+		if apierrors.IsNotFound(err) || err == nil && parent.UID != ref.UID {
+			return d, nil
+		}
+		if err != nil {
+			return 0, fmt.Errorf("read the parent run %s: %w", ref.Name, err)
+		}
+		d, cur = d+1, &parent
+	}
+	return d, nil
 }
 
 // createChild creates the child run of a node. A child run with the name that the run does not control is an error.
@@ -89,7 +108,7 @@ func (r *WorkflowReconciler) createChild(ctx context.Context, wf *chroniclev1alp
 		Namespace: wf.Namespace,
 		Labels:    map[string]string{LabelParentUID: string(wf.UID)},
 		Annotations: map[string]string{
-			AnnotationParent: wf.Name, AnnotationParentNode: a.NodeName, AnnotationDepth: strconv.Itoa(depth(wf) + 1),
+			AnnotationParent: wf.Name, AnnotationParentNode: a.NodeName, AnnotationDepth: strconv.Itoa(a.Depth + 1),
 		},
 		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(wf, chroniclev1alpha1.GroupVersion.WithKind("Workflow"))},
 	}

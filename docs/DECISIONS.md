@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: The controller counts the depth of a child run from the chain of parent runs that exist and control it, not from the depth annotation, which a user can write. The annotation stays for people. The walk stops at the limit (10). Found by the security review of the child runs. The review also found that a user can create a Workflow that poses as a child run of their own run, with a fake owner reference, before the controller creates the real one. That stays inside the namespace of the user, who can already change the parent run, so chronicle accepts it.
+
 - 2026-10-20: A Workflow that references a template can give only the parameters that the template declares. Before, the controller added an unknown parameter, which no step could use, so a typo fell back to the default without a sign. The submit API refused it already; now child runs, kubectl and cron runs get the same rule, and such a run ends in Error with the name of the parameter. Found by soak test 2 (T2).
 
 - 2026-10-20: A retry of the failed nodes of a parent run also retries a failed child run, in place (Kestra RETRY_FAILED). The engine keeps the child node and asks the child for the retry with the generation of the parent try (`spec.restart`), and removes a shutdown that the stop of the parent had set. So the work that the child did is kept. A child that refuses the retry gives the node the phase Error with the reason. A retry from a node and an attempt of a retry strategy still start a new child run, because the user asked to run that part again.

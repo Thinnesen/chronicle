@@ -119,6 +119,25 @@ templates:
 		// The same child run retries: there is no second child run.
 		childOf(reconcileWith(ctx, r, key))
 	})
+
+	// The depth comes from the parent runs that really exist, so an annotation that a user wrote does not count.
+	It("counts the depth from the owner chain, not from the annotation", func() {
+		key := newWorkflow(ctx, `{entrypoint: c, templates: [{name: c, container: {image: alpine}}]}`)
+		root := &chroniclev1alpha1.Workflow{}
+		Expect(k8sClient.Get(ctx, key, root)).To(Succeed())
+		parent := root
+		for i := range 3 {
+			c := &chroniclev1alpha1.Workflow{Name: key.Name + "-" + string(rune('a'+i)), Namespace: "default",
+				Annotations:     map[string]string{AnnotationDepth: "-1000"},
+				OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(parent, chroniclev1alpha1.GroupVersion.WithKind("Workflow"))}}
+			Expect(yaml.UnmarshalStrict([]byte(`{entrypoint: c, templates: [{name: c, container: {image: alpine}}]}`), &c.Spec)).To(Succeed())
+			Expect(k8sClient.Create(ctx, c)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, c)
+			parent = c
+		}
+		Eventually(func() (int, error) { return testReconciler().depth(ctx, parent) }).Should(Equal(3))
+		Expect(testReconciler().depth(ctx, root)).To(Equal(0))
+	})
 })
 
 func nodeByName(st chroniclev1alpha1.WorkflowStatus, name string) chroniclev1alpha1.NodeStatus {
