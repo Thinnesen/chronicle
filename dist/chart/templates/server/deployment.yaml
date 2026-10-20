@@ -45,6 +45,9 @@ spec:
         command: [/chronicle-server]
         args:
         - --auth-config=/etc/chronicle/auth/config.yaml
+        {{- with .Values.server.basePath }}
+        - --base-path={{ . }}
+        {{- end }}
         {{- if .Values.archive.existingSecret }}
         - --archive-dsn-file=/etc/chronicle/archive/{{ .Values.archive.key }}
         {{- end }}

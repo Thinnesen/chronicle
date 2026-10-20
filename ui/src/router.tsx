@@ -13,6 +13,7 @@ import { TasksPage } from "./pages/TasksPage";
 import { RunsPage } from "./pages/RunsPage";
 import { TemplatePage } from "./pages/TemplatePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
+import { basePath } from "./lib/base";
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -98,7 +99,7 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export function newRouter(queryClient: QueryClient) {
-  return createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent", defaultNotFoundComponent: NotFoundPage });
+  return createRouter({ routeTree, basepath: basePath, context: { queryClient }, defaultPreload: "intent", defaultNotFoundComponent: NotFoundPage });
 }
 
 declare module "@tanstack/react-router" {

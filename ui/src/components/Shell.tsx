@@ -10,6 +10,7 @@ import { applyTheme, readTheme, type Theme } from "../theme";
 import { BrandMark } from "./BrandMark";
 import { CommandPalette } from "./CommandPalette";
 import "./Shell.css";
+import { at } from "../lib/base";
 
 // Shell is the frame of all pages. A sidebar has the namespace and the sections. A top bar has the breadcrumbs, the
 // search and the user. On a narrow screen the sidebar is a drawer.
@@ -212,7 +213,7 @@ function UserMenu({ user, groups }: { user: string; groups: string[] }) {
           <Menu.Item
             className="menu-item"
             onSelect={() => {
-              void logout().then(() => window.location.assign("/login"));
+              void logout().then(() => window.location.assign(at("login")));
             }}
           >
             <LogOut aria-hidden="true" /> Log out

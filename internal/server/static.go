@@ -21,8 +21,9 @@ const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 
 const noncePlaceholder = "__CSP_NONCE__"
 
 // UIHandler serves the built UI. A path without a file gets index.html, so that the router of the UI handles it.
-// Files with a content hash in the name are cached for a long time; index.html is not cached.
-func UIHandler(files fs.FS) http.Handler {
+// Files with a content hash in the name are cached for a long time; index.html is not cached. base is the base path of
+// the server (see WithBasePath); index.html gets it as its <base href>.
+func UIHandler(files fs.FS, base string) http.Handler {
 	if files == nil {
 		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "This server was built without the web UI. Use the API or the CLI.", http.StatusNotFound)
@@ -34,6 +35,7 @@ func UIHandler(files fs.FS) http.Handler {
 			http.Error(w, "The web UI has no index.html.", http.StatusInternalServerError)
 		})
 	}
+	index = bytes.Replace(index, []byte(`<base href="/"`), []byte(`<base href="`+base+`"`), 1)
 	static := http.FileServerFS(files)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nonce := newNonce()

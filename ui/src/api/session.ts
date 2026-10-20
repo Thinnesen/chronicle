@@ -1,3 +1,5 @@
+import { at } from "../lib/base";
+
 // The session of the logged-in user, from /auth/me.
 export interface Session {
   user: string;
@@ -10,8 +12,9 @@ let current: Session | null = null;
 
 // loadSession reads the session. It returns null when the user is not logged in.
 export async function loadSession(): Promise<Session | null> {
-  const resp = await fetch("/auth/me", { credentials: "same-origin" });
-  if (resp.status === 401) {
+  const resp = await fetch(at("auth/me"), { credentials: "same-origin" });
+  // 404: the server has no web login.
+  if (resp.status === 401 || resp.status === 404) {
     current = null;
     return null;
   }
@@ -29,11 +32,11 @@ export function csrfToken(): string | undefined {
 // loginURL starts the login and comes back to the current page.
 export function loginURL(): string {
   const back = window.location.pathname + window.location.search;
-  return `/auth/login?redirect=${encodeURIComponent(back)}`;
+  return `${at("auth/login")}?redirect=${encodeURIComponent(back)}`;
 }
 
 export async function logout(): Promise<void> {
-  await fetch("/auth/logout", {
+  await fetch(at("auth/logout"), {
     method: "POST",
     credentials: "same-origin",
     headers: { "X-CSRF-Token": csrfToken() ?? "" },

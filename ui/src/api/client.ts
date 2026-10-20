@@ -6,6 +6,7 @@ import { NamespaceService } from "../gen/chronicle/v1/namespace_pb";
 import { TaskService } from "../gen/chronicle/v1/task_pb";
 import { CronService, TemplateService } from "../gen/chronicle/v1/template_pb";
 import { WorkflowService } from "../gen/chronicle/v1/workflow_pb";
+import { basePath } from "../lib/base";
 import { csrfToken } from "./session";
 
 // csrf adds the CSRF token of the session to each call.
@@ -18,7 +19,7 @@ const csrf: Interceptor = (next) => (req) => {
 };
 
 const transport = createConnectTransport({
-  baseUrl: window.location.origin,
+  baseUrl: window.location.origin + basePath.replace(/\/$/, ""),
   interceptors: [csrf],
   fetch: (input, init) => fetch(input, { ...init, credentials: "same-origin" }),
 });

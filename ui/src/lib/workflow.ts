@@ -1,5 +1,7 @@
 // The parts of a Workflow object that the UI reads. The API sends the object as JSON.
 
+import { at } from "./base";
+
 export interface Parameter {
   name: string;
   value?: string;
@@ -47,7 +49,7 @@ export function artifactSource(a: Artifact): string | undefined {
 
 // artifactURL is the download link of an output artifact of a node.
 export function artifactURL(namespace: string, workflow: string, node: string, name: string): string {
-  return `/artifacts/${[namespace, workflow, node, name].map(encodeURIComponent).join("/")}`;
+  return at(`artifacts/${[namespace, workflow, node, name].map(encodeURIComponent).join("/")}`);
 }
 
 interface DAGTask {

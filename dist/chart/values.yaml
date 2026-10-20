@@ -219,6 +219,9 @@ server:
   enabled: true
   ## The login sessions are in the archive database, so more than one replica needs archive.existingSecret.
   replicas: 1
+  ## The path of chronicle on its host, for example /chronicle when an ingress serves it at https://example.com/chronicle.
+  ## Then auth.redirectURL also has the path: https://example.com/chronicle/auth/callback. Empty serves it at the root.
+  basePath: ""
   ## Environment variables of the server, for example OTEL_EXPORTER_OTLP_ENDPOINT for traces.
   env: []
   service:

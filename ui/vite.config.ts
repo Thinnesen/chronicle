@@ -11,6 +11,8 @@ const csp =
   "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'";
 
 export default defineConfig({
+  // Relative asset paths, so that the <base href> of the page (the base path of the server) applies.
+  base: "./",
   preview: { headers: { "Content-Security-Policy": csp } },
   plugins: [react()],
   // No inline assets: the CSP allows fonts and images only from the server itself.

@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-	var listen, authConfig, tokenAudience, archiveDSNFile string
+	var listen, authConfig, tokenAudience, archiveDSNFile, basePath string
 	flag.StringVar(&archiveDSNFile, "archive-dsn-file", "",
 		"A file with the PostgreSQL DSN of the archive. Without it, deleted runs are gone.")
 	flag.StringVar(&listen, "listen", ":8080", "The address of the API. TLS ends at the ingress or the service mesh.")
@@ -37,9 +37,12 @@ func main() {
 		"The login configuration file. Without it, only service account tokens work.")
 	flag.StringVar(&tokenAudience, "token-audience", "chronicle",
 		"The audience of the service account tokens that the API accepts. Empty turns these tokens off.")
+	flag.StringVar(&basePath, "base-path", "/",
+		"The path of chronicle on its host, for example /chronicle when a proxy serves it at https://example.com/chronicle.")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	basePath = server.NormalizeBasePath(basePath)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	log := ctrl.Log.WithName("server")
 
@@ -77,6 +80,8 @@ func main() {
 		}
 		mux.Handle("/auth/", login.Handler())
 		authn = []auth.Authenticator{login.SessionAuthenticator(), login.BearerAuthenticator()}
+	} else {
+		mux.Handle("/auth/", server.NoLoginHandler())
 	}
 	if tokenAudience != "" {
 		own, err := client.New(restConfig, client.Options{Scheme: scheme})
@@ -108,7 +113,7 @@ func main() {
 		log.Error(err, "Failed to create the API")
 		os.Exit(1)
 	}
-	web := server.UIHandler(ui.Files())
+	web := server.UIHandler(ui.Files(), basePath)
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/chronicle.v1.") || strings.HasPrefix(r.URL.Path, server.ArtifactPath) {
 			api.ServeHTTP(w, r)
@@ -116,7 +121,10 @@ func main() {
 		}
 		web.ServeHTTP(w, r)
 	}))
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	// The probes call /healthz at the root, also with a base path.
+	root := http.NewServeMux()
+	root.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	root.Handle("/", server.WithBasePath(basePath, mux))
 
 	protocols := new(http.Protocols)
 	protocols.SetHTTP1(true)
@@ -124,7 +132,7 @@ func main() {
 	protocols.SetUnencryptedHTTP2(true)
 	srv := &http.Server{
 		Addr:              listen,
-		Handler:           mux,
+		Handler:           root,
 		Protocols:         protocols,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,

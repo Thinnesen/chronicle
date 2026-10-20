@@ -14,7 +14,7 @@ func TestUIHandler(t *testing.T) {
 		"assets/app-1.js": {Data: []byte("js")},
 		"favicon.svg":     {Data: []byte("<svg/>")},
 	}
-	h := UIHandler(files)
+	h := UIHandler(files, "/")
 	tests := []struct {
 		path, body, cache string
 	}{
@@ -35,7 +35,7 @@ func TestUIHandler(t *testing.T) {
 	}
 	checkNonce(t, h)
 	rec := httptest.NewRecorder()
-	UIHandler(nil).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	UIHandler(nil, "/").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("no UI: %d", rec.Code)
 	}
