@@ -254,7 +254,7 @@ A container, script, resource, http or task template can have its own lock. Then
     container: {image: migrate:1.4, command: [migrate, up]}
 ```
 
-A node that waits is Pending with the message "waiting for the lock orders-db". A node gives the lock back when it ends. Template locks and run locks with the same name share one lock.
+A node that waits is Pending with the message "waiting for the lock orders-db, which ... holds". A node gives the lock back when it ends. Template locks and run locks with the same name share one lock.
 
 ## 10. Volumes
 
