@@ -38,7 +38,12 @@ kubectl -n chronicle-system rollout status deploy/chronicle-server --timeout=2m
 
 echo "== A workflow"
 kubectl create namespace chart-test
-kubectl apply -n chart-test -f test/e2e/testdata/dag-succeeds.yaml
+# The webhook Pod can be ready a moment before the endpoints of its Service, so try again for a short time.
+for i in $(seq 1 30); do
+  kubectl apply -n chart-test -f test/e2e/testdata/dag-succeeds.yaml && break
+  [ "$i" = 30 ] && exit 1
+  sleep 2
+done
 for _ in $(seq 1 60); do
   phase=$(kubectl get workflow dag-succeeds -n chart-test -o jsonpath='{.status.phase}')
   [ "$phase" = Succeeded ] && break
