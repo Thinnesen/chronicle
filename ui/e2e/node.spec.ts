@@ -83,7 +83,7 @@ test("shows a step that reused a result from the cache", async ({ page }) => {
   await expect(report.getByText("report-2026-10-17")).toBeVisible();
   await expect(report.getByRole("link", { name: "etl-nightly-old01" })).toHaveAttribute("href", "/ns/team-a/runs/etl-nightly-old01");
   await expect(report.getByRole("tab", { name: "Logs" })).toHaveCount(0); // the step never had a Pod
-  await expect(page.locator(".run-graph").getByText("From the cache")).toBeVisible();
+  await expect(page.locator(".run-graph").getByText("Cached", { exact: true })).toBeVisible();
 });
 
 test("connects the log of a running node again after a broken stream", async ({ page }) => {

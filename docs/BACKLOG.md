@@ -59,7 +59,7 @@ Smaller:
 - S18. (done) `lint` reads YAML 1.1, `submit -f` YAML 1.2. `convert` fails on a non-Argo document; lint skips it.
 - S19. (regex done; durations are decode errors without a path, not fixed) Webhook duration errors have no field path. An invalid constant regex in `when` passes admission.
 - S20. (done except LAST: it counts skipped schedules, and a fix needs a status field) `get` does not show global output artifacts. `cron list` LAST and NEXT texts. `list` hides "only in the archive" when the run has a message.
-- S21. UI: at 390 px the graph is cut off on first render; a running graph does not refit; a missing edge from a nested DAG task; Tasks page icons and filters; a duration suspend uses the hand icon; "the depends condition is false" in steps; "soak-tlock, soak-tlock holds"; "<nil>: Invalid value" in a submit error; a foreign namespace URL keeps "demo" in the sidebar.
+- S21. (done; the missing edge did not come back on the current build) UI: at 390 px the graph is cut off on first render; a running graph does not refit; a missing edge from a nested DAG task; Tasks page icons and filters; a duration suspend uses the hand icon; "the depends condition is false" in steps; "soak-tlock, soak-tlock holds"; "<nil>: Invalid value" in a submit error; a foreign namespace URL keeps "demo" in the sidebar.
 
 ## Later (do not start in this run)
 

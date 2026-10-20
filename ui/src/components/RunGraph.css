@@ -186,9 +186,12 @@
 }
 
 .station-meta {
+  overflow: hidden;
   font-size: var(--text-xs);
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* A pending step that Kubernetes cannot start, for example because of a missing image. */

@@ -1,7 +1,7 @@
 import "@xyflow/react/dist/style.css";
 import "./RunGraph.css";
 
-import { Background, Controls, Handle, Position, ReactFlow, useReactFlow, useViewport, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
+import { Background, Controls, Handle, Position, ReactFlow, useNodesInitialized, useReactFlow, useViewport, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
 import { Box, ChevronsDown, Cpu, Globe, Hand, Timer } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
@@ -29,7 +29,7 @@ function waitReason(n: NodeStatus): string | undefined {
 function meta(n: NodeStatus, data: NodeData): string {
   if (data.preview) return n.templateName !== nodeLabel(n) ? (n.templateName ?? "") : "";
   if (n.planned) return "Not started";
-  if (n.cache?.hit) return "From the cache";
+  if (n.cache?.hit) return "Cached";
   const queued = queuedFor(n);
   if (queued) return `Waiting for a ${queued}`;
   return waitReason(n) ?? (nodeDuration(n, data.now) || n.phase || "Pending");
@@ -98,10 +98,12 @@ function MoreNode({ data }: NodeProps<Node<NodeData>>) {
 
 const nodeTypes = { station: StationNode, junction: JunctionNode, more: MoreNode };
 
-// Frame fits the graph into its box. It does this again when the box changes, for example when the step drawer opens.
-// A graph that does not fit at the smallest zoom shows the selected step, or else the start of the run.
-function Frame({ box, options, selected, vertical }: { box: React.RefObject<HTMLDivElement | null>; options: FitViewOptions; selected?: string; vertical: boolean }) {
+// Frame fits the graph into its box. It does this again when the box changes, for example when the step drawer opens,
+// and when the set of nodes changes, for example when a running run starts new steps. A graph that does not fit at the
+// smallest zoom shows the selected step, or else the start of the run.
+function Frame({ box, options, selected, vertical, shape }: { box: React.RefObject<HTMLDivElement | null>; options: FitViewOptions; selected?: string; vertical: boolean; shape: string }) {
   const flow = useReactFlow();
+  const ready = useNodesInitialized();
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -124,8 +126,9 @@ function Frame({ box, options, selected, vertical }: { box: React.RefObject<HTML
     };
     const observer = new ResizeObserver(() => void frame());
     observer.observe(el);
+    if (ready) void frame();
     return () => observer.disconnect();
-  }, [box, flow, options, selected, vertical]);
+  }, [box, flow, options, selected, vertical, ready, shape]);
   return null;
 }
 
@@ -249,7 +252,7 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
       >
         <Background gap={20} size={1} />
         <Controls showInteractive={false} position="bottom-right" fitViewOptions={{ ...fit, minZoom: 0.2 }} />
-        <Frame box={box} options={fit} selected={selected} vertical={narrow} />
+        <Frame box={box} options={fit} selected={selected} vertical={narrow} shape={nodes.map((n) => n.id).join(" ")} />
         <Fades box={box} vertical={narrow} />
       </ReactFlow>
     </div>
