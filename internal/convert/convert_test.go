@@ -109,11 +109,12 @@ func TestRules(t *testing.T) {
 			templates: "  - {name: main, container: {image: x, command: [run], volumeMounts: [{name: work, mountPath: /work}, {name: data, mountPath: /data}, " +
 				"{name: tmp, mountPath: /scratch, readOnly: true}]}}\n" +
 				"  volumeClaimTemplates: [{metadata: {name: work}, spec: {accessModes: [ReadWriteOnce], storageClassName: fast, resources: {requests: {storage: 1Gi}}}}]\n" +
-				"  volumes: [{name: data, persistentVolumeClaim: {claimName: old}}, {name: tmp, emptyDir: {}}]",
+				"  volumes: [{name: data, persistentVolumeClaim: {claimName: old}}, {name: tmp, emptyDir: {}}]\n  volumeClaimGC: {strategy: OnWorkflowCompletion}",
 			want: []string{"volumeClaimTemplates:\n  - accessModes:\n    - ReadWriteOnce\n    name: work\n    storage: 1Gi\n    storageClassName: fast",
 				"volumes:\n  - emptyDir: {}\n    name: tmp", "- mountPath: /scratch\n        name: tmp\n        readOnly: true",
 				"spec.volumes[0]: chronicle supports emptyDir, secret and configMap volumes: the volume data is dropped",
-				"spec.templates[0].container.volumeMounts[1]: the volume data is dropped, so the mount is dropped"},
+				"spec.templates[0].container.volumeMounts[1]: the volume data is dropped, so the mount is dropped",
+				"spec.volumeClaimGC: chronicle deletes the claims of a run that succeeded, and keeps them for a retry of a run that failed"},
 		},
 		{
 			name:      "the first lock stays",
