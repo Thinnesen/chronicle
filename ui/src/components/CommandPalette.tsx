@@ -55,21 +55,6 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             </Item>
           </Command.Group>
         )}
-        {namespace && (runs.data?.workflows.length ?? 0) > 0 && (
-          <Command.Group heading="Recent runs" className="palette-group">
-            {runs.data?.workflows.map((w) => (
-              <Item
-                key={w.uid}
-                value={`run ${w.name} ${w.template}`}
-                icon={<Lamp phase={w.phase || "Pending"} />}
-                hint={w.template}
-                onSelect={() => go(() => void navigate({ to: "/ns/$namespace/runs/$name", params: { namespace, name: w.name } }))}
-              >
-                {w.name}
-              </Item>
-            ))}
-          </Command.Group>
-        )}
         {namespace && (tmpl.data?.templates.length ?? 0) + (cron.data?.cronWorkflows.length ?? 0) > 0 && (
           <Command.Group heading="Templates and schedules" className="palette-group">
             {tmpl.data?.templates.map((t) => (
@@ -94,6 +79,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 onSelect={() => go(() => void navigate({ to: "/ns/$namespace/cron/$name", params: { namespace, name: c.name } }))}
               >
                 {c.name}
+              </Item>
+            ))}
+          </Command.Group>
+        )}
+        {namespace && (runs.data?.workflows.length ?? 0) > 0 && (
+          <Command.Group heading="Recent runs" className="palette-group">
+            {runs.data?.workflows.map((w) => (
+              <Item
+                key={w.uid}
+                value={`run ${w.name} ${w.template}`}
+                icon={<Lamp phase={w.phase || "Pending"} />}
+                hint={w.template}
+                onSelect={() => go(() => void navigate({ to: "/ns/$namespace/runs/$name", params: { namespace, name: w.name } }))}
+              >
+                {w.name}
               </Item>
             ))}
           </Command.Group>
