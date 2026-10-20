@@ -7,6 +7,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strings"
 
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
 // summary returns the short form of a run.
@@ -52,10 +54,14 @@ func summary(wf *v1alpha1.Workflow) *chroniclev1.WorkflowSummary {
 // reasonPrefix matches the Kubernetes reason at the start of a node message, for example "ImagePullBackOff: ...".
 var reasonPrefix = regexp.MustCompile(`^([A-Z][A-Za-z]+): `)
 
-// waitingReason returns the Kubernetes reason in the message of a pending Pod node, or "".
+// waitingReason returns the Kubernetes reason in the message of a pending Pod node, or "". A node that waits for a
+// lock with a bad limit gives InvalidLockLimit: it waits until a user repairs the ConfigMap.
 func waitingReason(message string) string {
 	if m := reasonPrefix.FindStringSubmatch(message); m != nil {
 		return m[1]
+	}
+	if rest, ok := strings.CutPrefix(message, engine.WaitingForLock+" "); ok && strings.Contains(rest, ": ") {
+		return "InvalidLockLimit"
 	}
 	return ""
 }

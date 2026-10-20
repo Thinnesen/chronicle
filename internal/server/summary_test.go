@@ -23,3 +23,16 @@ func TestSummaryCounts(t *testing.T) {
 			s.NodesDone, s.NodesTotal, s.ApprovalsWaiting, s.WaitingReason)
 	}
 }
+
+func TestWaitingReason(t *testing.T) {
+	for msg, want := range map[string]string{
+		"Unschedulable: 0/3 nodes are available":                      "Unschedulable",
+		"waiting for the lock gpu":                                    "",
+		"waiting for a free slot (parallelism 2)":                     "",
+		`waiting for the lock gpu: ConfigMap "limits" does not exist`: "InvalidLockLimit",
+	} {
+		if got := waitingReason(msg); got != want {
+			t.Errorf("waitingReason(%q) = %q, want %q", msg, got, want)
+		}
+	}
+}
