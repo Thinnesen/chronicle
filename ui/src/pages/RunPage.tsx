@@ -18,7 +18,7 @@ import { nodeLabel, runParameters, type NodeStatus, type Workflow } from "../lib
 import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
 import { useTitle } from "../lib/useTitle";
-import { errorText } from "../lib/errors";
+import { errorText, sentence } from "../lib/errors";
 
 // The graph library is large, so it loads only on this page.
 const RunGraph = lazy(() => import("../components/RunGraph").then((m) => ({ default: m.RunGraph })));
@@ -48,7 +48,7 @@ export function RunPage() {
   if (error && !data) {
     return (
       <div className="empty card">
-        <p role="alert">{ConnectError.from(error).code === Code.NotFound ? errorText(error) : `Could not load the run: ${errorText(error)}`}</p>
+        <p role="alert">{ConnectError.from(error).code === Code.NotFound ? sentence(errorText(error)) : `Could not load the run: ${errorText(error)}`}</p>
         <Link to="/ns/$namespace" params={{ namespace }}>
           Show the runs of {namespace}
         </Link>

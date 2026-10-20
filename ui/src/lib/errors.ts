@@ -21,3 +21,9 @@ export function errorText(err: unknown): string {
   if (err instanceof ConnectError) return err.rawMessage;
   return err instanceof Error ? err.message : String(err);
 }
+
+// sentence makes a server message, which starts in lower case, a sentence of its own.
+export function sentence(msg: string): string {
+  const s = msg.charAt(0).toUpperCase() + msg.slice(1);
+  return /[.!?]$/.test(s) ? s : `${s}.`;
+}

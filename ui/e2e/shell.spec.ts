@@ -95,7 +95,7 @@ test("explains a page or a run that does not exist", async ({ page }) => {
     r.fulfill({ status: 404, json: { code: "not_found", message: "the run does not exist, not even in the archive" } }),
   );
   await page.goto("/ns/team-a/runs/gone-run");
-  await expect(page.getByText("the run does not exist, not even in the archive")).toBeVisible();
+  await expect(page.getByText("The run does not exist, not even in the archive.")).toBeVisible();
   await expect(page.getByText("[not_found]")).toHaveCount(0);
   await page.getByRole("link", { name: "Show the runs of team-a" }).click();
   await expect(page).toHaveURL(/\/ns\/team-a$/);
