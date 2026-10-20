@@ -12,6 +12,7 @@ import (
 
 	"connectrpc.com/connect"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -37,6 +38,9 @@ func TestStreamLogs(t *testing.T) {
 		"logs-2": {ID: "logs-2", Name: "logs.b", Type: v1alpha1.NodePod, PodName: "logs-2", Phase: v1alpha1.NodeRunning, StartedAt: &metav1.Time{Time: time.Unix(10, 0)}},
 		// A step that has not started has no log yet, so a log without follow leaves it out.
 		"logs-3": {ID: "logs-3", Name: "logs.c", Type: v1alpha1.NodePod, PodName: "logs-3", Phase: v1alpha1.NodePending, StartedAt: &metav1.Time{Time: time.Unix(30, 0)}},
+		// The init container of logs.d failed, so its main container never started and has no log.
+		"logs-4": {ID: "logs-4", Name: "logs.d", Type: v1alpha1.NodePod, PodName: "logs-4", Phase: v1alpha1.NodeError, Message: `input artifact "x": not found`,
+			StartedAt: &metav1.Time{Time: time.Unix(40, 0)}},
 	}
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)
@@ -54,6 +58,9 @@ func TestStreamLogs(t *testing.T) {
 			tails = append(tails, *opts.TailLines)
 		}
 		mu.Unlock()
+		if pod == "logs-4" {
+			return nil, apierrors.NewBadRequest(`container "main" in pod "logs-4" is waiting to start: PodInitializing`)
+		}
 		return io.NopCloser(strings.NewReader("2026-01-01T00:00:00.5Z hello from " + pod + "\nno time here\n")), nil
 	}
 	path, h := chroniclev1connect.NewLogServiceHandler(&logService{workflows: &workflowService{clients: clients}, open: fake})
@@ -88,7 +95,10 @@ func TestStreamLogs(t *testing.T) {
 	if err != nil || len(one) != 2 || one[0].Line != "hello from logs-2" || one[0].Time.AsTime().Nanosecond() != 5e8 || one[1].Time != nil {
 		t.Fatalf("one node: %v, %+v", err, one)
 	}
-	if len(tails) != 3 || tails[0] != 5 {
+	if _, err := stream("alice", "logs.d"); code(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), `the step did not start: input artifact "x": not found`) {
+		t.Errorf("a step whose main container never started: %v", err)
+	}
+	if len(tails) != 5 || tails[0] != 5 {
 		t.Errorf("tail lines = %v", tails)
 	}
 	if _, err := stream("alice", "logs.c"); code(err) != connect.CodeFailedPrecondition {

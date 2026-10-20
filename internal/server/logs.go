@@ -67,9 +67,22 @@ func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroni
 			}
 			continue
 		}
-		errs = append(errs, s.streamNode(ctx, m.Namespace, n, opts, send))
+		err := s.streamNode(ctx, m.Namespace, n, opts, send)
+		if neverStarted(err) {
+			if m.Node != "" {
+				return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("the step did not start%s", detail(n.Message)))
+			}
+			continue
+		}
+		errs = append(errs, err)
 	}
 	return toConnect(errors.Join(errs...))
+}
+
+// neverStarted tells if a log failed because the main container of the Pod never started, for example because its
+// init container failed. Such a step has no log.
+func neverStarted(err error) bool {
+	return apierrors.IsBadRequest(err) && strings.Contains(err.Error(), "is waiting to start")
 }
 
 // followPoll is the wait between two reads of a followed run. Tests make it short.
@@ -91,7 +104,7 @@ func (s *logService) follow(ctx context.Context, m *chroniclev1.StreamLogsReques
 			}
 			streamed[n.ID] = true
 			wg.Go(func() {
-				if err := s.streamNode(ctx, m.Namespace, n, opts, send); err != nil {
+				if err := s.streamNode(ctx, m.Namespace, n, opts, send); err != nil && !neverStarted(err) {
 					mu.Lock()
 					errs = append(errs, err)
 					mu.Unlock()
