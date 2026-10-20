@@ -29,7 +29,8 @@ func (s *workflowService) ListWorkflows(ctx context.Context, req *connect.Reques
 	if err != nil {
 		return nil, err
 	}
-	opts := []client.ListOption{client.InNamespace(m.Namespace)}
+	// The UI polls this list. ResourceVersion "0" serves it from the watch cache of the API server, not from etcd.
+	opts := []client.ListOption{client.InNamespace(m.Namespace), &client.ListOptions{Raw: &metav1.ListOptions{ResourceVersion: "0"}}}
 	if m.LabelSelector != "" {
 		sel, err := labels.Parse(m.LabelSelector)
 		if err != nil {
