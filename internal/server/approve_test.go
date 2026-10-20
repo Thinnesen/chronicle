@@ -21,7 +21,11 @@ func TestApproveChecks(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = admin.Delete(ctx, wf) })
-	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{"gated-1": {ID: "gated-1", Name: "gated", Type: v1alpha1.NodeSuspend, TemplateName: "gate", Phase: v1alpha1.NodeRunning}}
+	wf.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"gated-1": {ID: "gated-1", Name: "gated", Type: v1alpha1.NodeSuspend, TemplateName: "gate", Phase: v1alpha1.NodeRunning},
+		// A node whose template the run does not have cannot be checked, so the API refuses its approval.
+		"gated-2": {ID: "gated-2", Name: "gated.lost", Type: v1alpha1.NodeSuspend, TemplateName: "renamed", Phase: v1alpha1.NodeRunning},
+	}
 	if err := admin.Status().Update(ctx, wf); err != nil {
 		t.Fatal(err)
 	}
@@ -36,6 +40,9 @@ func TestApproveChecks(t *testing.T) {
 	}
 	if err := approve("gated", "hacked"); code(err) != connect.CodeInvalidArgument {
 		t.Errorf("a value outside the enum: %v", err)
+	}
+	if err := approve("gated.lost", "prod"); code(err) != connect.CodeInvalidArgument {
+		t.Errorf("a node without its template: %v", err)
 	}
 	if err := approve("gated-1", "prod"); err != nil {
 		t.Errorf("an allowed value: %v", err)

@@ -85,7 +85,8 @@ func CheckApproval(wf *v1alpha1.Workflow, a v1alpha1.Approval) error {
 				return checkEnums(&spec.Templates[i], a.Parameters)
 			}
 		}
-		return nil
+		// Without the template, the values cannot be checked, so the approval fails closed.
+		return fmt.Errorf("the run has no template %q for the node %s", n.TemplateName, n.Name)
 	}
 	return ErrNotWaiting
 }
