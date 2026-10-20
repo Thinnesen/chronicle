@@ -16,6 +16,11 @@ func authenticate(authn []auth.Authenticator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, a := range authn {
 			id, err := a.Authenticate(r)
+			if errors.Is(err, auth.ErrUnavailable) {
+				// The session may still be valid: the client must try again, not log in again.
+				writeError(w, r, connect.NewError(connect.CodeUnavailable, err))
+				return
+			}
 			if err != nil {
 				writeError(w, r, connect.NewError(connect.CodeUnauthenticated, err))
 				return
@@ -35,5 +40,9 @@ func writeError(w http.ResponseWriter, r *http.Request, err *connect.Error) {
 		_ = ew.Write(w, r, err)
 		return
 	}
-	http.Error(w, err.Message(), http.StatusUnauthorized)
+	status := http.StatusUnauthorized
+	if err.Code() == connect.CodeUnavailable {
+		status = http.StatusServiceUnavailable
+	}
+	http.Error(w, err.Message(), status)
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -23,6 +24,11 @@ type env struct {
 // newEnv starts a provider and a server with the login handler and an API that echoes the identity.
 func newEnv(t *testing.T, insecure bool) *env {
 	t.Helper()
+	return newEnvWithStore(t, insecure, NewMemoryStore(time.Hour, time.Hour))
+}
+
+func newEnvWithStore(t *testing.T, insecure bool, store Store) *env {
+	t.Helper()
 	idp := oidctest.New("")
 	t.Cleanup(idp.Close)
 	idp.Claims = map[string]any{"email": "alice@example.com", "email_verified": true, "groups": []any{"team-a", "admins"}}
@@ -35,7 +41,7 @@ func newEnv(t *testing.T, insecure bool) *env {
 	if err := cfg.complete(); err != nil {
 		t.Fatal(err)
 	}
-	o, err := NewOIDC(context.Background(), cfg, NewMemoryStore(time.Hour, time.Hour))
+	o, err := NewOIDC(context.Background(), cfg, store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,5 +232,51 @@ func TestMemoryStore(t *testing.T) {
 	}
 	if _, err := m.Get(sid); err == nil {
 		t.Error("a session lived longer than its TTL")
+	}
+}
+
+// downStore is a session store whose database does not answer.
+type downStore struct{ Store }
+
+func (downStore) Create(Identity) (string, *Session, error) {
+	return "", nil, errors.New("connection refused")
+}
+
+func TestLoginWithoutTheSessionStore(t *testing.T) {
+	e := newEnvWithStore(t, true, downStore{NewMemoryStore(time.Hour, time.Hour)})
+	code, body := e.do(t, http.MethodGet, "/auth/login", nil)
+	if code != http.StatusServiceUnavailable || !strings.Contains(body, "try again") {
+		t.Errorf("login: %d %q", code, body)
+	}
+}
+
+// flakyStore is a session store whose database stops to answer when down is set.
+type flakyStore struct {
+	Store
+	down *bool
+}
+
+func (f flakyStore) Get(id string) (*Session, error) {
+	if *f.down {
+		return nil, errors.New("connection refused")
+	}
+	return f.Store.Get(id)
+}
+
+// A store that does not answer is not the end of the session: the user keeps the session and tries again later.
+func TestSessionStoreOutage(t *testing.T) {
+	down := false
+	e := newEnvWithStore(t, true, flakyStore{NewMemoryStore(time.Hour, time.Hour), &down})
+	e.do(t, http.MethodGet, "/auth/login", nil)
+	down = true
+	if code, _ := e.do(t, http.MethodGet, "/auth/me", nil); code != http.StatusServiceUnavailable {
+		t.Errorf("me during the outage: %d", code)
+	}
+	if code, body := e.do(t, http.MethodGet, "/api", nil); code != http.StatusUnauthorized || !strings.Contains(body, "try again") {
+		t.Errorf("API during the outage: %d %q", code, body)
+	}
+	down = false
+	if code, _ := e.do(t, http.MethodGet, "/auth/me", nil); code != http.StatusOK {
+		t.Errorf("me after the outage: %d", code)
 	}
 }

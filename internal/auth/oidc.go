@@ -166,7 +166,8 @@ func (o *OIDC) callback(w http.ResponseWriter, r *http.Request) {
 	}
 	sid, s, err := o.store.Create(*id)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		log.Error(err, "Could not store a session")
+		http.Error(w, "the login worked, but the server could not store the session: try again in a minute", http.StatusServiceUnavailable)
 		return
 	}
 	http.SetCookie(w, o.cookie(SessionCookie(o.cfg.InsecureCookies), sid, time.Until(s.ExpiresAt)))
@@ -231,6 +232,11 @@ func (o *OIDC) me(w http.ResponseWriter, r *http.Request) {
 	var s *Session
 	if err == nil {
 		s, err = o.store.Get(c.Value)
+	}
+	if err != nil && c != nil && !errors.Is(err, ErrNoSession) {
+		logf.FromContext(r.Context()).Error(err, "Could not read a session")
+		http.Error(w, ErrUnavailable.Error(), http.StatusServiceUnavailable)
+		return
 	}
 	if err != nil {
 		http.Error(w, "log in first", http.StatusUnauthorized)

@@ -13,6 +13,10 @@ import (
 // ErrNoSession means that the session does not exist or has ended.
 var ErrNoSession = errors.New("no session")
 
+// ErrUnavailable means that the session store did not answer, for example while its database restarts. The session
+// may still be valid, so the user must try again, not log in again.
+var ErrUnavailable = errors.New("the session store does not answer: try again in a minute")
+
 // Session is a logged-in browser.
 type Session struct {
 	Identity  Identity

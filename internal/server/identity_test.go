@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -105,6 +107,26 @@ func TestImpersonable(t *testing.T) {
 	for _, tt := range tests {
 		if got := tt.id.Impersonable(); got != tt.want {
 			t.Errorf("%+v: Impersonable() = %v", tt.id, got)
+		}
+	}
+}
+
+type failingAuth struct{ err error }
+
+func (f failingAuth) Authenticate(*http.Request) (*auth.Identity, error) { return nil, f.err }
+
+// A session store that does not answer gives "unavailable", so that the UI tries again and does not log the user out.
+func TestAuthenticateErrors(t *testing.T) {
+	for err, want := range map[error]connect.Code{
+		auth.ErrUnavailable:             connect.CodeUnavailable,
+		errors.New("the session ended"): connect.CodeUnauthenticated,
+	} {
+		srv := httptest.NewServer(authenticate([]auth.Authenticator{failingAuth{err}}, http.NotFoundHandler()))
+		_, got := chroniclev1connect.NewNamespaceServiceClient(srv.Client(), srv.URL).ListNamespaces(context.Background(),
+			connect.NewRequest(&chroniclev1.ListNamespacesRequest{}))
+		srv.Close()
+		if code(got) != want {
+			t.Errorf("%v: got %v, want %v", err, got, want)
 		}
 	}
 }

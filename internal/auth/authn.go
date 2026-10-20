@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // CSRFHeader carries the CSRF token of the session on state-changing requests.
@@ -36,8 +38,12 @@ func (o *OIDC) sessionAuth(r *http.Request) (*Identity, error) {
 		return nil, errors.New("log in first")
 	}
 	s, err := o.store.Get(c.Value)
-	if err != nil {
+	if errors.Is(err, ErrNoSession) {
 		return nil, errors.New("the session ended: log in again")
+	}
+	if err != nil {
+		logf.FromContext(r.Context()).Error(err, "Could not read a session")
+		return nil, ErrUnavailable
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		token := r.Header.Get(CSRFHeader)
