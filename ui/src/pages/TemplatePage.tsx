@@ -7,7 +7,7 @@ import { useRecentRuns } from "../components/RecentRuns";
 import { RunForm } from "../components/RunForm";
 import { TemplateRuns } from "../components/TemplateRuns";
 import { useCanEdit } from "../components/RunActions";
-import { YamlView } from "../components/YamlView";
+import { YamlView } from "../components/Lazy";
 import { useNow } from "../lib/useNow";
 import { previewOf, type Workflow } from "../lib/workflow";
 import { templateRoute } from "../router";

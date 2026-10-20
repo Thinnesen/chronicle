@@ -9,7 +9,7 @@ import { NodeDrawer } from "../components/NodeDrawer";
 import { ProgressTrack } from "../components/ProgressTrack";
 import { RunActions } from "../components/RunActions";
 import { Timeline } from "../components/Timeline";
-import { YamlView } from "../components/YamlView";
+import { YamlView } from "../components/Lazy";
 import { RefreshError } from "../components/RefreshError";
 import { ago, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";

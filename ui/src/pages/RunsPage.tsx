@@ -9,7 +9,7 @@ import { Lamp, lampKind, Status } from "../components/Lamp";
 import { ProgressTrack } from "../components/ProgressTrack";
 import { RefreshError } from "../components/RefreshError";
 import { useCanEdit } from "../components/RunActions";
-import { SubmitDialog } from "../components/SubmitDialog";
+import { SubmitDialog } from "../components/Lazy";
 import { ago, duration, toDate } from "../lib/time";
 import { WaitingRuns } from "../components/WaitingRuns";
 import { useNow } from "../lib/useNow";

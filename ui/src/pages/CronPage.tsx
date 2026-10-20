@@ -6,7 +6,7 @@ import { ManagedBadge } from "../components/Badge";
 import { useCanEdit } from "../components/RunActions";
 import { RunBars } from "../components/TemplateRuns";
 import { useToast } from "../components/Toast";
-import { YamlView } from "../components/YamlView";
+import { YamlView } from "../components/Lazy";
 import { readable, relative } from "../lib/cron";
 import { actionError } from "../lib/errors";
 import { ago, clock, toDate } from "../lib/time";
