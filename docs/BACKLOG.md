@@ -57,7 +57,7 @@ Smaller:
 - S16. (done) Cluster templates are not listed for namespace users; the UI gives 403.
 - S17. The UI stat "Runs in 24 h" counts the newest 200 runs.
 - S18. (done) `lint` reads YAML 1.1, `submit -f` YAML 1.2. `convert` fails on a non-Argo document; lint skips it.
-- S19. Webhook duration errors have no field path. An invalid constant regex in `when` passes admission.
+- S19. (regex done; durations are decode errors without a path, not fixed) Webhook duration errors have no field path. An invalid constant regex in `when` passes admission.
 - S20. `get` does not show global output artifacts. `cron list` LAST and NEXT texts. `list` hides "only in the archive" when the run has a message.
 - S21. UI: at 390 px the graph is cut off on first render; a running graph does not refit; a missing edge from a nested DAG task; Tasks page icons and filters; a duration suspend uses the hand icon; "the depends condition is false" in steps; "soak-tlock, soak-tlock holds"; "<nil>: Invalid value" in a submit error; a foreign namespace URL keeps "demo" in the sidebar.
 

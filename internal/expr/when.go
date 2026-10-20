@@ -1,6 +1,7 @@
 package expr
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -48,7 +49,29 @@ func ParseWhen(s string) (When, error) {
 	if p.pos != len(toks) {
 		return When{}, fmt.Errorf("unexpected %q in when condition", toks[p.pos].text)
 	}
+	if err := checkPatterns(root); err != nil {
+		return When{}, err
+	}
 	return When{root: root}, nil
+}
+
+// checkPatterns compiles each constant pattern of =~ and !~. A pattern with a placeholder is checked when it runs.
+func checkPatterns(n wnode) error {
+	switch n := n.(type) {
+	case wOr:
+		return errors.Join(checkPatterns(n.l), checkPatterns(n.r))
+	case wAnd:
+		return errors.Join(checkPatterns(n.l), checkPatterns(n.r))
+	case wNot:
+		return checkPatterns(n.x)
+	case wCompare:
+		if t, ok := n.r.(wText); ok && (n.op == "=~" || n.op == "!~") && !strings.Contains(t.s, "{{") {
+			if _, err := regexp.Compile(t.s); err != nil {
+				return fmt.Errorf("when condition: %w", err)
+			}
+		}
+	}
+	return nil
 }
 
 // Placeholders returns the placeholder names in the condition.

@@ -50,12 +50,13 @@ func TestWhen(t *testing.T) {
 }
 
 func TestWhenErrors(t *testing.T) {
-	for _, in := range []string{"", "a ==", "(a", "a b", "{{x", "{{}}", "'open", "a ~ b", ")", "'{{'"} {
+	// A constant pattern that is not a valid regular expression fails at once, so that the webhook refuses it.
+	for _, in := range []string{"", "a ==", "(a", "a b", "{{x", "{{}}", "'open", "a ~ b", ")", "'{{'", "a =~ '('", "{{x}} !~ '[a'"} {
 		if _, err := ParseWhen(in); err == nil {
 			t.Errorf("ParseWhen(%q) returned no error", in)
 		}
 	}
-	for _, in := range []string{"heads", "{{missing}}", "{{missing}} == a", "a == {{missing}}", "!x", "x && true", "'{{missing}}' == a", "a =~ '('"} {
+	for _, in := range []string{"heads", "{{missing}}", "{{missing}} == a", "a == {{missing}}", "!x", "x && true", "'{{missing}}' == a", "a =~ '{{missing}}'"} {
 		w, err := ParseWhen(in)
 		if err != nil {
 			t.Fatal(err)
