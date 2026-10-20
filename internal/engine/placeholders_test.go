@@ -131,3 +131,39 @@ templates:
 		t.Errorf("command = %q", cmd)
 	}
 }
+
+// TestParameterAggregation checks steps.x.outputs.parameters of a fan-out: a JSON list with the outputs of each item.
+func TestParameterAggregation(t *testing.T) {
+	s := newSim(t, `
+entrypoint: main
+templates:
+- name: main
+  steps:
+  - - {name: check, template: check, withItems: ["1", "2"], arguments: {parameters: [{name: x, value: "{{item}}"}]}}
+  - - {name: half, template: show, withParam: "{{steps.check.outputs.parameters}}", when: "{{item.evenness}} == even",
+       arguments: {parameters: [{name: x, value: "{{item.num}}"}]}}
+- name: check
+  inputs: {parameters: [{name: x}]}
+  outputs: {parameters: [{name: num, valueFrom: {path: /tmp/n}}, {name: evenness, valueFrom: {path: /tmp/e}}]}
+  container: {image: x, command: [check]}
+- name: show
+  inputs: {parameters: [{name: x}]}
+  container: {image: x, command: [show, "{{inputs.parameters.x}}"]}
+`, nil)
+	for i, e := range []string{"odd", "even"} {
+		n := strconv.Itoa(i + 1)
+		s.outputs[fmt.Sprintf("wf[0].check(%d:%s)", i, n)] = &v1alpha1.Outputs{Parameters: []v1alpha1.Parameter{{Name: "num", Value: &n}, {Name: "evenness", Value: &e}}}
+	}
+	if st := s.run(); st.Phase != v1alpha1.WorkflowSucceeded {
+		t.Fatalf("phase %s: %s", st.Phase, st.Message)
+	}
+	var shown []string
+	for _, p := range s.pods {
+		if c := p.Template.Container.Command; c[0] == "show" {
+			shown = append(shown, c[1])
+		}
+	}
+	if !slices.Equal(shown, []string{"2"}) {
+		t.Errorf("shown %v, want [2]", shown)
+	}
+}

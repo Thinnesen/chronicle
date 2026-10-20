@@ -240,6 +240,9 @@ func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
 		// A list of keys is not one artifact.
 		return "", false
 	}
+	if key == "outputs.parameters" {
+		return e.groupParameters(n)
+	}
 	list := []string{}
 	for _, id := range n.Children {
 		c := e.nodes[id]
@@ -253,6 +256,29 @@ func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
 		list = append(list, v)
 	}
 	b, _ := json.Marshal(list)
+	return string(b), true
+}
+
+// groupParameters returns the output parameters of each item of a task group as a JSON list of objects.
+func (e *engine) groupParameters(g v1alpha1.NodeStatus) (string, bool) {
+	list := []map[string]string{}
+	for _, id := range g.Children {
+		c := e.nodes[id]
+		if c.Phase == v1alpha1.NodeSkipped {
+			continue
+		}
+		if c.Outputs == nil {
+			return "", false
+		}
+		m := map[string]string{}
+		for _, p := range c.Outputs.Parameters {
+			if p.Value != nil {
+				m[p.Name] = *p.Value
+			}
+		}
+		list = append(list, m)
+	}
+	b, _ := json.Marshal(list) // Maps of strings always encode.
 	return string(b), true
 }
 

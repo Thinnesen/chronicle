@@ -158,6 +158,10 @@ func (c *checker) callOutputs(prefix string, call v1alpha1.Call) []string {
 	names := c.outputNames(prefix, call.Template)
 	if len(call.WithItems) > 0 || call.WithParam != "" {
 		names = slices.DeleteFunc(names, func(n string) bool { return isArtifact(n) || strings.HasSuffix(n, ".exitCode") })
+		// A fan-out also has all output parameters of each item, as a JSON list of objects.
+		if t, ok := c.templates[call.Template]; ok && len(t.Outputs.Parameters) > 0 {
+			names = append(names, prefix+".outputs.parameters")
+		}
 	}
 	return names
 }

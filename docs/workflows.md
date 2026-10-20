@@ -58,6 +58,7 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{tasks.<task>.outputs.result}}` | The standard output of a DAG task (at most 3 KiB). |
 | `{{tasks.<task>.outputs.parameters.<name>}}` | An output parameter of a DAG task. |
 | `{{steps.<step>.outputs.result}}`, `{{steps.<step>.outputs.parameters.<name>}}` | The same for a step. |
+| `{{tasks.<task>.outputs.parameters}}`, `{{steps.<step>.outputs.parameters}}` | For a fan-out: the output parameters of each item, as a JSON list of objects, for example `[{"num":"1","evenness":"odd"}]`. Use it in `withParam` with `{{item.<name>}}`. |
 | `{{tasks.<task>.status}}`, `{{steps.<step>.status}}` | The phase of a finished task or step. |
 | `{{tasks.<task>.exitCode}}`, `{{steps.<step>.exitCode}}` | The exit code of the main container of a container or script task or step. Use it with `continueOn` or `depends: a.Failed`. |
 | `{{tasks.<task>.id}}`, `{{tasks.<task>.startedAt}}`, `{{tasks.<task>.finishedAt}}` | The node ID and the times (RFC 3339) of a task. The same for a step. |
