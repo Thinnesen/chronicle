@@ -26,14 +26,14 @@ chronicle runs workflows on Kubernetes. Each step runs as a Pod. Workflows, temp
 
 Features:
 
-- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods, with retries, timeouts, exit handlers, approvals, fan-out, parallelism limits and locks (one deployment at a time).
+- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods, with retries, timeouts, exit handlers, approvals, fan-out, parallelism limits and locks (one deployment at a time). Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends.
 - **Remembers** every run, every attempt, its logs and its outputs. Retry the failed steps, retry from any step, or re-run with changed parameters.
 - **Shows what needs you**: runs that wait for an approval, and steps that Kubernetes cannot start, with the reason (for example a missing image), in the UI and the CLI.
 - **Logs you in properly**: OIDC with PKCE for the UI and the device flow for the CLI, with first-class Microsoft 365 (Entra ID) support. Permissions are plain Kubernetes RBAC, the same as for `kubectl` and GitOps.
 - **Keeps teams apart**: map an Entra or other IdP group to a team and its namespaces in a few lines of Helm values. Each team sees and runs only its own work.
 - **Stays GitOps-first**: every definition is a custom resource. Deploy it with Argo CD or Flux, as an app of apps. Resources from Git are read-only in the UI, and runs work from both.
 - **Speaks your language**: SDKs for Go, Python and Rust define and submit workflows as code, and run durable task workers with heartbeats and retries.
-- **Migrates from Argo**: `chronicle convert` turns Argo Workflows YAML into chronicle resources.
+- **Migrates from Argo**: `chronicle convert` turns Argo Workflows YAML into chronicle resources, and `chronicle lint` checks your files in CI without a server.
 
 ## See it
 
