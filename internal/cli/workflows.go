@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -36,6 +37,9 @@ func (a *app) submitCommand() *cobra.Command {
 				t, err := startTime(at, time.Now())
 				if err != nil {
 					return err
+				}
+				if time.Until(t) <= 0 {
+					_, _ = fmt.Fprintln(a.errOut, "The start time has passed, so the run starts now.")
 				}
 				req.StartAt = timestamppb.New(t)
 			}
@@ -210,6 +214,10 @@ func (a *app) listCommand() *cobra.Command {
 		Short:   "List the runs in a namespace, newest first",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			phases, err := knownPhases(phases)
+			if err != nil {
+				return err
+			}
 			req := &chroniclev1.ListWorkflowsRequest{LabelSelector: selector, Phases: phases, AllNamespaces: all}
 			if !all {
 				ns, err := a.ns()
@@ -276,8 +284,27 @@ func startTime(s string, now time.Time) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t, nil
 	}
-	if d, err := time.ParseDuration(s); err == nil && d > 0 {
+	if d, err := time.ParseDuration(s); err == nil {
+		if d <= 0 {
+			return time.Time{}, fmt.Errorf("the duration %q must be positive", s)
+		}
 		return now.Add(d), nil
 	}
 	return time.Time{}, fmt.Errorf("%q is not an RFC 3339 time (2026-10-21T03:00:00+02:00) or a duration (2h)", s)
+}
+
+// runPhases are the phases of a run, for list --phase.
+var runPhases = []string{"Pending", "Running", "Suspended", "Succeeded", "Failed", "Error"}
+
+// knownPhases writes the phases as the API does, for example "failed" as "Failed". An unknown phase is an error.
+func knownPhases(phases []string) ([]string, error) {
+	out := make([]string, 0, len(phases))
+	for _, p := range phases {
+		i := slices.IndexFunc(runPhases, func(known string) bool { return strings.EqualFold(known, p) })
+		if i < 0 {
+			return nil, fmt.Errorf("%q is not a phase: use %s", p, strings.Join(runPhases, ", "))
+		}
+		out = append(out, runPhases[i])
+	}
+	return out, nil
 }

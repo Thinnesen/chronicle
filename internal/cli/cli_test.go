@@ -289,6 +289,22 @@ func TestSubmitAt(t *testing.T) {
 	if _, err := run(t, s, "submit", "--from", "etl", "--at", "tomorrow"); err == nil {
 		t.Error("a bad start time gave no error")
 	}
+	if _, err := run(t, s, "submit", "--from", "etl", "--at", "-5m"); err == nil || !strings.Contains(err.Error(), "must be positive") {
+		t.Errorf("a negative duration: %v", err)
+	}
+	if out, err := run(t, s, "submit", "--from", "etl", "--at", "2020-01-01T00:00:00Z"); err != nil || !strings.Contains(out, "has passed") {
+		t.Errorf("a past time: %v\n%s", err, out)
+	}
+}
+
+func TestListPhases(t *testing.T) {
+	s := &stub{}
+	if _, err := run(t, s, "list", "--phase", "failed,running"); err != nil || strings.Join(s.listed.Phases, ",") != "Failed,Running" {
+		t.Errorf("phases %v, %v", s.listed.Phases, err)
+	}
+	if _, err := run(t, s, "list", "--phase", "Bogus"); err == nil || !strings.Contains(err.Error(), "Pending, Running") {
+		t.Errorf("an unknown phase: %v", err)
+	}
 }
 
 func TestListAllNamespaces(t *testing.T) {
