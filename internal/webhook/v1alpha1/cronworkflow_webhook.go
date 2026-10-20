@@ -13,6 +13,7 @@ import (
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/schedule"
+	"github.com/Thinnesen/chronicle/internal/validate"
 )
 
 // SetupCronWorkflowWebhookWithManager registers the webhook for CronWorkflow in the manager.
@@ -29,7 +30,7 @@ type CronWorkflowValidator struct{}
 
 // ValidateCreate implements admission.Validator so a webhook will be registered for the type CronWorkflow.
 func (v *CronWorkflowValidator) ValidateCreate(_ context.Context, obj *chroniclev1alpha1.CronWorkflow) (admission.Warnings, error) {
-	return nil, validateCron(obj)
+	return validate.ShellWarnings(&obj.Spec.WorkflowSpec.WorkflowTemplateSpec, field.NewPath("spec", "workflowSpec")), validateCron(obj)
 }
 
 // ValidateUpdate implements admission.Validator so a webhook will be registered for the type CronWorkflow.
@@ -37,7 +38,7 @@ func (v *CronWorkflowValidator) ValidateUpdate(_ context.Context, oldObj, obj *c
 	if equality.Semantic.DeepEqual(oldObj.Spec, obj.Spec) {
 		return nil, nil
 	}
-	return nil, validateCron(obj)
+	return validate.ShellWarnings(&obj.Spec.WorkflowSpec.WorkflowTemplateSpec, field.NewPath("spec", "workflowSpec")), validateCron(obj)
 }
 
 // ValidateDelete implements admission.Validator so a webhook will be registered for the type CronWorkflow.

@@ -104,6 +104,12 @@ func lintData(out io.Writer, file string, data []byte) (int, int) {
 			continue
 		}
 		total++
+		if problem == nil && kind != "" {
+			raw, _ := json.Marshal(doc)
+			for _, w := range validate.ResourceWarnings(raw) {
+				_, _ = fmt.Fprintf(out, "%s: %s %s: warning: %s\n", file, kind, docName(doc), w)
+			}
+		}
 		if problem != nil {
 			bad++
 			_, _ = fmt.Fprintf(out, "%s: %s %s: %v\n", file, kind, docName(doc), problem)

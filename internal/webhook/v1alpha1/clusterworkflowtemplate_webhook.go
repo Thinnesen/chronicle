@@ -4,11 +4,13 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/validate"
 )
 
 // SetupClusterWorkflowTemplateWebhookWithManager registers the webhook for ClusterWorkflowTemplate in the manager.
@@ -25,7 +27,7 @@ type ClusterWorkflowTemplateValidator struct{}
 
 // ValidateCreate implements admission.Validator so a webhook will be registered for the type ClusterWorkflowTemplate.
 func (v *ClusterWorkflowTemplateValidator) ValidateCreate(_ context.Context, obj *chroniclev1alpha1.ClusterWorkflowTemplate) (admission.Warnings, error) {
-	return nil, validateSpec("ClusterWorkflowTemplate", obj.GetName(), &obj.Spec, false)
+	return validate.ShellWarnings(&obj.Spec, field.NewPath("spec")), validateSpec("ClusterWorkflowTemplate", obj.GetName(), &obj.Spec, false)
 }
 
 // ValidateUpdate implements admission.Validator so a webhook will be registered for the type ClusterWorkflowTemplate.
@@ -34,7 +36,7 @@ func (v *ClusterWorkflowTemplateValidator) ValidateUpdate(_ context.Context, old
 	if equality.Semantic.DeepEqual(oldObj.Spec, obj.Spec) {
 		return nil, nil
 	}
-	return nil, validateSpec("ClusterWorkflowTemplate", obj.GetName(), &obj.Spec, false)
+	return validate.ShellWarnings(&obj.Spec, field.NewPath("spec")), validateSpec("ClusterWorkflowTemplate", obj.GetName(), &obj.Spec, false)
 }
 
 // ValidateDelete implements admission.Validator so a webhook will be registered for the type ClusterWorkflowTemplate.

@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/validate"
 )
 
 // SetupWorkflowWebhookWithManager registers the webhook for Workflow in the manager.
@@ -33,7 +34,7 @@ func (v *WorkflowValidator) ValidateCreate(ctx context.Context, obj *chroniclev1
 	if err := validateApprovers(ctx, nil, obj); err != nil {
 		return nil, err
 	}
-	return nil, validateWorkflow(obj)
+	return validate.ShellWarnings(&obj.Spec.WorkflowTemplateSpec, field.NewPath("spec")), validateWorkflow(obj)
 }
 
 // ValidateUpdate implements admission.Validator so a webhook will be registered for the type Workflow.
@@ -45,7 +46,7 @@ func (v *WorkflowValidator) ValidateUpdate(ctx context.Context, oldObj, obj *chr
 	if err := validateApprovers(ctx, oldObj, obj); err != nil {
 		return nil, err
 	}
-	return nil, validateWorkflow(obj)
+	return validate.ShellWarnings(&obj.Spec.WorkflowTemplateSpec, field.NewPath("spec")), validateWorkflow(obj)
 }
 
 // validateApprovers refuses an approval with a user that is not the user of the request. Kubernetes does the same for

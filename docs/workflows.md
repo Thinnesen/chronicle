@@ -66,7 +66,7 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{pod.name}}`, `{{node.name}}`, `{{retries}}` | In a container, script or resource template: its Pod, its node and the number of its retry (from 0). |
 | `{{item}}`, `{{item.<key>}}` | The item of a fan-out. |
 
-- Put a placeholder in an environment variable, not in a script or a shell command. A script `source` cannot have placeholders. Thus a parameter value can never become shell code.
+- Put a placeholder in an environment variable, not in a script or a shell command. A script `source` cannot have placeholders, so its parameters never become code. A placeholder in `command` or `args` is put in as text. With `sh -c`, its value becomes shell code, and a parameter can run commands. The webhook and `chronicle lint` warn about it. Use `env` and `"$NAME"` in the command.
 - The standard output of a step is its result. Write progress messages to the standard error.
 
 ## 3. A DAG

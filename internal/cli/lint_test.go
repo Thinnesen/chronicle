@@ -26,7 +26,13 @@ func TestLint(t *testing.T) {
 	helm := write("chart/job.yaml", "{{ if .Values.on }}\nkind: Job\n{{ end }}\n")
 	argo := write("argo.yml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow\nmetadata: {generateName: x-}\nspec: {entrypoint: c}\n")
 
-	out, err := run(t, &stub{}, "lint", filepath.Join(dir, "ok"))
+	shell := write("shell/echo.yaml", head+"metadata: {name: echo}\nspec: {entrypoint: c, templates: [{name: c, inputs: {parameters: [{name: msg, value: m}]}, "+
+		"container: {image: x, command: [sh, -c, 'echo {{inputs.parameters.msg}}']}}]}\n")
+	out, err := run(t, &stub{}, "lint", shell)
+	if err != nil || !strings.Contains(out, "echo.yaml: WorkflowTemplate echo: warning: spec.templates[0].container: a placeholder in a shell command") {
+		t.Errorf("shell: %v\n%s", err, out)
+	}
+	out, err = run(t, &stub{}, "lint", filepath.Join(dir, "ok"))
 	if err != nil || !strings.Contains(out, "etl.yaml: WorkflowTemplate etl is valid") || !strings.Contains(out, "1 resource is valid") {
 		t.Errorf("good: %v\n%s", err, out)
 	}

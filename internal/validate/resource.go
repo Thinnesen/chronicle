@@ -12,7 +12,9 @@ import (
 )
 
 // Kinds are the kinds of the chronicle resources that Resource checks.
-var Kinds = []string{"Workflow", "WorkflowTemplate", "ClusterWorkflowTemplate", "CronWorkflow"}
+var Kinds = []string{"Workflow", "WorkflowTemplate", "ClusterWorkflowTemplate", kindCron}
+
+const kindCron = "CronWorkflow"
 
 // Resource checks one chronicle resource in JSON offline. It decodes it strictly, so an unknown field is an error. It
 // applies the rules of the admission webhook. It does not check the references to templates.
@@ -45,7 +47,7 @@ func Resource(data []byte) error {
 			return err
 		}
 		errs = Spec(&t.Spec, false)
-	case "CronWorkflow":
+	case kindCron:
 		var cw v1alpha1.CronWorkflow
 		if err := strict(&cw); err != nil {
 			return err
@@ -63,4 +65,22 @@ func Resource(data []byte) error {
 		return fmt.Errorf("not valid in chronicle: %w", errs.ToAggregate())
 	}
 	return nil
+}
+
+// ResourceWarnings returns the warnings for a chronicle resource as JSON, for example a placeholder in a shell command.
+func ResourceWarnings(data []byte) []string {
+	var obj struct {
+		Kind string
+		Spec struct {
+			v1alpha1.WorkflowTemplateSpec `json:",inline"`
+			WorkflowSpec                  *v1alpha1.WorkflowSpec `json:"workflowSpec"`
+		}
+	}
+	if json.Unmarshal(data, &obj) != nil {
+		return nil
+	}
+	if obj.Kind == kindCron && obj.Spec.WorkflowSpec != nil {
+		return ShellWarnings(&obj.Spec.WorkflowSpec.WorkflowTemplateSpec, field.NewPath("spec", "workflowSpec"))
+	}
+	return ShellWarnings(&obj.Spec.WorkflowTemplateSpec, field.NewPath("spec"))
 }
