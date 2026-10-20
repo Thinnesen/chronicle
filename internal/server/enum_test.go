@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -37,5 +38,12 @@ func TestSubmitChecksTheTemplate(t *testing.T) {
 	}
 	if err := submit("prod"); err != nil {
 		t.Errorf("an allowed value: %v", err)
+	}
+	// A typo in a parameter name must not start a run with the defaults.
+	_, err := newClient(srv, "alice").SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
+		Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: "release"}},
+		Parameters: map[string]string{"envronment": "prod"}}))
+	if code(err) != connect.CodeInvalidArgument || !strings.Contains(err.Error(), `no parameter "envronment"`) {
+		t.Errorf("an unknown parameter: %v", err)
 	}
 }

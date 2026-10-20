@@ -73,6 +73,10 @@ func TestRetryAndRerun(t *testing.T) {
 		t.Errorf("approvals after a retry from the gate = %+v", wf.Spec.Approvals)
 	}
 
+	if _, err := alice.RerunWorkflow(ctx, connect.NewRequest(&chroniclev1.RerunWorkflowRequest{Namespace: "team-a", Name: wf.Name,
+		Parameters: map[string]string{"sise": "xl"}})); code(err) != connect.CodeInvalidArgument {
+		t.Errorf("a re-run with an unknown parameter: %v", err)
+	}
 	resp, err := alice.RerunWorkflow(ctx, connect.NewRequest(&chroniclev1.RerunWorkflowRequest{Namespace: "team-a", Name: wf.Name, Parameters: map[string]string{"size": "xl"}}))
 	if err != nil {
 		t.Fatal(err)

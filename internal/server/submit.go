@@ -101,9 +101,23 @@ func checkTemplate(ctx context.Context, c client.Client, namespace string, t *ch
 	if err != nil {
 		return nil
 	}
+	if err := unknownParameter(spec.Arguments, params); err != nil {
+		return err
+	}
 	for _, p := range spec.Arguments.Parameters {
 		if v, ok := params[p.Name]; ok && len(p.Enum) > 0 && !slices.Contains(p.Enum, v) {
 			return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parameter %q: value %q is not one of %q", p.Name, v, p.Enum))
+		}
+	}
+	return nil
+}
+
+// unknownParameter refuses a value for a parameter that the workflow does not declare. A typo in a name would start the
+// run with the default.
+func unknownParameter(args v1alpha1.Arguments, params map[string]string) error {
+	for _, name := range slices.Sorted(maps.Keys(params)) {
+		if !slices.ContainsFunc(args.Parameters, func(p v1alpha1.Parameter) bool { return p.Name == name }) {
+			return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("the workflow has no parameter %q", name))
 		}
 	}
 	return nil

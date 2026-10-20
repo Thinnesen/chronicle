@@ -67,6 +67,13 @@ func (s *workflowService) RerunWorkflow(ctx context.Context, req *connect.Reques
 	if err != nil {
 		return nil, err
 	}
+	declared := old.Spec.Arguments
+	if old.Status.StoredSpec != nil {
+		declared = old.Status.StoredSpec.Arguments
+	}
+	if err := unknownParameter(declared, m.Parameters); err != nil {
+		return nil, err
+	}
 	wf := rerunOf(old)
 	setParameters(&wf.Spec.Arguments, m.Parameters)
 	if err := c.Create(ctx, wf); err != nil {
