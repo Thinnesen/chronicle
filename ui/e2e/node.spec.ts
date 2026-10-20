@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 
-import { mockAPI } from "./mock";
+import { errorStream, mockAPI } from "./mock";
 
 test("shows the live log of a node and filters it", async ({ page }, info) => {
   await mockAPI(page);
@@ -61,6 +61,17 @@ test("shows the archived log and the artifacts of a node", async ({ page }, info
   await expect(page.getByText("text from the spec")).toBeVisible();
   await expect(page.getByText("downloaded from dl.example.com")).toBeVisible();
   await expect(page.getByText(/sig=abc/)).toHaveCount(0);
+});
+
+test("explains why a step has no log", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.LogService/StreamLogs", (r) =>
+    r.fulfill(errorStream("failed_precondition", 'the step did not start: input artifact "rows": not found')),
+  );
+  await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n3a");
+  const panel = page.getByRole("complementary", { name: "Step train(0)" });
+  await expect(panel.getByText('The step did not start: input artifact "rows": not found.')).toBeVisible();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
 });
 
 test("shows a step that reused a result from the cache", async ({ page }) => {

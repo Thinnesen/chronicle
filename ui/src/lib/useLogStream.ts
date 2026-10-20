@@ -20,6 +20,8 @@ export interface LogState {
   lines: LogLine[];
   dropped: number;
   error?: string;
+  // notice explains why a step has no log, for example that it did not start.
+  notice?: string;
   done: boolean;
   // archived is true when the lines come from the log archive.
   archived?: boolean;
@@ -58,6 +60,12 @@ export function useLogStream(namespace: string, workflow: string, node: string |
         if (follow && healable(e)) {
           setState((s) => ({ ...s, reconnecting: true }));
           retry = setTimeout(() => setAttempt((a) => a + 1), 2000);
+          return;
+        }
+        const err = ConnectError.from(e);
+        if (err.code === Code.FailedPrecondition) {
+          const text = err.rawMessage;
+          setState((s) => ({ ...s, done: true, notice: text.charAt(0).toUpperCase() + text.slice(1) + "." }));
           return;
         }
         setState((s) => ({ ...s, done: true, error: errorText(e) }));

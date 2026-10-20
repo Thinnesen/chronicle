@@ -206,7 +206,7 @@ function logLines(node: string, archived = false) {
 }
 
 // envelopes encodes messages as a Connect stream: a flag byte and a 4-byte length before each JSON message.
-function envelopes(messages: object[]): Buffer {
+function envelopes(messages: object[], end: object = {}): Buffer {
   const frame = (flag: number, data: object) => {
     const json = Buffer.from(JSON.stringify(data));
     const head = Buffer.alloc(5);
@@ -214,7 +214,12 @@ function envelopes(messages: object[]): Buffer {
     head.writeUInt32BE(json.length, 1);
     return Buffer.concat([head, json]);
   };
-  return Buffer.concat([...messages.map((m) => frame(0, m)), frame(2, {})]);
+  return Buffer.concat([...messages.map((m) => frame(0, m)), frame(2, end)]);
+}
+
+// errorStream is a Connect stream that ends at once with an error.
+export function errorStream(code: string, message: string): { headers: Record<string, string>; body: Buffer } {
+  return { headers: { "content-type": "application/connect+json" }, body: envelopes([], { error: { code, message } }) };
 }
 
 // openMenu opens the sidebar on a phone, where it is a drawer. On a wide screen the sidebar is always open.

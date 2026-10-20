@@ -6,7 +6,7 @@ import "./LogView.css";
 
 // LogView shows the log of one node. While the node runs, new lines arrive live.
 export function LogView({ namespace, workflow, node, live }: { namespace: string; workflow: string; node: string; live: boolean }) {
-  const { lines, dropped, error, done, archived, reconnecting } = useLogStream(namespace, workflow, node, live);
+  const { lines, dropped, error, notice, done, archived, reconnecting } = useLogStream(namespace, workflow, node, live);
   const [filter, setFilter] = useState("");
   const box = useRef<HTMLPreElement>(null);
   const atBottom = useRef(true);
@@ -33,6 +33,7 @@ export function LogView({ namespace, workflow, node, live }: { namespace: string
       </div>
       {archived && <p className="logview-note">The Pod was deleted. This log comes from the log archive.</p>}
       {error && <p role="alert">Could not read the log: {error}</p>}
+      {notice && <p className="quiet">{notice}</p>}
       {reconnecting && <p className="logview-note" role="status">The log stream stopped. Connecting again…</p>}
       <pre
         ref={box}
@@ -44,7 +45,7 @@ export function LogView({ namespace, workflow, node, live }: { namespace: string
           atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
         }}
       >
-        {shown.length === 0 && done && !error && <span className="quiet">The log is empty.</span>}
+        {shown.length === 0 && done && !error && !notice && <span className="quiet">The log is empty.</span>}
         {shown.map((l) => (
           <span key={l.n} className="logline">
             <span className="logline-n" aria-hidden="true">
