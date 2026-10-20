@@ -78,6 +78,11 @@ export function RunPage() {
           <div className="run-name">
             <h1>{s.name}</h1>
             <Status phase={phase} />
+            {s.skipped && (
+              <span className="badge" title="The lock of the run was busy, so the run did not run.">
+                Skipped
+              </span>
+            )}
           </div>
           {earlier === undefined && <RunActions wf={wf} phase={phase} archived={s.archived} />}
         </div>

@@ -196,3 +196,14 @@ test("says that a run ended before any step started", async ({ page }) => {
   await expect(page.getByText("The run ended before any step started.")).toBeVisible();
   await expect(page.getByText("The controller starts it in a moment.")).toHaveCount(0);
 });
+
+test("marks a run that was skipped because its lock was busy", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) =>
+    r.fulfill({
+      json: { workflows: [{ namespace: "team-a", name: "sync-1792461600", uid: "u8", phase: "Succeeded", skipped: true, message: "skipped: the lock sync is busy", createdAt: new Date(now).toISOString() }] },
+    }),
+  );
+  await page.goto("/ns/team-a");
+  await expect(page.getByRole("row").filter({ hasText: "sync-1792461600" }).getByText("Skipped", { exact: true })).toBeVisible();
+});

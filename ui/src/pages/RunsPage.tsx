@@ -187,6 +187,11 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                           </span>
                         )}
                         {w.archived && <span className="badge">Archived</span>}
+                        {w.skipped && (
+                          <span className="badge" title="The lock of the run was busy, so the run did not run.">
+                            Skipped
+                          </span>
+                        )}
                         {w.approvalsWaiting > 0 && <span className="badge badge-caution">Needs approval</span>}
                         {startAt && (
                           <span className="badge" title={startAt.toLocaleString()}>

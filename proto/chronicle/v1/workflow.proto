@@ -71,6 +71,8 @@ message WorkflowSummary {
   google.protobuf.Timestamp start_at = 16;
   // parent is the name of the run that started this run as a child run, or empty.
   string parent = 17;
+  // skipped is true for a run that did not run, because its lock was busy and whenBusy is Skip.
+  bool skipped = 18;
 }
 
 message ListWorkflowsRequest {

@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -42,6 +43,7 @@ func summary(wf *v1alpha1.Workflow) *chroniclev1.WorkflowSummary {
 		s.StartAt = timestamp(wf.Spec.StartAt)
 	}
 	s.Parent = wf.Annotations[v1alpha1.AnnotationParent]
+	s.Skipped = meta.IsStatusConditionTrue(wf.Status.Conditions, "Skipped")
 	s.NodesDone, s.NodesTotal = wf.Status.Progress()
 	for _, id := range slices.Sorted(maps.Keys(wf.Status.Nodes)) {
 		n := wf.Status.Nodes[id]
