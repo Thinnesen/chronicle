@@ -73,6 +73,14 @@ func (w *Workflow) Semaphore(name string, limit int32) *Workflow {
 	return w
 }
 
+// SemaphoreFrom is Semaphore with the limit in a key of a ConfigMap. The ConfigMap needs the label
+// chronicle.thinnesen.com/parameters: "true".
+func (w *Workflow) SemaphoreFrom(name, configMap, key string) *Workflow {
+	ref := &v1alpha1.ConfigMapKeyRef{Name: configMap, Key: key}
+	w.sync = &v1alpha1.Synchronization{Semaphore: &v1alpha1.Semaphore{Name: name, ConfigMapKeyRef: ref}}
+	return w
+}
+
 // Param declares a workflow parameter with a default value and returns its placeholder.
 func (w *Workflow) Param(name, value string) string {
 	w.params = append(w.params, v1alpha1.Parameter{Name: name, Value: &value})

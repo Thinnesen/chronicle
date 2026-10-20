@@ -20,7 +20,11 @@
     "onExit": "notify",
     "parallelism": 4,
     "synchronization": {
-      "mutex": {
+      "semaphore": {
+        "configMapKeyRef": {
+          "key": "etl",
+          "name": "limits"
+        },
         "name": "etl"
       }
     },

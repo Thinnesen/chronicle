@@ -314,6 +314,15 @@ class Workflow:
         self._spec["synchronization"] = {"semaphore": {"name": name, "limit": limit}}
         return self
 
+    def semaphore_from(self, name: str, config_map: str, key: str) -> Workflow:
+        """Like semaphore, with the limit in a key of a ConfigMap.
+
+        The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true".
+        """
+        ref = {"name": config_map, "key": key}
+        self._spec["synchronization"] = {"semaphore": {"name": name, "configMapKeyRef": ref}}
+        return self
+
     def service_account(self, name: str) -> Workflow:
         """Run the workflow Pods with a Kubernetes service account."""
         self._spec["serviceAccountName"] = name

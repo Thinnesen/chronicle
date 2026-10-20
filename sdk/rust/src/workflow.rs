@@ -62,6 +62,16 @@ impl Workflow {
         self
     }
 
+    /// Like `semaphore`, with the limit in a key of a ConfigMap. The ConfigMap needs the label
+    /// `chronicle.thinnesen.com/parameters: "true"`.
+    pub fn semaphore_from(mut self, name: &str, config_map: &str, key: &str) -> Self {
+        self.spec.insert(
+            "synchronization".into(),
+            json!({"semaphore": {"name": name, "configMapKeyRef": {"name": config_map, "key": key}}}),
+        );
+        self
+    }
+
     /// Runs the workflow Pods with a Kubernetes service account.
     pub fn service_account(mut self, name: &str) -> Self {
         self.spec.insert("serviceAccountName".into(), name.into());

@@ -39,7 +39,7 @@ fn etl() -> Workflow {
     Workflow::new("etl-")
         .label("team", "data")
         .parallelism(4)
-        .mutex("etl")
+        .semaphore_from("etl", "limits", "etl")
         .param("day", "2026-10-17")
         .entrypoint(Template::dag("main").parallelism(2).tasks([f, c, r, parts]))
         .on_exit(

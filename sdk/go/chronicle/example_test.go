@@ -16,7 +16,7 @@ import (
 // etl builds a DAG: fetch saves a directory, count uses it, and report runs last.
 // The Python and Rust SDK tests build the same workflow and compare it with sdk/testdata/etl.json.
 func etl() *chronicle.Workflow {
-	w := chronicle.New("etl-").Label("team", "data").Parallelism(4).Mutex("etl")
+	w := chronicle.New("etl-").Label("team", "data").Parallelism(4).SemaphoreFrom("etl", "limits", "etl")
 	day := w.Param("day", "2026-10-17")
 
 	const source = `mkdir -p /tmp/rows && echo "$DAY" > /tmp/rows/day.txt && echo 1204`
@@ -93,7 +93,10 @@ func Example() {
 	//   onExit: notify
 	//   parallelism: 4
 	//   synchronization:
-	//     mutex:
+	//     semaphore:
+	//       configMapKeyRef:
+	//         key: etl
+	//         name: limits
 	//       name: etl
 	//   templates:
 	//   - dag:
