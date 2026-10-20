@@ -61,6 +61,7 @@ for (const scheme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/screens/template-${info.project.name}-${scheme}.png`, fullPage: true });
     await page.goto("/ns/team-a/cron/etl-nightly");
     await expect(page.getByText("Recent runs")).toBeVisible();
+    await expect(page.getByRole("term").filter({ hasText: "Last run" })).toBeVisible();
     await page.screenshot({ path: `test-results/screens/cron-${info.project.name}-${scheme}.png`, fullPage: true });
   });
 }

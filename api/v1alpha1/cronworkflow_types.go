@@ -77,6 +77,10 @@ type CronWorkflowStatus struct {
 	// +optional
 	LastScheduledTime *metav1.Time `json:"lastScheduledTime,omitempty"`
 
+	// lastStartedTime is the schedule time of the last run that was started. A skipped run does not change it.
+	// +optional
+	LastStartedTime *metav1.Time `json:"lastStartedTime,omitempty"`
+
 	// nextScheduledTime is the next schedule time.
 	// +optional
 	NextScheduledTime *metav1.Time `json:"nextScheduledTime,omitempty"`

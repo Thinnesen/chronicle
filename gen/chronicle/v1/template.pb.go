@@ -441,9 +441,11 @@ type CronSummary struct {
 	NextScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=next_scheduled_at,json=nextScheduledAt,proto3" json:"next_scheduled_at,omitempty"`
 	Active            int32                  `protobuf:"varint,9,opt,name=active,proto3" json:"active,omitempty"`
 	// template is the referenced WorkflowTemplate, if any.
-	Template      string `protobuf:"bytes,10,opt,name=template,proto3" json:"template,omitempty"`
-	ManagedBy     string `protobuf:"bytes,11,opt,name=managed_by,json=managedBy,proto3" json:"managed_by,omitempty"`
-	Description   string `protobuf:"bytes,12,opt,name=description,proto3" json:"description,omitempty"`
+	Template    string `protobuf:"bytes,10,opt,name=template,proto3" json:"template,omitempty"`
+	ManagedBy   string `protobuf:"bytes,11,opt,name=managed_by,json=managedBy,proto3" json:"managed_by,omitempty"`
+	Description string `protobuf:"bytes,12,opt,name=description,proto3" json:"description,omitempty"`
+	// last_started_at is the schedule time of the last run that was started. A skipped run does not change it.
+	LastStartedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=last_started_at,json=lastStartedAt,proto3" json:"last_started_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -560,6 +562,13 @@ func (x *CronSummary) GetDescription() string {
 		return x.Description
 	}
 	return ""
+}
+
+func (x *CronSummary) GetLastStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastStartedAt
+	}
+	return nil
 }
 
 type ListCronWorkflowsRequest struct {
@@ -1109,7 +1118,7 @@ const file_chronicle_v1_template_proto_rawDesc = "" +
 	"\rcluster_scope\x18\x03 \x01(\bR\fclusterScope\"\x83\x01\n" +
 	"\x13GetTemplateResponse\x127\n" +
 	"\asummary\x18\x01 \x01(\v2\x1d.chronicle.v1.TemplateSummaryR\asummary\x123\n" +
-	"\btemplate\x18\x02 \x01(\v2\x17.google.protobuf.StructR\btemplate\"\xc7\x03\n" +
+	"\btemplate\x18\x02 \x01(\v2\x17.google.protobuf.StructR\btemplate\"\x8b\x04\n" +
 	"\vCronSummary\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
@@ -1124,7 +1133,8 @@ const file_chronicle_v1_template_proto_rawDesc = "" +
 	" \x01(\tR\btemplate\x12\x1d\n" +
 	"\n" +
 	"managed_by\x18\v \x01(\tR\tmanagedBy\x12 \n" +
-	"\vdescription\x18\f \x01(\tR\vdescription\"8\n" +
+	"\vdescription\x18\f \x01(\tR\vdescription\x12B\n" +
+	"\x0flast_started_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\rlastStartedAt\"8\n" +
 	"\x18ListCronWorkflowsRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\"]\n" +
 	"\x19ListCronWorkflowsResponse\x12@\n" +
@@ -1205,32 +1215,33 @@ var file_chronicle_v1_template_proto_depIdxs = []int32{
 	18, // 4: chronicle.v1.GetTemplateResponse.template:type_name -> google.protobuf.Struct
 	17, // 5: chronicle.v1.CronSummary.last_scheduled_at:type_name -> google.protobuf.Timestamp
 	17, // 6: chronicle.v1.CronSummary.next_scheduled_at:type_name -> google.protobuf.Timestamp
-	6,  // 7: chronicle.v1.ListCronWorkflowsResponse.cron_workflows:type_name -> chronicle.v1.CronSummary
-	6,  // 8: chronicle.v1.GetCronWorkflowResponse.summary:type_name -> chronicle.v1.CronSummary
-	18, // 9: chronicle.v1.GetCronWorkflowResponse.cron_workflow:type_name -> google.protobuf.Struct
-	6,  // 10: chronicle.v1.SuspendCronWorkflowResponse.summary:type_name -> chronicle.v1.CronSummary
-	6,  // 11: chronicle.v1.ResumeCronWorkflowResponse.summary:type_name -> chronicle.v1.CronSummary
-	17, // 12: chronicle.v1.BackfillCronWorkflowRequest.from:type_name -> google.protobuf.Timestamp
-	17, // 13: chronicle.v1.BackfillCronWorkflowRequest.to:type_name -> google.protobuf.Timestamp
-	2,  // 14: chronicle.v1.TemplateService.ListTemplates:input_type -> chronicle.v1.ListTemplatesRequest
-	4,  // 15: chronicle.v1.TemplateService.GetTemplate:input_type -> chronicle.v1.GetTemplateRequest
-	7,  // 16: chronicle.v1.CronService.ListCronWorkflows:input_type -> chronicle.v1.ListCronWorkflowsRequest
-	9,  // 17: chronicle.v1.CronService.GetCronWorkflow:input_type -> chronicle.v1.GetCronWorkflowRequest
-	11, // 18: chronicle.v1.CronService.SuspendCronWorkflow:input_type -> chronicle.v1.SuspendCronWorkflowRequest
-	13, // 19: chronicle.v1.CronService.ResumeCronWorkflow:input_type -> chronicle.v1.ResumeCronWorkflowRequest
-	15, // 20: chronicle.v1.CronService.BackfillCronWorkflow:input_type -> chronicle.v1.BackfillCronWorkflowRequest
-	3,  // 21: chronicle.v1.TemplateService.ListTemplates:output_type -> chronicle.v1.ListTemplatesResponse
-	5,  // 22: chronicle.v1.TemplateService.GetTemplate:output_type -> chronicle.v1.GetTemplateResponse
-	8,  // 23: chronicle.v1.CronService.ListCronWorkflows:output_type -> chronicle.v1.ListCronWorkflowsResponse
-	10, // 24: chronicle.v1.CronService.GetCronWorkflow:output_type -> chronicle.v1.GetCronWorkflowResponse
-	12, // 25: chronicle.v1.CronService.SuspendCronWorkflow:output_type -> chronicle.v1.SuspendCronWorkflowResponse
-	14, // 26: chronicle.v1.CronService.ResumeCronWorkflow:output_type -> chronicle.v1.ResumeCronWorkflowResponse
-	16, // 27: chronicle.v1.CronService.BackfillCronWorkflow:output_type -> chronicle.v1.BackfillCronWorkflowResponse
-	21, // [21:28] is the sub-list for method output_type
-	14, // [14:21] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	17, // 7: chronicle.v1.CronSummary.last_started_at:type_name -> google.protobuf.Timestamp
+	6,  // 8: chronicle.v1.ListCronWorkflowsResponse.cron_workflows:type_name -> chronicle.v1.CronSummary
+	6,  // 9: chronicle.v1.GetCronWorkflowResponse.summary:type_name -> chronicle.v1.CronSummary
+	18, // 10: chronicle.v1.GetCronWorkflowResponse.cron_workflow:type_name -> google.protobuf.Struct
+	6,  // 11: chronicle.v1.SuspendCronWorkflowResponse.summary:type_name -> chronicle.v1.CronSummary
+	6,  // 12: chronicle.v1.ResumeCronWorkflowResponse.summary:type_name -> chronicle.v1.CronSummary
+	17, // 13: chronicle.v1.BackfillCronWorkflowRequest.from:type_name -> google.protobuf.Timestamp
+	17, // 14: chronicle.v1.BackfillCronWorkflowRequest.to:type_name -> google.protobuf.Timestamp
+	2,  // 15: chronicle.v1.TemplateService.ListTemplates:input_type -> chronicle.v1.ListTemplatesRequest
+	4,  // 16: chronicle.v1.TemplateService.GetTemplate:input_type -> chronicle.v1.GetTemplateRequest
+	7,  // 17: chronicle.v1.CronService.ListCronWorkflows:input_type -> chronicle.v1.ListCronWorkflowsRequest
+	9,  // 18: chronicle.v1.CronService.GetCronWorkflow:input_type -> chronicle.v1.GetCronWorkflowRequest
+	11, // 19: chronicle.v1.CronService.SuspendCronWorkflow:input_type -> chronicle.v1.SuspendCronWorkflowRequest
+	13, // 20: chronicle.v1.CronService.ResumeCronWorkflow:input_type -> chronicle.v1.ResumeCronWorkflowRequest
+	15, // 21: chronicle.v1.CronService.BackfillCronWorkflow:input_type -> chronicle.v1.BackfillCronWorkflowRequest
+	3,  // 22: chronicle.v1.TemplateService.ListTemplates:output_type -> chronicle.v1.ListTemplatesResponse
+	5,  // 23: chronicle.v1.TemplateService.GetTemplate:output_type -> chronicle.v1.GetTemplateResponse
+	8,  // 24: chronicle.v1.CronService.ListCronWorkflows:output_type -> chronicle.v1.ListCronWorkflowsResponse
+	10, // 25: chronicle.v1.CronService.GetCronWorkflow:output_type -> chronicle.v1.GetCronWorkflowResponse
+	12, // 26: chronicle.v1.CronService.SuspendCronWorkflow:output_type -> chronicle.v1.SuspendCronWorkflowResponse
+	14, // 27: chronicle.v1.CronService.ResumeCronWorkflow:output_type -> chronicle.v1.ResumeCronWorkflowResponse
+	16, // 28: chronicle.v1.CronService.BackfillCronWorkflow:output_type -> chronicle.v1.BackfillCronWorkflowResponse
+	22, // [22:29] is the sub-list for method output_type
+	15, // [15:22] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_chronicle_v1_template_proto_init() }

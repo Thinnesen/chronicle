@@ -3377,6 +3377,11 @@ spec:
                   that was started or skipped.
                 format: date-time
                 type: string
+              lastStartedTime:
+                description: lastStartedTime is the schedule time of the last run
+                  that was started. A skipped run does not change it.
+                format: date-time
+                type: string
               nextScheduledTime:
                 description: nextScheduledTime is the next schedule time.
                 format: date-time

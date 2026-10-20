@@ -97,6 +97,8 @@ message CronSummary {
   string template = 10;
   string managed_by = 11;
   string description = 12;
+  // last_started_at is the schedule time of the last run that was started. A skipped run does not change it.
+  google.protobuf.Timestamp last_started_at = 13;
 }
 
 message ListCronWorkflowsRequest {

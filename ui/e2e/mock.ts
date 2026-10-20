@@ -87,7 +87,7 @@ export const templateList = [
 ];
 
 export const cronList = [
-  { namespace: "team-a", name: "etl-nightly", schedules: ["0 3 * * *"], timezone: "Europe/Berlin", description: "Loads the sales data of the day.", nextScheduledAt: ts(3 * 3600 + 240), lastScheduledAt: ts(-21 * 3600), template: "etl-nightly" },
+  { namespace: "team-a", name: "etl-nightly", schedules: ["0 3 * * *"], timezone: "Europe/Berlin", description: "Loads the sales data of the day.", nextScheduledAt: ts(3 * 3600 + 240), lastScheduledAt: ts(-21 * 3600), lastStartedAt: ts(-21 * 3600), template: "etl-nightly" },
   { namespace: "team-a", name: "cleanup", schedules: ["*/15 * * * *"], suspend: true, managedBy: "Flux" },
 ];
 

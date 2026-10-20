@@ -60,4 +60,30 @@ workflowSpec: {entrypoint: c, templates: [{name: c, container: {image: alpine}}]
 		Expect(k8sClient.Get(ctx, key, cw)).To(Succeed())
 		Expect(cw.Status.Active).To(HaveLen(1))
 	})
+	It("keeps the time of the last started run when it skips a run", func() {
+		cw := &chroniclev1alpha1.CronWorkflow{Name: "cw-" + rand.String(6), Namespace: "default"}
+		Expect(yaml.UnmarshalStrict([]byte(`
+schedules: ["*/10 * * * *"]
+concurrencyPolicy: Forbid
+workflowSpec: {entrypoint: c, templates: [{name: c, container: {image: alpine}}]}
+`), &cw.Spec)).To(Succeed())
+		Expect(k8sClient.Create(ctx, cw)).To(Succeed())
+		DeferCleanup(k8sClient.Delete, ctx, cw)
+		key := types.NamespacedName{Name: cw.Name, Namespace: cw.Namespace}
+		Expect(k8sClient.Get(ctx, key, cw)).To(Succeed())
+		first := cw.CreationTimestamp.Truncate(10 * time.Minute).Add(10 * time.Minute)
+		now := first.Add(time.Minute)
+		r := &CronWorkflowReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), Now: func() time.Time { return now }}
+		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+
+		// The first run is still active, so Forbid skips the second schedule time.
+		now = now.Add(10 * time.Minute)
+		_, err = r.Reconcile(ctx, reconcile.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(k8sClient.Get(ctx, key, cw)).To(Succeed())
+		Expect(cw.Status.LastScheduledTime.Time).To(BeTemporally("==", first.Add(10*time.Minute)))
+		Expect(cw.Status.LastStartedTime).NotTo(BeNil())
+		Expect(cw.Status.LastStartedTime.Time).To(BeTemporally("==", first))
+	})
 })

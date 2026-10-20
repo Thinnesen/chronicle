@@ -66,6 +66,9 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if plan.Due != nil {
 		cw.Status.LastScheduledTime = &metav1.Time{Time: *plan.Due}
 	}
+	if plan.Run != nil {
+		cw.Status.LastStartedTime = &metav1.Time{Time: *plan.Run}
+	}
 	cw.Status.Active = activeRefs(plan)
 	msg := "the schedules are valid"
 	if plan.Skipped != "" {

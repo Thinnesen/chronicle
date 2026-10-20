@@ -50,7 +50,7 @@ export function CronPage() {
   if (!data?.summary) return <p className="quiet">Loading the cron workflow…</p>;
   const c = data.summary;
   const next = toDate(c.nextScheduledAt);
-  const last = toDate(c.lastScheduledAt);
+  const last = toDate(c.lastStartedAt);
   return (
     <section>
       <header className="page-head">

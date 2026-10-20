@@ -23,7 +23,9 @@ func (s *stub) ListTemplates(context.Context, *connect.Request[chroniclev1.ListT
 func (s *stub) ListCronWorkflows(context.Context, *connect.Request[chroniclev1.ListCronWorkflowsRequest]) (*connect.Response[chroniclev1.ListCronWorkflowsResponse], error) {
 	return connect.NewResponse(&chroniclev1.ListCronWorkflowsResponse{CronWorkflows: []*chroniclev1.CronSummary{
 		{Name: "nightly", Schedules: []string{"0 2 * * *"}, Timezone: "Europe/Oslo", Template: "etl", Active: 1,
-			NextScheduledAt: timestamppb.New(time.Now().Add(time.Hour))},
+			NextScheduledAt: timestamppb.New(time.Now().Add(time.Hour)),
+			// The last schedule time was skipped, so LAST shows the run before it.
+			LastScheduledAt: timestamppb.New(time.Now().Add(-time.Minute)), LastStartedAt: timestamppb.New(time.Now().Add(-25 * time.Hour))},
 		{Name: "weekly", Schedules: []string{"0 3 * * 0", "0 4 * * 3"}, Suspend: true},
 	}}), nil
 }
@@ -56,7 +58,7 @@ func TestCron(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"SCHEDULE", "nightly", "0 2 * * * (Europe/Oslo)", "in 1h", "weekly", "0 3 * * 0, 0 4 * * 3", "suspended"} {
+	for _, want := range []string{"SCHEDULE", "nightly", "0 2 * * * (Europe/Oslo)", "in 1h", "25h0m0s ago", "weekly", "0 3 * * 0, 0 4 * * 3", "suspended"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output has no %q:\n%s", want, out)
 		}

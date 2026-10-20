@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: The CronWorkflow status has `lastStartedTime`, the schedule time of the last run that started. `lastScheduledTime` also counts skipped schedule times (Forbid). The CLI (LAST) and the UI (Last run) show `lastStartedTime`, so a skipped time does not look like a run. Found by the soak test.
+
 - 2026-10-20: A Workflow can wait for a start time (`spec.startAt`, `chronicle submit --at`). The controller keeps the run Pending and starts it at that time. It takes no lock before that. A stop ends the waiting run at once. The field is on the Workflow, not on a CronWorkflow, so a one-time run needs no schedule object and no clean up. Sources: Argo #2706, #10620.
 
 - 2026-10-20: A list of runs can cover all namespaces of the caller (`all_namespaces`, `chronicle list -A`, the UI page `/runs`). The server lists each namespace where an access review allows a list, as the caller, and asks the archive once for all of them. It does not list Workflows across the cluster, because a team user has RoleBindings, not a ClusterRole. The list has at most 100 namespaces. Runs with the same name and time in two namespaces are ordered by namespace, so a page token now has the namespace too. Sources: Argo #9140, #6769.

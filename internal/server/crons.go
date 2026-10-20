@@ -97,7 +97,8 @@ func cronSummary(cw *v1alpha1.CronWorkflow) *chroniclev1.CronSummary {
 		Namespace: cw.Namespace, Name: cw.Name, Schedules: cw.Spec.Schedules, Timezone: cw.Spec.Timezone,
 		Suspend: cw.Spec.Suspend, ConcurrencyPolicy: string(cw.Spec.ConcurrencyPolicy),
 		LastScheduledAt: timestamp(cw.Status.LastScheduledTime), NextScheduledAt: timestamp(cw.Status.NextScheduledTime),
-		Active: int32(len(cw.Status.Active)), ManagedBy: managedBy(cw), Description: cw.Annotations[DescriptionAnnotation],
+		LastStartedAt: timestamp(cw.Status.LastStartedTime),
+		Active:        int32(len(cw.Status.Active)), ManagedBy: managedBy(cw), Description: cw.Annotations[DescriptionAnnotation],
 	}
 	if ref := cw.Spec.WorkflowSpec.WorkflowTemplateRef; ref != nil {
 		s.Template = ref.Name

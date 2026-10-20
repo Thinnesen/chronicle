@@ -161,8 +161,8 @@ func printCrons(out io.Writer, crons []*chroniclev1.CronSummary) {
 				next = "in " + strings.TrimSuffix(d.String(), "0s")
 			}
 		}
-		if c.LastScheduledAt != nil {
-			last = ago(c.LastScheduledAt.AsTime())
+		if c.LastStartedAt != nil {
+			last = ago(c.LastStartedAt.AsTime())
 		}
 		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\n", c.Name, schedule, next, last, c.Active, cmpOr(c.Template, "-"))
 	}
