@@ -272,6 +272,14 @@ func main() {
 		setupLog.Error(err, "Failed to set up ready check")
 		os.Exit(1)
 	}
+	// The Pod is ready only when the webhook serves. Before, a new Pod got admission calls too early, and they failed
+	// with "connection refused".
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
+			setupLog.Error(err, "Failed to set up the webhook ready check")
+			os.Exit(1)
+		}
+	}
 
 	setupLog.Info("Starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

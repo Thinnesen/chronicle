@@ -155,7 +155,10 @@ func printCrons(out io.Writer, crons []*chroniclev1.CronSummary) {
 		if c.Suspend {
 			next = "suspended"
 		} else if c.NextScheduledAt != nil {
-			next = "in " + strings.TrimSuffix(time.Until(c.NextScheduledAt.AsTime()).Round(time.Minute).String(), "0s")
+			next = "now" // the time has passed, and the controller starts the run
+			if d := time.Until(c.NextScheduledAt.AsTime()).Round(time.Minute); d > 0 {
+				next = "in " + strings.TrimSuffix(d.String(), "0s")
+			}
 		}
 		if c.LastScheduledAt != nil {
 			last = ago(c.LastScheduledAt.AsTime())

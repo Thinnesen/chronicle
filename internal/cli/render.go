@@ -31,6 +31,8 @@ func printList(out io.Writer, runs []*chroniclev1.WorkflowSummary) {
 		}
 		message := r.Message
 		switch {
+		case message != "" && r.Archived:
+			message += " (only in the archive)"
 		case message != "":
 		case r.ApprovalsWaiting > 0:
 			message = "waiting for an approval"
@@ -105,6 +107,13 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 			parts = append(parts, p.Name+"="+ptrValue(p.Value))
 		}
 		_, _ = fmt.Fprintf(out, "Outputs:   %s\n", strings.Join(parts, ", "))
+	}
+	if o := wf.Status.Outputs; o != nil && len(o.Artifacts) > 0 {
+		names := make([]string, 0, len(o.Artifacts))
+		for _, a := range o.Artifacts {
+			names = append(names, a.Name)
+		}
+		_, _ = fmt.Fprintf(out, "Artifacts: %s\n", strings.Join(names, ", "))
 	}
 	if len(resp.Tries) > 0 {
 		_, _ = fmt.Fprintf(out, "Tries:     %s\n", triesLine(resp.Tries, s.Archived, wf.Status.Restarts))
