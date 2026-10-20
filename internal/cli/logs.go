@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
+	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
 )
@@ -34,33 +35,37 @@ func (a *app) logsCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			client := chroniclev1connect.NewLogServiceClient(hc, url)
 			req := &chroniclev1.StreamLogsRequest{Namespace: ns, Workflow: args[0], Node: node, Follow: follow, TailLines: tail}
-			// printed counts the lines of each node. After a reconnect the log comes again from the start, so the
-			// command skips the lines that it printed before.
-			printed := map[string]int{}
-			for {
-				err := a.streamLogs(cmd.Context(), client, req, node != "", printed)
-				if err == nil && len(printed) == 0 && !follow {
-					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "No step of the run has a log yet. Use -f to wait for the steps.")
-				}
-				// With --tail, a new stream starts at another line, so the command cannot skip the printed lines.
-				if err == nil || !follow || tail > 0 || !healable(err) {
-					return err
-				}
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "The log stream stopped. Connecting again…")
-				select {
-				case <-cmd.Context().Done():
-					return cmd.Context().Err()
-				case <-time.After(reconnectWait):
-				}
-			}
+			return a.printLogs(cmd.Context(), chroniclev1connect.NewLogServiceClient(hc, url), req)
 		},
 	}
 	cmd.Flags().StringVar(&node, "node", "", "The ID or the name of one node. The default is all Pod nodes.")
 	cmd.Flags().BoolVarP(&follow, "follow", "f", false, "Keep printing new lines.")
 	cmd.Flags().Int64Var(&tail, "tail", 0, "Print only the last lines of each Pod.")
 	return cmd
+}
+
+// printLogs prints a log stream. A followed stream connects again after an error that can heal.
+func (a *app) printLogs(ctx context.Context, client chroniclev1connect.LogServiceClient, req *chroniclev1.StreamLogsRequest) error {
+	// printed counts the lines of each node. After a reconnect the log comes again from the start, so the command skips
+	// the lines that it printed before.
+	printed := map[string]int{}
+	for {
+		err := a.streamLogs(ctx, client, req, req.Node != "", printed)
+		if err == nil && len(printed) == 0 && !req.Follow {
+			_, _ = fmt.Fprintln(a.errOut, "No step of the run has a log yet. Use -f to wait for the steps.")
+		}
+		// With --tail, a new stream starts at another line, so the command cannot skip the printed lines.
+		if err == nil || !req.Follow || req.TailLines > 0 || !healable(err) {
+			return err
+		}
+		_, _ = fmt.Fprintln(a.errOut, "The log stream stopped. Connecting again…")
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(reconnectWait):
+		}
+	}
 }
 
 // reconnectWait is the wait before a followed log connects again. Tests make it short.
@@ -96,4 +101,30 @@ func healable(err error) bool {
 		return true
 	}
 	return false
+}
+
+// followRun prints the logs of a run until it ends, then its phase. It returns errRunFailed when the run fails.
+func (a *app) followRun(ctx context.Context, ns, name string) error {
+	url, err := a.serverURL()
+	if err != nil {
+		return err
+	}
+	hc, err := a.httpClient(ctx)
+	if err != nil {
+		return err
+	}
+	req := &chroniclev1.StreamLogsRequest{Namespace: ns, Workflow: name, Follow: true}
+	if err := a.printLogs(ctx, chroniclev1connect.NewLogServiceClient(hc, url), req); err != nil {
+		return err
+	}
+	resp, err := chroniclev1connect.NewWorkflowServiceClient(hc, url).GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: name}))
+	if err != nil {
+		return err
+	}
+	s := resp.Msg.Summary
+	_, _ = fmt.Fprintf(a.out, "%s %s%s\n", s.Name, s.Phase, suffix(s.Message))
+	if s.Phase != string(v1alpha1.WorkflowSucceeded) {
+		return errRunFailed
+	}
+	return nil
 }

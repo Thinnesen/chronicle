@@ -69,7 +69,7 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 		s := resp.Msg.Summary
 		if finished(s.Phase) {
 			_, _ = fmt.Fprintf(a.out, "%s %s%s\n", s.Name, s.Phase, suffix(s.Message))
-			if s.Phase != "Succeeded" {
+			if s.Phase != string(v1alpha1.WorkflowSucceeded) {
 				return errRunFailed
 			}
 			return nil

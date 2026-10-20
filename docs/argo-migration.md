@@ -40,6 +40,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 43 converted w
 | Argo | chronicle |
 |---|---|
 | `argo submit wf.yaml --watch` | `chronicle submit -f wf.yaml --watch` |
+| `argo submit wf.yaml --log` | `chronicle submit -f wf.yaml --log` |
 | `argo submit --from workflowtemplate/etl` | `chronicle submit --from etl` (`--from cluster/<name>` for a cluster template) |
 | `argo list`, `argo get`, `argo watch` | `chronicle list`, `chronicle get`, `chronicle watch` |
 | `argo wait` | `chronicle watch`. The exit code is 1 when the run does not succeed. |

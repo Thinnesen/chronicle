@@ -17,7 +17,7 @@ import (
 func (a *app) submitCommand() *cobra.Command {
 	var file, from string
 	var params, labels []string
-	var watch bool
+	var watch, log bool
 	cmd := &cobra.Command{
 		Use:   "submit (-f <file> | --from <template>)",
 		Short: "Start a run from a Workflow file or a template",
@@ -39,8 +39,11 @@ func (a *app) submitCommand() *cobra.Command {
 			}
 			name := resp.Msg.Summary.Name
 			_, _ = fmt.Fprintf(a.out, "Started %s/%s\n", req.Namespace, name)
-			if watch {
+			switch {
+			case watch:
 				return a.watch(cmd.Context(), req.Namespace, name)
+			case log:
+				return a.followRun(cmd.Context(), req.Namespace, name)
 			}
 			return nil
 		},
@@ -50,6 +53,8 @@ func (a *app) submitCommand() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&params, "parameter", "p", nil, "A workflow parameter as name=value. Repeat it for more parameters.")
 	cmd.Flags().StringArrayVarP(&labels, "label", "l", nil, "A label of the run as key=value.")
 	cmd.Flags().BoolVarP(&watch, "watch", "w", false, "Watch the run until it ends.")
+	cmd.Flags().BoolVar(&log, "log", false, "Print the logs of all steps until the run ends.")
+	cmd.MarkFlagsMutuallyExclusive("watch", "log")
 	return cmd
 }
 

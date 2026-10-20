@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,4 +31,24 @@ func TestGetNamesTheApproveCommand(t *testing.T) {
 	if err != nil || !strings.Contains(out, "chronicle approve deploy --namespace team-a") {
 		t.Errorf("get: %q %v", out, err)
 	}
+}
+
+func TestSubmitWithLog(t *testing.T) {
+	file := writeWorkflow(t)
+	out, err := run(t, &stub{phase: "Succeeded"}, "submit", "-f", file, "--log")
+	if err != nil || !strings.Contains(out, "hello.a: hi") || !strings.Contains(out, "hello-abc Succeeded") {
+		t.Fatalf("submit --log: %q %v", out, err)
+	}
+	if _, err := run(t, &stub{phase: "Failed"}, "submit", "-f", file, "--log"); !errors.Is(err, errRunFailed) {
+		t.Errorf("a failed run: %v", err)
+	}
+}
+
+func writeWorkflow(t *testing.T) string {
+	t.Helper()
+	file := filepath.Join(t.TempDir(), "wf.yaml")
+	if err := os.WriteFile(file, []byte("metadata: {generateName: hello-}\nspec: {entrypoint: c}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return file
 }
