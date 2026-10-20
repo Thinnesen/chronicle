@@ -101,7 +101,8 @@ func (r *WorkflowReconciler) take(ctx context.Context, namespace, name string, l
 		return false, true, fmt.Sprintf("%s %s, which %s holds", engine.WaitingForLock, name, holderNames(alive)), nil
 	}
 	setHolders(&lease, append(alive, me))
-	if err := r.Update(ctx, &lease); apierrors.IsConflict(err) {
+	// A conflict, or a Lease that its last holder deleted in the meantime, is a lost race: ask again.
+	if err := r.Update(ctx, &lease); apierrors.IsConflict(err) || apierrors.IsNotFound(err) {
 		return false, false, engine.WaitingForLock + " " + name, nil
 	} else if err != nil {
 		return false, false, "", fmt.Errorf("take the lock %s: %w", name, err)
@@ -124,7 +125,17 @@ func (r *WorkflowReconciler) releaseWhere(ctx context.Context, namespace, name s
 	if err != nil {
 		return fmt.Errorf("read the lock %s: %w", name, err)
 	}
-	setHolders(&lease, slices.DeleteFunc(holdersOf(&lease), match))
+	rest := slices.DeleteFunc(holdersOf(&lease), match)
+	if len(rest) == 0 {
+		// The precondition keeps a Lease that a run took in the meantime. take creates a deleted Lease again.
+		rv := lease.ResourceVersion
+		err := r.Delete(ctx, &lease, client.Preconditions{ResourceVersion: &rv})
+		if client.IgnoreNotFound(err) != nil && !apierrors.IsConflict(err) {
+			return fmt.Errorf("delete the lock %s: %w", name, err)
+		}
+		return r.wakeWaiters(ctx, namespace, name)
+	}
+	setHolders(&lease, rest)
 	if err := r.Update(ctx, &lease); err != nil {
 		return fmt.Errorf("give back the lock %s: %w", name, err)
 	}

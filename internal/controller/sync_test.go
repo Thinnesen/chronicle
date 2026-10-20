@@ -5,7 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -47,6 +49,18 @@ var _ = Describe("Workflow synchronization", func() {
 			Terminated: &corev1.ContainerStateTerminated{ExitCode: 0}}}}
 		Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
 	}
+
+	// A lock without holders goes away, so that the Leases of old lock names do not pile up.
+	It("deletes the Lease of a lock when its last holder gives it back", func() {
+		a := run()
+		Expect(step(a).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		lease := &coordinationv1.Lease{}
+		Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: lockPrefix + lock}, lease)).To(Succeed())
+		succeed(step(a))
+		Expect(step(a).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+		err := k8sClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: lockPrefix + lock}, lease)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue(), "error: %v", err)
+	})
 
 	// whenBusy: Skip ends a run whose lock is full, for example a cron run that must not pile up.
 	It("skips a run whose lock is busy", func() {
