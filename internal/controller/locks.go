@@ -86,5 +86,5 @@ func (r *WorkflowReconciler) lockLimit(ctx context.Context, namespace string, li
 
 // lockProblem is the message of a run or a node that waits, because the limit of its lock is not valid.
 func lockProblem(lock string, err error) string {
-	return fmt.Sprintf("waiting for the lock %s: %v", lock, err)
+	return fmt.Sprintf("%s %s: %v", engine.WaitingForLock, lock, err)
 }

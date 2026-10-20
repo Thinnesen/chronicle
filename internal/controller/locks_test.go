@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 )
@@ -38,7 +39,9 @@ templates:
 		Expect(wf2.Status.Nodes[wf2.Name].Message).To(Equal("waiting for the lock " + lock))
 
 		finishPod(ctx, &pods1[0], 0)
-		reconcileWith(ctx, r, first) // the node ends and gives the lock back
+		r.wake = make(chan event.GenericEvent, 8)
+		reconcileWith(ctx, r, first) // the node ends, gives the lock back and wakes the waiting node
+		Expect(r.wake).To(Receive(HaveField("Object.GetName()", second.Name)))
 		reconcileWith(ctx, r, second)
 		wf2 = reconcileWith(ctx, r, second)
 		Expect(podsOf(ctx, wf2)).To(HaveLen(1))

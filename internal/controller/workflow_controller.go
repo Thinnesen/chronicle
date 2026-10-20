@@ -18,7 +18,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/artifact"
@@ -50,6 +53,8 @@ type WorkflowReconciler struct {
 	MaxObjectBytes int
 
 	created createdPods
+	// wake queues runs that wait for a lock, when a holder gives the lock back.
+	wake chan event.GenericEvent
 }
 
 // Archiver saves a finished run with its node counts.
@@ -380,11 +385,14 @@ func (r *WorkflowReconciler) setError(ctx context.Context, wf *chroniclev1alpha1
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager. It watches the Pods that the controller owns.
+// SetupWithManager sets up the controller with the Manager. It watches the Pods that the controller owns, and the
+// runs that a lock wakes.
 func (r *WorkflowReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.wake = make(chan event.GenericEvent, wakeBuffer)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&chroniclev1alpha1.Workflow{}).
 		Owns(&corev1.Pod{}).
+		WatchesRawSource(source.Channel(r.wake, &handler.EnqueueRequestForObject{})).
 		Named("workflow").
 		WithOptions(controller.Options{MaxConcurrentReconciles: max(r.Workers, 1)}).
 		Complete(r)

@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 
@@ -59,6 +60,21 @@ var _ = Describe("Workflow synchronization", func() {
 		Expect(done.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
 		Expect(meta.IsStatusConditionTrue(done.Status.Conditions, conditionLocked)).To(BeFalse())
 		Expect(step(b).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+	})
+
+	It("wakes the runs that wait for the lock when a holder gives it back", func() {
+		a, b := run(), run()
+		step(a)
+		step(b)
+		succeed(step(a))
+		r := &WorkflowReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), ExecutorImage: testExecutorImage, wake: make(chan event.GenericEvent, 8)}
+		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: a})
+		Expect(err).NotTo(HaveOccurred())
+		var woken []string
+		for len(r.wake) > 0 {
+			woken = append(woken, (<-r.wake).Object.GetName())
+		}
+		Expect(woken).To(ConsistOf(b.Name))
 	})
 
 	It("stops a run that waits for the lock", func() {

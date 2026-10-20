@@ -8,11 +8,12 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// lockPoll is the wait of a node for the lock of its template between two tries.
-const lockPoll = 5 * time.Second
+// lockPoll is the wait of a node for the lock of its template between two tries. The controller wakes the run sooner
+// when a holder gives the lock back.
+const lockPoll = 15 * time.Second
 
-// waitingForLock starts the message of a node that waits for the lock of its template.
-const waitingForLock = "waiting for the lock"
+// WaitingForLock starts the message of a run or a node that waits for a lock. The lock name follows it.
+const WaitingForLock = "waiting for the lock"
 
 // AcquireLock asks the controller to take the lock of a template for a node. Limit is the number of holders, or
 // LimitFrom names the ConfigMap key that gives it.
@@ -38,7 +39,7 @@ func (e *engine) waitForLock(t *v1alpha1.Template, n *v1alpha1.NodeStatus) bool 
 	if !ok || e.in.HeldLocks[n.ID] != "" {
 		return false
 	}
-	n.Message = waitingForLock + " " + name
+	n.Message = WaitingForLock + " " + name
 	e.actions = append(e.actions, AcquireLock{Lock: name, Limit: limit, LimitFrom: t.Synchronization.LimitFrom(), NodeID: n.ID})
 	e.reached(e.in.Now.Add(lockPoll))
 	return true

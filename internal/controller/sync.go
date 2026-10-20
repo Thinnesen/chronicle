@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/engine"
@@ -28,8 +29,8 @@ const conditionLocked = "Synchronized"
 // annotationHolders lists the runs that hold a lock, on the Lease of the lock.
 const annotationHolders = "chronicle.thinnesen.com/holders"
 
-// lockPoll is the wait of a run for a lock between two tries.
-const lockPoll = 5 * time.Second
+// lockPoll is the wait of a run for a lock between two tries. A holder that gives the lock back wakes the run sooner.
+const lockPoll = 15 * time.Second
 
 // lockPrefix starts the name of the Lease of each lock.
 const lockPrefix = "chronicle-lock-"
@@ -69,7 +70,7 @@ func (r *WorkflowReconciler) acquireAs(ctx context.Context, namespace, name stri
 		lease = coordinationv1.Lease{Name: lockPrefix + name, Namespace: namespace}
 		setHolders(&lease, []holder{me})
 		if err := r.Create(ctx, &lease); apierrors.IsAlreadyExists(err) {
-			return false, "waiting for the lock " + name, nil
+			return false, engine.WaitingForLock + " " + name, nil
 		} else if err != nil {
 			return false, "", fmt.Errorf("create the lock %s: %w", name, err)
 		}
@@ -91,11 +92,11 @@ func (r *WorkflowReconciler) acquireAs(ctx context.Context, namespace, name stri
 		for _, h := range alive {
 			names = append(names, h.Name)
 		}
-		return false, fmt.Sprintf("waiting for the lock %s, which %s holds", name, strings.Join(names, ", ")), nil
+		return false, fmt.Sprintf("%s %s, which %s holds", engine.WaitingForLock, name, strings.Join(names, ", ")), nil
 	}
 	setHolders(&lease, append(alive, me))
 	if err := r.Update(ctx, &lease); apierrors.IsConflict(err) {
-		return false, "waiting for the lock " + name, nil
+		return false, engine.WaitingForLock + " " + name, nil
 	} else if err != nil {
 		return false, "", fmt.Errorf("take the lock %s: %w", name, err)
 	}
@@ -121,7 +122,52 @@ func (r *WorkflowReconciler) releaseWhere(ctx context.Context, namespace, name s
 	if err := r.Update(ctx, &lease); err != nil {
 		return fmt.Errorf("give back the lock %s: %w", name, err)
 	}
+	return r.wakeWaiters(ctx, namespace, name)
+}
+
+// wakeBuffer is the number of runs that can wait in the wake queue for a lock.
+const wakeBuffer = 256
+
+// wakeWaiters queues the runs that wait for a lock, so that they ask for it again at once. The poll of the waiting
+// runs stays as a fallback, for example for a holder that was deleted.
+func (r *WorkflowReconciler) wakeWaiters(ctx context.Context, namespace, name string) error {
+	if r.wake == nil {
+		return nil
+	}
+	var list chroniclev1alpha1.WorkflowList
+	if err := r.List(ctx, &list, client.InNamespace(namespace)); err != nil {
+		return fmt.Errorf("list the runs that wait for the lock %s: %w", name, err)
+	}
+	for i := range list.Items {
+		if !waitsFor(&list.Items[i], name) {
+			continue
+		}
+		select {
+		case r.wake <- event.GenericEvent{Object: &list.Items[i]}:
+		default: // The queue is full. The poll wakes the run later.
+		}
+	}
 	return nil
+}
+
+// waitsFor tells if an unfinished run, or one of its nodes, waits for a lock.
+func waitsFor(wf *chroniclev1alpha1.Workflow, name string) bool {
+	if finished(wf.Status.Phase) {
+		return false
+	}
+	names := func(msg string) bool {
+		rest, ok := strings.CutPrefix(msg, engine.WaitingForLock+" "+name)
+		return ok && (rest == "" || rest[0] == ',' || rest[0] == ':')
+	}
+	if c := meta.FindStatusCondition(wf.Status.Conditions, conditionLocked); c != nil && c.Status == metav1.ConditionFalse && names(c.Message) {
+		return true
+	}
+	for _, n := range wf.Status.Nodes {
+		if n.Phase == chroniclev1alpha1.NodePending && names(n.Message) {
+			return true
+		}
+	}
+	return false
 }
 
 // liveHolders drops the holders whose run was deleted or has finished. An example is a run that was deleted while it
@@ -209,7 +255,7 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 	}
 	wf.Status.Phase, wf.Status.Message = chroniclev1alpha1.WorkflowPending, msg
 	setLocked(wf, false, "Waiting", msg)
-	// A holder that finishes does not wake the waiting runs, so they look again soon.
+	// A holder that gives the lock back wakes the run. The poll covers a holder that was deleted and a new limit.
 	return r.writeWaiting(ctx, wf, observed, ctrl.Result{RequeueAfter: lockPoll})
 }
 
