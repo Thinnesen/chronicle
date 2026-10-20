@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -44,7 +45,7 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 	if err != nil {
 		return err
 	}
-	seen := map[string]v1alpha1.NodePhase{}
+	tracker := newChangeTracker()
 	for {
 		resp, err := c.GetWorkflow(ctx, connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: ns, Name: name}))
 		if err != nil && !healable(err) {
@@ -60,13 +61,7 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 			}
 			continue
 		}
-		var changed []v1alpha1.NodeStatus
-		for _, n := range nodes(resp.Msg) {
-			if n.Phase != "" && seen[n.ID] != n.Phase {
-				seen[n.ID] = n.Phase
-				changed = append(changed, n)
-			}
-		}
+		changed := tracker.changes(nodes(resp.Msg))
 		slices.SortStableFunc(changed, changeOrder)
 		for _, n := range changed {
 			_, _ = fmt.Fprintf(a.out, "%s  %-10s %s%s\n", time.Now().Format(time.TimeOnly), n.Phase, n.Name, suffix(n.Message))
@@ -85,6 +80,33 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 		case <-time.After(pollInterval):
 		}
 	}
+}
+
+// changeTracker finds the node changes that are news for the user: a new phase, or a new reason why a pending node
+// waits, for example ErrImagePull. Kubernetes switches between some reasons on each retry, so each one comes once.
+type changeTracker struct {
+	phase   map[string]v1alpha1.NodePhase
+	reasons map[string]bool
+}
+
+func newChangeTracker() *changeTracker {
+	return &changeTracker{phase: map[string]v1alpha1.NodePhase{}, reasons: map[string]bool{}}
+}
+
+func (t *changeTracker) changes(all []v1alpha1.NodeStatus) []v1alpha1.NodeStatus {
+	var out []v1alpha1.NodeStatus
+	for _, n := range all {
+		news := n.Phase != "" && t.phase[n.ID] != n.Phase
+		if reason, _, ok := strings.Cut(n.Message, ": "); ok && n.Phase == v1alpha1.NodePending && !t.reasons[n.ID+"/"+reason] {
+			t.reasons[n.ID+"/"+reason] = true
+			news = true
+		}
+		if news {
+			t.phase[n.ID] = n.Phase
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // changeOrder sorts the node changes of one poll by the time of the change. At the same time, an end comes
