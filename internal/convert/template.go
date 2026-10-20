@@ -256,7 +256,12 @@ func (c *converter) outputs(in obj, path string) obj {
 	if ps, ok := in["parameters"]; ok {
 		list := make([]any, 0, len(asList(ps)))
 		for i, p := range asList(ps) {
-			list = append(list, c.outputParameter(asObj(p), index(join(path, "parameters"), i)))
+			pp := index(join(path, "parameters"), i)
+			if _, jq := asObj(asObj(p)["valueFrom"])["jqFilter"]; jq {
+				c.warn(pp, "chronicle has no jq filters: the output parameter is dropped; use valueFrom.jsonPath")
+				continue
+			}
+			list = append(list, c.outputParameter(asObj(p), pp))
 		}
 		out["parameters"] = list
 	}

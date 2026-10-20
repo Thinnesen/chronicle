@@ -151,6 +151,12 @@ func TestRules(t *testing.T) {
 			want: []string{"value: '{{steps.s.outputs.result}}'"},
 		},
 		{
+			name: "a jq filter output is dropped",
+			templates: "  - name: main\n    outputs: {parameters: [{name: job, valueFrom: {jsonPath: '{.metadata.name}'}}, {name: obj, valueFrom: {jqFilter: '.'}}]}\n" +
+				"    resource: {action: get, manifest: '{apiVersion: v1, kind: ConfigMap, metadata: {name: c}}'}\n",
+			want: []string{"jsonPath: '{.metadata.name}'", "outputs.parameters[1]: chronicle has no jq filters"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",
