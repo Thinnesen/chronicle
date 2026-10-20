@@ -16,6 +16,7 @@ import { useNow } from "../lib/useNow";
 import { nodeLabel, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
 import { runRoute, type RunSearch } from "../router";
 import "./RunPage.css";
+import { useTitle } from "../lib/useTitle";
 
 // The graph library is large, so it loads only on this page.
 const RunGraph = lazy(() => import("../components/RunGraph").then((m) => ({ default: m.RunGraph })));
@@ -41,6 +42,7 @@ export function RunPage() {
   });
   const wf = useMemo(() => (data?.workflow ? (data.workflow as unknown as Workflow) : undefined), [data]);
   const now = useNow(!finished.has(data?.summary?.phase ?? ""));
+  useTitle(data?.summary ? `${name} (${data.summary.phase || "Pending"})` : name);
   if (error && !data) return <p role="alert">Could not load the run: {error.message}</p>;
   if (!data?.summary || !wf) return <p className="quiet">Loading the run…</p>;
   const s = data.summary;

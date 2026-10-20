@@ -3,8 +3,10 @@ import { useSearch } from "@tanstack/react-router";
 
 import { BrandMark } from "../components/BrandMark";
 import "./LoginPage.css";
+import { useTitle } from "../lib/useTitle";
 
 export function LoginPage() {
+  useTitle("Log in");
   const search = useSearch({ strict: false }) as { back?: string };
   const back = search.back && search.back.startsWith("/") ? search.back : "/";
   // The button names Microsoft when the server uses Entra ID. Without an answer, it stays generic.

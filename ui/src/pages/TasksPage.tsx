@@ -7,6 +7,7 @@ import { RefreshError } from "../components/RefreshError";
 import { ago, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { tasksRoute } from "../router";
+import { useTitle } from "../lib/useTitle";
 
 const stateFilters = { pending: "Pending", running: "Running", failed: "Failed", succeeded: "Succeeded" };
 
@@ -29,6 +30,7 @@ function phaseOf(state: string): string {
 // TasksPage lists the newest tasks of the task queue of the namespace: what waits for a worker, and what runs.
 export function TasksPage() {
   const { namespace } = tasksRoute.useParams();
+  useTitle(`Tasks in ${namespace}`);
   const { state } = tasksRoute.useSearch();
   const navigate = useNavigate({ from: tasksRoute.fullPath });
   const now = useNow();

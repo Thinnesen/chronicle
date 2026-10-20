@@ -9,10 +9,12 @@ import { readable, relative } from "../lib/cron";
 import { toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { cronsRoute } from "../router";
+import { useTitle } from "../lib/useTitle";
 
 // CronsPage lists the schedules of the namespace with their next run.
 export function CronsPage() {
   const { namespace } = cronsRoute.useParams();
+  useTitle(`Schedules in ${namespace}`);
   const now = useNow();
   const recent = useRecentRuns(namespace);
   const { data, error, isPending } = useQuery({

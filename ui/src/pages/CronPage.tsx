@@ -12,10 +12,12 @@ import { actionError } from "../lib/errors";
 import { ago, clock, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { cronRoute } from "../router";
+import { useTitle } from "../lib/useTitle";
 
 // CronPage shows a schedule, its recent runs and its YAML. An editor can suspend and resume it.
 export function CronPage() {
   const { namespace, name } = cronRoute.useParams();
+  useTitle(name);
   const now = useNow();
   const canEdit = useCanEdit(namespace);
   const toast = useToast();

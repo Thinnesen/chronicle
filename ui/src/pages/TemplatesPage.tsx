@@ -5,10 +5,12 @@ import { templates } from "../api/client";
 import { ClusterBadge, ManagedBadge } from "../components/Badge";
 import { RecentRuns, useRecentRuns } from "../components/RecentRuns";
 import { templatesRoute } from "../router";
+import { useTitle } from "../lib/useTitle";
 
 // TemplatesPage lists the templates that the user can run in the namespace, cluster templates too.
 export function TemplatesPage() {
   const { namespace } = templatesRoute.useParams();
+  useTitle(`Templates in ${namespace}`);
   const { data, error, isPending } = useQuery({ queryKey: ["templates", namespace], queryFn: () => templates.listTemplates({ namespace }) });
   const recent = useRecentRuns(namespace);
   return (

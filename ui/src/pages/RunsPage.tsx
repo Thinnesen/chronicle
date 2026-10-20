@@ -15,6 +15,7 @@ import { WaitingRuns } from "../components/WaitingRuns";
 import { useNow } from "../lib/useNow";
 import { runsRoute } from "../router";
 import "./RunsPage.css";
+import { useTitle } from "../lib/useTitle";
 
 const filters = [
   { phase: undefined, label: "All" },
@@ -32,6 +33,7 @@ function matches(phase: string | undefined, filter: string | undefined): boolean
 // RunsPage lists the runs of a namespace, newest first: the activity of 24 hours, the filters and a dense table.
 export function RunsPage() {
   const { namespace } = runsRoute.useParams();
+  useTitle(`Runs in ${namespace}`);
   const { q, phase } = runsRoute.useSearch();
   const navigate = useNavigate({ from: runsRoute.fullPath });
   const now = useNow(true);

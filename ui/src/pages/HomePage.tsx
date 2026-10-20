@@ -3,9 +3,11 @@ import { Link, Navigate, useRouteContext } from "@tanstack/react-router";
 
 import { namespaces } from "../api/client";
 import "./HomePage.css";
+import { useTitle } from "../lib/useTitle";
 
 // HomePage opens the only namespace of the user, or lets the user choose one.
 export function HomePage() {
+  useTitle("Namespaces");
   const { session } = useRouteContext({ from: "/app" });
   const { data, isPending, error } = useQuery({ queryKey: ["namespaces"], queryFn: () => namespaces.listNamespaces({}) });
   if (isPending) {

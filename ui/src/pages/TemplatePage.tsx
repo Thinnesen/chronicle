@@ -11,12 +11,14 @@ import { YamlView } from "../components/YamlView";
 import { useNow } from "../lib/useNow";
 import { previewOf, type Workflow } from "../lib/workflow";
 import { templateRoute } from "../router";
+import { useTitle } from "../lib/useTitle";
 
 const RunGraph = lazy(() => import("../components/RunGraph").then((m) => ({ default: m.RunGraph })));
 
 // TemplatePage shows a template and lets an editor start a run of it.
 export function TemplatePage() {
   const { namespace, name } = templateRoute.useParams();
+  useTitle(name);
   const { cluster } = templateRoute.useSearch();
   const canRun = useCanEdit(namespace);
   const { data, error } = useQuery({

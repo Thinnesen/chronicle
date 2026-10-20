@@ -5,6 +5,7 @@ import { mockAPI } from "./mock";
 test("shows the run as a graph and a timeline, and selects a node in both", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a/runs/etl-nightly-8k2pq");
+  await expect(page).toHaveTitle("etl-nightly-8k2pq (Running) - chronicle");
   await expect(page.getByRole("heading", { name: "etl-nightly-8k2pq" })).toBeVisible();
   await expect(page.getByRole("list", { name: "Parameters" })).toContainText("day2026-10-17");
   const graph = page.locator(".run-graph");

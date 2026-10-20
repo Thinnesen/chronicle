@@ -22,6 +22,7 @@ test("lets the user choose a namespace and shows its runs", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Runs", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "etl-nightly-8k2pq" })).toBeVisible();
   await expect(page.getByRole("img", { name: "3 of 7 nodes done" })).toBeVisible();
+  await expect(page).toHaveTitle("Runs in team-a - chronicle");
 });
 
 test("opens the only namespace at once", async ({ page }) => {
