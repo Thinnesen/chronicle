@@ -9,6 +9,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/artifact"
 	"github.com/Thinnesen/chronicle/internal/engine"
 	"github.com/Thinnesen/chronicle/internal/executor"
 )
@@ -68,6 +69,9 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		if files != nil {
 			main.Env = append(main.Env, artifactEnv(withoutInputs(files))...)
 			annotations[AnnotationArtifactPrefix] = files.Prefix
+			if files.Repository != nil && files.Repository.ArchiveLogs {
+				annotations[AnnotationLogKey] = artifact.LogKey(files.Prefix)
+			}
 			volumes = mountInputs(files, &initContainers[0], &main, volumes)
 		}
 	}

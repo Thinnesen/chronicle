@@ -250,10 +250,11 @@ func TestEnginePodStates(t *testing.T) {
 	}
 	s.in.Status = r.Status
 
-	// A Running Pod has the start time of its node.
-	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeRunning}
+	// A Running Pod has the start time of its node. The node keeps the key of its archived log at once, so that a
+	// stop that deletes the Pod does not lose the log.
+	s.in.Pods[id] = PodResult{Phase: v1alpha1.NodeRunning, LogKey: "ns/uid/pod/main.log"}
 	r = Run(s.in)
-	if n := r.Status.Nodes[id]; n.Phase != v1alpha1.NodeRunning || n.StartedAt == nil {
+	if n := r.Status.Nodes[id]; n.Phase != v1alpha1.NodeRunning || n.StartedAt == nil || n.LogKey != "ns/uid/pod/main.log" {
 		t.Fatalf("running node = %+v", n)
 	}
 	s.in.Status = r.Status

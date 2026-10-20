@@ -20,6 +20,10 @@ import (
 // AnnotationArtifactPrefix is the key prefix of the artifacts and the log of a Pod.
 const AnnotationArtifactPrefix = "chronicle.thinnesen.com/artifact-prefix"
 
+// AnnotationLogKey on a workflow Pod is the key of its archived log, when the namespace archives logs. The node gets it
+// as soon as the Pod exists, so a stop that deletes the Pod does not lose the log.
+const AnnotationLogKey = "chronicle.thinnesen.com/log-key"
+
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get
 
 // artifactSpec returns what the executor of a new Pod downloads and saves, or nil when it has nothing to do.

@@ -54,7 +54,10 @@ func TestPodResult(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := podResult(&corev1.Pod{Status: tt.status})
+			r := podResult(&corev1.Pod{Status: tt.status, Annotations: map[string]string{AnnotationLogKey: "k"}})
+			if r.LogKey != "k" {
+				t.Errorf("log key = %q", r.LogKey)
+			}
 			if r.Phase != tt.phase || r.Message != tt.msg {
 				t.Errorf("got %s %q, want %s %q", r.Phase, r.Message, tt.phase, tt.msg)
 			}

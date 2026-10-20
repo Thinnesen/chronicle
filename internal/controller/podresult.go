@@ -16,6 +16,14 @@ import (
 
 // podResult reads the state of a workflow Pod for the engine.
 func podResult(pod *corev1.Pod) engine.PodResult {
+	r := podState(pod)
+	if r.LogKey == "" {
+		r.LogKey = pod.Annotations[AnnotationLogKey]
+	}
+	return r
+}
+
+func podState(pod *corev1.Pod) engine.PodResult {
 	main := containerStatus(pod.Status.ContainerStatuses, mainContainer)
 	if t := main.State.Terminated; t != nil {
 		return terminated(t, pod.Annotations[AnnotationArtifactPrefix])

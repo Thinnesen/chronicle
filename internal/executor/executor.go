@@ -13,7 +13,9 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 )
 
 // The environment variables that the controller sets on the main container.
@@ -73,6 +75,10 @@ func Install(dst string) error {
 	}
 	return nil
 }
+
+// killGrace is the time between the first stop signal and the kill of the command. It leaves time to save the log
+// within the 30 s grace period of the Pod.
+var killGrace = 20 * time.Second
 
 // Run runs the command, writes the termination message and returns the exit code.
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -137,6 +143,10 @@ func addScript(args []string) ([]string, error) {
 
 // runChild runs the command, forwards SIGTERM and SIGINT, and returns the exit code.
 func runChild(cmd *exec.Cmd, stderr io.Writer) int {
+	// The command and its children get their own process group, so that a signal reaches all of them.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// A child that keeps the output open must not keep the executor from saving the log.
+	cmd.WaitDelay = 5 * time.Second
 	if err := cmd.Start(); err != nil {
 		_, _ = fmt.Fprintln(stderr, "chronicle-exec:", err)
 		return 127
@@ -145,8 +155,14 @@ func runChild(cmd *exec.Cmd, stderr io.Writer) int {
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
 	defer signal.Stop(sigs)
 	go func() {
+		var kill sync.Once
 		for s := range sigs {
-			_ = cmd.Process.Signal(s)
+			_ = syscall.Kill(-cmd.Process.Pid, s.(syscall.Signal))
+			// A shell that waits for a child ignores SIGTERM until the child ends. Kubernetes kills the Pod after its
+			// grace period (30 s), and then the log is lost. So the executor kills the command first.
+			kill.Do(func() {
+				time.AfterFunc(killGrace, func() { _ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) })
+			})
 		}
 	}()
 	err := cmd.Wait()

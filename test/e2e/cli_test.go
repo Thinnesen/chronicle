@@ -223,6 +223,15 @@ func cliSpecs() {
 			Expect(out).To(ContainSubstring("stop-retry Succeeded"))
 		})
 
+		It("keeps the log of a step that timed out", func() {
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/timeout-log.yaml", "--watch")
+			Expect(err).To(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("timeout-log Failed"))
+			// The stop deletes the Pod, so the log comes from the log archive.
+			Eventually(func() (string, error) { return chronicle("logs", "timeout-log") }).
+				WithTimeout(time.Minute).WithPolling(2 * time.Second).Should(ContainSubstring("important-line"))
+		})
+
 		It("runs a task in a worker of each SDK", func() {
 			// The task queue is in the archive database, which the archive spec configured.
 			for _, args := range [][]string{

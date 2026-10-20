@@ -41,7 +41,7 @@ High:
 Bugs:
 - S3. (done) `approve -p <unknown>=x` approves anyway.
 - S4. (done) A suspend output default outside its enum is admitted.
-- S5. The logs of stopped, terminated and timed-out steps are lost, also with archiveLogs.
+- S5. (done) The logs of stopped, terminated and timed-out steps are lost, also with archiveLogs.
 - S6. (done) stop, suspend and resume of a finished run report success. Suspend then retry gives a Suspended run with an empty tree.
 - S7. Converter: templateDefaults.timeout replaces a template activeDeadlineSeconds.
 - S8. `chronicle get` after a retry leaves out kept nodes. The workflow onExit node is never shown.
