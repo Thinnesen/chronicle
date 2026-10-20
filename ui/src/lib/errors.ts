@@ -16,6 +16,14 @@ export function actionError(action: string, namespace: string, err: unknown): st
   return `Could not ${action}: ${e.rawMessage}`;
 }
 
+// loadError tells why a page could not load something, and what the user can do.
+export function loadError(what: string, namespace: string, err: unknown): string {
+  if (err instanceof ConnectError && err.code === Code.PermissionDenied) {
+    return `You cannot see the ${what} in ${namespace}. Choose another namespace, or ask your platform team for the viewer role.`;
+  }
+  return `Could not load the ${what}: ${errorText(err)}`;
+}
+
 // errorText is the message of an error without the Connect code, for people.
 export function errorText(err: unknown): string {
   if (err instanceof ConnectError) return err.rawMessage;

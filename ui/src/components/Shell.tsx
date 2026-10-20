@@ -152,6 +152,8 @@ function NamespacePicker() {
       <span className="ns-label">Namespace</span>
       <select value={params.namespace ?? ""} onChange={(e) => void navigate({ to: "/ns/$namespace", params: { namespace: e.target.value } })}>
         {!params.namespace && <option value="">Choose a namespace</option>}
+        {/* A namespace from a link that is not in the list still shows, so the picker never names another one. */}
+        {params.namespace && !list.some((n) => n.name === params.namespace) && <option value={params.namespace}>{params.namespace}</option>}
         {list.map((n) => (
           <option key={n.name} value={n.name}>
             {n.name}
