@@ -221,9 +221,13 @@ function exits(
   nodes: Record<string, NodeStatus>,
   byName: Map<string, NodeStatus>,
   templates: Map<string, Template>,
+  top = true,
 ): NodeStatus[] {
+  // A node inside with an exit hook ends with its hook. The node itself (top) is the owner of the hook that waits.
+  const hook = top ? undefined : byName.get(`${n.name}.onExit`);
+  if (hook) return [hook];
   const kids = (n.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c);
-  const sub = (list: NodeStatus[]) => (list.length ? list.flatMap((c) => exits(c, nodes, byName, templates)) : [n]);
+  const sub = (list: NodeStatus[]) => (list.length ? list.flatMap((c) => exits(c, nodes, byName, templates, false)) : [n]);
   switch (n.type) {
     case "Retry":
       return sub(kids.slice(-1));

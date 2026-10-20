@@ -66,6 +66,45 @@ describe("buildGraph", () => {
     expect(buildGraph(withExit).map((e) => `${e.from}>${e.to}`)).toContain("Y0>E");
   });
 
+  it("starts a dependency of a nested DAG at the end of the nested DAG", () => {
+    const nested: Workflow = {
+      metadata: { name: "w", namespace: "ns" },
+      spec: {
+        templates: [
+          { name: "main", dag: { tasks: [{ name: "nested" }, { name: "use", depends: "nested" }] } },
+          { name: "inner", dag: { tasks: [{ name: "render" }] } },
+        ],
+      },
+      status: {
+        nodes: {
+          w: { id: "w", name: "w", type: "DAG", templateName: "main", children: ["N", "U"] },
+          N: { id: "N", name: "w.nested", type: "DAG", templateName: "inner", children: ["R"] },
+          R: { id: "R", name: "w.nested.render", type: "Pod", templateName: "render" },
+          U: { id: "U", name: "w.use", type: "Pod", templateName: "c" },
+        },
+      },
+    };
+    expect(buildGraph(nested).map((e) => `${e.from}>${e.to}`)).toContain("R>U");
+  });
+
+  it("starts the exit handler after the exit hook of a last task", () => {
+    const hooked: Workflow = {
+      metadata: { name: "w", namespace: "ns" },
+      spec: { templates: [{ name: "main", dag: { tasks: [{ name: "t" }] } }] },
+      status: {
+        nodes: {
+          w: { id: "w", name: "w", type: "DAG", templateName: "main", children: ["T", "H"] },
+          T: { id: "T", name: "w.t", type: "Pod" },
+          H: { id: "H", name: "w.t.onExit", type: "Pod" },
+          E: { id: "E", name: "w.onExit", type: "Pod" },
+        },
+      },
+    };
+    const edges = buildGraph(hooked).map((e) => `${e.from}>${e.to}`);
+    expect(edges).toContain("H>E");
+    expect(edges).not.toContain("T>E");
+  });
+
   it("uses the stored spec of a template reference", () => {
     const ref: Workflow = { ...wf, spec: {}, status: { ...wf.status, storedSpec: wf.spec } };
     expect(buildGraph(ref)).toHaveLength(9);
