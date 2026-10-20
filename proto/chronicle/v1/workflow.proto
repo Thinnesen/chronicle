@@ -64,6 +64,9 @@ message WorkflowSummary {
   bool archived = 13;
   // approvals_waiting counts the suspend nodes that wait for an approval.
   int32 approvals_waiting = 14;
+  // waiting_reason is the Kubernetes reason why a step of the run does not start, for example ImagePullBackOff or
+  // Unschedulable. It is empty when no step waits for such a reason.
+  string waiting_reason = 15;
 }
 
 message ListWorkflowsRequest {

@@ -6,7 +6,7 @@ export const now = Date.parse("2026-10-18T14:00:00Z");
 const ts = (offsetSeconds: number) => new Date(now + offsetSeconds * 1000).toISOString();
 
 export const runs = [
-  { namespace: "team-a", name: "etl-nightly-8k2pq", uid: "u1", phase: "Running", createdAt: ts(-300), startedAt: ts(-290), template: "etl-nightly", nodesDone: 3, nodesTotal: 7 },
+  { namespace: "team-a", name: "etl-nightly-8k2pq", uid: "u1", phase: "Running", waitingReason: "ImagePullBackOff", createdAt: ts(-300), startedAt: ts(-290), template: "etl-nightly", nodesDone: 3, nodesTotal: 7 },
   { namespace: "team-a", name: "deploy-api-x7c1m", uid: "u2", phase: "Running", approvalsWaiting: 1, createdAt: ts(-900), startedAt: ts(-890), template: "deploy-api", nodesDone: 2, nodesTotal: 4 },
   { namespace: "team-a", name: "train-model-4rq9z", uid: "u3", phase: "Failed", message: 'task "evaluate" failed', createdAt: ts(-4000), startedAt: ts(-3990), finishedAt: ts(-1200), nodesDone: 5, nodesTotal: 6 },
   { namespace: "team-a", name: "backfill-2026-10", uid: "u4", phase: "Succeeded", archived: true, createdAt: ts(-86400), startedAt: ts(-86390), finishedAt: ts(-80000), template: "backfill", nodesDone: 40, nodesTotal: 40 },

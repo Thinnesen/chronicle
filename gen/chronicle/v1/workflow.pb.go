@@ -47,8 +47,11 @@ type WorkflowSummary struct {
 	Archived bool `protobuf:"varint,13,opt,name=archived,proto3" json:"archived,omitempty"`
 	// approvals_waiting counts the suspend nodes that wait for an approval.
 	ApprovalsWaiting int32 `protobuf:"varint,14,opt,name=approvals_waiting,json=approvalsWaiting,proto3" json:"approvals_waiting,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// waiting_reason is the Kubernetes reason why a step of the run does not start, for example ImagePullBackOff or
+	// Unschedulable. It is empty when no step waits for such a reason.
+	WaitingReason string `protobuf:"bytes,15,opt,name=waiting_reason,json=waitingReason,proto3" json:"waiting_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WorkflowSummary) Reset() {
@@ -177,6 +180,13 @@ func (x *WorkflowSummary) GetApprovalsWaiting() int32 {
 		return x.ApprovalsWaiting
 	}
 	return 0
+}
+
+func (x *WorkflowSummary) GetWaitingReason() string {
+	if x != nil {
+		return x.WaitingReason
+	}
+	return ""
 }
 
 type ListWorkflowsRequest struct {
@@ -1633,7 +1643,7 @@ var File_chronicle_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdb\x04\n" +
+	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x82\x05\n" +
 	"\x0fWorkflowSummary\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
@@ -1654,7 +1664,8 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\vnodes_total\x18\f \x01(\x05R\n" +
 	"nodesTotal\x12\x1a\n" +
 	"\barchived\x18\r \x01(\bR\barchived\x12+\n" +
-	"\x11approvals_waiting\x18\x0e \x01(\x05R\x10approvalsWaiting\x1a9\n" +
+	"\x11approvals_waiting\x18\x0e \x01(\x05R\x10approvalsWaiting\x12%\n" +
+	"\x0ewaiting_reason\x18\x0f \x01(\tR\rwaitingReason\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x01\n" +

@@ -148,6 +148,11 @@ export function RunsPage() {
                         </Link>
                         {w.archived && <span className="badge">Archived</span>}
                         {w.approvalsWaiting > 0 && <span className="badge badge-caution">Needs approval</span>}
+                        {w.waitingReason && (
+                          <span className="badge badge-caution" title="A step does not start. Open the run to see why.">
+                            {w.waitingReason}
+                          </span>
+                        )}
                       </span>
                       {w.message && (
                         <span className="board-message" title={w.message}>

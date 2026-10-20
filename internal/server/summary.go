@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"regexp"
+	"slices"
 
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -34,12 +37,27 @@ func summary(wf *v1alpha1.Workflow) *chroniclev1.WorkflowSummary {
 		s.Template = ref.Name
 	}
 	s.NodesDone, s.NodesTotal = wf.Status.Progress()
-	for _, n := range wf.Status.Nodes {
-		if n.Type == v1alpha1.NodeSuspend && n.Phase == v1alpha1.NodeRunning {
+	for _, id := range slices.Sorted(maps.Keys(wf.Status.Nodes)) {
+		n := wf.Status.Nodes[id]
+		switch {
+		case n.Type == v1alpha1.NodeSuspend && n.Phase == v1alpha1.NodeRunning:
 			s.ApprovalsWaiting++
+		case n.Type == v1alpha1.NodePod && n.Phase == v1alpha1.NodePending && s.WaitingReason == "":
+			s.WaitingReason = waitingReason(n.Message)
 		}
 	}
 	return s
+}
+
+// reasonPrefix matches the Kubernetes reason at the start of a node message, for example "ImagePullBackOff: ...".
+var reasonPrefix = regexp.MustCompile(`^([A-Z][A-Za-z]+): `)
+
+// waitingReason returns the Kubernetes reason in the message of a pending Pod node, or "".
+func waitingReason(message string) string {
+	if m := reasonPrefix.FindStringSubmatch(message); m != nil {
+		return m[1]
+	}
+	return ""
 }
 
 func timestamp(t *metav1.Time) *timestamppb.Timestamp {

@@ -33,6 +33,7 @@ test("finds runs by name and by phase", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
   await expect(page.getByRole("row", { name: /deploy-api-x7c1m/ }).getByText("Needs approval")).toBeVisible();
+  await expect(page.getByRole("row", { name: /etl-nightly-8k2pq/ }).getByText("ImagePullBackOff")).toBeVisible();
   const notice = page.getByRole("status", { name: "Runs that wait for an approval" });
   await expect(notice).toContainText("deploy-api-x7c1m waits for an approval.");
   await page.getByRole("searchbox", { name: "Search runs" }).fill("model");
