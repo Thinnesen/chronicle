@@ -18,7 +18,7 @@ type wtok struct {
 	text string
 }
 
-var whenOps = []string{"&&", "||", "==", "!=", "<=", ">=", "<", ">", "!", "(", ")"}
+var whenOps = []string{"&&", "||", "==", "!=", "=~", "!~", "<=", ">=", "<", ">", "!", "(", ")"}
 
 func whenTokens(s string) ([]wtok, error) {
 	var toks []wtok
@@ -136,7 +136,7 @@ func (p *wparser) compare() (wnode, error) {
 	if err != nil {
 		return nil, err
 	}
-	if op := p.peekOp("==", "!=", "<=", ">=", "<", ">"); op != "" {
+	if op := p.peekOp("==", "!=", "=~", "!~", "<=", ">=", "<", ">"); op != "" {
 		p.pos++
 		r, err := p.primary()
 		return wCompare{op, l, r}, err

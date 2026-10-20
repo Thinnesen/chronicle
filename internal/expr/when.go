@@ -2,6 +2,7 @@ package expr
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -112,6 +113,14 @@ func (n wCompare) eval(r Resolver) (string, error) {
 	rv, err := n.r.eval(r)
 	if err != nil {
 		return "", err
+	}
+	if n.op == "=~" || n.op == "!~" {
+		// Go regular expressions run in linear time, so a pattern from a parameter cannot stall the controller.
+		re, err := regexp.Compile(rv)
+		if err != nil {
+			return "", fmt.Errorf("when condition: %w", err)
+		}
+		return fromBool(re.MatchString(l) == (n.op == "=~")), nil
 	}
 	c := strings.Compare(l, rv)
 	lf, lerr := strconv.ParseFloat(l, 64)

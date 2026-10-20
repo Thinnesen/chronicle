@@ -28,6 +28,9 @@ func TestWhen(t *testing.T) {
 		{"false && {{missing}} == x", false}, // short-circuit
 		{"true || {{missing}} == x", true},
 		{"'pre-{{r}}' == pre-heads", true},
+		{"{{r}} =~ hea", true}, // a regular expression match, as in Argo
+		{"{{r}} =~ '^tails$'", false},
+		{"{{r}} !~ '^t'", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
@@ -52,7 +55,7 @@ func TestWhenErrors(t *testing.T) {
 			t.Errorf("ParseWhen(%q) returned no error", in)
 		}
 	}
-	for _, in := range []string{"heads", "{{missing}}", "{{missing}} == a", "a == {{missing}}", "!x", "x && true", "'{{missing}}' == a"} {
+	for _, in := range []string{"heads", "{{missing}}", "{{missing}} == a", "a == {{missing}}", "!x", "x && true", "'{{missing}}' == a", "a =~ '('"} {
 		w, err := ParseWhen(in)
 		if err != nil {
 			t.Fatal(err)
