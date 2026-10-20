@@ -217,6 +217,10 @@ func (r *WorkflowReconciler) restart(ctx context.Context, wf *chroniclev1alpha1.
 		return nil
 	}
 	st, pods, err := engine.Restart(spec, wf.Status, wf.Name, rs.FromNode)
+	if err == nil && wf.Spec.Shutdown != "" {
+		// The engine would stop the new try at once. The API removes the shutdown with the retry.
+		err = errors.New("the run was stopped: remove spec.shutdown in the same change as the retry")
+	}
 	if err != nil {
 		wf.Status.Restarts = rs.Generation
 		meta.SetStatusCondition(&wf.Status.Conditions, metav1.Condition{Type: "Restarted", Status: metav1.ConditionFalse,

@@ -175,7 +175,7 @@ type WorkflowStatus struct {
 // +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.message`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:validation:XValidation:rule="has(self.spec.workflowTemplateRef) ? !has(self.spec.templates) : (has(self.spec.entrypoint) && has(self.spec.templates))",message="give spec.entrypoint and spec.templates, or spec.workflowTemplateRef without spec.templates"
-// +kubebuilder:validation:XValidation:rule="!has(oldSelf.spec.shutdown) || (has(self.spec.shutdown) && (self.spec.shutdown == oldSelf.spec.shutdown || self.spec.shutdown == 'Terminate'))",message="a shutdown cannot be removed, and only Stop can change to Terminate"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.spec.shutdown) || (has(self.spec.shutdown) && (self.spec.shutdown == oldSelf.spec.shutdown || self.spec.shutdown == 'Terminate')) || (has(oldSelf.status) && has(oldSelf.status.phase) && oldSelf.status.phase in ['Succeeded', 'Failed', 'Error'] && has(self.spec.restart) && (!has(oldSelf.spec.restart) || self.spec.restart.generation > oldSelf.spec.restart.generation))",message="a shutdown cannot be removed, except by a retry of a finished run, and only Stop can change to Terminate"
 
 // Workflow is one run of a workflow definition.
 type Workflow struct {

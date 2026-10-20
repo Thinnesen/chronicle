@@ -303,3 +303,27 @@ func TestEngineIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// TestEngineStopCreatesNoPod stops a run when its first step has just succeeded. The engine must not start the next
+// step: the controller applies a create and a delete in parallel, so the Pod could run after all.
+func TestEngineStopCreatesNoPod(t *testing.T) {
+	s := newSim(t, "entrypoint: main\nonExit: c\ntemplates:\n- {name: main, steps: [[{name: first, template: c}], [{name: second, template: c}]]}"+pod, nil)
+	r := Run(s.in)
+	first := r.Actions[0].(CreatePod)
+	s.in.Status = r.Status
+	s.in.Pods[first.PodName] = PodResult{Phase: v1alpha1.NodeSucceeded}
+	s.in.Shutdown = v1alpha1.ShutdownStop
+	r = Run(s.in)
+	for _, a := range r.Actions {
+		if c, ok := a.(CreatePod); ok && c.NodeName != wfName+".onExit" {
+			t.Fatalf("the stopped run creates the Pod of %s", c.NodeName)
+		}
+	}
+	if n := r.Status.Nodes[first.NodeID]; n.Phase != v1alpha1.NodeSucceeded {
+		t.Errorf("the first step that finished is %s, want Succeeded", n.Phase)
+	}
+	// A stopped run still runs its exit handler.
+	if len(r.Actions) == 0 {
+		t.Error("the exit handler does not start")
+	}
+}

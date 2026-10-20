@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A retry of a stopped run works. The API removes `spec.shutdown` and `spec.suspend` with the retry, and the CRD rule allows that removal only with a new retry of a finished run. The API also removes the approvals of the suspend nodes that the retry runs again, so an old approval cannot pass the new try. Stop, terminate, suspend and resume of a finished run are refused. The engine starts no Pod or task while it stops an entrypoint: the controller applies a create and a delete in parallel, so such a Pod could run while the run showed Failed. Found by the soak test.
+
 - 2026-10-20: The archive can delete old rows (`--archive-retention`, Helm value `archive.retention`). The leader controller deletes finished runs, finished tasks and step cache entries older than the limit, once an hour, in batches of 500. Indexes on the time columns keep each batch cheap. The default keeps all rows, so an upgrade deletes nothing. The bucket of the archived logs needs its own lifecycle rule; chronicle does not delete objects. Sources: Dagster #4497, Temporal #2617.
 
 - 2026-10-20: The archive keeps each earlier try of a retried run (table `workflow_tries`). A retry resets the failed nodes, and the next save of the run replaced its archive row. So the nodes and the messages of a failed try were lost. Now Save copies the old row into `workflow_tries` first, in the same transaction, when the retry count went up. GetWorkflow and StreamLogs have an optional `try`, and the run page has a "Try" field. The tries are found by the UID of the run, because a new run can have the name of a deleted run. An earlier try is read-only. Without the archive, a run has no earlier tries. Source: Argo #13839.

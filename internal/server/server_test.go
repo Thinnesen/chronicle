@@ -375,3 +375,44 @@ func createTemplate(t *testing.T, name string) {
 	}
 	t.Cleanup(func() { _ = admin.Delete(ctx, tmpl) })
 }
+
+// TestControlOfAFinishedRun refuses a stop, a terminate, a suspend and a resume of a finished run. Before, the API
+// accepted them, and a later retry ended at once.
+func TestControlOfAFinishedRun(t *testing.T) {
+	srv := setup(t)
+	ctx := context.Background()
+	wf := &v1alpha1.Workflow{Name: "finished", Namespace: "team-a", Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "c", Templates: []v1alpha1.Template{{Name: "c", Container: &v1alpha1.ContainerTemplate{Image: "alpine"}}}}}
+	if err := admin.Create(ctx, wf); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Delete(ctx, wf) })
+	wf.Status.Phase = v1alpha1.WorkflowFailed
+	if err := admin.Status().Update(ctx, wf); err != nil {
+		t.Fatal(err)
+	}
+	alice := newClient(srv, "alice")
+	ns, name := "team-a", wf.Name
+	for action, call := range map[string]func() error{
+		"stop": func() error {
+			_, err := alice.StopWorkflow(ctx, connect.NewRequest(&chroniclev1.StopWorkflowRequest{Namespace: ns, Name: name}))
+			return err
+		},
+		"terminate": func() error {
+			_, err := alice.TerminateWorkflow(ctx, connect.NewRequest(&chroniclev1.TerminateWorkflowRequest{Namespace: ns, Name: name}))
+			return err
+		},
+		"suspend": func() error {
+			_, err := alice.SuspendWorkflow(ctx, connect.NewRequest(&chroniclev1.SuspendWorkflowRequest{Namespace: ns, Name: name}))
+			return err
+		},
+		"resume": func() error {
+			_, err := alice.ResumeWorkflow(ctx, connect.NewRequest(&chroniclev1.ResumeWorkflowRequest{Namespace: ns, Name: name}))
+			return err
+		},
+	} {
+		if err := call(); code(err) != connect.CodeFailedPrecondition {
+			t.Errorf("%s of a finished run: %v", action, err)
+		}
+	}
+}

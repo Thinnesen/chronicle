@@ -1,0 +1,19 @@
+apiVersion: chronicle.thinnesen.com/v1alpha1
+kind: Workflow
+metadata:
+  name: stop-retry
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    steps:
+    - - {name: slow, template: slow}
+    - - {name: after, template: after}
+  - name: slow
+    script:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      source: sleep 15
+  - name: after
+    script:
+      image: busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      source: echo after

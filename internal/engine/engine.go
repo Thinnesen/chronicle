@@ -142,9 +142,12 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 	if !ok && e.in.Suspend {
 		return v1alpha1.NodeRunning, ""
 	}
+	reason := e.stopReason()
+	e.stopping = reason != ""
 	root = e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs(), artifacts: e.workflowArtifacts()}, 0)
+	e.stopping = false
 	if !IsTerminal(root.Phase) {
-		if reason := e.stopReason(); reason != "" {
+		if reason != "" {
 			e.stop(root.ID, reason)
 			root = e.nodes[root.ID]
 		}
@@ -238,6 +241,9 @@ type engine struct {
 	wakeAt *time.Time
 	// startedAt is the start time of the workflow.
 	startedAt time.Time
+	// stopping is true while the engine walks an entrypoint that it stops next. Then no node starts work: a Pod that
+	// it created would run, because the controller applies the create and the delete in parallel.
+	stopping bool
 }
 
 func newEngine(in *Input, nodes map[string]v1alpha1.NodeStatus) *engine {

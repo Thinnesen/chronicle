@@ -246,6 +246,17 @@ templates:
 		Expect(wf.Status.Restarts).To(Equal(int32(2)))
 		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
 		Expect(wf.Status.Conditions).To(ContainElement(HaveField("Message", ContainSubstring("no node failed"))))
+
+		By("refusing a retry of a stopped run that keeps its shutdown")
+		before := len(pods(wf))
+		wf.Spec.Shutdown = chroniclev1alpha1.ShutdownStop
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+		wf.Spec.Restart = &chroniclev1alpha1.Restart{Generation: 3, FromNode: wf.Name}
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+		wf = reconcileOnce(key)
+		Expect(wf.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
+		Expect(pods(wf)).To(HaveLen(before))
+		Expect(wf.Status.Conditions).To(ContainElement(HaveField("Message", ContainSubstring("remove spec.shutdown"))))
 	})
 
 	It("archives a finished run before its TTL deletes it", func() {

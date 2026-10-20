@@ -208,6 +208,21 @@ func cliSpecs() {
 			}).WithTimeout(time.Minute).WithPolling(2 * time.Second).Should(BeEmpty())
 		})
 
+		It("retries a run that was stopped", func() {
+			out, err := chronicle("submit", "-f", "test/e2e/testdata/stop-retry.yaml")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Eventually(func() (string, error) { return chronicle("get", "stop-retry") }).
+				WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(ContainSubstring("Phase:     Running"))
+			out, err = chronicle("stop", "stop-retry")
+			Expect(err).NotTo(HaveOccurred(), out)
+			out, err = chronicle("watch", "stop-retry")
+			Expect(err).To(HaveOccurred(), out)
+			// Before the fix, the retry ended at once with "the workflow was stopped".
+			out, err = chronicle("retry", "stop-retry", "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("stop-retry Succeeded"))
+		})
+
 		It("runs a task in a worker of each SDK", func() {
 			// The task queue is in the archive database, which the archive spec configured.
 			for _, args := range [][]string{

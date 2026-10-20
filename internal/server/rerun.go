@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
+	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
 // LabelRerunOf names the run that a re-run copies.
@@ -26,6 +28,19 @@ func (s *workflowService) RetryWorkflow(ctx context.Context, req *connect.Reques
 		if m.Node == "" && wf.Status.Phase == v1alpha1.WorkflowSucceeded {
 			return connect.NewError(connect.CodeFailedPrecondition, errors.New("no node failed: retry from a node or re-run the run"))
 		}
+		// A dry run of the retry finds the nodes that run again, and refuses a node that does not exist.
+		spec := wf.Status.StoredSpec
+		if spec == nil {
+			spec = &wf.Spec.WorkflowTemplateSpec
+		}
+		next, _, err := engine.Restart(spec, wf.Status, wf.Name, m.Node)
+		if err != nil {
+			return connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		// A suspend node that runs again needs a new approval. A stop or a suspend of the earlier try must not end the
+		// retry at once.
+		wf.Spec.Approvals = slices.DeleteFunc(wf.Spec.Approvals, func(a v1alpha1.Approval) bool { return !kept(next.Nodes, a.Node) })
+		wf.Spec.Shutdown, wf.Spec.Suspend = "", false
 		gen := wf.Status.Restarts + 1
 		if wf.Spec.Restart != nil && wf.Spec.Restart.Generation >= gen {
 			gen = wf.Spec.Restart.Generation + 1
@@ -85,4 +100,17 @@ func rerunPrefix(name string) string {
 		return name[:i+1]
 	}
 	return name + "-"
+}
+
+// kept tells if a node, by ID or by name, stays after a retry.
+func kept(nodes map[string]v1alpha1.NodeStatus, node string) bool {
+	if _, ok := nodes[node]; ok {
+		return true
+	}
+	for _, n := range nodes {
+		if n.Name == node {
+			return true
+		}
+	}
+	return false
 }

@@ -134,6 +134,12 @@ templates:
 		Expect(k8sClient.Update(ctx, wf)).To(MatchError(ContainSubstring("a shutdown cannot be removed")))
 		wf.Spec.Shutdown = chroniclev1alpha1.ShutdownTerminate
 		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
+
+		// A retry of the finished run removes the shutdown, so that the new try runs.
+		wf.Status.Phase = chroniclev1alpha1.WorkflowFailed
+		Expect(k8sClient.Status().Update(ctx, wf)).To(Succeed())
+		wf.Spec.Shutdown, wf.Spec.Restart = "", &chroniclev1alpha1.Restart{Generation: 1}
+		Expect(k8sClient.Update(ctx, wf)).To(Succeed())
 	})
 
 	It("skips the checks when the spec does not change", func() {

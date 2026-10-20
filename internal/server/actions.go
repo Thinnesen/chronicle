@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -16,6 +17,9 @@ import (
 
 func (s *workflowService) SuspendWorkflow(ctx context.Context, req *connect.Request[chroniclev1.SuspendWorkflowRequest]) (*connect.Response[chroniclev1.SuspendWorkflowResponse], error) {
 	sum, err := s.update(ctx, req.Msg.Namespace, req.Msg.Name, func(wf *v1alpha1.Workflow) error {
+		if err := unfinished(wf); err != nil {
+			return err
+		}
 		wf.Spec.Suspend = true
 		return nil
 	})
@@ -24,6 +28,9 @@ func (s *workflowService) SuspendWorkflow(ctx context.Context, req *connect.Requ
 
 func (s *workflowService) ResumeWorkflow(ctx context.Context, req *connect.Request[chroniclev1.ResumeWorkflowRequest]) (*connect.Response[chroniclev1.ResumeWorkflowResponse], error) {
 	sum, err := s.update(ctx, req.Msg.Namespace, req.Msg.Name, func(wf *v1alpha1.Workflow) error {
+		if err := unfinished(wf); err != nil {
+			return err
+		}
 		wf.Spec.Suspend = false
 		return nil
 	})
@@ -32,6 +39,9 @@ func (s *workflowService) ResumeWorkflow(ctx context.Context, req *connect.Reque
 
 func (s *workflowService) StopWorkflow(ctx context.Context, req *connect.Request[chroniclev1.StopWorkflowRequest]) (*connect.Response[chroniclev1.StopWorkflowResponse], error) {
 	sum, err := s.update(ctx, req.Msg.Namespace, req.Msg.Name, func(wf *v1alpha1.Workflow) error {
+		if err := unfinished(wf); err != nil {
+			return err
+		}
 		if wf.Spec.Shutdown == "" {
 			wf.Spec.Shutdown = v1alpha1.ShutdownStop
 		}
@@ -42,6 +52,9 @@ func (s *workflowService) StopWorkflow(ctx context.Context, req *connect.Request
 
 func (s *workflowService) TerminateWorkflow(ctx context.Context, req *connect.Request[chroniclev1.TerminateWorkflowRequest]) (*connect.Response[chroniclev1.TerminateWorkflowResponse], error) {
 	sum, err := s.update(ctx, req.Msg.Namespace, req.Msg.Name, func(wf *v1alpha1.Workflow) error {
+		if err := unfinished(wf); err != nil {
+			return err
+		}
 		wf.Spec.Shutdown = v1alpha1.ShutdownTerminate
 		return nil
 	})
@@ -86,4 +99,14 @@ func respond[T any](msg *T, err error) (*connect.Response[T], error) {
 		return nil, err
 	}
 	return connect.NewResponse(msg), nil
+}
+
+// unfinished refuses a control action on a finished run. Such an action changes nothing now, but it would end a later
+// retry at once.
+func unfinished(wf *v1alpha1.Workflow) error {
+	switch wf.Status.Phase {
+	case v1alpha1.WorkflowSucceeded, v1alpha1.WorkflowFailed, v1alpha1.WorkflowError:
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("the run has finished (%s): retry or re-run it", wf.Status.Phase))
+	}
+	return nil
 }
