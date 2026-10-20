@@ -7,6 +7,7 @@ use std::fmt;
 
 use serde_json::{Map, Value, json};
 
+mod child;
 mod client;
 mod continue_on;
 mod http;
@@ -50,9 +51,10 @@ enum Kind {
     Dag,
     Task,
     Http,
+    ChildWorkflow,
 }
 
-/// A step definition: a container, a script, an http request, a task or a DAG of tasks.
+/// A step definition: a container, a script, an http request, a task, a child run or a DAG of tasks.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Template {
     name: String,
@@ -305,6 +307,9 @@ impl Template {
             }
             Kind::Http => {
                 out.insert("http".into(), Value::Object(self.body.clone()));
+            }
+            Kind::ChildWorkflow => {
+                out.insert("childWorkflow".into(), Value::Object(self.body.clone()));
             }
         }
         if !self.inputs.is_empty() {

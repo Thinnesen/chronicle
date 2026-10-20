@@ -24,7 +24,7 @@ name = client.submit_template("team-a", "etl", {"day": "2026-10-19"})  # a Workf
 ```
 
 - Placeholders connect the steps: `Workflow.param`, `Template.input`, `Task.result`, `Task.output` and `Task.artifact`.
-- Templates: `container`, `script`, `task_template`, `dag` and `http_template`. An http template sends one request, for example from the exit handler: `w.on_exit(chronicle.http_template("notify", url, method="POST").header_from_secret("Authorization", "chat", "token"))`.
+- Templates: `container`, `script`, `task_template`, `dag` and `http_template`. An http template sends one request, for example from the exit handler: `w.on_exit(chronicle.http_template("notify", url, method="POST").header_from_secret("Authorization", "chat", "token"))`. A child workflow template starts a run of another template and waits for it: `chronicle.child_workflow_template("load", "etl", arguments={"day": day}).output_field("rows")`.
 - The server checks the workflow with the admission webhook when you submit it. An error is a `chronicle.APIError` with a Connect code, for example `invalid_argument`.
 - The token is an OIDC ID token, or a Kubernetes service account token with the audience `chronicle`.
 - The Go, Python and Rust SDKs make the same object for the same workflow. The tests compare it with `sdk/testdata/etl.json`.

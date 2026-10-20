@@ -19,7 +19,7 @@ let name = client.submit_template("team-a", "etl", &[("day", "2026-10-19")])?; /
 ```
 
 - Placeholders connect the steps: `param`, `input`, `Task::result`, `Task::output` and `Task::artifact`.
-- Templates: `container`, `script`, `task_template`, `dag` and `http`. An http template sends one request, for example from the exit handler: `.on_exit(Template::http("notify", url).method("POST").header_from_secret("Authorization", "chat", "token"))`.
+- Templates: `container`, `script`, `task_template`, `dag` and `http`. An http template sends one request, for example from the exit handler: `.on_exit(Template::http("notify", url).method("POST").header_from_secret("Authorization", "chat", "token"))`. A child workflow template starts a run of another template and waits for it: `Template::child_workflow("load", "etl").child_arg("day", &day).output_field("rows")`.
 - Configure a template before you make a task with it: `Task::new` keeps a copy.
 - The server checks the workflow with the admission webhook when you submit it. An error is an `ApiError` with a Connect code.
 - The token is an OIDC ID token, or a Kubernetes service account token with the audience `chronicle`.

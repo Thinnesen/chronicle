@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use chronicle::{Client, Task, Template, Workflow, input, param};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 /// etl builds the same workflow as etl() in the Go SDK tests.
 fn etl() -> Workflow {
@@ -239,5 +239,35 @@ fn reads_a_rotated_token_file_again() {
         requests[1].to_lowercase().contains("bearer second"),
         "{}",
         requests[1]
+    );
+}
+
+#[test]
+fn builds_a_child_workflow_template() {
+    let load = Template::child_workflow("load", "etl")
+        .cluster_scope()
+        .child_arg("day", "2026-10-20")
+        .output_field("rows");
+    let wf = Workflow::new("parent-")
+        .entrypoint(Template::dag("main").tasks([Task::new("load", &load)]));
+    let v = wf.to_value().unwrap();
+    let load = v["spec"]["templates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["name"] == "load")
+        .unwrap();
+    assert_eq!(
+        load["childWorkflow"],
+        json!({"workflowTemplateRef": {"name": "etl", "clusterScope": true}, "arguments": {"parameters": [{"name": "day", "value": "2026-10-20"}]}})
+    );
+    assert_eq!(load["outputs"]["parameters"][0]["name"], "rows");
+    let bad = Workflow::new("x-")
+        .entrypoint(Template::container("c", "busybox", ["true"]).child_arg("a", "b"));
+    assert!(
+        bad.to_value()
+            .unwrap_err()
+            .to_string()
+            .contains("not a child workflow template")
     );
 }

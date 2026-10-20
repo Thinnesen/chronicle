@@ -164,3 +164,15 @@ def test_token_file(tmp_path):
             chronicle.Client.from_token_file("http://127.0.0.1:1", tmp_path / "none")
     finally:
         server.shutdown()
+
+
+def test_child_workflow_template():
+    load = chronicle.child_workflow_template(
+        "load", "etl", cluster_scope=True, arguments={"day": "{{inputs.parameters.day}}"}
+    )
+    load.input("day")
+    load.output_field("rows")
+    assert load.to_dict()["childWorkflow"] == {
+        "workflowTemplateRef": {"name": "etl", "clusterScope": True},
+        "arguments": {"parameters": [{"name": "day", "value": "{{inputs.parameters.day}}"}]},
+    }
