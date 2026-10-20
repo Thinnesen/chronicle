@@ -85,6 +85,11 @@ class Template:
         self._extra["timeout"] = duration
         return self
 
+    def mutex(self, name: str) -> Template:
+        """Let one node of this template run at a time in the namespace, across all runs. The others wait."""
+        self._extra["synchronization"] = {"mutex": {"name": name}}
+        return self
+
     def _http(self) -> dict[str, Any]:
         if self._kind != "http":
             raise WorkflowError(f"template {self.name!r} is not an http template")

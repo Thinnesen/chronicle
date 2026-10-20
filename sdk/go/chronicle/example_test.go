@@ -24,7 +24,8 @@ func etl() *chronicle.Workflow {
 		Env("DAY", day).
 		OutputArtifact("rows", "/tmp/rows").
 		Retry(2, 10*time.Second)
-	count := chronicle.Container("count", "busybox:1.37", "wc", "-l", "/tmp/in/day.txt").InputArtifact("rows", "/tmp/in")
+	count := chronicle.Container("count", "busybox:1.37", "wc", "-l", "/tmp/in/day.txt").
+		InputArtifact("rows", "/tmp/in").Mutex("counter")
 	echo := chronicle.Container("echo", "busybox:1.37", "echo")
 	echo.Args(echo.Input("msg"))
 
@@ -157,6 +158,9 @@ func Example() {
 	//       - name: rows
 	//         path: /tmp/in
 	//     name: count
+	//     synchronization:
+	//       mutex:
+	//         name: counter
 	//   - container:
 	//       args:
 	//       - '{{inputs.parameters.msg}}'

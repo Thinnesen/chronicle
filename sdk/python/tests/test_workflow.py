@@ -19,7 +19,7 @@ def etl() -> chronicle.Workflow:
     fetch = chronicle.script("fetch", "busybox:1.37", source).env("DAY", day)
     fetch.output_artifact("rows", "/tmp/rows").retry(2, "10s")
     count = chronicle.container("count", "busybox:1.37", "wc", "-l", "/tmp/in/day.txt")
-    count.input_artifact("rows", "/tmp/in")
+    count.input_artifact("rows", "/tmp/in").mutex("counter")
     echo = chronicle.container("echo", "busybox:1.37", "echo")
     echo.args(echo.input("msg"))
 

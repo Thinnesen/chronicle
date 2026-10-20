@@ -255,6 +255,13 @@ impl Template {
         self
     }
 
+    /// Lets one node of this template run at a time in the namespace, across all runs. The others wait.
+    pub fn mutex(mut self, name: &str) -> Self {
+        self.extra
+            .insert("synchronization".into(), json!({"mutex": {"name": name}}));
+        self
+    }
+
     /// Adds tasks to a DAG template.
     pub fn tasks<I: IntoIterator<Item = Task>>(mut self, tasks: I) -> Self {
         if self.kind != Kind::Dag {

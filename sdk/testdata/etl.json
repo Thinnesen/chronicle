@@ -135,7 +135,12 @@
             }
           ]
         },
-        "name": "count"
+        "name": "count",
+        "synchronization": {
+          "mutex": {
+            "name": "counter"
+          }
+        }
       },
       {
         "container": {

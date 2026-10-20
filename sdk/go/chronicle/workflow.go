@@ -265,6 +265,12 @@ func (t *Template) Timeout(d time.Duration) *Template {
 	return t
 }
 
+// Mutex lets one node of this template run at a time in the namespace, across all runs. The others wait.
+func (t *Template) Mutex(name string) *Template {
+	t.t.Synchronization = &v1alpha1.Synchronization{Mutex: &v1alpha1.Mutex{Name: name}}
+	return t
+}
+
 // Parallelism limits the Pods that run at the same time below a node of this DAG or steps template.
 func (t *Template) Parallelism(n int32) *Template {
 	t.t.Parallelism = &n

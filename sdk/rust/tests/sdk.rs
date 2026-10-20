@@ -17,7 +17,8 @@ fn etl() -> Workflow {
     .output_artifact("rows", "/tmp/rows")
     .retry(2, Some("10s"));
     let count = Template::container("count", "busybox:1.37", ["wc", "-l", "/tmp/in/day.txt"])
-        .input_artifact("rows", "/tmp/in");
+        .input_artifact("rows", "/tmp/in")
+        .mutex("counter");
     let echo = Template::container("echo", "busybox:1.37", ["echo"])
         .input("msg")
         .args([input("msg")]);
