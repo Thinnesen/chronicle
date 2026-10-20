@@ -55,6 +55,12 @@ func Workflow(ctx context.Context, g Getter, spec *v1alpha1.WorkflowSpec) (*v1al
 		if err != nil {
 			return nil, err
 		}
+		// An argument that the template does not declare is a mistake, for example a typo. The API refuses it too.
+		for _, a := range spec.Arguments.Parameters {
+			if !slices.ContainsFunc(base.Arguments.Parameters, func(p v1alpha1.Parameter) bool { return p.Name == a.Name }) {
+				return nil, Invalidf("the template %s has no parameter %q", ref.Name, a.Name)
+			}
+		}
 		out = merge(base, &spec.WorkflowTemplateSpec)
 	}
 	r := &resolver{g: g, out: out, added: map[string]bool{}, own: map[string]bool{}, sources: map[string]*v1alpha1.WorkflowTemplateSpec{}}
@@ -75,15 +81,12 @@ func merge(base, wf *v1alpha1.WorkflowTemplateSpec) *v1alpha1.WorkflowTemplateSp
 	if wf.Entrypoint != "" {
 		out.Entrypoint = wf.Entrypoint
 	}
+	// Workflow checked that the template declares each argument.
 	for _, a := range wf.Arguments.Parameters {
-		found := false
 		for i := range out.Arguments.Parameters {
 			if out.Arguments.Parameters[i].Name == a.Name {
-				out.Arguments.Parameters[i].Value, found = a.Value, true
+				out.Arguments.Parameters[i].Value = a.Value
 			}
-		}
-		if !found {
-			out.Arguments.Parameters = append(out.Arguments.Parameters, a)
 		}
 	}
 	if wf.OnExit != "" {

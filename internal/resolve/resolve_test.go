@@ -62,7 +62,7 @@ func parse(t *testing.T, s string) *v1alpha1.WorkflowSpec {
 }
 
 func TestWorkflow(t *testing.T) {
-	spec := parse(t, "workflowTemplateRef: {name: pipeline}\narguments: {parameters: [{name: env, value: prod}, {name: extra, value: x}]}\nserviceAccountName: deployer\n"+
+	spec := parse(t, "workflowTemplateRef: {name: pipeline}\narguments: {parameters: [{name: env, value: prod}]}\nserviceAccountName: deployer\n"+
 		"volumes: [{name: cache, emptyDir: {medium: Memory}}, {name: extra, emptyDir: {}}]")
 	if !Needed(spec) {
 		t.Fatal("Needed() = false")
@@ -83,7 +83,7 @@ func TestWorkflow(t *testing.T) {
 		t.Errorf("templates = %s", got)
 	}
 	args := out.Arguments.Parameters
-	if len(args) != 3 || *args[0].Value != "prod" || *args[1].Value != "latest" || args[2].Name != "extra" || out.ServiceAccountName != "deployer" {
+	if len(args) != 2 || *args[0].Value != "prod" || *args[1].Value != "latest" || out.ServiceAccountName != "deployer" {
 		t.Errorf("merged spec = %+v", out)
 	}
 	// The volumes of the Workflow replace those of the template with the same name.
@@ -103,6 +103,7 @@ func TestWorkflowCycleAndErrors(t *testing.T) {
 	}
 	for _, tt := range []struct{ spec, want string }{
 		{"workflowTemplateRef: {name: nope}", "ns/nope not found"},
+		{"workflowTemplateRef: {name: pipeline}\narguments: {parameters: [{name: envv, value: prod}]}", `the template pipeline has no parameter "envv"`},
 		{"entrypoint: m\ntemplates: [{name: m, dag: {tasks: [{name: a, templateRef: {name: lib, template: nope}}]}}]", `template "nope" is not in WorkflowTemplate "lib"`},
 		{"entrypoint: m\ntemplates: [{name: m, dag: {tasks: [{name: a, templateRef: {name: x, template: other, clusterScope: true}}]}}]", "cluster/x not found"},
 		{"entrypoint: m\ntemplates: [{name: lib--compile, container: {image: x}}, {name: m, dag: {tasks: [{name: a, templateRef: {name: lib, template: compile}}]}}]", "rename the template"},
