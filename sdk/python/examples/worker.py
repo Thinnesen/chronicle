@@ -4,6 +4,7 @@ uv run examples/worker.py --server https://chronicle.example.com --namespace tea
 """
 
 import argparse
+import faulthandler
 import signal
 import threading
 from pathlib import Path
@@ -28,6 +29,8 @@ def main() -> None:
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
+    # SIGUSR1 prints the stack of each thread, to find out where a worker waits.
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     worker.run(stop)
 
 

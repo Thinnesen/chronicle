@@ -3,10 +3,12 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -191,10 +193,11 @@ func cliSpecs() {
 				Expect(w.Start()).To(Succeed())
 			}
 			DeferCleanup(func() {
+				var wg sync.WaitGroup
 				for _, w := range workers {
-					_ = syscall.Kill(-w.Process.Pid, syscall.SIGTERM)
-					_ = w.Wait()
+					wg.Go(func() { stopWorker(w) })
 				}
+				wg.Wait()
 			})
 
 			out, err := chronicle("submit", "-f", "test/e2e/testdata/tasks.yaml", "--watch")
@@ -234,4 +237,24 @@ func cliSpecs() {
 			Expect(jsonpath(rerun, "{.status.phase}/{.status.restarts}")).To(Equal("Succeeded/1"))
 		})
 	})
+}
+
+// stopWorker stops a task worker with SIGTERM. A worker that does not stop within a minute prints its stack (the
+// Python worker on SIGUSR1) and is killed, so that it cannot hang the suite.
+func stopWorker(w *exec.Cmd) {
+	_ = syscall.Kill(-w.Process.Pid, syscall.SIGTERM)
+	done := make(chan struct{})
+	go func() {
+		_ = w.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Minute):
+		_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: the worker %v did not stop after SIGTERM; its stack follows\n", w.Args)
+		_ = syscall.Kill(-w.Process.Pid, syscall.SIGUSR1)
+		time.Sleep(2 * time.Second)
+		_ = syscall.Kill(-w.Process.Pid, syscall.SIGKILL)
+		<-done
+	}
 }
