@@ -110,7 +110,7 @@ describe("cardLabel", () => {
     ["train", "train"],
     ["train(0)", "train(0)"],
     ["odd-or-even(0:1)", "1"],
-    ['divide-by-2(1:{"evenness":"even","num":"2"})', "evenness=even num=2"],
+    ['divide-by-2(1:{"evenness":"even","num":"2"})', "even, 2"],
     ["each(2:x)(1)", "each(2:x)(1)"],
   ])("%s gives %s", (displayName, want) => {
     expect(cardLabel({ id: "n", name: "wf.n", type: "Pod", displayName })).toBe(want);

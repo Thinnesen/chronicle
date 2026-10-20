@@ -217,7 +217,7 @@ export function nodeLabel(n: NodeStatus): string {
 }
 
 // cardLabel is the name on the card of a step. An item of a fan-out shows only its item, because the group
-// next to it has the name: "evenness=even num=2" for "divide-by-2(1:{"evenness":"even","num":"2"})".
+// next to it has the name. An object item shows its values: "even, 2" for "divide-by-2(1:{"evenness":"even","num":"2"})".
 export function cardLabel(n: NodeStatus): string {
   const label = nodeLabel(n);
   const text = /^[^(]+\(\d+:(.*)\)$/.exec(label)?.[1];
@@ -226,7 +226,7 @@ export function cardLabel(n: NodeStatus): string {
   try {
     const item: unknown = JSON.parse(text);
     if (item && typeof item === "object" && !Array.isArray(item)) {
-      return Object.entries(item).map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`).join(" ");
+      return Object.values(item).map((v) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ");
     }
   } catch {
     // A plain text item is not JSON.
