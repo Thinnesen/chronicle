@@ -58,6 +58,7 @@ export function place(nodes: NodeStatus[], edges: GraphEdge[], direction: "LR" |
     return { node: n, x: p.x - p.width / 2, y: p.y - p.height / 2, width: p.width, height: p.height };
   });
   sortSiblings(placed, edges, direction);
+  alignToParents(placed, edges, direction);
   const graph = g.graph();
   return { placed, width: graph.width ?? 0, height: graph.height ?? 0 };
 }
@@ -81,5 +82,30 @@ function sortSiblings(placed: Placed[], edges: GraphEdge[], direction: "LR" | "T
     if (family.length < 2) continue;
     const slots = family.map((p) => p[axis]).sort((a, b) => a - b);
     family.sort(natural).forEach((p, i) => (p[axis] = slots[i] ?? p[axis]));
+  }
+}
+
+// alignToParents keeps chains straight after sortSiblings: in each rank, the nodes with one parent and the same size
+// take the slots in the order of their parents, for example the exit hooks of parallel steps. The ranks go in order,
+// so a parent has its final slot before its children move.
+function alignToParents(placed: Placed[], edges: GraphEdge[], direction: "LR" | "TB"): void {
+  const parents = new Map<string, string[]>();
+  for (const e of edges) parents.set(e.to, [...(parents.get(e.to) ?? []), e.from]);
+  const byID = new Map(placed.map((p) => [p.node.id, p]));
+  const axis = direction === "LR" ? "y" : "x";
+  const rankOf = (p: Placed) => (direction === "LR" ? p.x : p.y);
+  const ranks = new Map<string, Placed[]>();
+  for (const p of placed) {
+    const from = parents.get(p.node.id);
+    if (from?.length !== 1 || !byID.has(from[0] ?? "")) continue;
+    const key = `${rankOf(p)}|${p.width}x${p.height}`;
+    ranks.set(key, [...(ranks.get(key) ?? []), p]);
+  }
+  const ordered = [...ranks.values()].sort((a, b) => rankOf(a[0] as Placed) - rankOf(b[0] as Placed));
+  for (const group of ordered) {
+    if (group.length < 2) continue;
+    const parentAt = (p: Placed) => byID.get(parents.get(p.node.id)?.[0] ?? "")?.[axis] ?? 0;
+    const slots = group.map((p) => p[axis]).sort((a, b) => a - b);
+    group.sort((a, b) => parentAt(a) - parentAt(b) || natural(a, b)).forEach((p, i) => (p[axis] = slots[i] ?? p[axis]));
   }
 }
