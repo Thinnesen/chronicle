@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -108,5 +109,28 @@ func checkList(t *testing.T, s *Store, states []string, want int) {
 	t.Helper()
 	if tasks, err := s.ListTasks(context.Background(), "team-a", states, 10); err != nil || len(tasks) != want {
 		t.Errorf("list the tasks in %v: %v, %d tasks, want %d", states, err, len(tasks), want)
+	}
+}
+
+// TestCompleteKinds covers the kinds of results: a final failure is an Error, and a result must be JSON.
+func TestCompleteKinds(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	if err := s.Enqueue(ctx, newTask(0)); err != nil {
+		t.Fatal(err)
+	}
+	task, lease, err := s.Poll(ctx, "team-a", "default", []string{"greet"}, "w1")
+	if err != nil || task == nil {
+		t.Fatalf("poll: %v %v", task, err)
+	}
+	if err := s.Complete(ctx, "team-a", task.ID, lease, "not json", "", false); err == nil || !strings.Contains(err.Error(), "not JSON") {
+		t.Errorf("a result that is not JSON: %v", err)
+	}
+	if err := s.Complete(ctx, "team-a", task.ID, lease, "", "the address is invalid", false); err != nil {
+		t.Fatal(err)
+	}
+	tasks, err := s.ForWorkflow(ctx, task.WorkflowUID)
+	if err != nil || len(tasks) != 1 || tasks[0].State != TaskError || tasks[0].Message != "the address is invalid" {
+		t.Errorf("tasks = %+v, %v", tasks, err)
 	}
 }
