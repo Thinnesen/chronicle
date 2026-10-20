@@ -39,7 +39,8 @@ The archive is a PostgreSQL database. It keeps:
 
 - finished runs after their Workflow is deleted (by `ttlStrategy`, by a CronWorkflow history limit, or by hand),
 - the queue of the task workers (task templates need it),
-- the login sessions of the UI, so that all server replicas share them and a restart keeps them.
+- the login sessions of the UI, so that all server replicas share them and a restart keeps them,
+- the results of templates with `memoize` (table `step_cache`). chronicle does not delete old results; delete them when you need to, for example `DELETE FROM step_cache WHERE saved_at < now() - interval '90 days'`.
 
 Create a Secret with the DSN and set `archive.existingSecret`:
 

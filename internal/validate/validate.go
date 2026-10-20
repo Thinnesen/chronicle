@@ -123,6 +123,12 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 		sc = sc.with("inputs.artifacts." + a.Name)
 	}
 	c.checkArtifacts(t, path, sc.with(c.childOutputs(t)...))
+	if m := t.Memoize; m != nil {
+		if t.Container == nil && t.Script == nil && t.Resource == nil && t.HTTP == nil {
+			c.errs = append(c.errs, field.Forbidden(path.Child("memoize"), "only a container, script, resource or http template can have memoize"))
+		}
+		c.checkText(m.Key, path.Child("memoize", "key"), sc.with("pod.name", "node.name", "retries"), nil)
+	}
 	if t.Synchronization != nil && t.Container == nil && t.Script == nil && t.Resource == nil && t.HTTP == nil && t.Task == nil {
 		c.errs = append(c.errs, field.Forbidden(path.Child("synchronization"), "only a container, script, resource, http or task template can hold a lock"))
 	}

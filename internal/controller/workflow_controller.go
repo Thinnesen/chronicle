@@ -37,6 +37,8 @@ type WorkflowReconciler struct {
 	Archive Archiver
 	// Tasks is the task queue of the task templates, or nil without the archive database.
 	Tasks TaskQueue
+	// Cache keeps the results of templates with memoize, or is nil without the archive database.
+	Cache StepCache
 	// Recorder writes Kubernetes Events about runs, or is nil.
 	Recorder events.EventRecorder
 	// APIReader reads objects that the manager does not cache, such as the artifact repository ConfigMap.
@@ -99,13 +101,17 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	res := engine.Run(engine.Input{
+	in := engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
 		CreatedAt: wf.CreationTimestamp, ScheduledTime: wf.Annotations[AnnotationScheduledTime], Labels: wf.Labels, Annotations: wf.Annotations,
-		Spec: spec, Status: wf.Status, Pods: pods, Tasks: tasks, TasksEnabled: r.Tasks != nil,
+		Spec: spec, Status: wf.Status, Pods: pods, Tasks: tasks, TasksEnabled: r.Tasks != nil, CacheEnabled: r.Cache != nil,
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals, HeldLocks: held,
-	})
+	}
+	res, err := r.runWithCache(ctx, &wf, in)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	// The phase after restart: the first reconcile of a retry must also respect the limit.
 	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(wf.Status.Phase) {
 		return r.failTooLarge(ctx, &wf, size)
@@ -338,6 +344,10 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		r.created.add(wf.UID, pod.Name, time.Now())
 	case engine.EnqueueTask, engine.CancelTask:
 		return r.applyTask(ctx, wf, a)
+	case engine.SaveCache:
+		if r.Cache != nil {
+			return r.Cache.SaveCache(ctx, wf.Namespace, a.Key, wf.Name, a.NodeName, a.Outputs)
+		}
 	case engine.DeletePod:
 		pod := &corev1.Pod{Name: a.PodName, Namespace: wf.Namespace}
 		if err := r.Delete(ctx, pod); client.IgnoreNotFound(err) != nil {

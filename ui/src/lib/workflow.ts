@@ -24,6 +24,7 @@ export interface NodeStatus {
   planned?: boolean;
   inputs?: { parameters?: Parameter[]; artifacts?: Artifact[] };
   outputs?: { parameters?: Parameter[]; result?: string; artifacts?: Artifact[]; exitCode?: number };
+  cache?: { key: string; hit?: boolean; workflow?: string };
 }
 
 export interface Artifact {

@@ -13,8 +13,13 @@ func (e *engine) runPod(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1a
 	pod, observed := e.in.Pods[n.PodName]
 	switch {
 	case observed:
+		wasDone := IsTerminal(n.Phase)
 		e.applyPod(&n, pod)
+		e.saveToCache(c, n, wasDone)
 	case n.Phase == v1alpha1.NodePending:
+		if e.fromCache(c, t, &n) {
+			break
+		}
 		if limit, full := e.noSlot(n); full {
 			n.Message = fmt.Sprintf("%s (parallelism %d)", waitingForSlot, limit)
 			break

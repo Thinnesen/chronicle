@@ -168,6 +168,11 @@ func TestRules(t *testing.T) {
 			want:      []string{"synchronization:\n      mutex:\n        name: db"},
 		},
 		{
+			name:      "memoize keeps the key and the age",
+			templates: "  - {name: main, memoize: {key: k1, maxAge: 1h, cache: {configMap: {name: c}}}, container: {image: x, command: [run]}}",
+			want:      []string{"memoize:\n      key: k1\n      maxAge: 1h", "memoize.cache: chronicle keeps the results in its archive database"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

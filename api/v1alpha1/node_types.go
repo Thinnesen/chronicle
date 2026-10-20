@@ -102,6 +102,10 @@ type NodeStatus struct {
 	// outputs of the node.
 	// +optional
 	Outputs *Outputs `json:"outputs,omitempty"`
+
+	// cache is set for a node of a template with memoize.
+	// +optional
+	Cache *NodeCache `json:"cache,omitempty"`
 }
 
 // Progress counts the nodes that do work (Pod, suspend and task nodes), and those that finished.

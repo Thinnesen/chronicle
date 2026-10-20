@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { workflows } from "../api/client";
@@ -68,7 +69,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
         {tab === "details" && (
           <>
             <RetryFromNode wf={wf} node={node} />
-            <Details node={node} />
+            <Details node={node} namespace={namespace} />
             <Artifacts node={node} namespace={namespace} workflow={workflow} />
           </>
         )}
@@ -137,7 +138,7 @@ function Attempts({ retry, nodes, current, onSelect }: { retry: NodeStatus; node
   );
 }
 
-function Details({ node }: { node: NodeStatus }) {
+function Details({ node, namespace }: { node: NodeStatus; namespace: string }) {
   const phase = node.phase || "Pending";
   const started = node.startedAt ? new Date(node.startedAt) : undefined;
   const finished = node.finishedAt ? new Date(node.finishedAt) : undefined;
@@ -153,6 +154,22 @@ function Details({ node }: { node: NodeStatus }) {
           <>
             <dt>Template</dt>
             <dd>{node.templateName}</dd>
+          </>
+        )}
+        {node.cache && (
+          <>
+            <dt>Cache</dt>
+            <dd>
+              <code>{node.cache.key}</code>
+              {node.cache.hit && node.cache.workflow && (
+                <>
+                  , reused from{" "}
+                  <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: node.cache.workflow }}>
+                    {node.cache.workflow}
+                  </Link>
+                </>
+              )}
+            </dd>
           </>
         )}
         {started && (

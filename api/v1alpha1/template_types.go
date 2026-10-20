@@ -31,6 +31,11 @@ type Template struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
+	// memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace,
+	// instead of running it again. It needs the archive database.
+	// +optional
+	Memoize *Memoize `json:"memoize,omitempty"`
+
 	// synchronization is a lock that each node of this container, script, resource, http or task template holds while it
 	// runs. Nodes of all runs in the namespace share a lock with the same name, also with the lock of a run.
 	// +optional

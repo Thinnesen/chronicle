@@ -63,6 +63,16 @@ test("shows the archived log and the artifacts of a node", async ({ page }, info
   await expect(page.getByText(/sig=abc/)).toHaveCount(0);
 });
 
+test("shows a step that reused a result from the cache", async ({ page }) => {
+  await mockAPI(page, { runPhase: "Succeeded" });
+  await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n4");
+  const report = page.getByRole("complementary", { name: "Step report" });
+  await expect(report.getByText("report-2026-10-17")).toBeVisible();
+  await expect(report.getByRole("link", { name: "etl-nightly-old01" })).toHaveAttribute("href", "/ns/team-a/runs/etl-nightly-old01");
+  await expect(report.getByRole("tab", { name: "Logs" })).toHaveCount(0); // the step never had a Pod
+  await expect(page.locator(".run-graph").getByText("From the cache")).toBeVisible();
+});
+
 test("connects the log of a running node again after a broken stream", async ({ page }) => {
   await mockAPI(page);
   // The first stream breaks, as during a server rollout. Routes added later win.

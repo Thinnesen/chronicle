@@ -1341,6 +1341,25 @@ spec:
                           - name
                           x-kubernetes-list-type: map
                       type: object
+                    memoize:
+                      description: |-
+                        memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace,
+                        instead of running it again. It needs the archive database.
+                      properties:
+                        key:
+                          description: |-
+                            key names the result, with placeholders, for example "report-{{inputs.parameters.day}}". Nodes with the same
+                            key in the namespace share the result.
+                          maxLength: 1024
+                          minLength: 1
+                          type: string
+                        maxAge:
+                          description: maxAge is the oldest result that a node reuses,
+                            for example "24h". Without it, a result stays valid.
+                          type: string
+                      required:
+                      - key
+                      type: object
                     name:
                       description: name of the template. It is unique in the workflow.
                       maxLength: 128
@@ -2427,6 +2446,23 @@ spec:
                   description: NodeStatus is the status of one node in the workflow
                     graph.
                   properties:
+                    cache:
+                      description: cache is set for a node of a template with memoize.
+                      properties:
+                        hit:
+                          description: hit is true when the node reused the result
+                            of an earlier node instead of running.
+                          type: boolean
+                        key:
+                          description: key is the resolved cache key.
+                          type: string
+                        workflow:
+                          description: workflow is the run whose node saved the result
+                            that this node reused.
+                          type: string
+                      required:
+                      - key
+                      type: object
                     children:
                       description: children are the IDs of the child nodes.
                       items:
@@ -4189,6 +4225,26 @@ spec:
                               x-kubernetes-list-map-keys:
                               - name
                               x-kubernetes-list-type: map
+                          type: object
+                        memoize:
+                          description: |-
+                            memoize reuses the outputs of an earlier node of this template with the same key, in any run of the namespace,
+                            instead of running it again. It needs the archive database.
+                          properties:
+                            key:
+                              description: |-
+                                key names the result, with placeholders, for example "report-{{inputs.parameters.day}}". Nodes with the same
+                                key in the namespace share the result.
+                              maxLength: 1024
+                              minLength: 1
+                              type: string
+                            maxAge:
+                              description: maxAge is the oldest result that a node
+                                reuses, for example "24h". Without it, a result stays
+                                valid.
+                              type: string
+                          required:
+                          - key
                           type: object
                         name:
                           description: name of the template. It is unique in the workflow.

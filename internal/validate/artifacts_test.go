@@ -123,3 +123,13 @@ func TestTemplateLock(t *testing.T) {
 			want: []string{"only a container, script, resource, http or task template can hold a lock"}},
 	}, true)
 }
+
+func TestMemoize(t *testing.T) {
+	runCases(t, []specCase{
+		{name: "a container with an input in the key", spec: "entrypoint: c\ntemplates:\n- {name: c, inputs: {parameters: [{name: day, value: x}]}, memoize: {key: 'r-{{inputs.parameters.day}}'}, container: {image: x}}"},
+		{name: "a dag", spec: "entrypoint: m\ntemplates:\n- {name: m, memoize: {key: k}, dag: {tasks: [{name: a, template: c}]}}\n- {name: c, container: {image: x}}",
+			want: []string{"only a container, script, resource or http template can have memoize"}},
+		{name: "an unknown placeholder", spec: "entrypoint: c\ntemplates:\n- {name: c, memoize: {key: '{{inputs.parameters.nope}}'}, container: {image: x}}",
+			want: []string{`unknown placeholder "inputs.parameters.nope"`}},
+	}, true)
+}

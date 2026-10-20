@@ -57,7 +57,9 @@ export function run(phase: string, gate = false, archived = false, stuck = false
           ...(gate
             ? { n5: node("n5", ".gate", { displayName: "gate", type: "Suspend", templateName: "approve", phase: "Running", startedAt: ts(-10), message: "waiting for an approval" }) }
             : {}),
-          ...(done ? { n4: node("n4", ".report", { displayName: "report", type: "Pod", phase: "Succeeded", startedAt: ts(-18), finishedAt: ts(-5), podName: "n4" }) } : {}),
+          ...(done
+            ? { n4: node("n4", ".report", { displayName: "report", type: "Pod", phase: "Succeeded", startedAt: ts(-5), finishedAt: ts(-5), cache: { key: "report-2026-10-17", hit: true, workflow: "etl-nightly-old01" } }) }
+            : {}),
         },
       },
     },

@@ -38,6 +38,10 @@ type Input struct {
 	// Restarts is the number of retries of the workflow. New Pods get it in their name, so that a Pod
 	// of an earlier try can never stand for a new node.
 	Restarts int32
+	// CacheEnabled is false without the archive database. Cache has the saved results of the keys that the
+	// controller looked up for this step: a nil entry means that the key has no result.
+	CacheEnabled bool
+	Cache        map[string]*CacheEntry
 	// HeldLocks are the nodes that hold the lock of their template: node ID to lock name.
 	HeldLocks map[string]string
 	// Suspend, Shutdown and Approvals are the run controls from the Workflow spec.

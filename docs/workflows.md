@@ -158,6 +158,21 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 - `continueOn: {failed: true}` (and `error: true`) on a task or a step lets the run go on after it fails: the tasks and steps after it run, and its failure does not fail the DAG or the steps. The step itself stays red.
 - After a run, you can retry the failed nodes, or retry from any node, in the UI or with `chronicle retry`.
 
+Reuse the result of a step that ran before with the same inputs (it needs the archive database):
+
+```yaml
+- name: report
+  inputs: {parameters: [{name: day}]}
+  memoize:
+    key: "report-{{inputs.parameters.day}}"   # nodes with the same key in the namespace share the result
+    maxAge: 24h                              # optional: an older result does not count
+  container: {image: report:1.2, command: [report]}
+```
+
+- Before the step starts, chronicle looks up the key. With a valid result, the node succeeds at once with the saved outputs and does not start a Pod. The node shows the run that saved the result.
+- Without a result, the step runs. When it succeeds, chronicle saves its outputs under the key.
+- Put each input that changes the result into the key. Output artifacts point to the repository objects of the run that saved them, so keep those objects as long as the results.
+
 ## 8. Exit handler, approvals and resources
 
 ```yaml

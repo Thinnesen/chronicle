@@ -14,13 +14,18 @@ func (c *converter) template(in obj, path string) (obj, error) {
 	c.parent, _ = in[fName].(string)
 	out := c.pick(in, path, []string{fName, "dag", "steps"},
 		"inputs", "outputs", "container", "script", "suspend", "resource", "http", "retryStrategy", "timeout", "activeDeadlineSeconds",
-		"parallelism", "synchronization")
+		"parallelism", "synchronization", "memoize")
 	var err error
 	if v, ok := in["parallelism"]; ok {
 		if out["dag"] != nil || out["steps"] != nil {
 			out["parallelism"] = v
 		} else {
 			c.warn(join(path, "parallelism"), "only a dag or steps template can limit its parallelism: it is dropped")
+		}
+	}
+	if v, ok := in["memoize"]; ok {
+		if out["memoize"], err = c.memoize(asObj(v), join(path, "memoize")); err != nil {
+			return nil, err
 		}
 	}
 	if v, ok := in["synchronization"]; ok {
@@ -192,6 +197,22 @@ func (c *converter) http(in obj, path string) obj {
 		out["headers"] = list
 	}
 	return out
+}
+
+// memoize keeps the key and the age. chronicle keeps the results in its archive database, not in a ConfigMap.
+func (c *converter) memoize(in obj, path string) (obj, error) {
+	out := c.pick(in, path, []string{"key"}, "maxAge", "cache")
+	if _, ok := in["cache"]; ok {
+		c.warn(join(path, "cache"), "chronicle keeps the results in its archive database, not in a ConfigMap")
+	}
+	if v, ok := in["maxAge"]; ok && v != "" {
+		d, err := duration(v)
+		if err != nil {
+			return nil, fmt.Errorf("%s.maxAge: %w", path, err)
+		}
+		out["maxAge"] = d
+	}
+	return out, nil
 }
 
 func (c *converter) retry(in obj, path string) (obj, error) {
