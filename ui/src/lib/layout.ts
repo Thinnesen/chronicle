@@ -3,6 +3,9 @@ import { Graph, layout } from "@dagrejs/dagre";
 import { isStation, nodeLabel, type GraphEdge, type NodeStatus } from "./workflow";
 
 export const station = { width: 192, height: 44 };
+// narrowStation is the card on a phone, where the graph runs from top to bottom and the items of a fan-out must fit
+// side by side.
+export const narrowStation = { width: 152, height: 44 };
 export const junction = { height: 24, maxWidth: 176 };
 
 let context: CanvasRenderingContext2D | null | undefined;
@@ -45,7 +48,8 @@ export function place(nodes: NodeStatus[], edges: GraphEdge[], direction: "LR" |
   g.setGraph({ rankdir: direction, nodesep: 16, ranksep: direction === "LR" ? 40 : 32, marginx: 24, marginy: 24 });
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of nodes) {
-    g.setNode(n.id, isStation(n) ? { ...station } : { width: junctionWidth(nodeLabel(n)), height: junction.height });
+    const card = direction === "TB" ? narrowStation : station;
+    g.setNode(n.id, isStation(n) ? { ...card } : { width: junctionWidth(nodeLabel(n)), height: junction.height });
   }
   for (const e of edges) g.setEdge(e.from, e.to);
   layout(g);

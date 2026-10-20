@@ -50,7 +50,7 @@ function StationNode({ data }: NodeProps<Node<NodeData>>) {
   const phase = n.phase || "Pending";
   const Icon = kindIcon[n.type as keyof typeof kindIcon] ?? Box;
   return (
-    <div className={`station-node${data.selected ? " is-selected" : ""}${n.planned ? " is-planned" : ""}`} data-phase={phase}>
+    <div className={`station-node${data.selected ? " is-selected" : ""}${n.planned ? " is-planned" : ""}`} data-phase={phase} style={{ width: data.width }}>
       <Handles vertical={data.vertical} />
       <Lamp phase={phase} size={16} />
       <span className="station-text">
@@ -82,7 +82,7 @@ function JunctionNode({ data }: NodeProps<Node<NodeData>>) {
 function MoreNode({ data }: NodeProps<Node<NodeData>>) {
   const counts = Object.entries(data.hidden ?? {}).map(([phase, n]) => `${n} ${phase.toLowerCase()}`);
   return (
-    <div className="station-node is-more" title="Show all items">
+    <div className="station-node is-more" title="Show all items" style={{ width: data.width }}>
       <Handles vertical={data.vertical} />
       <ChevronsDown className="station-kind" aria-hidden="true" />
       <span className="station-text">
