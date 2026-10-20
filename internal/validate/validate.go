@@ -162,6 +162,8 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 				c.checkText(*h.Value, hp.Child("headers").Index(i).Child("value"), pod, nil)
 			}
 		}
+	case t.ChildWorkflow != nil:
+		c.checkChild(t.ChildWorkflow, path.Child("childWorkflow"), pod)
 	case t.DAG != nil:
 		c.checkDAG(t.DAG, path.Child("dag"), sc)
 	case t.Steps != nil:
@@ -188,7 +190,7 @@ func (c *checker) checkOutputs(t *v1alpha1.Template, path *field.Path, sc scope)
 			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "path"), "only a container or script template can read an output file"))
 		case hasPath && t.Container != nil && len(t.Container.Command) == 0:
 			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "path"), "a container template needs a command to read an output file"))
-		case !hasPath && p.Value == nil && t.Suspend == nil && t.Task == nil:
+		case !hasPath && p.Value == nil && t.Suspend == nil && t.Task == nil && t.ChildWorkflow == nil:
 			c.errs = append(c.errs, field.Required(pp, "an output parameter needs valueFrom.path or a value"))
 		case p.Value != nil:
 			c.checkText(*p.Value, pp.Child("value"), sc, nil)

@@ -223,6 +223,23 @@ An `http` template sends one request, for example a chat message from the exit h
 - The url, the body and header values can have placeholders. A header from a Secret comes into the Pod as an environment variable: chronicle does not read the Secret.
 - The log and errors show the URL without its query, because the query can hold a token.
 
+A `childWorkflow` template starts a run of another template in the same namespace and waits for it:
+
+```yaml
+  - name: load-day
+    inputs: {parameters: [{name: day}]}
+    outputs: {parameters: [{name: rows}]}      # from the outputs of the child run
+    childWorkflow:
+      workflowTemplateRef: {name: etl}         # add clusterScope: true for a ClusterWorkflowTemplate
+      arguments: {parameters: [{name: day, value: "{{inputs.parameters.day}}"}]}
+```
+
+- The node gets the phase of the child run. Its output parameters come from the global outputs of the child run (`spec.outputs`). A missing output without a default fails the node.
+- The parent run owns the child run. A stop or a terminate of the parent, and the timeout of the node, stop the child run. A delete of the parent deletes the child.
+- A retry of the node, or of the parent run, starts a new child run. The child run has the annotations `chronicle.thinnesen.com/parent` and `chronicle.thinnesen.com/parent-node`.
+- The child run uses its own template, with its own service account. A user who can start the parent can also start that template. So a child run gives no new permission.
+- Child runs can nest 10 levels deep. Then the node fails, so that a template that starts itself stops.
+
 ## 9. Locks
 
 ```yaml

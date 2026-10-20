@@ -98,24 +98,17 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if res, wait, err := r.holdBack(ctx, &wf, spec, observed); wait || err != nil {
 		return res, err
 	}
-	pods, err := r.observePods(ctx, &wf)
+	in, err := r.observe(ctx, &wf, spec)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	tasks, err := r.observeTasks(ctx, &wf)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	held, err := r.heldLocks(ctx, &wf, spec)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	in := engine.Input{
+	in = engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
 		CreatedAt: wf.CreationTimestamp, ScheduledTime: wf.Annotations[AnnotationScheduledTime], Labels: wf.Labels, Annotations: wf.Annotations,
-		Spec: spec, Status: wf.Status, Pods: pods, Tasks: tasks, TasksEnabled: r.Tasks != nil, CacheEnabled: r.Cache != nil,
+		Spec: spec, Status: wf.Status, Pods: in.Pods, Tasks: in.Tasks, TasksEnabled: r.Tasks != nil, CacheEnabled: r.Cache != nil,
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
-		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals, HeldLocks: held,
+		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals, HeldLocks: in.HeldLocks,
+		Children: in.Children, Depth: depth(&wf),
 	}
 	res, err := r.runWithCache(ctx, &wf, in)
 	if err != nil {
@@ -355,6 +348,10 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		r.created.add(wf.UID, pod.Name, time.Now())
 	case engine.EnqueueTask, engine.CancelTask:
 		return r.applyTask(ctx, wf, a)
+	case engine.CreateWorkflow:
+		return r.createChild(ctx, wf, a)
+	case engine.ShutdownWorkflow:
+		return r.shutdownChild(ctx, wf, a)
 	case engine.SaveCache:
 		if r.Cache != nil {
 			return r.Cache.SaveCache(ctx, wf.Namespace, a.Key, wf.Name, a.NodeName, a.Outputs)
@@ -375,6 +372,8 @@ func (r *WorkflowReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&chroniclev1alpha1.Workflow{}).
 		Owns(&corev1.Pod{}).
+		// A child run wakes its parent run when its status changes.
+		Owns(&chroniclev1alpha1.Workflow{}).
 		WatchesRawSource(source.Channel(r.wake, &handler.EnqueueRequestForObject{})).
 		Named("workflow").
 		WithOptions(controller.Options{MaxConcurrentReconciles: max(r.Workers, 1)}).

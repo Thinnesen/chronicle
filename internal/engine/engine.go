@@ -42,6 +42,9 @@ type Input struct {
 	// looked up for this step. A nil entry means that the key has no result.
 	CacheEnabled bool
 	Cache        map[string]*CacheEntry
+	// Children are the observed child runs, by name. Depth is the number of parent runs above this run.
+	Children map[string]ChildResult
+	Depth    int
 	// HeldLocks are the nodes that hold the lock of their template: node ID to lock name.
 	HeldLocks map[string]string
 	// Suspend, Shutdown and Approvals are the run controls from the Workflow spec.
@@ -302,6 +305,8 @@ func (e *engine) runBody(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, de
 		return e.runSteps(c, t, n, depth)
 	case t.Task != nil:
 		return e.runTask(c, t, n)
+	case t.ChildWorkflow != nil:
+		return e.runChild(c, t, n)
 	default:
 		return e.runPod(c, t, n)
 	}
@@ -324,6 +329,9 @@ func (e *engine) startNode(c call, t *v1alpha1.Template, depth int) (v1alpha1.No
 	case err == nil && n.Type == v1alpha1.NodeTask:
 		n.Phase = v1alpha1.NodePending
 		n.TaskID = e.in.UID + "/" + e.runID(n.ID)
+	case err == nil && n.Type == v1alpha1.NodeChildWorkflow:
+		n.Phase = v1alpha1.NodePending
+		n.ChildWorkflow = e.childName(n.ID)
 	case err == nil:
 		e.setPhase(&n, v1alpha1.NodeRunning, "")
 	}
@@ -353,6 +361,8 @@ func nodeType(t *v1alpha1.Template) v1alpha1.NodeType {
 		return v1alpha1.NodeSteps
 	case t.Task != nil:
 		return v1alpha1.NodeTask
+	case t.ChildWorkflow != nil:
+		return v1alpha1.NodeChildWorkflow
 	}
 	return v1alpha1.NodePod
 }

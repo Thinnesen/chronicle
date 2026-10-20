@@ -40,6 +40,9 @@ func (e *engine) stop(id, msg string) {
 	if n.TaskID != "" {
 		e.actions = append(e.actions, CancelTask{TaskID: n.TaskID, Reason: msg})
 	}
+	if n.ChildWorkflow != "" {
+		e.actions = append(e.actions, ShutdownWorkflow{Name: n.ChildWorkflow, Mode: e.shutdownMode()})
+	}
 	e.setPhase(&n, v1alpha1.NodeFailed, msg)
 	e.save(n)
 }

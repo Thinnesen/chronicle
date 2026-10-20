@@ -101,7 +101,7 @@ The ranked list, with the state of chronicle:
 7. Archive retention. Dagster #4497 (r27), Temporal #2617. Done in 94d54f6.
 8. The UI under a path prefix. Argo #3080 (r55), Dagster #17641 (r26), Temporal UI #576 (r18). Done in 2db231d.
 9. Backfill and one-time scheduled runs. Argo #2706 (r27), #10620 (r25). Backfill is done (chronicle cron backfill). One-time runs are done (startAt, chronicle submit --at).
-10. Workflow of workflows with links and stop propagation. Argo #6922 (r69), Temporal #680 (r76). chronicle has resource steps that create runs, without links.
+10. Workflow of workflows with links and stop propagation. Argo #6922 (r69), Temporal #680 (r76). Done: the childWorkflow template (Kestra Subflow and Temporal child workflows were the models).
 11. Four-eyes approval (the approver is not the submitter). Argo #12108 (r15), #12270 (r26), Dagster #8067 (r40). chronicle records the approver, not the rules.
 12. Task queue depth as a metric, for KEDA. Temporal #33 (r51). Done in 87ebf01.
 13. OpenTelemetry spans for runs and steps. Dagster #12353 (r138), #11191 (r84), Argo #12589 (r30). Runs and steps are done (spans when a run finishes, TRACEPARENT in each Pod, the traceparent of each task).

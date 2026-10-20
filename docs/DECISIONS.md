@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: A `childWorkflow` template starts a run of a WorkflowTemplate in the same namespace and waits for it, like a Kestra Subflow or a Temporal child workflow. The controller creates the child Workflow with an owner reference to the parent: a stop or a terminate of the parent stops the child (Temporal's default parent close policy), and a delete of the parent deletes it. The node takes the phase and the global output parameters of the child. A retry starts a new child run (Kestra NEW_EXECUTION); a retry of only the failed nodes of the child can come later. Only a child that the parent controls counts, so a Workflow with the same name cannot give results. Child runs nest at most 10 levels. Argo has no such template: users create a Workflow with a resource step, without links or stop propagation. Sources: Argo #6922, Temporal #680.
+
 - 2026-10-20: The CRDs check each duration field with a pattern of Go durations (for example `90s` or `1h30m`). So the API server refuses a bad duration with its field path, before the webhook decodes it. Negative durations are refused too. The offline lint and the submit API decode with `validate.Strict`, which names the field of a bad duration. Found by the soak test.
 
 - 2026-10-20: The CronWorkflow status has `lastStartedTime`, the schedule time of the last run that started. `lastScheduledTime` also counts skipped schedule times (Forbid). The CLI (LAST) and the UI (Last run) show `lastStartedTime`, so a skipped time does not look like a run. Found by the soak test.

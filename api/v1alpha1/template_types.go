@@ -6,8 +6,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Template is one unit of work. It has exactly one type: container, script, dag, steps, suspend, resource, task or http.
-// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource), has(self.task), has(self.http)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend, resource, task or http"
+// Template is one unit of work. It has exactly one type: container, script, dag, steps, suspend, resource, task, http or
+// childWorkflow.
+// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource), has(self.task), has(self.http), has(self.childWorkflow)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend, resource, task, http or childWorkflow"
 type Template struct {
 	// name of the template. It is unique in the workflow.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -86,35 +87,10 @@ type Template struct {
 	// http sends one HTTP request from a Pod, for example a message to a chat in an exit handler.
 	// +optional
 	HTTP *HTTPTemplate `json:"http,omitempty"`
-}
 
-// TaskTemplate calls a function that a task worker of an SDK runs. The worker gets the input parameters
-// as a JSON object. Its result becomes outputs.result, and the fields of a result object become the
-// output parameters with the same names. The template timeout is the start-to-close timeout.
-type TaskTemplate struct {
-	// name of the task type that a worker registers.
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_.]*$`
-	// +kubebuilder:validation:MaxLength=128
-	// +required
-	Name string `json:"name"`
-
-	// queue that the workers poll. The default is "default".
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_.]*$`
-	// +kubebuilder:validation:MaxLength=63
+	// childWorkflow starts a run of another template and waits for it.
 	// +optional
-	Queue string `json:"queue,omitempty"`
-
-	// heartbeatTimeout fails the attempt when the worker sends no heartbeat for this time. The default is 1 minute.
-	// +optional
-	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
-	HeartbeatTimeout *metav1.Duration `json:"heartbeatTimeout,omitempty"`
-
-	// scheduleToStartTimeout fails the attempt when no worker takes the task in this time.
-	// +optional
-	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:Pattern=`^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$`
-	ScheduleToStartTimeout *metav1.Duration `json:"scheduleToStartTimeout,omitempty"`
+	ChildWorkflow *ChildWorkflowTemplate `json:"childWorkflow,omitempty"`
 }
 
 // SuspendTemplate waits for an approval or for a duration.

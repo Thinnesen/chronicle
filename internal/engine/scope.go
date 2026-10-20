@@ -97,9 +97,9 @@ func (e *engine) failures() string {
 	return string(data)
 }
 
-// isWork tells if a node does work: a Pod, a suspend or a task.
+// isWork tells if a node does work: a Pod, a suspend, a task or a child run.
 func isWork(t v1alpha1.NodeType) bool {
-	return t == v1alpha1.NodePod || t == v1alpha1.NodeSuspend || t == v1alpha1.NodeTask
+	return t == v1alpha1.NodePod || t == v1alpha1.NodeSuspend || t == v1alpha1.NodeTask || t == v1alpha1.NodeChildWorkflow
 }
 
 // nodeScope returns a resolver for the template of a node that runs as a Pod. It knows the input scope, the Pod name,

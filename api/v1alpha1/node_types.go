@@ -5,7 +5,7 @@ import (
 )
 
 // NodeType is the type of a node in the workflow graph.
-// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup;Retry;Suspend;Task
+// +kubebuilder:validation:Enum=Pod;DAG;Steps;StepGroup;TaskGroup;Retry;Suspend;Task;ChildWorkflow
 type NodeType string
 
 // The node types.
@@ -22,6 +22,8 @@ const (
 	NodeSuspend NodeType = "Suspend"
 	// NodeTask waits for a task worker.
 	NodeTask NodeType = "Task"
+	// NodeChildWorkflow waits for a child run.
+	NodeChildWorkflow NodeType = "ChildWorkflow"
 )
 
 // NodePhase is the phase of a node.
@@ -90,6 +92,11 @@ type NodeStatus struct {
 	// +optional
 	TaskID string `json:"taskID,omitempty"`
 
+	// childWorkflow is the name of the child run of a ChildWorkflow node.
+	// +kubebuilder:validation:MaxLength=253
+	// +optional
+	ChildWorkflow string `json:"childWorkflow,omitempty"`
+
 	// logKey is the key of the archived log of the main container in the artifact repository.
 	// +kubebuilder:validation:MaxLength=1024
 	// +optional
@@ -108,11 +115,11 @@ type NodeStatus struct {
 	Cache *NodeCache `json:"cache,omitempty"`
 }
 
-// Progress counts the nodes that do work (Pod, suspend and task nodes), and those that finished.
+// Progress counts the nodes that do work (Pod, suspend, task and child workflow nodes), and those that finished.
 func (s *WorkflowStatus) Progress() (done, total int32) {
 	for _, n := range s.Nodes {
 		switch n.Type {
-		case NodePod, NodeSuspend, NodeTask:
+		case NodePod, NodeSuspend, NodeTask, NodeChildWorkflow:
 			total++
 			if n.FinishedAt != nil {
 				done++
