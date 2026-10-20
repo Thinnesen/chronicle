@@ -10,7 +10,7 @@ import (
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 )
 
-func TestSubmitChecksTheTemplateEnum(t *testing.T) {
+func TestSubmitChecksTheTemplate(t *testing.T) {
 	srv := setup(t)
 	ctx := context.Background()
 	tmpl := &v1alpha1.WorkflowTemplate{Name: "release", Namespace: "team-a", Spec: v1alpha1.WorkflowTemplateSpec{
@@ -22,11 +22,15 @@ func TestSubmitChecksTheTemplateEnum(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = admin.Delete(ctx, tmpl) })
-	submit := func(env string) error {
+	submitTo := func(template, env string) error {
 		_, err := newClient(srv, "alice").SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
-			Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: "release"}},
+			Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: template}},
 			Parameters: map[string]string{"env": env}}))
 		return err
+	}
+	submit := func(env string) error { return submitTo("release", env) }
+	if err := submitTo("nope", "prod"); code(err) != connect.CodeNotFound {
+		t.Errorf("a template that does not exist: %v", err)
 	}
 	if err := submit("hacked"); code(err) != connect.CodeInvalidArgument {
 		t.Errorf("a value outside the enum: %v", err)

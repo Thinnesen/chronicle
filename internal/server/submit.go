@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"connectrpc.com/connect"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -25,7 +26,7 @@ func (s *workflowService) SubmitWorkflow(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 	if t := m.GetTemplate(); t != nil {
-		if err := checkTemplateEnums(ctx, c, m.Namespace, t, m.Parameters); err != nil {
+		if err := checkTemplate(ctx, c, m.Namespace, t, m.Parameters); err != nil {
 			return nil, err
 		}
 	}
@@ -89,10 +90,13 @@ func cmpOr(a, b string) string {
 	return b
 }
 
-// checkTemplateEnums refuses a parameter value that the template does not allow, before the run starts. When the
-// caller cannot read the template, the controller checks the value when it resolves the template.
-func checkTemplateEnums(ctx context.Context, c client.Client, namespace string, t *chroniclev1.TemplateSource, params map[string]string) error {
+// checkTemplate refuses a template that does not exist and a parameter value that the template does not allow, before
+// the run starts. When the caller cannot read the template, the controller checks both when it resolves the template.
+func checkTemplate(ctx context.Context, c client.Client, namespace string, t *chroniclev1.TemplateSource, params map[string]string) error {
 	_, spec, err := readTemplate(ctx, c, namespace, t.Name, t.ClusterScope)
+	if apierrors.IsNotFound(err) {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("the template %s does not exist", t.Name))
+	}
 	if err != nil {
 		return nil
 	}

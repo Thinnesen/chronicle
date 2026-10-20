@@ -163,6 +163,7 @@ func TestWorkflowService(t *testing.T) {
 		t.Fatalf("submit summary = %+v", sub.Msg.Summary)
 	}
 
+	createTemplate(t, "nightly")
 	tmpl, err := alice.SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
 		Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: "nightly"}},
 	}))
@@ -360,4 +361,17 @@ func checkKind(t *testing.T, obj *structpb.Struct, kind string) {
 	if f := obj.Fields; f["kind"].GetStringValue() != kind || f["apiVersion"].GetStringValue() != "chronicle.thinnesen.com/v1alpha1" {
 		t.Errorf("kind %v, apiVersion %v", f["kind"], f["apiVersion"])
 	}
+}
+
+// createTemplate creates a WorkflowTemplate with one container step in team-a, and deletes it after the test.
+func createTemplate(t *testing.T, name string) {
+	t.Helper()
+	ctx := context.Background()
+	tmpl := &v1alpha1.WorkflowTemplate{Name: name, Namespace: "team-a", Spec: v1alpha1.WorkflowTemplateSpec{
+		Entrypoint: "c", Templates: []v1alpha1.Template{{Name: "c", Container: &v1alpha1.ContainerTemplate{Image: "x"}}},
+	}}
+	if err := admin.Create(ctx, tmpl); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Delete(ctx, tmpl) })
 }
