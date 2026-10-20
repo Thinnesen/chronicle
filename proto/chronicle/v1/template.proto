@@ -65,6 +65,8 @@ message ListTemplatesRequest {
 
 message ListTemplatesResponse {
   repeated TemplateSummary templates = 1;
+  // cluster_templates_hidden is true when the caller may not list the ClusterWorkflowTemplates. They are not in the list.
+  bool cluster_templates_hidden = 2;
 }
 
 message GetTemplateRequest {

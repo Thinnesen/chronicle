@@ -43,9 +43,10 @@ type stub struct {
 	// gates is the number of suspend nodes of the run that wait for an approval.
 	gates int
 	// archiveDown makes the list say that the archive did not answer.
-	archiveDown bool
-	tries       []*chroniclev1.Try // the earlier tries of the run
-	exitHandler bool               // the run has an exit handler node
+	archiveDown   bool
+	tries         []*chroniclev1.Try // the earlier tries of the run
+	exitHandler   bool               // the run has an exit handler node
+	clusterHidden bool               // the caller may not list cluster templates
 }
 
 func (s *stub) SubmitWorkflow(_ context.Context, r *connect.Request[chroniclev1.SubmitWorkflowRequest]) (*connect.Response[chroniclev1.SubmitWorkflowResponse], error) {

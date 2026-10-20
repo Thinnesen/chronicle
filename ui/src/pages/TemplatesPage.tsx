@@ -25,6 +25,7 @@ export function TemplatesPage() {
       {isPending && <p className="quiet">Loading the templates…</p>}
       {error && <p role="alert">Could not load the templates: {errorText(error)}</p>}
       {data?.templates.length === 0 && <p className="quiet">No templates yet. Add a WorkflowTemplate to the namespace, for example through Git.</p>}
+      {data?.clusterTemplatesHidden && <p className="quiet">You may not list the cluster templates, so this list leaves them out.</p>}
       {data && data.templates.length > 0 && (
         <ul className="item-list">
           {data.templates.map((t) => (

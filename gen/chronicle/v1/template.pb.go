@@ -265,10 +265,12 @@ func (x *ListTemplatesRequest) GetNamespace() string {
 }
 
 type ListTemplatesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Templates     []*TemplateSummary     `protobuf:"bytes,1,rep,name=templates,proto3" json:"templates,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Templates []*TemplateSummary     `protobuf:"bytes,1,rep,name=templates,proto3" json:"templates,omitempty"`
+	// cluster_templates_hidden is true when the caller may not list the ClusterWorkflowTemplates. They are not in the list.
+	ClusterTemplatesHidden bool `protobuf:"varint,2,opt,name=cluster_templates_hidden,json=clusterTemplatesHidden,proto3" json:"cluster_templates_hidden,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListTemplatesResponse) Reset() {
@@ -306,6 +308,13 @@ func (x *ListTemplatesResponse) GetTemplates() []*TemplateSummary {
 		return x.Templates
 	}
 	return nil
+}
+
+func (x *ListTemplatesResponse) GetClusterTemplatesHidden() bool {
+	if x != nil {
+		return x.ClusterTemplatesHidden
+	}
+	return false
 }
 
 type GetTemplateRequest struct {
@@ -967,9 +976,10 @@ const file_chronicle_v1_template_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"4\n" +
 	"\x14ListTemplatesRequest\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\"T\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\"\x8e\x01\n" +
 	"\x15ListTemplatesResponse\x12;\n" +
-	"\ttemplates\x18\x01 \x03(\v2\x1d.chronicle.v1.TemplateSummaryR\ttemplates\"k\n" +
+	"\ttemplates\x18\x01 \x03(\v2\x1d.chronicle.v1.TemplateSummaryR\ttemplates\x128\n" +
+	"\x18cluster_templates_hidden\x18\x02 \x01(\bR\x16clusterTemplatesHidden\"k\n" +
 	"\x12GetTemplateRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +

@@ -17,7 +17,7 @@ func (s *stub) ListTemplates(context.Context, *connect.Request[chroniclev1.ListT
 		{Name: "etl", Description: "Load the sales data", Parameters: []*chroniclev1.TemplateParameter{
 			{Name: "day"}, {Name: "region", Default: "eu", HasDefault: true}}},
 		{Name: "base", ClusterScope: true, ManagedBy: "Argo CD"},
-	}}), nil
+	}, ClusterTemplatesHidden: s.clusterHidden}), nil
 }
 
 func (s *stub) ListCronWorkflows(context.Context, *connect.Request[chroniclev1.ListCronWorkflowsRequest]) (*connect.Response[chroniclev1.ListCronWorkflowsResponse], error) {
@@ -72,5 +72,11 @@ func TestCron(t *testing.T) {
 	if len(s.requests) != 2 || s.requests[0].(*chroniclev1.SuspendCronWorkflowRequest).Name != "nightly" ||
 		s.requests[1].(*chroniclev1.ResumeCronWorkflowRequest).Namespace != "team-a" {
 		t.Errorf("requests = %+v", s.requests)
+	}
+}
+
+func TestTemplatesSaysWhenClusterTemplatesAreHidden(t *testing.T) {
+	if out, err := run(t, &stub{clusterHidden: true}, "templates"); err != nil || !strings.Contains(out, "You may not list the cluster templates") {
+		t.Errorf("templates: %v %q", err, out)
 	}
 }

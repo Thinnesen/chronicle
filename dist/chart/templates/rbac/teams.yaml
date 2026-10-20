@@ -31,3 +31,28 @@ subjects:
 {{- end }}
 {{- end }}
 {{- end }}
+{{- /* Each team may read the ClusterWorkflowTemplates, which it can already run. */}}
+{{- range $team := .Values.teams }}
+{{- $groups := concat ($team.viewer | default list) ($team.editor | default list) ($team.admin | default list) | uniq }}
+{{- if $groups }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chronicle-{{ $team.name }}-cluster-templates
+  labels:
+    app.kubernetes.io/name: chronicle
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    chronicle.thinnesen.com/team: {{ $team.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: chronicle-cluster-template-reader
+subjects:
+{{- range $group := $groups }}
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: {{ printf "%s%s" $prefix $group | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

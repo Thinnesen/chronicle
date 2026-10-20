@@ -55,7 +55,13 @@ func (a *app) templatesCommand() *cobra.Command {
 				}
 				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, cmpOr(parameterList(t.Parameters), "-"), cmpOr(t.ManagedBy, "-"), t.Description)
 			}
-			return w.Flush()
+			if err := w.Flush(); err != nil {
+				return err
+			}
+			if resp.Msg.ClusterTemplatesHidden {
+				_, _ = fmt.Fprintln(a.errOut, "You may not list the cluster templates, so the list leaves them out. Ask for get and list on clusterworkflowtemplates.")
+			}
+			return nil
 		},
 	}
 }

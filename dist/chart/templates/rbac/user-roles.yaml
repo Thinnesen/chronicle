@@ -73,4 +73,17 @@ rules:
 - apiGroups: [chronicle.thinnesen.com]
   resources: [workflows/tasks]
   verbs: [update]
+---
+# chronicle-cluster-template-reader reads the ClusterWorkflowTemplates. A RoleBinding in a namespace cannot give a
+# cluster resource, so the teams value binds it with a ClusterRoleBinding.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chronicle-cluster-template-reader
+  labels:
+    {{- include "chronicle.serverLabels" . | nindent 4 }}
+rules:
+- apiGroups: [chronicle.thinnesen.com]
+  resources: [clusterworkflowtemplates]
+  verbs: [get, list, watch]
 {{- end }}

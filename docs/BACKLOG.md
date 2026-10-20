@@ -54,7 +54,7 @@ Smaller:
 - S13. (done) Unknown workflow parameters are accepted by `submit --from`, `rerun -p` and SubmitTemplate.
 - S14. (done) `retry --node <bad>` exits 0 without --watch; display names are refused.
 - S15. (done) `chronicle logs <run>` stops at the first missing Pod.
-- S16. Cluster templates are not listed for namespace users; the UI gives 403.
+- S16. (done) Cluster templates are not listed for namespace users; the UI gives 403.
 - S17. The UI stat "Runs in 24 h" counts the newest 200 runs.
 - S18. `lint` reads YAML 1.1, `submit -f` YAML 1.2. `convert` fails on a non-Argo document; lint skips it.
 - S19. Webhook duration errors have no field path. An invalid constant regex in `when` passes admission.

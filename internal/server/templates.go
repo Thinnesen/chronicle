@@ -44,7 +44,9 @@ func (s *templateService) ListTemplates(ctx context.Context, req *connect.Reques
 			t := &cluster.Items[i]
 			resp.Templates = append(resp.Templates, templateSummary(t, &t.Spec, true))
 		}
-	} else if !apierrors.IsForbidden(err) {
+	} else if apierrors.IsForbidden(err) {
+		resp.ClusterTemplatesHidden = true
+	} else {
 		return nil, toConnect(err)
 	}
 	slices.SortFunc(resp.Templates, func(a, b *chroniclev1.TemplateSummary) int { return strings.Compare(a.Name, b.Name) })
