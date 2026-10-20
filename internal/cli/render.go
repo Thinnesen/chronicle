@@ -36,6 +36,8 @@ func printList(out io.Writer, runs []*chroniclev1.WorkflowSummary) {
 			message = "waiting for an approval"
 		case r.WaitingReason != "":
 			message = "a step waits: " + r.WaitingReason
+		case r.Archived:
+			message = "only in the archive"
 		}
 		_, _ = fmt.Fprintf(w, "%s\t%s\t%d/%d\t%s\t%s\t%s\n", r.Name, cmpOr(r.Phase, "Pending"), r.NodesDone, r.NodesTotal, started, duration, message)
 	}
