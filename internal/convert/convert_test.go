@@ -119,6 +119,14 @@ func TestRules(t *testing.T) {
 			want: []string{"template: main-a-2", "name: main-a-2", "template: main-b-c", "spec.templates[0].steps[0][0].inline: the inline template is now the template \"main-a-2\""},
 		},
 		{
+			name: "raw and http artifacts stay, other sources and http headers go",
+			templates: "  - {name: main, inputs: {artifacts: [{name: t, path: /tmp/t, mode: 0755}, {name: s, path: /tmp/s, optional: true, s3: {key: k}}]}, " +
+				"outputs: {artifacts: [{name: o, path: /tmp/o, http: {url: 'https://e.com/up'}}]}, container: {image: x, command: [run]}}\n" +
+				"  arguments: {artifacts: [{name: t, http: {url: 'https://e.com/t', headers: [{name: a, value: b}]}}]}",
+			want: []string{"url: https://e.com/t", "mode: 493", "spec.arguments.artifacts[0].http.headers: chronicle does not support",
+				"spec.templates[0].inputs.artifacts[1].s3: chronicle does not support", "spec.templates[0].outputs.artifacts[0].http: chronicle does not support"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

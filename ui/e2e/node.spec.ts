@@ -54,6 +54,10 @@ test("shows the archived log and the artifacts of a node", async ({ page }, info
   await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n2");
   await page.getByRole("complementary", { name: "Step validate" }).getByRole("tab", { name: "Summary" }).click();
   await expect(page.getByText("/tmp/rows")).toBeVisible();
+  // The source of a raw or http input. The page never shows the URL, which can have a token.
+  await expect(page.getByText("text from the spec")).toBeVisible();
+  await expect(page.getByText("downloaded from dl.example.com")).toBeVisible();
+  await expect(page.getByText(/sig=abc/)).toHaveCount(0);
 });
 
 test("connects the log of a running node again after a broken stream", async ({ page }) => {

@@ -70,11 +70,32 @@ spec:
                             in the from of a later argument, and status.outputs of the run.
                           maxLength: 128
                           type: string
+                        http:
+                          description: http is a file that the step downloads before
+                            it starts. The executor saves the file as it is.
+                          properties:
+                            url:
+                              description: url of the file. The step downloads it
+                                from its own Pod, with a GET request.
+                              maxLength: 2048
+                              pattern: ^https?://
+                              type: string
+                          required:
+                          - url
+                          type: object
                         key:
                           description: key of the object in the artifact repository.
                             Only the status sets it.
                           maxLength: 1024
                           type: string
+                        mode:
+                          description: |-
+                            mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                            It has no effect on an artifact from the repository.
+                          format: int32
+                          maximum: 511
+                          minimum: 0
+                          type: integer
                         name:
                           description: name of the artifact.
                           maxLength: 128
@@ -91,6 +112,17 @@ spec:
                           maxLength: 4096
                           pattern: ^/
                           type: string
+                        raw:
+                          description: raw is the content of an input artifact, as
+                            text in the spec.
+                          properties:
+                            data:
+                              description: data is the content of the file.
+                              maxLength: 65536
+                              type: string
+                          required:
+                          - data
+                          type: object
                       required:
                       - name
                       type: object
@@ -590,11 +622,34 @@ spec:
                                             in the from of a later argument, and status.outputs of the run.
                                           maxLength: 128
                                           type: string
+                                        http:
+                                          description: http is a file that the step
+                                            downloads before it starts. The executor
+                                            saves the file as it is.
+                                          properties:
+                                            url:
+                                              description: url of the file. The step
+                                                downloads it from its own Pod, with
+                                                a GET request.
+                                              maxLength: 2048
+                                              pattern: ^https?://
+                                              type: string
+                                          required:
+                                          - url
+                                          type: object
                                         key:
                                           description: key of the object in the artifact
                                             repository. Only the status sets it.
                                           maxLength: 1024
                                           type: string
+                                        mode:
+                                          description: |-
+                                            mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                                            It has no effect on an artifact from the repository.
+                                          format: int32
+                                          maximum: 511
+                                          minimum: 0
+                                          type: integer
                                         name:
                                           description: name of the artifact.
                                           maxLength: 128
@@ -611,6 +666,18 @@ spec:
                                           maxLength: 4096
                                           pattern: ^/
                                           type: string
+                                        raw:
+                                          description: raw is the content of an input
+                                            artifact, as text in the spec.
+                                          properties:
+                                            data:
+                                              description: data is the content of
+                                                the file.
+                                              maxLength: 65536
+                                              type: string
+                                          required:
+                                          - data
+                                          type: object
                                       required:
                                       - name
                                       type: object
@@ -805,11 +872,33 @@ spec:
                                   in the from of a later argument, and status.outputs of the run.
                                 maxLength: 128
                                 type: string
+                              http:
+                                description: http is a file that the step downloads
+                                  before it starts. The executor saves the file as
+                                  it is.
+                                properties:
+                                  url:
+                                    description: url of the file. The step downloads
+                                      it from its own Pod, with a GET request.
+                                    maxLength: 2048
+                                    pattern: ^https?://
+                                    type: string
+                                required:
+                                - url
+                                type: object
                               key:
                                 description: key of the object in the artifact repository.
                                   Only the status sets it.
                                 maxLength: 1024
                                 type: string
+                              mode:
+                                description: |-
+                                  mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                                  It has no effect on an artifact from the repository.
+                                format: int32
+                                maximum: 511
+                                minimum: 0
+                                type: integer
                               name:
                                 description: name of the artifact.
                                 maxLength: 128
@@ -826,6 +915,17 @@ spec:
                                 maxLength: 4096
                                 pattern: ^/
                                 type: string
+                              raw:
+                                description: raw is the content of an input artifact,
+                                  as text in the spec.
+                                properties:
+                                  data:
+                                    description: data is the content of the file.
+                                    maxLength: 65536
+                                    type: string
+                                required:
+                                - data
+                                type: object
                             required:
                             - name
                             type: object
@@ -922,11 +1022,33 @@ spec:
                                   in the from of a later argument, and status.outputs of the run.
                                 maxLength: 128
                                 type: string
+                              http:
+                                description: http is a file that the step downloads
+                                  before it starts. The executor saves the file as
+                                  it is.
+                                properties:
+                                  url:
+                                    description: url of the file. The step downloads
+                                      it from its own Pod, with a GET request.
+                                    maxLength: 2048
+                                    pattern: ^https?://
+                                    type: string
+                                required:
+                                - url
+                                type: object
                               key:
                                 description: key of the object in the artifact repository.
                                   Only the status sets it.
                                 maxLength: 1024
                                 type: string
+                              mode:
+                                description: |-
+                                  mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                                  It has no effect on an artifact from the repository.
+                                format: int32
+                                maximum: 511
+                                minimum: 0
+                                type: integer
                               name:
                                 description: name of the artifact.
                                 maxLength: 128
@@ -943,6 +1065,17 @@ spec:
                                 maxLength: 4096
                                 pattern: ^/
                                 type: string
+                              raw:
+                                description: raw is the content of an input artifact,
+                                  as text in the spec.
+                                properties:
+                                  data:
+                                    description: data is the content of the file.
+                                    maxLength: 65536
+                                    type: string
+                                required:
+                                - data
+                                type: object
                             required:
                             - name
                             type: object
@@ -1455,11 +1588,34 @@ spec:
                                           in the from of a later argument, and status.outputs of the run.
                                         maxLength: 128
                                         type: string
+                                      http:
+                                        description: http is a file that the step
+                                          downloads before it starts. The executor
+                                          saves the file as it is.
+                                        properties:
+                                          url:
+                                            description: url of the file. The step
+                                              downloads it from its own Pod, with
+                                              a GET request.
+                                            maxLength: 2048
+                                            pattern: ^https?://
+                                            type: string
+                                        required:
+                                        - url
+                                        type: object
                                       key:
                                         description: key of the object in the artifact
                                           repository. Only the status sets it.
                                         maxLength: 1024
                                         type: string
+                                      mode:
+                                        description: |-
+                                          mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                                          It has no effect on an artifact from the repository.
+                                        format: int32
+                                        maximum: 511
+                                        minimum: 0
+                                        type: integer
                                       name:
                                         description: name of the artifact.
                                         maxLength: 128
@@ -1476,6 +1632,18 @@ spec:
                                         maxLength: 4096
                                         pattern: ^/
                                         type: string
+                                      raw:
+                                        description: raw is the content of an input
+                                          artifact, as text in the spec.
+                                        properties:
+                                          data:
+                                            description: data is the content of the
+                                              file.
+                                            maxLength: 65536
+                                            type: string
+                                        required:
+                                        - data
+                                        type: object
                                     required:
                                     - name
                                     type: object

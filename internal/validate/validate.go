@@ -44,6 +44,8 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 		}
 		c.checkEnum(&p, pp)
 	}
+	entry := c.templates[spec.Entrypoint]
+	given := c.checkWorkflowArtifacts(spec, entry, path.Child("arguments", "artifacts"))
 	if t, ok := c.templates[spec.Entrypoint]; !ok {
 		c.errs = append(c.errs, field.NotFound(path.Child("entrypoint"), spec.Entrypoint))
 	} else {
@@ -53,12 +55,12 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 					fmt.Sprintf("parameter %q of the entrypoint template", in.Name)))
 			}
 		}
-		c.checkNoArtifactInputs(t, path.Child("entrypoint"))
+		c.checkWorkflowInputs(t, given, path.Child("entrypoint"))
 	}
 	if t, ok := c.templates[spec.OnExit]; spec.OnExit != "" && !ok {
 		c.errs = append(c.errs, field.NotFound(path.Child("onExit"), spec.OnExit))
 	} else if ok {
-		c.checkNoArtifactInputs(t, path.Child("onExit"))
+		c.checkWorkflowInputs(t, given, path.Child("onExit"))
 	}
 	for i := range spec.Templates {
 		c.checkTemplate(&spec.Templates[i], path.Child("templates").Index(i))

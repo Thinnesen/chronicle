@@ -29,6 +29,19 @@ export interface NodeStatus {
 export interface Artifact {
   name: string;
   path?: string;
+  raw?: { data: string };
+  http?: { url: string };
+}
+
+// artifactSource tells where a raw or http input comes from. It names only the host of a URL, which can have a token.
+export function artifactSource(a: Artifact): string | undefined {
+  if (a.raw) return "text from the spec";
+  if (!a.http) return undefined;
+  try {
+    return `downloaded from ${new URL(a.http.url).host}`;
+  } catch {
+    return "downloaded from a URL";
+  }
 }
 
 // artifactURL is the download link of an output artifact of a node.

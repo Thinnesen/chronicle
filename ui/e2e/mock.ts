@@ -42,7 +42,11 @@ export function run(phase: string, gate = false, archived = false, stuck = false
           }),
           n2: node("n2", ".validate", {
             displayName: "validate", type: "Pod", phase: "Succeeded", startedAt: ts(-228), finishedAt: ts(-200), podName: "n2",
-            inputs: { parameters: [{ name: "rows", value: "1204 rows" }], artifacts: [{ name: "rows", path: "/tmp/rows", key: "team-a/u1/n1/rows.tgz" }] },
+            inputs: { parameters: [{ name: "rows", value: "1204 rows" }], artifacts: [
+              { name: "rows", path: "/tmp/rows", key: "team-a/u1/n1/rows.tgz" },
+              { name: "schema", path: "/tmp/schema.json", raw: { data: "{}" } },
+              { name: "tool", path: "/tmp/tool", http: { url: "https://dl.example.com/tool?sig=abc" } },
+            ] },
           }),
           n3: node("n3", ".train", { displayName: "train", type: "Retry", phase: done ? "Succeeded" : "Running", startedAt: ts(-198), finishedAt: done ? ts(-20) : undefined, children: ["n3a", "n3b"] }),
           n3a: node("n3a", ".train(0)", { displayName: "train(0)", type: "Pod", phase: "Failed", message: "OOMKilled (exit code 137)", startedAt: ts(-198), finishedAt: ts(-150), podName: "n3a", outputs: { exitCode: 137 } }),

@@ -76,11 +76,48 @@ Rules:
 - A fan-out (`withItems`, `withParam`) has no artifact outputs.
 - An input artifact can unpack to at most 8 GiB.
 
-## 3. Download an artifact
+## 3. Give a file as text or from a URL
+
+An input artifact, or an artifact argument, can bring its own content. These need no artifact repository.
+
+```yaml
+spec:
+  entrypoint: main
+  arguments:
+    artifacts:
+    - name: config              # the workflow gives this file to the entrypoint
+      raw:
+        data: |
+          region: eu
+  templates:
+  - name: main
+    inputs:
+      parameters: [{name: version, value: "1.31.0"}]
+      artifacts:
+      - name: config
+        path: /tmp/config.yaml
+      - name: kubectl
+        path: /tmp/bin/kubectl
+        mode: 0755
+        http:
+          url: "https://dl.k8s.io/release/v{{inputs.parameters.version}}/bin/linux/amd64/kubectl"
+    container:
+      image: alpine:3.23
+      command: [sh, -c, "cat /tmp/config.yaml && /tmp/bin/kubectl version --client"]
+```
+
+- `raw.data` is the text of the file, at most 64 KiB. Placeholders in it stay as they are.
+- `http.url` is a file that the step downloads with a GET request, from its own Pod, before the command starts. The URL can have placeholders. The step saves the file as it is: it does not unpack an archive.
+- `mode` sets the file mode, for example `0755` for a program. The default is `0644`.
+- `spec.arguments.artifacts` gives artifacts to the entrypoint and to the exit handler. They need `raw` or `http`.
+- A `dag` or `steps` template passes such an input on with `from: "{{inputs.artifacts.<name>}}"`.
+- An error message names the URL without its query, because a signed URL has its token there. The URL itself is in the Workflow spec, so do not put a secret into it that readers of the Workflow must not see.
+
+## 4. Download an artifact
 
 Open the run in the UI, select the step and open **Summary**. Each output artifact has a download link. The file is a tar.gz archive. You need `get` permission on Workflows in the namespace.
 
-## 4. Read archived logs
+## 5. Read archived logs
 
 With `archiveLogs: "true"`, the UI and `chronicle logs <run>` show the log of a step after its Pod is deleted, for example by `podGC` or by the TTL. The UI marks such a log. You need `get` permission on `pods/log` in the namespace. The archive keeps the first 32 MiB of each log.
 

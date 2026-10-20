@@ -100,7 +100,7 @@ func (b *boundary) runOne(t *task, nodeName string, item *apiextensionsv1.JSON, 
 		b.finishEarly(t, nodeName, v1alpha1.NodeError, err.Error(), parentID)
 		return
 	}
-	artifacts := resolveArtifacts(t.call.Arguments, resolve)
+	artifacts := resolveArtifacts(t.call.Arguments.Artifacts, b.e.nodes[b.nodeID].Inputs, resolve)
 	n := b.e.execute(call{template: t.call.Template, nodeName: nodeName, args: args, artifacts: artifacts}, b.depth+1)
 	b.link(t, parentID, n.ID)
 }

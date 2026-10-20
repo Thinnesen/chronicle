@@ -31,7 +31,8 @@ func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path, sc scop
 		case leaf && a.Path == "":
 			c.errs = append(c.errs, field.Required(ap.Child("path"), "an input artifact of a container or script template needs a path"))
 		}
-		c.checkArtifactPath(a, ap)
+		c.checkArtifactPath(a, ap, true)
+		c.checkSource(a, ap, sc)
 	}
 	for i, a := range t.Outputs.Artifacts {
 		ap := path.Child("outputs", "artifacts").Index(i)
@@ -47,7 +48,7 @@ func (c *checker) checkArtifacts(t *v1alpha1.Template, path *field.Path, sc scop
 		case a.Path == "":
 			c.errs = append(c.errs, field.Required(ap.Child("path"), "an output artifact needs a path"))
 		}
-		c.checkArtifactPath(a, ap)
+		c.checkArtifactPath(a, ap, false)
 	}
 }
 
@@ -61,7 +62,10 @@ func (c *checker) checkPassedArtifact(a v1alpha1.Artifact, path *field.Path, sc 
 	c.checkFrom(a.From, path.Child("from"), sc, nil)
 }
 
-func (c *checker) checkArtifactPath(a v1alpha1.Artifact, path *field.Path) {
+func (c *checker) checkArtifactPath(a v1alpha1.Artifact, path *field.Path, input bool) {
+	if !input && (a.Raw != nil || a.HTTP != nil || a.Mode != nil) {
+		c.errs = append(c.errs, field.Forbidden(path, "only an input or an argument can have raw or http"))
+	}
 	if strings.Contains(a.Path, "{{") {
 		c.errs = append(c.errs, field.Invalid(path.Child("path"), a.Path, "an artifact path cannot have placeholders"))
 	}
@@ -80,10 +84,13 @@ func (c *checker) checkArtifactArgs(t *v1alpha1.Template, call v1alpha1.Call, pa
 			c.errs = append(c.errs, field.NotFound(ap.Child("name"), a.Name))
 			continue
 		}
-		c.checkFrom(a.From, ap.Child("from"), sc, hint)
+		c.checkSource(a, ap, sc)
+		if a.Raw == nil && a.HTTP == nil {
+			c.checkFrom(a.From, ap.Child("from"), sc, hint)
+		}
 	}
 	for _, in := range t.Inputs.Artifacts {
-		if !in.Optional && !given[in.Name] {
+		if !in.Optional && !given[in.Name] && !hasSource(in) {
 			c.errs = append(c.errs, field.Required(path, fmt.Sprintf("artifact %q of template %q", in.Name, call.Template)))
 		}
 	}
@@ -108,11 +115,51 @@ func (c *checker) checkFrom(from string, path *field.Path, sc scope, hint func(s
 	c.errs = append(c.errs, field.Invalid(path, from, msg))
 }
 
-// checkNoArtifactInputs checks a template that the workflow calls. A workflow cannot give artifacts.
-func (c *checker) checkNoArtifactInputs(t *v1alpha1.Template, path *field.Path) {
+// checkSource checks the source of an artifact: at most one of from, raw and http, and the placeholders of a URL.
+func (c *checker) checkSource(a v1alpha1.Artifact, path *field.Path, sc scope) {
+	n := 0
+	for _, set := range []bool{a.From != "", a.Raw != nil, a.HTTP != nil} {
+		if set {
+			n++
+		}
+	}
+	if n > 1 {
+		c.errs = append(c.errs, field.Invalid(path, a.Name, "an artifact has one source: from, raw or http"))
+	}
+	if a.HTTP != nil {
+		c.checkText(a.HTTP.URL, path.Child("http", "url"), sc, nil)
+	}
+}
+
+// hasSource tells if an artifact brings its own content: raw text or a URL.
+func hasSource(a v1alpha1.Artifact) bool {
+	return a.Raw != nil || a.HTTP != nil
+}
+
+// checkWorkflowArtifacts checks the artifacts that the workflow gives to its entrypoint. They need raw or http,
+// because no step ran before. It returns their names.
+func (c *checker) checkWorkflowArtifacts(spec *v1alpha1.WorkflowTemplateSpec, entry *v1alpha1.Template, path *field.Path) map[string]bool {
+	given := map[string]bool{}
+	for i, a := range spec.Arguments.Artifacts {
+		ap := path.Index(i)
+		given[a.Name] = true
+		switch {
+		case !hasSource(a):
+			c.errs = append(c.errs, field.Required(ap, "a workflow artifact needs raw or http"))
+		case entry != nil && findArtifact(entry.Inputs.Artifacts, a.Name) == nil:
+			c.errs = append(c.errs, field.NotFound(ap.Child("name"), a.Name))
+		}
+		c.checkSource(a, ap, c.globals)
+	}
+	return given
+}
+
+// checkWorkflowInputs checks a template that the workflow calls: the workflow arguments, or the template itself,
+// must give each artifact that it needs.
+func (c *checker) checkWorkflowInputs(t *v1alpha1.Template, given map[string]bool, path *field.Path) {
 	for _, in := range t.Inputs.Artifacts {
-		if !in.Optional {
-			c.errs = append(c.errs, field.Forbidden(path, fmt.Sprintf("the template needs artifact %q, but a workflow cannot give artifacts", in.Name)))
+		if !in.Optional && !given[in.Name] && !hasSource(in) {
+			c.errs = append(c.errs, field.Required(path, fmt.Sprintf("artifact %q of the template: give it in spec.arguments.artifacts", in.Name)))
 		}
 	}
 }

@@ -132,7 +132,7 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 	if !ok && e.in.Suspend {
 		return v1alpha1.NodeRunning, ""
 	}
-	root = e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs()}, 0)
+	root = e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs(), artifacts: e.workflowArtifacts()}, 0)
 	if !isTerminal(root.Phase) {
 		if reason := e.stopReason(); reason != "" {
 			e.stop(root.ID, reason)
@@ -152,7 +152,7 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 		return v1alpha1.NodeRunning, ""
 	}
 	e.status = string(workflowPhase(phase))
-	exit := e.execute(call{template: e.in.Spec.OnExit, nodeName: exitName, args: e.workflowArgs()}, 0)
+	exit := e.execute(call{template: e.in.Spec.OnExit, nodeName: exitName, args: e.workflowArgs(), artifacts: e.workflowArtifacts()}, 0)
 	if !isTerminal(exit.Phase) {
 		return v1alpha1.NodeRunning, ""
 	}
@@ -210,8 +210,8 @@ type call struct {
 	nodeName string
 	// args are the resolved argument values.
 	args map[string]string
-	// artifacts are the keys of the argument artifacts.
-	artifacts map[string]string
+	// artifacts are the argument artifacts: a key in the repository, raw text or a URL.
+	artifacts map[string]v1alpha1.Artifact
 	// attempt is true for one attempt of a retry node, and retry is its number, from 0.
 	attempt bool
 	retry   int

@@ -19,9 +19,12 @@ func (c *converter) spec(in obj, path string, forWorkflow bool) (obj, error) {
 	}
 	if v, ok := in["arguments"]; ok {
 		a := asObj(v)
-		args := c.pick(a, join(path, "arguments"), nil, "parameters")
+		args := c.pick(a, join(path, "arguments"), nil, "parameters", "artifacts")
 		if ps, ok := a["parameters"]; ok {
 			args["parameters"] = c.parameters(asList(ps), join(path, "arguments.parameters"))
+		}
+		if as, ok := a["artifacts"]; ok {
+			args["artifacts"] = c.inputArtifacts(asList(as), join(path, "arguments.artifacts"))
 		}
 		out["arguments"] = args
 	}
@@ -143,7 +146,7 @@ func (c *converter) call(in obj, path string, extra ...string) (obj, error) {
 			args["parameters"] = c.parameters(asList(ps), join(path, "arguments.parameters"))
 		}
 		if as, ok := a["artifacts"]; ok {
-			args["artifacts"] = c.artifacts(asList(as), join(path, "arguments.artifacts"), "from")
+			args["artifacts"] = c.inputArtifacts(asList(as), join(path, "arguments.artifacts"), "from")
 		}
 		out["arguments"] = args
 	}

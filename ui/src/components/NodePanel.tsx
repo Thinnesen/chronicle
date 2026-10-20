@@ -9,7 +9,7 @@ import { useToast } from "./Toast";
 
 import { clock, duration } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { artifactURL, nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
+import { artifactSource, artifactURL, nodeLabel, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
 import { ApprovalForm } from "./ApprovalForm";
 import { CopyButton } from "./CopyButton";
 import { Lamp } from "./Lamp";
@@ -229,7 +229,10 @@ function Artifacts({ node, namespace, workflow }: { node: NodeStatus; namespace:
         {inputs.map((a) => (
           <li key={`in-${a.name}`}>
             <span>{a.name}</span>
-            <span className="quiet">input at <code>{a.path}</code></span>
+            <span className="quiet">
+              input at <code>{a.path}</code>
+              {artifactSource(a) && `, ${artifactSource(a)}`}
+            </span>
           </li>
         ))}
         {outputs.map((a) => (

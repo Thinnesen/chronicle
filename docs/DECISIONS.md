@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: Input artifacts can come from `raw` text or an `http` URL, as in Argo, also in `spec.arguments.artifacts`. The step downloads the URL from its own Pod, so the controller and the server make no requests to user URLs. The executor saves the file as it is. Argo unpacks a tarball that it detects, but a file that changes its form by its content is a surprise; a step can unpack it. Other Argo sources (s3, gcs, git and others) need credentials per source and are not supported: use the repository of the namespace.
+
 - 2026-10-20: The node outputs in the status have `exitCode`, the exit code of the main container, as in Argo. The controller reads it from the Pod status, so it is also there when the executor did not write a message. Placeholders: `{{tasks.x.exitCode}}`, `{{steps.x.exitCode}}`, and the node fields `id`, `startedAt` and `finishedAt`. A fan-out has no `exitCode`, because the items can have different codes.
 
 - 2026-10-20: Global outputs as in Argo: `globalName` on output parameters and artifacts, `status.outputs`, and `{{workflow.outputs.*}}`. The engine computes the outputs from the finished nodes on each run, so a retry or a re-run gives the same result as the nodes. Reason: exit handlers and runs that report one result need them, and the Argo converter dropped them.

@@ -28,7 +28,14 @@ func (r *WorkflowReconciler) artifactSpec(ctx context.Context, wf *chroniclev1al
 	spec := &executor.ArtifactSpec{}
 	if a.Inputs != nil {
 		for _, in := range a.Inputs.Artifacts {
-			spec.Inputs = append(spec.Inputs, executor.File{Name: in.Name, Path: in.Path, Key: in.Key})
+			f := executor.File{Name: in.Name, Path: in.Path, Key: in.Key, Mode: in.Mode}
+			if in.Raw != nil {
+				f.Raw = &in.Raw.Data
+			}
+			if in.HTTP != nil {
+				f.URL = in.HTTP.URL
+			}
+			spec.Inputs = append(spec.Inputs, f)
 		}
 	}
 	for _, out := range a.Template.Outputs.Artifacts {
@@ -37,7 +44,7 @@ func (r *WorkflowReconciler) artifactSpec(ctx context.Context, wf *chroniclev1al
 	repo, err := r.repository(ctx, wf.Namespace)
 	var bad badRepositoryError
 	switch {
-	case errors.As(err, &bad) && len(spec.Inputs)+len(spec.Outputs) > 0:
+	case errors.As(err, &bad) && spec.NeedsRepository():
 		// The executor reports the problem in the node.
 		spec.Error = err.Error()
 		return spec, nil

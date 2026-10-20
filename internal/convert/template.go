@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -203,7 +204,25 @@ func (c *converter) inputs(in obj, path string) obj {
 		out["parameters"] = c.parameters(asList(ps), join(path, "parameters"))
 	}
 	if as, ok := in["artifacts"]; ok {
-		out["artifacts"] = c.artifacts(asList(as), join(path, "artifacts"), "path", "optional", "from", "globalName")
+		out["artifacts"] = c.inputArtifacts(asList(as), join(path, "artifacts"), "path", "optional", "from", "globalName")
+	}
+	return out
+}
+
+// inputArtifacts converts input artifacts or artifact arguments. They keep raw text and the URL of http.
+// Other sources, such as s3 or git, need credentials that chronicle does not have: they are dropped.
+func (c *converter) inputArtifacts(list []any, path string, fields ...string) []any {
+	plain := make([]any, 0, len(list))
+	for _, a := range list {
+		m := maps.Clone(asObj(a))
+		delete(m, "http")
+		plain = append(plain, m)
+	}
+	out := c.artifacts(plain, path, append(fields, "raw", "mode")...)
+	for i, a := range list {
+		if h := asObj(asObj(a)["http"]); h != nil {
+			asObj(out[i])["http"] = c.pick(h, join(index(path, i), "http"), []string{"url"})
+		}
 	}
 	return out
 }

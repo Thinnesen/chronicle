@@ -375,6 +375,6 @@ func TestSpecArtifacts(t *testing.T) {
 			want: []string{"an output artifact of a dag or steps template needs only from", "needs a command to download", "needs a command to save"},
 			n:    3,
 		},
-		{name: "entrypoint needs an artifact", spec: "entrypoint: use\ntemplates:" + tmpl, want: []string{"a workflow cannot give artifacts"}},
+		{name: "entrypoint needs an artifact", spec: "entrypoint: use\ntemplates:" + tmpl, want: []string{"give it in spec.arguments.artifacts"}},
 	}, true)
 }

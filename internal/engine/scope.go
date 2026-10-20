@@ -132,7 +132,9 @@ func (e *engine) inputScope(inputs *v1alpha1.Inputs) expr.Resolver {
 			}
 		}
 		for _, a := range inputs.Artifacts {
-			vals["inputs.artifacts."+a.Name] = a.Key
+			if a.Key != "" {
+				vals["inputs.artifacts."+a.Name] = a.Key
+			}
 		}
 	}
 	return func(name string) (string, bool) {
@@ -149,15 +151,6 @@ func (e *engine) resolveInputs(t *v1alpha1.Template, c call) (*v1alpha1.Inputs, 
 		return nil, nil
 	}
 	out := &v1alpha1.Inputs{}
-	for _, in := range t.Inputs.Artifacts {
-		key, ok := c.artifacts[in.Name]
-		switch {
-		case ok:
-			out.Artifacts = append(out.Artifacts, v1alpha1.Artifact{Name: in.Name, Path: in.Path, Key: key})
-		case !in.Optional:
-			return nil, fmt.Errorf("artifact %q has no value", in.Name)
-		}
-	}
 	args := c.args
 	for _, in := range t.Inputs.Parameters {
 		v, fromTemplate := in.Value, true
@@ -183,6 +176,19 @@ func (e *engine) resolveInputs(t *v1alpha1.Template, c call) (*v1alpha1.Inputs, 
 		}
 		out.Parameters = append(out.Parameters, v1alpha1.Parameter{Name: in.Name, Value: v})
 	}
+	// A URL of the template can use the input parameters, so the artifacts come after them.
+	resolve := e.inputScope(&v1alpha1.Inputs{Parameters: out.Parameters})
+	for _, in := range t.Inputs.Artifacts {
+		a, ok, err := inputArtifact(in, c.artifacts, resolve)
+		switch {
+		case err != nil:
+			return nil, err
+		case ok:
+			out.Artifacts = append(out.Artifacts, a)
+		case !in.Optional:
+			return nil, fmt.Errorf("artifact %q has no value", in.Name)
+		}
+	}
 	return out, nil
 }
 
@@ -200,18 +206,6 @@ func resolveArgs(args v1alpha1.Arguments, resolve expr.Resolver) (map[string]str
 		out[a.Name] = v
 	}
 	return out, nil
-}
-
-// resolveArtifacts returns the keys of the argument artifacts. An artifact that does not resolve is left out:
-// it can be optional, and resolveInputs reports a missing artifact.
-func resolveArtifacts(args v1alpha1.Arguments, resolve expr.Resolver) map[string]string {
-	out := map[string]string{}
-	for _, a := range args.Artifacts {
-		if key, err := expr.Substitute(a.From, resolve); err == nil && key != "" {
-			out[a.Name] = key
-		}
-	}
-	return out
 }
 
 // nodeOutput returns an output of a node: "outputs.result", "outputs.parameters.x", "exitCode", or a field of

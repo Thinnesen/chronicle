@@ -45,13 +45,19 @@ type ArtifactSpec struct {
 	Error string `json:"error,omitempty"`
 }
 
-// File is an input or output artifact.
+// File is an input or output artifact. An input comes from Key in the repository, from Raw text or from a URL.
 type File struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Key      string `json:"key,omitempty"`
-	Optional bool   `json:"optional,omitempty"`
+	Name     string  `json:"name"`
+	Path     string  `json:"path"`
+	Key      string  `json:"key,omitempty"`
+	Raw      *string `json:"raw,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	Mode     *int32  `json:"mode,omitempty"`
+	Optional bool    `json:"optional,omitempty"`
 }
+
+// fromRepository tells if an input comes from the artifact repository.
+func (f File) fromRepository() bool { return f.Raw == nil && f.URL == "" }
 
 // files moves the artifacts and the log of one Pod.
 type files struct {
@@ -76,7 +82,10 @@ func openFiles() (*files, error) {
 		return nil, errors.New(f.spec.Error)
 	}
 	if r == nil {
-		return nil, fmt.Errorf("the namespace has no artifact repository: create the ConfigMap and the Secret %s", artifact.Name)
+		if f.spec.NeedsRepository() {
+			return nil, fmt.Errorf("the namespace has no artifact repository: create the ConfigMap and the Secret %s", artifact.Name)
+		}
+		return f, nil
 	}
 	var err error
 	if f.store, err = artifact.Open(*r, os.Getenv(EnvAccessKey), os.Getenv(EnvSecretKey)); err != nil {
@@ -107,6 +116,12 @@ func (f *files) download() error {
 	ctx, cancel := context.WithTimeout(context.Background(), transferTimeout)
 	defer cancel()
 	for _, in := range f.spec.Inputs {
+		if !in.fromRepository() {
+			if err := writeSource(ctx, in); err != nil {
+				return fmt.Errorf("input artifact %q: %w", in.Name, err)
+			}
+			continue
+		}
 		r, _, err := f.store.Get(ctx, in.Key)
 		if err != nil {
 			return fmt.Errorf("input artifact %q: %w", in.Name, err)

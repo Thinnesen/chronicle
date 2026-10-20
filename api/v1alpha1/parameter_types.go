@@ -141,8 +141,40 @@ type Artifact struct {
 	// +optional
 	GlobalName string `json:"globalName,omitempty"`
 
+	// raw is the content of an input artifact, as text in the spec.
+	// +optional
+	Raw *RawArtifact `json:"raw,omitempty"`
+
+	// http is a file that the step downloads before it starts. The executor saves the file as it is.
+	// +optional
+	HTTP *HTTPArtifact `json:"http,omitempty"`
+
+	// mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+	// It has no effect on an artifact from the repository.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=511
+	// +optional
+	Mode *int32 `json:"mode,omitempty"`
+
 	// key of the object in the artifact repository. Only the status sets it.
 	// +kubebuilder:validation:MaxLength=1024
 	// +optional
 	Key string `json:"key,omitempty"`
+}
+
+// RawArtifact is the content of a small input artifact.
+type RawArtifact struct {
+	// data is the content of the file.
+	// +kubebuilder:validation:MaxLength=65536
+	// +required
+	Data string `json:"data"`
+}
+
+// HTTPArtifact is a file at a URL.
+type HTTPArtifact struct {
+	// url of the file. The step downloads it from its own Pod, with a GET request.
+	// +kubebuilder:validation:Pattern=`^https?://`
+	// +kubebuilder:validation:MaxLength=2048
+	// +required
+	URL string `json:"url"`
 }

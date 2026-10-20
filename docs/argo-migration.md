@@ -14,7 +14,7 @@ chronicle convert -f argo-workflow.yaml | kubectl create -n team-a -f -
 - `--strict` makes the command fail when there is a warning. Use it in CI.
 - The command validates the result with the rules of the admission webhook. It stops with an error when the result is not valid, for example when it uses a placeholder that chronicle does not have.
 
-In a test with the 190 examples of Argo Workflows (October 2026), 56 converted without a warning, 82 converted with warnings, and 52 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and artifacts that the workflow gives.
+In a test with the 190 examples of Argo Workflows (October 2026), 59 converted without a warning, 83 converted with warnings, and 48 failed because they use features from the last table. The most common causes are daemon steps (`{{steps.x.ip}}`), expressions (`{{=...}}`) and artifacts that the workflow gives.
 
 ## What changes
 
@@ -54,7 +54,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 56 converted w
 
 ## Supported as in Argo
 
-DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when` (also with `=~` and `!~`), `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, `inline` templates (the converter makes a named template `<parent>-<task>`), and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
+DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when` (also with `=~` and `!~`), `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `raw` and `http` input artifacts with `mode`, also in the workflow `arguments.artifacts`, `podGC`, `ttlStrategy`, `serviceAccountName`, `inline` templates (the converter makes a named template `<parent>-<task>`), and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
 Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.mainEntrypoint`, `workflow.creationTimestamp.*` (strftime letters, `RFC3339`, `s`), `workflow.labels.*`, `workflow.annotations.*`, `workflow.parameters.json`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `tasks.*.exitCode`, `tasks.*.id`, `tasks.*.startedAt`, `tasks.*.finishedAt` (the same for `steps.*`), `steps.*.outputs.*`, `steps.*.outputs.parameters` of a fan-out (parameter aggregation), `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
@@ -68,6 +68,6 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
 | `synchronization.semaphore` with a ConfigMap limit, template-level `synchronization`, `memoize`, `metrics` | Not supported. A workflow `mutex` converts; set a semaphore limit by hand. |
 | `http`, `plugin`, `data` and `containerSet` templates | Not supported. Task workers (M7) cover calls to services. |
-| Artifacts that a workflow gives (`arguments.artifacts` on the Workflow) | A workflow cannot give artifacts. Make them in a first step. |
+| Artifact sources `s3`, `gcs`, `azure`, `oss`, `git`, `hdfs`, `artifactory`, and `http` with `auth` or `headers` | Use the artifact repository of the namespace, `raw`, or a plain `http` URL. |
 | Parameters from a ConfigMap (`valueFrom.configMapKeyRef`) | Give the value in the Workflow, or read the ConfigMap in a step. |
 | `outputs.result` of a container without a command | Not supported. Give the container a command. |
