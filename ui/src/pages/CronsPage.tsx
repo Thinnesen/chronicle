@@ -10,6 +10,7 @@ import { toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { cronsRoute } from "../router";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 // CronsPage lists the schedules of the namespace with their next run.
 export function CronsPage() {
@@ -31,7 +32,7 @@ export function CronsPage() {
         </div>
       </header>
       {isPending && <p className="quiet">Loading the cron workflows…</p>}
-      {error && !data && <p role="alert">Could not load the cron workflows: {error.message}</p>}
+      {error && !data && <p role="alert">Could not load the cron workflows: {errorText(error)}</p>}
       {data && <RefreshError error={error} />}
       {data?.cronWorkflows.length === 0 && <p className="quiet">No cron workflows yet. Add a CronWorkflow to run a template on a schedule.</p>}
       {data && data.cronWorkflows.length > 0 && (

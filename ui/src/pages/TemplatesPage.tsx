@@ -6,6 +6,7 @@ import { ClusterBadge, ManagedBadge } from "../components/Badge";
 import { RecentRuns, useRecentRuns } from "../components/RecentRuns";
 import { templatesRoute } from "../router";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 // TemplatesPage lists the templates that the user can run in the namespace, cluster templates too.
 export function TemplatesPage() {
@@ -22,7 +23,7 @@ export function TemplatesPage() {
         </div>
       </header>
       {isPending && <p className="quiet">Loading the templates…</p>}
-      {error && <p role="alert">Could not load the templates: {error.message}</p>}
+      {error && <p role="alert">Could not load the templates: {errorText(error)}</p>}
       {data?.templates.length === 0 && <p className="quiet">No templates yet. Add a WorkflowTemplate to the namespace, for example through Git.</p>}
       {data && data.templates.length > 0 && (
         <ul className="item-list">

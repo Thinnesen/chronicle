@@ -15,3 +15,9 @@ export function actionError(action: string, namespace: string, err: unknown): st
   }
   return `Could not ${action}: ${e.rawMessage}`;
 }
+
+// errorText is the message of an error without the Connect code, for people.
+export function errorText(err: unknown): string {
+  if (err instanceof ConnectError) return err.rawMessage;
+  return err instanceof Error ? err.message : String(err);
+}

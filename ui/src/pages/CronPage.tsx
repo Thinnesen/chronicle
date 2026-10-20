@@ -13,6 +13,7 @@ import { ago, clock, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { cronRoute } from "../router";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 // CronPage shows a schedule, its recent runs and its YAML. An editor can suspend and resume it.
 export function CronPage() {
@@ -37,7 +38,7 @@ export function CronPage() {
     },
     onError: (err) => toast(actionError("change cron workflows", namespace, err), "error"),
   });
-  if (error && !data) return <p role="alert">Could not load the cron workflow: {error.message}</p>;
+  if (error && !data) return <p role="alert">Could not load the cron workflow: {errorText(error)}</p>;
   if (!data?.summary) return <p className="quiet">Loading the cron workflow…</p>;
   const c = data.summary;
   const next = toDate(c.nextScheduledAt);

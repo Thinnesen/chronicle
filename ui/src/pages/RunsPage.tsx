@@ -16,6 +16,7 @@ import { useNow } from "../lib/useNow";
 import { runsRoute } from "../router";
 import "./RunsPage.css";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 const filters = [
   { phase: undefined, label: "All" },
@@ -107,7 +108,7 @@ export function RunsPage() {
         </div>
       </div>
       {table.isPending && <p className="quiet">Loading the runs…</p>}
-      {table.error && !table.data && <p role="alert">Could not load the runs: {table.error.message}</p>}
+      {table.error && !table.data && <p role="alert">Could not load the runs: {errorText(table.error)}</p>}
       {table.data && <RefreshError error={table.error} />}
       {table.data?.pages.some((p) => p.archiveUnavailable) && (
         <p className="refresh-error" role="status">

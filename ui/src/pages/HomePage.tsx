@@ -4,6 +4,7 @@ import { Link, Navigate, useRouteContext } from "@tanstack/react-router";
 import { namespaces } from "../api/client";
 import "./HomePage.css";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 // HomePage opens the only namespace of the user, or lets the user choose one.
 export function HomePage() {
@@ -14,7 +15,7 @@ export function HomePage() {
     return <p className="quiet">Loading your namespaces…</p>;
   }
   if (error) {
-    return <p role="alert">Could not load your namespaces: {error.message}</p>;
+    return <p role="alert">Could not load your namespaces: {errorText(error)}</p>;
   }
   const list = data.namespaces;
   if (list.length === 1 && list[0]) {

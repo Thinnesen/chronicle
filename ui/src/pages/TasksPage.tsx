@@ -8,6 +8,7 @@ import { ago, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { tasksRoute } from "../router";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 const stateFilters = { pending: "Pending", running: "Running", failed: "Failed", succeeded: "Succeeded" };
 
@@ -64,7 +65,7 @@ export function TasksPage() {
         ))}
       </div>
       {isPending && <p className="quiet">Loading the tasks…</p>}
-      {error && !data && <p role="alert">Could not load the tasks: {error.message}</p>}
+      {error && !data && <p role="alert">Could not load the tasks: {errorText(error)}</p>}
       {data && <RefreshError error={error} />}
       {data?.tasks.length === 0 && (
         <div className="empty card">

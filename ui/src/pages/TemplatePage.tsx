@@ -12,6 +12,7 @@ import { useNow } from "../lib/useNow";
 import { previewOf, type Workflow } from "../lib/workflow";
 import { templateRoute } from "../router";
 import { useTitle } from "../lib/useTitle";
+import { errorText } from "../lib/errors";
 
 const RunGraph = lazy(() => import("../components/RunGraph").then((m) => ({ default: m.RunGraph })));
 
@@ -29,7 +30,7 @@ export function TemplatePage() {
   const runs = recent.data?.workflows.filter((w) => w.template === name) ?? [];
   // The clock ticks only while a run is active, so that the page does not render again each second for nothing.
   const now = useNow(runs.some((w) => !["Succeeded", "Failed", "Error"].includes(w.phase)));
-  if (error) return <p role="alert">Could not load the template: {error.message}</p>;
+  if (error) return <p role="alert">Could not load the template: {errorText(error)}</p>;
   if (!data?.summary) return <p className="quiet">Loading the template…</p>;
   const t = data.summary;
   const plan = data.template ? previewOf(data.template as unknown as Parameters<typeof previewOf>[0]) : undefined;

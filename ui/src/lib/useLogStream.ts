@@ -2,6 +2,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { useEffect, useState } from "react";
 
 import { logs } from "../api/client";
+import { errorText } from "./errors";
 
 // maxLines limits the lines that the browser keeps for one log.
 export const maxLines = 5000;
@@ -59,7 +60,7 @@ export function useLogStream(namespace: string, workflow: string, node: string |
           retry = setTimeout(() => setAttempt((a) => a + 1), 2000);
           return;
         }
-        setState((s) => ({ ...s, done: true, error: e instanceof Error ? e.message : String(e) }));
+        setState((s) => ({ ...s, done: true, error: errorText(e) }));
       }
     })();
     return () => {

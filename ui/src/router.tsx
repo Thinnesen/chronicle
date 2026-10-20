@@ -5,6 +5,7 @@ import { loadSession, type Session } from "./api/session";
 import { Shell } from "./components/Shell";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { RunPage } from "./pages/RunPage";
 import { CronPage } from "./pages/CronPage";
 import { CronsPage } from "./pages/CronsPage";
@@ -94,7 +95,7 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export function newRouter(queryClient: QueryClient) {
-  return createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent" });
+  return createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent", defaultNotFoundComponent: NotFoundPage });
 }
 
 declare module "@tanstack/react-router" {

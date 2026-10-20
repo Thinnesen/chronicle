@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Info } from "lucide-react";
 
 import { workflows } from "../api/client";
+import { errorText } from "../lib/errors";
 import { ago, toDate } from "../lib/time";
 import "./NodeEvents.css";
 
@@ -13,7 +14,7 @@ export function NodeEvents({ namespace, workflow, node, live }: { namespace: str
     refetchInterval: live ? 5000 : false,
   });
   if (isPending) return <p className="quiet">Loading the events…</p>;
-  if (error && !data) return <p role="alert">Could not load the events: {error.message}</p>;
+  if (error && !data) return <p role="alert">Could not load the events: {errorText(error)}</p>;
   const events = data?.events ?? [];
   if (events.length === 0) {
     return <p className="quiet">No events. Kubernetes keeps the events of a Pod for about one hour.</p>;

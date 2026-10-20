@@ -83,3 +83,20 @@ test("goes to the login page when the session ends on an open page", async ({ pa
   await page.route("**/chronicle.v1.**", (r) => r.fulfill({ status: 401, json: { code: "unauthenticated", message: "the session ended" } }));
   await expect(page).toHaveURL(/\/login\?back=%2Fns%2Fteam-a/, { timeout: 15_000 });
 });
+
+test("explains a page or a run that does not exist", async ({ page }) => {
+  await mockAPI(page);
+  await page.goto("/no/such/page");
+  await expect(page.getByRole("heading", { name: "This page does not exist" })).toBeVisible();
+  await page.getByRole("link", { name: "Go to the start page" }).click();
+  await expect(page).toHaveURL(/\/ns\/team-a|\/$/);
+
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
+    r.fulfill({ status: 404, json: { code: "not_found", message: "the run does not exist, not even in the archive" } }),
+  );
+  await page.goto("/ns/team-a/runs/gone-run");
+  await expect(page.getByText("the run does not exist, not even in the archive")).toBeVisible();
+  await expect(page.getByText("[not_found]")).toHaveCount(0);
+  await page.getByRole("link", { name: "Show the runs of team-a" }).click();
+  await expect(page).toHaveURL(/\/ns\/team-a$/);
+});
