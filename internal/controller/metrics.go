@@ -9,6 +9,12 @@ import (
 	"github.com/Thinnesen/chronicle/internal/engine"
 )
 
+// The label names of the metrics.
+const (
+	labelNamespace = "workflow_namespace"
+	labelQueue     = "queue"
+)
+
 // The metrics of the workflow controller. They are on the metrics endpoint of the controller with the
 // metrics of controller-runtime.
 var (
@@ -17,12 +23,12 @@ var (
 	workflowsFinished = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "chronicle_workflows_finished_total",
 		Help: "The number of runs that finished, by namespace, WorkflowTemplate, CronWorkflow and phase.",
-	}, []string{"workflow_namespace", "template", "cron", "phase"})
+	}, []string{labelNamespace, "template", "cron", "phase"})
 	workflowDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "chronicle_workflow_duration_seconds",
 		Help:    "The time from the start to the end of a run, by namespace, WorkflowTemplate, CronWorkflow and phase.",
 		Buckets: prometheus.ExponentialBuckets(1, 2, 16), // 1 s to about 9 h
-	}, []string{"workflow_namespace", "template", "cron", "phase"})
+	}, []string{labelNamespace, "template", "cron", "phase"})
 	podsCreated = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "chronicle_pods_created_total",
 		Help: "The number of workflow Pods that the controller created.",
@@ -30,7 +36,7 @@ var (
 	tasksEnqueued = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "chronicle_tasks_enqueued_total",
 		Help: "The number of tasks that the controller put into the task queue, by queue.",
-	}, []string{"queue"})
+	}, []string{labelQueue})
 	workflowRetries = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "chronicle_workflow_retries_total",
 		Help: "The number of retries of finished runs that the controller applied.",

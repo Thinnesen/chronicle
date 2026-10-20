@@ -109,6 +109,21 @@ worker.register("send-mail", |input, task| {
 worker.run(&stop)?;
 ```
 
+### Scale the workers
+
+With the archive, the controller exports the backlog of each queue: `chronicle_task_queue_pending` and `chronicle_task_queue_oldest_pending_seconds`, with the labels `workflow_namespace` and `queue`. Use them to scale a worker Deployment, for example with the Prometheus scaler of KEDA:
+
+```yaml
+triggers:
+- type: prometheus
+  metadata:
+    serverAddress: http://prometheus.monitoring:9090
+    query: max(chronicle_task_queue_pending{workflow_namespace="team-a", queue="mail"})
+    threshold: "10"   # about 10 pending tasks for each worker
+```
+
+Use `max`, because each controller replica exports the same values. The metrics have at most 200 queues. The rest add up in the queue `other`.
+
 ## Delivery, retries and cancellation
 
 - Delivery is at-least-once. A worker can lose its connection after the work is done. Then the same work can run again in the next attempt. All attempts of a node have the same idempotency key. Use it to make a repeated call harmless.

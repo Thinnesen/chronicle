@@ -11,6 +11,8 @@ The controller serves Prometheus metrics on its metrics endpoint (port 8443, HTT
 | `chronicle_pods_created_total` | counter | | Workflow Pods that the controller created. |
 | `chronicle_tasks_enqueued_total` | counter | `queue` | Tasks that the controller put into the task queue. |
 | `chronicle_workflow_retries_total` | counter | | Retries of finished runs. |
+| `chronicle_task_queue_pending` | gauge | `workflow_namespace`, `queue` | Pending tasks of a task queue (with the archive). |
+| `chronicle_task_queue_oldest_pending_seconds` | gauge | `workflow_namespace`, `queue` | Age of the oldest pending task of a task queue. |
 
 ## Dashboards
 

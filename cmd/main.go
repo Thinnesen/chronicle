@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -212,6 +213,7 @@ func main() {
 		workflows.Archive = store
 		workflows.Tasks = store
 		workflows.Cache = store
+		ctrlmetrics.Registry.MustRegister(controller.NewQueueCollector(store))
 		if archiveRetention > 0 {
 			pruner := &controller.ArchivePruner{Store: store, Retention: archiveRetention, Every: time.Hour}
 			if err := mgr.Add(pruner); err != nil {
