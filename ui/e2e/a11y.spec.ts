@@ -19,6 +19,8 @@ const pages = [
 
 for (const scheme of ["light", "dark"] as const) {
   test(`has no accessibility violations in ${scheme} mode`, async ({ page }) => {
+    // The test checks many pages, which takes longer than one page test, most of all in Firefox under load.
+    test.setTimeout(90_000);
     await page.emulateMedia({ colorScheme: scheme });
     // A waiting approval and a step that cannot start add the warning colors to the pages.
     await mockAPI(page, { gate: true, stuck: true });

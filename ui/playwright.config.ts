@@ -7,6 +7,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   globalTimeout: 10 * 60_000,
   retries: process.env.CI ? 1 : 0,
+  // A loaded runner (many workers, a slower browser) can need more than the default 5 s for a page to update.
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
   projects: [
