@@ -154,7 +154,7 @@ func TestTokenFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var seen []string
+	seen := make([]string, 0, 2)
 	for _, tok := range []string{"", "second"} {
 		if tok != "" {
 			if err := os.WriteFile(file, []byte(tok), 0o600); err != nil {
