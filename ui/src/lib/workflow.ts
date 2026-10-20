@@ -139,6 +139,10 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
       for (const id of n.children ?? []) add(n, nodes[id]);
     }
   }
+  // The exit handler runs after the whole run, so it comes after the nodes where the run ends.
+  const root = byName.get(wf.metadata.name);
+  const onExit = byName.get(`${wf.metadata.name}.onExit`);
+  for (const e of root && onExit ? exitsOf(root) : []) add(e, onExit);
   return edges;
 }
 

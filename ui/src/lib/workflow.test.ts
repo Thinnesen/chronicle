@@ -49,6 +49,11 @@ describe("buildGraph", () => {
     expect(edges).toEqual(["T0>T1", "T1>L", "T>T0", "r>T"].sort());
   });
 
+  it("connects the exit handler after the last steps", () => {
+    const withExit: Workflow = { ...wf, status: { nodes: { ...wf.status?.nodes, E: { id: "E", name: "wf.onExit", type: "Pod" } } } };
+    expect(buildGraph(withExit).map((e) => `${e.from}>${e.to}`)).toContain("Y0>E");
+  });
+
   it("uses the stored spec of a template reference", () => {
     const ref: Workflow = { ...wf, spec: {}, status: { ...wf.status, storedSpec: wf.spec } };
     expect(buildGraph(ref)).toHaveLength(9);
