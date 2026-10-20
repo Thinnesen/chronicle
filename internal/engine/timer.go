@@ -27,7 +27,7 @@ func (e *engine) requeueAfter() time.Duration {
 // stop fails a node and all its running descendants, deletes their Pods and cancels their tasks.
 func (e *engine) stop(id, msg string) {
 	n, ok := e.nodes[id]
-	if !ok || isTerminal(n.Phase) {
+	if !ok || IsTerminal(n.Phase) {
 		return
 	}
 	for _, c := range n.Children {

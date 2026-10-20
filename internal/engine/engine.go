@@ -133,13 +133,13 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 		return v1alpha1.NodeRunning, ""
 	}
 	root = e.execute(call{template: e.in.Spec.Entrypoint, nodeName: e.in.Name, args: e.workflowArgs(), artifacts: e.workflowArtifacts()}, 0)
-	if !isTerminal(root.Phase) {
+	if !IsTerminal(root.Phase) {
 		if reason := e.stopReason(); reason != "" {
 			e.stop(root.ID, reason)
 			root = e.nodes[root.ID]
 		}
 	}
-	if !isTerminal(root.Phase) {
+	if !IsTerminal(root.Phase) {
 		return v1alpha1.NodeRunning, ""
 	}
 	phase, msg := outcomePhase(root.Phase), root.Message
@@ -153,7 +153,7 @@ func (e *engine) runWorkflow() (v1alpha1.NodePhase, string) {
 	}
 	e.status = string(workflowPhase(phase))
 	exit := e.execute(call{template: e.in.Spec.OnExit, nodeName: exitName, args: e.workflowArgs(), artifacts: e.workflowArtifacts()}, 0)
-	if !isTerminal(exit.Phase) {
+	if !IsTerminal(exit.Phase) {
 		return v1alpha1.NodeRunning, ""
 	}
 	if p := outcomePhase(exit.Phase); worse(phase, p) != phase {
@@ -253,7 +253,7 @@ func (e *engine) workflowArgs() map[string]string {
 func (e *engine) execute(c call, depth int) v1alpha1.NodeStatus {
 	id := e.nodeID(c.nodeName)
 	n, exists := e.nodes[id]
-	if exists && isTerminal(n.Phase) {
+	if exists && IsTerminal(n.Phase) {
 		return n
 	}
 	t := e.templates[c.template]
@@ -268,7 +268,7 @@ func (e *engine) execute(c call, depth int) v1alpha1.NodeStatus {
 	}
 	n = e.runBody(c, t, n, depth)
 	// The timeout is checked after the body, so that a Pod that finished in time counts.
-	if t.Timeout != nil && !isTerminal(n.Phase) && e.reached(n.StartedAt.Add(t.Timeout.Duration)) {
+	if t.Timeout != nil && !IsTerminal(n.Phase) && e.reached(n.StartedAt.Add(t.Timeout.Duration)) {
 		e.stop(n.ID, fmt.Sprintf("the timeout of %s was exceeded", t.Timeout.Duration))
 		n = e.nodes[n.ID]
 	}

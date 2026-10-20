@@ -70,7 +70,7 @@ func (e *engine) runTask(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus) v1
 		e.reached(e.in.Now.Add(taskPollInterval))
 	case !observed:
 		e.setPhase(&n, v1alpha1.NodeError, "the task is not in the queue")
-	case isTerminal(task.Phase):
+	case IsTerminal(task.Phase):
 		e.finishTask(t, &n, task)
 	default:
 		e.watchTask(t, &n, task)

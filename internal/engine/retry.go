@@ -14,7 +14,7 @@ func (e *engine) runRetry(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, d
 	var last v1alpha1.NodeStatus
 	if len(n.Children) == 0 {
 		last = e.runAttempt(c, n, 0, depth)
-	} else if last = e.nodes[n.Children[len(n.Children)-1]]; !isTerminal(last.Phase) {
+	} else if last = e.nodes[n.Children[len(n.Children)-1]]; !IsTerminal(last.Phase) {
 		last = e.runAttempt(c, n, len(n.Children)-1, depth)
 	}
 	n = e.nodes[n.ID]
@@ -22,7 +22,7 @@ func (e *engine) runRetry(c call, t *v1alpha1.Template, n v1alpha1.NodeStatus, d
 		last = e.runAttempt(c, n, len(n.Children), depth)
 	}
 	n = e.nodes[n.ID]
-	if isTerminal(last.Phase) && !retryable(rs, last.Phase, len(n.Children)) {
+	if IsTerminal(last.Phase) && !retryable(rs, last.Phase, len(n.Children)) {
 		n.Outputs = last.Outputs
 		msg := last.Message
 		switch {

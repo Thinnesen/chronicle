@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: The controller fails a run whose Workflow would be larger than 1 MiB, before it applies the actions of that engine step. Before, the status update failed on each reconcile, the run looked stuck, and Pods went on. Argo moves large node lists into its database ("offloading"); that makes the database a dependency of every run and the status in the cluster incomplete. A clear failure with a hint to split the work is simpler; offloading stays an option if real runs need it.
+
 - 2026-10-20: `withSequence` is a field of a DAG task or a step, as in Argo, and the engine expands it at run time. The converter expanded it to `withItems` before, which failed when the count came from a parameter. The format must have exactly one integer verb, so that a format cannot read other arguments.
 
 - 2026-10-20: The `http` template sends its request from a Pod that runs `chronicle-exec http` in the namespace of the run, without an API token. Argo sends it from an agent Pod with its own service account and RBAC for task results. A plain Pod keeps one model for all steps: network policies, quotas and logs apply as for a container. Header values from a Secret are `secretKeyRef` environment variables, so the controller never reads Secrets. Success is a 2xx status, because chronicle has no expressions.

@@ -86,7 +86,7 @@ func FuzzEngine(f *testing.F) {
 		}
 		allOK := true
 		for name, p := range phases(st) {
-			if !isTerminal(p) {
+			if !IsTerminal(p) {
 				t.Fatalf("node %s is %s after the end:\n%s", name, p, spec)
 			}
 		}
@@ -107,7 +107,7 @@ func checkStartOrder(t *testing.T, r Result, deps map[string][]string) {
 	for _, a := range r.Actions {
 		name := strings.TrimPrefix(a.(CreatePod).NodeName, "wf.")
 		for _, d := range deps[name] {
-			if !isTerminal(ph["wf."+d]) {
+			if !IsTerminal(ph["wf."+d]) {
 				t.Fatalf("task %s started before its dependency %s finished", name, d)
 			}
 		}

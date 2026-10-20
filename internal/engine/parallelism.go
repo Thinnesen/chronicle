@@ -63,7 +63,7 @@ func (e *engine) slotHolders(root, except string) int {
 	known := make(map[string]bool, len(e.nodes))
 	for _, m := range e.nodes {
 		known[m.PodName] = true
-		if m.Type != v1alpha1.NodePod || m.ID == except || isTerminal(m.Phase) || !below(m.Name, root) {
+		if m.Type != v1alpha1.NodePod || m.ID == except || IsTerminal(m.Phase) || !below(m.Name, root) {
 			continue
 		}
 		if _, observed := e.in.Pods[m.PodName]; observed || !strings.HasPrefix(m.Message, waitingForSlot) {
@@ -72,7 +72,7 @@ func (e *engine) slotHolders(root, except string) int {
 	}
 	if root == "" {
 		for name, p := range e.in.Pods {
-			if !known[name] && !isTerminal(p.Phase) {
+			if !known[name] && !IsTerminal(p.Phase) {
 				count++
 			}
 		}

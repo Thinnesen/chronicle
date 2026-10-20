@@ -93,7 +93,7 @@ func (e *engine) updateGroups(steps v1alpha1.NodeStatus, tasks []task) {
 	}
 	for _, gid := range steps.Children {
 		g := e.nodes[gid]
-		if isTerminal(g.Phase) {
+		if IsTerminal(g.Phase) {
 			continue
 		}
 		phase, omitted := v1alpha1.NodeSucceeded, true
@@ -103,7 +103,7 @@ func (e *engine) updateGroups(steps v1alpha1.NodeStatus, tasks []task) {
 			if continuesOn(continueOn[c.Name], p) {
 				p = v1alpha1.NodeSucceeded
 			}
-			if !isTerminal(p) {
+			if !IsTerminal(p) {
 				phase = v1alpha1.NodeRunning
 				break
 			}

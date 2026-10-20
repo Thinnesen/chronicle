@@ -18,7 +18,8 @@ var transitions = map[v1alpha1.NodePhase][]v1alpha1.NodePhase{
 	v1alpha1.NodeRunning: {v1alpha1.NodeSucceeded, v1alpha1.NodeFailed, v1alpha1.NodeError, v1alpha1.NodeOmitted, v1alpha1.NodeSkipped},
 }
 
-func isTerminal(p v1alpha1.NodePhase) bool {
+// IsTerminal tells if a node phase is final.
+func IsTerminal(p v1alpha1.NodePhase) bool {
 	switch p {
 	case v1alpha1.NodeSucceeded, v1alpha1.NodeFailed, v1alpha1.NodeError, v1alpha1.NodeSkipped, v1alpha1.NodeOmitted:
 		return true
@@ -54,7 +55,7 @@ func (e *engine) setPhase(n *v1alpha1.NodeStatus, p v1alpha1.NodePhase, msg stri
 	}
 	n.Phase = p
 	n.Message = msg
-	if isTerminal(p) && n.FinishedAt == nil {
+	if IsTerminal(p) && n.FinishedAt == nil {
 		n.FinishedAt = &e.in.Now
 	}
 }

@@ -134,7 +134,7 @@ func (b *boundary) groupPhase(g v1alpha1.NodeStatus) (v1alpha1.NodePhase, bool) 
 	phase, skipped := v1alpha1.NodeSucceeded, true
 	for _, id := range g.Children {
 		p := b.e.nodes[id].Phase
-		if !isTerminal(p) {
+		if !IsTerminal(p) {
 			return v1alpha1.NodeRunning, false
 		}
 		skipped = skipped && p == v1alpha1.NodeSkipped
@@ -182,7 +182,7 @@ func (b *boundary) scope(item *apiextensionsv1.JSON) expr.Resolver {
 			task, key, _ := strings.Cut(rest, ".")
 			if _, known := b.byName[task]; known {
 				n, ok := b.node(task)
-				if !ok || !isTerminal(n.Phase) {
+				if !ok || !IsTerminal(n.Phase) {
 					return "", false
 				}
 				return b.e.nodeOutput(n, key)

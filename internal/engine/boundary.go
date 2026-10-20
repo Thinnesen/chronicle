@@ -57,7 +57,7 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 		t := &b.tasks[i]
 		n, ok := b.node(t.name)
 		switch {
-		case ok && isTerminal(n.Phase):
+		case ok && IsTerminal(n.Phase):
 			continue
 		case !ok && (stopped != "" || b.e.in.Suspend || !b.ready(t)):
 			continue
@@ -137,7 +137,7 @@ func (b *boundary) link(t *task, parentID, id string) {
 
 func (b *boundary) ready(t *task) bool {
 	for _, d := range t.deps {
-		if n, ok := b.node(d); !ok || !isTerminal(n.Phase) {
+		if n, ok := b.node(d); !ok || !IsTerminal(n.Phase) {
 			return false
 		}
 	}
@@ -217,7 +217,7 @@ func (b *boundary) outcome(stopped string) (v1alpha1.NodePhase, string) {
 	var unstarted []*task
 	for i := range b.tasks {
 		n, ok := b.node(b.tasks[i].name)
-		if ok && !isTerminal(n.Phase) {
+		if ok && !IsTerminal(n.Phase) {
 			return v1alpha1.NodeRunning, ""
 		}
 		if !ok {

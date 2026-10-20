@@ -41,6 +41,8 @@ type WorkflowReconciler struct {
 	// Workers is the number of runs that the controller reconciles at the same time. A run is never reconciled
 	// twice at the same time.
 	Workers int
+	// MaxObjectBytes is the largest Workflow that the controller writes; 0 means 1 MiB. A larger run fails.
+	MaxObjectBytes int
 
 	created createdPods
 }
@@ -97,6 +99,9 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Now: metav1.Now(), Restarts: wf.Status.Restarts,
 		Suspend: wf.Spec.Suspend, Shutdown: wf.Spec.Shutdown, Approvals: wf.Spec.Approvals,
 	})
+	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(observed.Phase) {
+		return r.failTooLarge(ctx, &wf, size)
+	}
 	for _, a := range res.Actions {
 		if err := r.apply(ctx, &wf, spec, a); err != nil {
 			return ctrl.Result{}, err
