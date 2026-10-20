@@ -18,6 +18,8 @@ func TestStrict(t *testing.T) {
 		{`{"spec":{"entrypoint":"c","templates":[{"name":"c","timeout":"5x"}]}}`, `spec.templates[0].timeout: time: unknown unit "x" in duration "5x"`},
 		{`{"metadata":{"name":"soon"},"spec":{"templates":[{"name":"c","suspend":{"duration":"soon"}}]}}`, `spec.templates[0].suspend.duration: time: invalid duration "soon"`},
 		{`{"spec":{"entrypoint":"c","nope":1}}`, `unknown field "nope"`},
+		{`{"spec":{"templates":[{"name":"c","retryStrategy":{"backoff":{"duration":"-5s"}}}]}}`, `spec.templates[0].retryStrategy.backoff.duration: a duration cannot be negative`},
+		{`{"spec":{"startAt":"tomorrow"}}`, `spec.startAt: parsing time "tomorrow"`},
 		{`{"spec":{"entrypoint":"c"}}`, ""},
 	}
 	for _, tt := range tests {
