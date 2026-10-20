@@ -4,6 +4,7 @@ package validate
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -25,6 +26,7 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 	for i := range spec.Templates {
 		c.templates[spec.Templates[i].Name] = &spec.Templates[i]
 	}
+	c.checkGlobalNames(spec, path)
 	for _, g := range []string{"workflow.name", "workflow.namespace", "workflow.uid", "workflow.status",
 		"workflow.creationTimestamp", "workflow.scheduledTime", "workflow.serviceAccountName", "workflow.duration",
 		"workflow.failures", "workflow.labels.*"} {
@@ -308,4 +310,43 @@ func findParam(params []v1alpha1.Parameter, name string) *v1alpha1.Parameter {
 		}
 	}
 	return nil
+}
+
+// globalName is the form of a workflow output name.
+var globalName = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+// checkGlobalNames adds the workflow outputs (output parameters with a globalName) to the globals. Only an output
+// parameter can have a globalName.
+func (c *checker) checkGlobalNames(spec *v1alpha1.WorkflowTemplateSpec, path *field.Path) {
+	for i := range spec.Templates {
+		t := &spec.Templates[i]
+		tp := path.Child("templates").Index(i)
+		for j, p := range t.Outputs.Parameters {
+			if p.GlobalName == "" {
+				continue
+			}
+			if !globalName.MatchString(p.GlobalName) {
+				c.errs = append(c.errs, field.Invalid(tp.Child("outputs", "parameters").Index(j).Child("globalName"), p.GlobalName,
+					"use letters, digits, - and _"))
+				continue
+			}
+			c.globals["workflow.outputs.parameters."+p.GlobalName] = true
+		}
+		for j, a := range t.Outputs.Artifacts {
+			if a.GlobalName == "" {
+				continue
+			}
+			if !globalName.MatchString(a.GlobalName) {
+				c.errs = append(c.errs, field.Invalid(tp.Child("outputs", "artifacts").Index(j).Child("globalName"), a.GlobalName,
+					"use letters, digits, - and _"))
+				continue
+			}
+			c.globals["workflow.outputs.artifacts."+a.GlobalName] = true
+		}
+		for j, p := range t.Inputs.Parameters {
+			if p.GlobalName != "" {
+				c.errs = append(c.errs, field.Forbidden(tp.Child("inputs", "parameters").Index(j).Child("globalName"), "only an output parameter can have a globalName"))
+			}
+		}
+	}
 }

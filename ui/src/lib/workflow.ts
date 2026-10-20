@@ -57,6 +57,7 @@ export interface Workflow {
   status?: {
     phase?: string;
     conditions?: { type: string; status: string }[];
+    outputs?: { parameters?: Parameter[] };
     nodes?: Record<string, NodeStatus>;
     storedSpec?: { templates?: Template[]; arguments?: { parameters?: Parameter[] } };
   };

@@ -77,3 +77,10 @@ func TestListWithoutTheArchive(t *testing.T) {
 		t.Errorf("list: %q %v", out, err)
 	}
 }
+
+func TestGetShowsTheOutputs(t *testing.T) {
+	out, err := run(t, &stub{phase: "Succeeded"}, "get", "release")
+	if err != nil || !strings.Contains(out, "Outputs:   version=1.4.2") {
+		t.Errorf("get: %q %v", out, err)
+	}
+}

@@ -26,6 +26,7 @@ export function run(phase: string, gate = false, archived = false, stuck = false
       status: {
         phase,
         conditions: done ? [{ type: "Archived", status: "True" }] : [],
+        outputs: done ? { parameters: [{ name: "version", value: "1.4.2" }] } : undefined,
         storedSpec: {
           arguments: { parameters: [{ name: "day", value: "2026-10-17", description: "The day to load." }, { name: "rows", value: "all", enum: ["all", "1000"] }] },
           templates: [

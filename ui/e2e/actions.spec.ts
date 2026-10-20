@@ -54,6 +54,7 @@ test("an editor deletes a finished run", async ({ page }) => {
   const calls = await mockAPI(page, { runPhase: "Succeeded" });
   await page.goto(runURL);
   await expect(page.getByRole("button", { name: "Suspend" })).toHaveCount(0);
+  await expect(page.getByRole("list", { name: "Outputs" })).toContainText("version1.4.2");
   await page.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("dialog")).toContainText("The archive keeps its record");
   await page.getByRole("dialog").getByRole("button", { name: "Delete the run" }).click();

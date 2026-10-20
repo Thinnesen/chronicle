@@ -32,6 +32,12 @@ type Parameter struct {
 	// valueFrom tells where an output parameter gets its value.
 	// +optional
 	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
+
+	// globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
+	// in later steps and in the exit handler, and status.outputs of the run.
+	// +kubebuilder:validation:MaxLength=128
+	// +optional
+	GlobalName string `json:"globalName,omitempty"`
 }
 
 // ValueFrom is the source of an output parameter value.
@@ -124,6 +130,12 @@ type Artifact struct {
 	// optional makes a missing output file or a missing argument not an error.
 	// +optional
 	Optional bool `json:"optional,omitempty"`
+
+	// globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
+	// in the from of a later argument, and status.outputs of the run.
+	// +kubebuilder:validation:MaxLength=128
+	// +optional
+	GlobalName string `json:"globalName,omitempty"`
 
 	// key of the object in the artifact repository. Only the status sets it.
 	// +kubebuilder:validation:MaxLength=1024

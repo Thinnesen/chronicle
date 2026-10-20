@@ -56,7 +56,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 52 converted w
 
 DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
-Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.labels.*`, `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
+Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.labels.*`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
 ## Not supported
 
@@ -66,7 +66,6 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | Pod fields: `securityContext`, `volumes`, `volumeMounts`, `nodeSelector`, `tolerations`, `affinity`, `sidecars`, `initContainers`, `podSpecPatch`, `metadata` | chronicle sets a restricted Pod and has no Pod patches yet. |
 | Daemon steps and `{{steps.x.ip}}` | Not planned. Run a Service with a resource template. |
 | Life-cycle `hooks` and step-level `onExit` | Use the workflow `onExit`. |
-| Global outputs (`globalName`, `workflow.outputs.*`) | Not planned for the first version. |
 | `inline` templates in tasks or steps | Write a named template. |
 | `synchronization.semaphore` with a ConfigMap limit, template-level `synchronization`, `memoize`, `metrics` | Not supported. A workflow `mutex` converts; set a semaphore limit by hand. |
 | `http`, `plugin`, `data` and `containerSet` templates | Not supported. Task workers (M7) cover calls to services. |

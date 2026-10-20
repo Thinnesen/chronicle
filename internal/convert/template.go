@@ -201,7 +201,7 @@ func (c *converter) inputs(in obj, path string) obj {
 		out["parameters"] = c.parameters(asList(ps), join(path, "parameters"))
 	}
 	if as, ok := in["artifacts"]; ok {
-		out["artifacts"] = c.artifacts(asList(as), join(path, "artifacts"), "path", "optional")
+		out["artifacts"] = c.artifacts(asList(as), join(path, "artifacts"), "path", "optional", "from", "globalName")
 	}
 	return out
 }
@@ -216,17 +216,14 @@ func (c *converter) outputs(in obj, path string) obj {
 		out["parameters"] = list
 	}
 	if as, ok := in["artifacts"]; ok {
-		out["artifacts"] = c.artifacts(asList(as), join(path, "artifacts"), "path", "optional")
+		out["artifacts"] = c.artifacts(asList(as), join(path, "artifacts"), "path", "optional", "from", "globalName")
 	}
 	return out
 }
 
 // outputParameter converts valueFrom. An Argo suspend output with valueFrom.supplied gets its value from the approval.
 func (c *converter) outputParameter(in obj, path string) obj {
-	out := c.pick(in, path, []string{fName, fValue, "default", "description", "enum"}, "valueFrom", "globalName")
-	if _, ok := in["globalName"]; ok {
-		c.warn(join(path, "globalName"), "chronicle has no global outputs: the field is dropped")
-	}
+	out := c.pick(in, path, []string{fName, fValue, "default", "description", "enum", "globalName"}, "valueFrom")
 	vf := asObj(in["valueFrom"])
 	if vf == nil {
 		return out

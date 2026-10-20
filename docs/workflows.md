@@ -49,6 +49,7 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{workflow.duration}}` | The seconds since the start of the run, for example in the exit handler. |
 | `{{workflow.failures}}` | The failed steps as JSON (display name, message, template, phase, Pod, end), for the exit handler. |
 | `{{workflow.serviceAccountName}}` | The service account of the run. |
+| `{{workflow.outputs.parameters.<name>}}` | A workflow output (an output parameter with `globalName`) of a step that finished. |
 | `{{workflow.labels.<key>}}` | A label of the run, for example the label `chronicle.thinnesen.com/cron-workflow` of a cron run. |
 | `{{inputs.parameters.<name>}}` | An input parameter of the template. |
 | `{{tasks.<task>.outputs.result}}` | The standard output of a DAG task (at most 3 KiB). |
@@ -112,6 +113,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 - An input parameter gets its value from the arguments of the call, from `value`, or from `default`.
 - `enum` limits the values. The UI shows a list for such a parameter.
 - An output parameter reads a file (`valueFrom.path`). In a resource template, `valueFrom.jsonPath` reads a field of the object, for example `{.metadata.name}`.
+- `globalName` makes an output parameter or an output artifact a workflow output: `{{workflow.outputs.parameters.<name>}}` (or `{{workflow.outputs.artifacts.<name>}}` in `from`) in later steps and in the exit handler. The run shows its outputs in the UI and in `chronicle get`. When two steps give the same name, the later one wins.
 - Larger data goes through artifacts in S3 (see [artifacts.md](artifacts.md)).
 
 ## 6. Conditions and fan-out

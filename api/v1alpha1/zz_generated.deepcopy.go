@@ -1023,6 +1023,11 @@ func (in *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.Outputs != nil {
+		in, out := &in.Outputs, &out.Outputs
+		*out = new(Outputs)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]metav1.Condition, len(*in))

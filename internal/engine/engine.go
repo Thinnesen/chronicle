@@ -97,6 +97,7 @@ func Run(in Input) Result {
 	e := newEngine(&in, status.Nodes)
 	if !isFinished(status.Phase) {
 		e.step(&status)
+		status.Outputs = e.workflowOutputs()
 	}
 	e.actions = append(e.actions, e.gc(&status)...)
 	return Result{Status: status, Actions: e.actions, RequeueAfter: e.requeueAfter()}

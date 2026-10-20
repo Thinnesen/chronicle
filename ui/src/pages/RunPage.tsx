@@ -156,10 +156,20 @@ export function RunPage() {
 
 // Parameters shows the parameters of a run as name and value.
 function Parameters({ wf }: { wf: Workflow }) {
-  const params = runParameters(wf);
+  return (
+    <>
+      <ParamList label="Parameters" params={runParameters(wf)} />
+      {/* The workflow outputs: output parameters with a globalName. */}
+      <ParamList label="Outputs" params={wf.status?.outputs?.parameters ?? []} />
+    </>
+  );
+}
+
+function ParamList({ label, params }: { label: string; params: { name: string; value?: string }[] }) {
   if (params.length === 0) return null;
   return (
-    <ul className="run-params" aria-label="Parameters">
+    <ul className="run-params" aria-label={label}>
+      {label === "Outputs" && <li className="run-params-title">Outputs</li>}
       {params.map((p) => (
         <li key={p.name}>
           <span className="run-param-name">{p.name}</span>

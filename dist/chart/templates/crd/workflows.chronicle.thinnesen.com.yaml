@@ -111,6 +111,12 @@ spec:
                               type: string
                             maxItems: 256
                             type: array
+                          globalName:
+                            description: |-
+                              globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                              in later steps and in the exit handler, and status.outputs of the run.
+                            maxLength: 128
+                            type: string
                           name:
                             description: name of the parameter.
                             maxLength: 128
@@ -173,6 +179,12 @@ spec:
                             as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                           maxLength: 1024
                           type: string
+                        globalName:
+                          description: |-
+                            globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                            in the from of a later argument, and status.outputs of the run.
+                          maxLength: 128
+                          type: string
                         key:
                           description: key of the object in the artifact repository.
                             Only the status sets it.
@@ -225,6 +237,12 @@ spec:
                             type: string
                           maxItems: 256
                           type: array
+                        globalName:
+                          description: |-
+                            globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                            in later steps and in the exit handler, and status.outputs of the run.
+                          maxLength: 128
+                          type: string
                         name:
                           description: name of the parameter.
                           maxLength: 128
@@ -711,6 +729,12 @@ spec:
                                             example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                           maxLength: 1024
                                           type: string
+                                        globalName:
+                                          description: |-
+                                            globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                            in the from of a later argument, and status.outputs of the run.
+                                          maxLength: 128
+                                          type: string
                                         key:
                                           description: key of the object in the artifact
                                             repository. Only the status sets it.
@@ -764,6 +788,12 @@ spec:
                                             type: string
                                           maxItems: 256
                                           type: array
+                                        globalName:
+                                          description: |-
+                                            globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                            in later steps and in the exit handler, and status.outputs of the run.
+                                          maxLength: 128
+                                          type: string
                                         name:
                                           description: name of the parameter.
                                           maxLength: 128
@@ -914,6 +944,12 @@ spec:
                                   gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                 maxLength: 1024
                                 type: string
+                              globalName:
+                                description: |-
+                                  globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                  in the from of a later argument, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               key:
                                 description: key of the object in the artifact repository.
                                   Only the status sets it.
@@ -966,6 +1002,12 @@ spec:
                                   type: string
                                 maxItems: 256
                                 type: array
+                              globalName:
+                                description: |-
+                                  globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                  in later steps and in the exit handler, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               name:
                                 description: name of the parameter.
                                 maxLength: 128
@@ -1019,6 +1061,12 @@ spec:
                                   gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                 maxLength: 1024
                                 type: string
+                              globalName:
+                                description: |-
+                                  globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                  in the from of a later argument, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               key:
                                 description: key of the object in the artifact repository.
                                   Only the status sets it.
@@ -1071,6 +1119,12 @@ spec:
                                   type: string
                                 maxItems: 256
                                 type: array
+                              globalName:
+                                description: |-
+                                  globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                  in later steps and in the exit handler, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               name:
                                 description: name of the parameter.
                                 maxLength: 128
@@ -1535,6 +1589,12 @@ spec:
                                           example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                         maxLength: 1024
                                         type: string
+                                      globalName:
+                                        description: |-
+                                          globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                          in the from of a later argument, and status.outputs of the run.
+                                        maxLength: 128
+                                        type: string
                                       key:
                                         description: key of the object in the artifact
                                           repository. Only the status sets it.
@@ -1588,6 +1648,12 @@ spec:
                                           type: string
                                         maxItems: 256
                                         type: array
+                                      globalName:
+                                        description: |-
+                                          globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                          in later steps and in the exit handler, and status.outputs of the run.
+                                        maxLength: 128
+                                        type: string
                                       name:
                                         description: name of the parameter.
                                         maxLength: 128
@@ -1901,6 +1967,12 @@ spec:
                                   gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                 maxLength: 1024
                                 type: string
+                              globalName:
+                                description: |-
+                                  globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                  in the from of a later argument, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               key:
                                 description: key of the object in the artifact repository.
                                   Only the status sets it.
@@ -1953,6 +2025,12 @@ spec:
                                   type: string
                                 maxItems: 256
                                 type: array
+                              globalName:
+                                description: |-
+                                  globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                  in later steps and in the exit handler, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               name:
                                 description: name of the parameter.
                                 maxLength: 128
@@ -2013,6 +2091,12 @@ spec:
                                   gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                 maxLength: 1024
                                 type: string
+                              globalName:
+                                description: |-
+                                  globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                  in the from of a later argument, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               key:
                                 description: key of the object in the artifact repository.
                                   Only the status sets it.
@@ -2065,6 +2149,12 @@ spec:
                                   type: string
                                 maxItems: 256
                                 type: array
+                              globalName:
+                                description: |-
+                                  globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                  in later steps and in the exit handler, and status.outputs of the run.
+                                maxLength: 128
+                                type: string
                               name:
                                 description: name of the parameter.
                                 maxLength: 128
@@ -2149,6 +2239,123 @@ spec:
                   type: object
                 description: nodes is a map of node ID to node status.
                 type: object
+              outputs:
+                description: 'outputs are the workflow outputs: the output parameters
+                  with a globalName, from the steps that finished.'
+                properties:
+                  artifacts:
+                    description: artifacts that the template produces.
+                    items:
+                      description: Artifact is a file or a directory in the artifact
+                        repository of the namespace.
+                      properties:
+                        from:
+                          description: from is the artifact that an argument gives,
+                            as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
+                          maxLength: 1024
+                          type: string
+                        globalName:
+                          description: |-
+                            globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                            in the from of a later argument, and status.outputs of the run.
+                          maxLength: 128
+                          type: string
+                        key:
+                          description: key of the object in the artifact repository.
+                            Only the status sets it.
+                          maxLength: 1024
+                          type: string
+                        name:
+                          description: name of the artifact.
+                          maxLength: 128
+                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                          type: string
+                        optional:
+                          description: optional makes a missing output file or a missing
+                            argument not an error.
+                          type: boolean
+                        path:
+                          description: path in the main container. The executor puts
+                            an input artifact there and saves an output artifact from
+                            there.
+                          maxLength: 4096
+                          pattern: ^/
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  parameters:
+                    description: parameters that the template produces.
+                    items:
+                      description: Parameter is a named string value. Inputs, outputs
+                        and arguments use parameters.
+                      properties:
+                        default:
+                          description: default is the value when the caller does not
+                            give a value.
+                          maxLength: 262144
+                          type: string
+                        description:
+                          description: description of the parameter, for people and
+                            for the UI.
+                          maxLength: 1024
+                          type: string
+                        enum:
+                          description: enum is the list of permitted values.
+                          items:
+                            maxLength: 1024
+                            type: string
+                          maxItems: 256
+                          type: array
+                        globalName:
+                          description: |-
+                            globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                            in later steps and in the exit handler, and status.outputs of the run.
+                          maxLength: 128
+                          type: string
+                        name:
+                          description: name of the parameter.
+                          maxLength: 128
+                          pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                          type: string
+                        value:
+                          description: value of the parameter. For an input, a value
+                            cannot be changed by the caller.
+                          maxLength: 262144
+                          type: string
+                        valueFrom:
+                          description: valueFrom tells where an output parameter gets
+                            its value.
+                          properties:
+                            jsonPath:
+                              description: jsonPath reads the value from the object
+                                of a resource template, for example "{.metadata.name}".
+                              maxLength: 1024
+                              type: string
+                            path:
+                              description: path of a file in the main container. Its
+                                contents become the value.
+                              maxLength: 4096
+                              type: string
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    maxItems: 256
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  result:
+                    description: result is the standard output of a container or script
+                      node. Only the status sets it.
+                    type: string
+                type: object
               phase:
                 description: phase of the workflow.
                 enum:
@@ -2192,6 +2399,12 @@ spec:
                               description: from is the artifact that an argument gives,
                                 as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                               maxLength: 1024
+                              type: string
+                            globalName:
+                              description: |-
+                                globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                in the from of a later argument, and status.outputs of the run.
+                              maxLength: 128
                               type: string
                             key:
                               description: key of the object in the artifact repository.
@@ -2245,6 +2458,12 @@ spec:
                                 type: string
                               maxItems: 256
                               type: array
+                            globalName:
+                              description: |-
+                                globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                in later steps and in the exit handler, and status.outputs of the run.
+                              maxLength: 128
+                              type: string
                             name:
                               description: name of the parameter.
                               maxLength: 128
@@ -2705,6 +2924,12 @@ spec:
                                                 for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                               maxLength: 1024
                                               type: string
+                                            globalName:
+                                              description: |-
+                                                globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                                in the from of a later argument, and status.outputs of the run.
+                                              maxLength: 128
+                                              type: string
                                             key:
                                               description: key of the object in the
                                                 artifact repository. Only the status
@@ -2762,6 +2987,12 @@ spec:
                                                 type: string
                                               maxItems: 256
                                               type: array
+                                            globalName:
+                                              description: |-
+                                                globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                                in later steps and in the exit handler, and status.outputs of the run.
+                                              maxLength: 128
+                                              type: string
                                             name:
                                               description: name of the parameter.
                                               maxLength: 128
@@ -2913,6 +3144,12 @@ spec:
                                       gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                     maxLength: 1024
                                     type: string
+                                  globalName:
+                                    description: |-
+                                      globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                      in the from of a later argument, and status.outputs of the run.
+                                    maxLength: 128
+                                    type: string
                                   key:
                                     description: key of the object in the artifact
                                       repository. Only the status sets it.
@@ -2965,6 +3202,12 @@ spec:
                                       type: string
                                     maxItems: 256
                                     type: array
+                                  globalName:
+                                    description: |-
+                                      globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                      in later steps and in the exit handler, and status.outputs of the run.
+                                    maxLength: 128
+                                    type: string
                                   name:
                                     description: name of the parameter.
                                     maxLength: 128
@@ -3020,6 +3263,12 @@ spec:
                                       gives, as one placeholder, for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                     maxLength: 1024
                                     type: string
+                                  globalName:
+                                    description: |-
+                                      globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                      in the from of a later argument, and status.outputs of the run.
+                                    maxLength: 128
+                                    type: string
                                   key:
                                     description: key of the object in the artifact
                                       repository. Only the status sets it.
@@ -3072,6 +3321,12 @@ spec:
                                       type: string
                                     maxItems: 256
                                     type: array
+                                  globalName:
+                                    description: |-
+                                      globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                      in later steps and in the exit handler, and status.outputs of the run.
+                                    maxLength: 128
+                                    type: string
                                   name:
                                     description: name of the parameter.
                                     maxLength: 128
@@ -3542,6 +3797,12 @@ spec:
                                               for example "{{ "{{" }}tasks.make.outputs.artifacts.data}}".
                                             maxLength: 1024
                                             type: string
+                                          globalName:
+                                            description: |-
+                                              globalName makes an output artifact a workflow output with this name: "{{ "{{" }}workflow.outputs.artifacts.<name>}}"
+                                              in the from of a later argument, and status.outputs of the run.
+                                            maxLength: 128
+                                            type: string
                                           key:
                                             description: key of the object in the
                                               artifact repository. Only the status
@@ -3598,6 +3859,12 @@ spec:
                                               type: string
                                             maxItems: 256
                                             type: array
+                                          globalName:
+                                            description: |-
+                                              globalName makes an output parameter a workflow output with this name: "{{ "{{" }}workflow.outputs.parameters.<name>}}"
+                                              in later steps and in the exit handler, and status.outputs of the run.
+                                            maxLength: 128
+                                            type: string
                                           name:
                                             description: name of the parameter.
                                             maxLength: 128

@@ -56,7 +56,7 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 		s.failGets--
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("the server restarts"))
 	}
-	status := map[string]any{"nodes": map[string]any{
+	status := map[string]any{"outputs": map[string]any{"parameters": []any{map[string]any{"name": "version", "value": "1.4.2"}}}, "nodes": map[string]any{
 		r.Msg.Name: map[string]any{"id": r.Msg.Name, "name": r.Msg.Name, "type": "DAG", "phase": s.phase, "children": []any{"n1"}},
 		"n1":       map[string]any{"id": "n1", "name": r.Msg.Name + ".a", "displayName": "a", "type": "Pod", "phase": s.phase},
 	}}

@@ -156,6 +156,10 @@ type WorkflowStatus struct {
 	// +optional
 	Nodes map[string]NodeStatus `json:"nodes,omitempty"`
 
+	// outputs are the workflow outputs: the output parameters with a globalName, from the steps that finished.
+	// +optional
+	Outputs *Outputs `json:"outputs,omitempty"`
+
 	// conditions of the workflow.
 	// +listType=map
 	// +listMapKey=type

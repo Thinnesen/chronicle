@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: Global outputs as in Argo: `globalName` on output parameters and artifacts, `status.outputs`, and `{{workflow.outputs.*}}`. The engine computes the outputs from the finished nodes on each run, so a retry or a re-run gives the same result as the nodes. Reason: exit handlers and runs that report one result need them, and the Argo converter dropped them.
+
 - 2026-10-20: `continueOn` (`failed`, `error`) on a DAG task or a step, as in Argo. A failure that continues counts as success for the depends of later tasks and does not fail the DAG or the steps; the node stays Failed. Reason: steps templates have no `depends`, so users moving from Argo had no way to go on after a failed step.
 
 - 2026-10-20: An approval has an optional `user`. The API sets it to the caller. The validating webhook refuses a new or changed approval whose `user` is not the user of the admission request, as Kubernetes does for the username of a CertificateSigningRequest. An approval without a user stays allowed, so `kubectl patch` keeps working. Reason: the audit log and the Kubernetes events (one hour) did not keep a durable record of who approved; Argo has none either.

@@ -99,6 +99,13 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 		started := s.StartedAt.AsTime().Local().Format(time.DateTime)
 		_, _ = fmt.Fprintf(out, "Started:   %s\nDuration:  %s\n", started, took(wf.Status.StartedAt, wf.Status.FinishedAt))
 	}
+	if o := wf.Status.Outputs; o != nil && len(o.Parameters) > 0 {
+		parts := make([]string, 0, len(o.Parameters))
+		for _, p := range o.Parameters {
+			parts = append(parts, p.Name+"="+ptrValue(p.Value))
+		}
+		_, _ = fmt.Fprintf(out, "Outputs:   %s\n", strings.Join(parts, ", "))
+	}
 	_, _ = fmt.Fprintf(out, "Progress:  %d/%d\n\n", s.NodesDone, s.NodesTotal)
 	if root, ok := wf.Status.Nodes[wf.Name]; ok {
 		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
@@ -156,4 +163,11 @@ func cmpOr(a, b string) string {
 		return a
 	}
 	return b
+}
+
+func ptrValue(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }
