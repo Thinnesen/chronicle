@@ -39,6 +39,10 @@ Features:
 
 The web UI shows the runs of a namespace, a live graph and a timeline of each run, and the logs of each step. All pictures come from real runs on a small demo cluster.
 
+A run of the `etl` template from start to end (twice the real speed):
+
+<img alt="The UI starts a run from a template, follows its graph live until it succeeds, opens the log of a step and the timeline" src="docs/assets/ui-run.gif">
+
 | Runs | A fan-out run |
 |---|---|
 | <img alt="The runs of a namespace, with the activity of 24 hours and status filters" src="docs/assets/screens/runs.png"> | <img alt="The graph of a run with a fan-out to four parallel steps, in dark mode" src="docs/assets/screens/run-graph.png"> |
