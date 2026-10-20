@@ -59,7 +59,9 @@ var _ = Describe("Workflow synchronization", func() {
 		done := step(a)
 		Expect(done.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowSucceeded))
 		Expect(meta.IsStatusConditionTrue(done.Status.Conditions, conditionLocked)).To(BeFalse())
-		Expect(step(b).Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		running := step(b)
+		Expect(running.Status.Phase).To(Equal(chroniclev1alpha1.WorkflowRunning))
+		Expect(running.Status.Message).To(BeEmpty(), "the run holds the lock now")
 	})
 
 	It("wakes the runs that wait for the lock when a holder gives it back", func() {

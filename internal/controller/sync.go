@@ -88,11 +88,7 @@ func (r *WorkflowReconciler) acquireAs(ctx context.Context, namespace, name stri
 		return false, "", err
 	}
 	if len(alive) >= limit {
-		names := make([]string, 0, len(alive))
-		for _, h := range alive {
-			names = append(names, h.Name)
-		}
-		return false, fmt.Sprintf("%s %s, which %s holds", engine.WaitingForLock, name, strings.Join(names, ", ")), nil
+		return false, fmt.Sprintf("%s %s, which %s holds", engine.WaitingForLock, name, holderNames(alive)), nil
 	}
 	setHolders(&lease, append(alive, me))
 	if err := r.Update(ctx, &lease); apierrors.IsConflict(err) {
@@ -251,6 +247,9 @@ func (r *WorkflowReconciler) gate(ctx context.Context, wf *chroniclev1alpha1.Wor
 		}
 	}
 	if held {
+		if strings.HasPrefix(wf.Status.Message, engine.WaitingForLock) {
+			wf.Status.Message = ""
+		}
 		setLocked(wf, true, "Acquired", "the run holds the lock "+name)
 		return ctrl.Result{}, false, nil
 	}
@@ -284,4 +283,15 @@ func (r *WorkflowReconciler) unlock(ctx context.Context, wf *chroniclev1alpha1.W
 	}
 	setLocked(wf, false, "Released", "the run gave the lock "+name+" back")
 	return nil
+}
+
+// holderNames lists the runs that hold a lock, each run once. A run can hold a template lock with several nodes.
+func holderNames(hs []holder) string {
+	var names []string
+	for _, h := range hs {
+		if !slices.Contains(names, h.Name) {
+			names = append(names, h.Name)
+		}
+	}
+	return strings.Join(names, ", ")
 }

@@ -45,7 +45,7 @@ Bugs:
 - S6. (done) stop, suspend and resume of a finished run report success. Suspend then retry gives a Suspended run with an empty tree.
 - S7. (done) Converter: templateDefaults.timeout replaces a template activeDeadlineSeconds.
 - S8. (done) `chronicle get` after a retry leaves out kept nodes. The workflow onExit node is never shown.
-- S9. Stale lock messages on Running runs. A node that timed out while it waited for a lock ends with "waiting for the lock".
+- S9. (done) Stale lock messages on Running runs. A node that timed out while it waited for a lock ends with "waiting for the lock".
 - S10. The Python example worker deadlocks on a second SIGTERM (Event.set in the signal handler).
 
 Smaller:

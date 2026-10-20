@@ -119,3 +119,9 @@ templates:
 		Expect(podsOf(ctx, wf)).To(BeEmpty())
 	})
 })
+
+var _ = Describe("lock messages", func() {
+	It("names each holder run once", func() {
+		Expect(holderNames([]holder{{Name: "a", Node: "n1"}, {Name: "a", Node: "n2"}, {Name: "b"}})).To(Equal("a, b"))
+	})
+})

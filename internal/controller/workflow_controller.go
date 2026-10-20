@@ -138,9 +138,11 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	wf.Status = res.Status
 	for id, msg := range messages {
-		n := wf.Status.Nodes[id]
-		n.Message = msg
-		wf.Status.Nodes[id] = n
+		// A node that ended in this step, for example by its timeout, keeps the message of its end.
+		if n, ok := wf.Status.Nodes[id]; ok && n.Phase == chroniclev1alpha1.NodePending {
+			n.Message = msg
+			wf.Status.Nodes[id] = n
+		}
 	}
 	if err := r.unlock(ctx, &wf, spec); err != nil {
 		return ctrl.Result{}, err
