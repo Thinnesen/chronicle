@@ -18,8 +18,8 @@ func (a *app) convertCommand() *cobra.Command {
 		Use:   "convert -f <file>",
 		Short: "Convert Argo Workflows YAML into chronicle resources",
 		Long: "Convert Argo Workflows YAML (Workflow, WorkflowTemplate, ClusterWorkflowTemplate, CronWorkflow) into chronicle " +
-			"resources. The result goes to standard output. The warnings go to standard error: each one is a field that " +
-			"chronicle does not support and that the result does not have. Use - to read standard input.",
+			"resources. The result goes to standard output. The warnings go to standard error. Each warning names a field " +
+			"that chronicle does not support. The result does not have that field. Use - to read standard input.",
 		Example: "  chronicle convert -f argo-workflow.yaml > workflow.yaml\n  chronicle convert -f argo.yaml | kubectl create -f -",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
