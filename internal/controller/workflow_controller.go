@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,6 +21,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/artifact"
 	"github.com/Thinnesen/chronicle/internal/engine"
 	"github.com/Thinnesen/chronicle/internal/executor"
 	"github.com/Thinnesen/chronicle/internal/resolve"
@@ -102,11 +105,8 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if size := r.tooLarge(&wf, res.Status); size > 0 && !finished(observed.Phase) {
 		return r.failTooLarge(ctx, &wf, size)
 	}
-	for _, a := range res.Actions {
-		if err := r.apply(ctx, &wf, spec, a); err != nil {
-			return ctrl.Result{}, err
-		}
-		countAction(a)
+	if err := r.applyAll(ctx, &wf, spec, res.Actions); err != nil {
+		return ctrl.Result{}, err
 	}
 	result := ctrl.Result{RequeueAfter: res.RequeueAfter}
 	wf.Status = res.Status
@@ -262,13 +262,35 @@ func (r *WorkflowReconciler) observePods(ctx context.Context, wf *chroniclev1alp
 	return pods, nil
 }
 
-func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, a engine.Action) error {
+// applyWorkers is the number of actions of one run that the controller applies at the same time. A large fan-out
+// starts many Pods in one step, and one API call after the other made the first status wait for all of them.
+const applyWorkers = 8
+
+// applyAll applies the actions of one engine step. The actions are independent. The artifact repository is read once.
+func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, actions []engine.Action) error {
+	repo := sync.OnceValues(func() (*artifact.Repository, error) { return r.repository(ctx, wf.Namespace) })
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(applyWorkers)
+	for _, a := range actions {
+		g.Go(func() error {
+			if err := r.apply(gctx, wf, spec, a, repo); err != nil {
+				return err
+			}
+			countAction(a)
+			return nil
+		})
+	}
+	return g.Wait()
+}
+
+func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, a engine.Action,
+	repo func() (*artifact.Repository, error)) error {
 	switch a := a.(type) {
 	case engine.CreatePod:
 		var files *executor.ArtifactSpec
 		if usesExecutor(a.Template) {
 			var err error
-			if files, err = r.artifactSpec(ctx, wf, a); err != nil {
+			if files, err = artifactSpec(ctx, wf, a, repo); err != nil {
 				return err
 			}
 		}

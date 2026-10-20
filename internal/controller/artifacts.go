@@ -24,7 +24,8 @@ const AnnotationArtifactPrefix = "chronicle.thinnesen.com/artifact-prefix"
 
 // artifactSpec returns what the executor of a new Pod downloads and saves, or nil when it has nothing to do.
 // The controller never reads the Secret: the Pod gets the credentials from it directly.
-func (r *WorkflowReconciler) artifactSpec(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.CreatePod) (*executor.ArtifactSpec, error) {
+// repo reads the artifact repository of the namespace; one reconcile reads it once.
+func artifactSpec(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.CreatePod, repo func() (*artifact.Repository, error)) (*executor.ArtifactSpec, error) {
 	spec := &executor.ArtifactSpec{}
 	if a.Inputs != nil {
 		for _, in := range a.Inputs.Artifacts {
@@ -41,7 +42,7 @@ func (r *WorkflowReconciler) artifactSpec(ctx context.Context, wf *chroniclev1al
 	for _, out := range a.Template.Outputs.Artifacts {
 		spec.Outputs = append(spec.Outputs, executor.File{Name: out.Name, Path: out.Path, Optional: out.Optional})
 	}
-	repo, err := r.repository(ctx, wf.Namespace)
+	repository, err := repo()
 	var bad badRepositoryError
 	switch {
 	case errors.As(err, &bad) && spec.NeedsRepository():
@@ -53,11 +54,11 @@ func (r *WorkflowReconciler) artifactSpec(ctx context.Context, wf *chroniclev1al
 	case err != nil:
 		return nil, err
 	}
-	if repo != nil {
-		spec.Repository = repo
-		spec.Prefix = repo.Prefix(wf.Namespace, string(wf.UID), a.PodName)
+	if repository != nil {
+		spec.Repository = repository
+		spec.Prefix = repository.Prefix(wf.Namespace, string(wf.UID), a.PodName)
 	}
-	if len(spec.Inputs) == 0 && len(spec.Outputs) == 0 && (repo == nil || !repo.ArchiveLogs) {
+	if len(spec.Inputs) == 0 && len(spec.Outputs) == 0 && (repository == nil || !repository.ArchiveLogs) {
 		return nil, nil
 	}
 	return spec, nil
