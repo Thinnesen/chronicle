@@ -2,16 +2,16 @@ import "@xyflow/react/dist/style.css";
 import "./RunGraph.css";
 
 import { Background, Controls, Handle, Position, ReactFlow, useReactFlow, useViewport, type BuiltInEdge, type FitViewOptions, type Node, type NodeProps } from "@xyflow/react";
-import { Box, ChevronsDown, Cpu, Hand } from "lucide-react";
+import { Box, ChevronsDown, Cpu, Globe, Hand } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { fold } from "../lib/fold";
 import { place } from "../lib/layout";
 import { duration } from "../lib/time";
-import { buildGraph, cardLabel, isStation, nodeLabel, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
+import { buildGraph, cardLabel, isStation, nodeLabel, templateOf, withPlan, type NodeStatus, type Workflow } from "../lib/workflow";
 import { Lamp } from "./Lamp";
 
-type NodeData = { status: NodeStatus; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number>; preview?: boolean };
+type NodeData = { status: NodeStatus; http?: boolean; selected: boolean; now: number; vertical: boolean; width: number; hidden?: Record<string, number>; preview?: boolean };
 
 function nodeDuration(n: NodeStatus, now: number): string {
   if (!n.startedAt) return "";
@@ -48,7 +48,7 @@ function Handles({ vertical }: { vertical: boolean }) {
 function StationNode({ data }: NodeProps<Node<NodeData>>) {
   const n = data.status;
   const phase = n.phase || "Pending";
-  const Icon = kindIcon[n.type as keyof typeof kindIcon] ?? Box;
+  const Icon = data.http ? Globe : (kindIcon[n.type as keyof typeof kindIcon] ?? Box);
   return (
     <div className={`station-node${data.selected ? " is-selected" : ""}${n.planned ? " is-planned" : ""}`} data-phase={phase} style={{ width: data.width }}>
       <Handles vertical={data.vertical} />
@@ -193,7 +193,7 @@ export function RunGraph(props: { wf: Workflow; now: number; selected?: string; 
           position: { x: p.x, y: p.y },
           width: p.width,
           height: p.height,
-          data: { status: p.node, selected: p.node.id === selected, now, vertical: narrow, width: p.width, hidden: folded.hidden[p.node.id], preview },
+          data: { status: p.node, http: !!templateOf(wf, p.node)?.http, selected: p.node.id === selected, now, vertical: narrow, width: p.width, hidden: folded.hidden[p.node.id], preview },
           ariaLabel: `${nodeLabel(p.node)}, ${p.node.planned ? "not started" : p.node.phase || "Pending"}`,
         }),
       ),

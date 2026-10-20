@@ -1,5 +1,5 @@
 // Command chronicle-exec runs in workflow Pods. "install" copies it into a shared volume.
-// "run -- command..." runs the main command and reports the outputs. "resource" runs a resource template.
+// "run -- command..." runs the main command and reports the outputs. "resource" and "http" run those templates.
 package main
 
 import (
@@ -18,10 +18,12 @@ func main() {
 		}
 	case len(os.Args) == 2 && os.Args[1] == "resource":
 		os.Exit(executor.RunResourceMain(os.Stderr))
+	case len(os.Args) == 2 && os.Args[1] == "http":
+		os.Exit(executor.RunHTTPMain(os.Stdout, os.Stderr))
 	case len(os.Args) >= 3 && os.Args[1] == "run" && os.Args[2] == "--":
 		os.Exit(executor.Run(os.Args[3:], os.Stdout, os.Stderr))
 	default:
-		fmt.Fprintln(os.Stderr, "usage: chronicle-exec install <path> | run -- <command> [args...] | resource")
+		fmt.Fprintln(os.Stderr, "usage: chronicle-exec install <path> | run -- <command> [args...] | resource | http")
 		os.Exit(2)
 	}
 }

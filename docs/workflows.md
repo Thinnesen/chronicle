@@ -177,6 +177,25 @@ spec:
 
 Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values: the API refuses other values, and the node fails if such a value comes in another way. The node message names the approver, for example "approved by oidc:alice@example.com". A `resource` template runs with the service account of the run (`spec.serviceAccountName`), so a step can do only what that account can do.
 
+An `http` template sends one request, for example a chat message from the exit handler:
+
+```yaml
+  - name: notify
+    http:
+      url: https://chat.example.com/hooks/team-a
+      method: POST            # GET (default), POST, PUT, PATCH, DELETE or HEAD
+      headers:
+      - {name: Content-Type, value: application/json}
+      - name: Authorization
+        valueFrom: {secretKeyRef: {name: chat, key: token}}
+      body: '{"text": "{{workflow.name}} is {{workflow.status}}"}'
+```
+
+- The request comes from a small Pod in the namespace of the run, so network policies apply. The Pod has no Kubernetes API token.
+- A status from 200 to 299 ends the step with success. The response body is `outputs.result`.
+- The url, the body and header values can have placeholders. A header from a Secret comes into the Pod as an environment variable: chronicle does not read the Secret.
+- The log and errors show the URL without its query, because the query can hold a token.
+
 ## 9. Locks
 
 ```yaml

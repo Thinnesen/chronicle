@@ -135,6 +135,15 @@ func (c *checker) checkTemplate(t *v1alpha1.Template, path *field.Path) {
 		}
 	case t.Resource != nil:
 		c.checkManifest(t.Resource, path.Child("resource"), pod)
+	case t.HTTP != nil:
+		hp := path.Child("http")
+		c.checkText(t.HTTP.URL, hp.Child("url"), pod, nil)
+		c.checkText(t.HTTP.Body, hp.Child("body"), pod, nil)
+		for i, h := range t.HTTP.Headers {
+			if h.Value != nil {
+				c.checkText(*h.Value, hp.Child("headers").Index(i).Child("value"), pod, nil)
+			}
+		}
 	case t.DAG != nil:
 		c.checkDAG(t.DAG, path.Child("dag"), sc)
 	case t.Steps != nil:

@@ -127,6 +127,12 @@ func TestRules(t *testing.T) {
 				"spec.templates[0].inputs.artifacts[1].s3: chronicle does not support", "spec.templates[0].outputs.artifacts[0].http: chronicle does not support"},
 		},
 		{
+			name: "an http template",
+			templates: "  - name: main\n    http:\n      url: https://e.com\n      method: POST\n      timeoutSeconds: 20\n" +
+				"      successCondition: response.statusCode == 201\n      headers: [{name: A, valueFrom: {secretKeyRef: {name: s, key: k}}}]\n",
+			want: []string{"method: POST", "secretKeyRef:", "http.successCondition: chronicle has no expressions", "http.timeoutSeconds: chronicle does not support"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

@@ -64,6 +64,14 @@ describe("withPlan", () => {
     };
     const nodes = withPlan(started);
     expect(nodes["p/planned/b"]).toMatchObject({ name: "p.b", type: "Pod", planned: true });
+    // A planned approval or task gets the type of its template, so that its card has the right icon.
+    started.spec.templates = [
+      { name: "main", dag: { tasks: [{ name: "a" }, { name: "b", template: "ok", depends: "a" }, { name: "c", template: "t", depends: "a" }] } },
+      { name: "ok", suspend: {} },
+      { name: "t", task: { name: "greet" } },
+    ];
+    expect(withPlan(started)["p/planned/b"]?.type).toBe("Suspend");
+    expect(withPlan(started)["p/planned/c"]?.type).toBe("Task");
     expect(buildGraph(started, nodes).map((e) => `${e.from}>${e.to}`)).toContain("A>p/planned/b");
   });
 

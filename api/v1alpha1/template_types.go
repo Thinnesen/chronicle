@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Template is one unit of work. It has exactly one type: container, script, dag, steps, suspend or resource.
-// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource), has(self.task)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend, resource or task"
+// Template is one unit of work. It has exactly one type: container, script, dag, steps, suspend, resource, task or http.
+// +kubebuilder:validation:XValidation:rule="[has(self.container), has(self.script), has(self.dag), has(self.steps), has(self.suspend), has(self.resource), has(self.task), has(self.http)].filter(x, x).size() == 1",message="a template must have exactly one of container, script, dag, steps, suspend, resource, task or http"
 type Template struct {
 	// name of the template. It is unique in the workflow.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9][-a-zA-Z0-9_]*$`
@@ -69,6 +69,10 @@ type Template struct {
 	// task sends the input parameters to a task worker and waits for its result. It needs the archive database.
 	// +optional
 	Task *TaskTemplate `json:"task,omitempty"`
+
+	// http sends one HTTP request from a Pod, for example a message to a chat in an exit handler.
+	// +optional
+	HTTP *HTTPTemplate `json:"http,omitempty"`
 }
 
 // TaskTemplate calls a function that a task worker of an SDK runs. The worker gets the input parameters

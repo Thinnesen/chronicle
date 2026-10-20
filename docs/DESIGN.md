@@ -47,7 +47,7 @@ The controller and the server are two binaries in one Go module. The Helm chart 
 The spec follows the Argo Workflows concepts, so that the converter is simple:
 
 - `entrypoint`, `arguments.parameters`, `templates`.
-- Template types: `container`, `script`, `dag` (tasks with `dependencies` and `depends` expressions), `steps` (lists of parallel steps), `suspend` (wait or manual approval), `resource` (create a Kubernetes object), `task` (call a task worker, section 7).
+- Template types: `container`, `script`, `dag` (tasks with `dependencies` and `depends` expressions), `steps` (lists of parallel steps), `suspend` (wait or manual approval), `resource` (create a Kubernetes object), `task` (call a task worker, section 7), `http` (send one HTTP request).
 - `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions, `withItems` and `withParam` fan-out, `parallelism` (of the workflow, and of a `dag` or `steps` template), `synchronization` (a mutex or a semaphore for runs in a namespace).
 - Inputs and outputs: parameters (from a file, from stdout, from a JSON path) and artifacts (S3-compatible store).
 - `podGC`, `ttlStrategy`, `serviceAccountName`. There is no `podSpecPatch`: a patch of the Pod spec could undo the Pod security settings.
@@ -119,6 +119,7 @@ The controller applies the actions. This makes the engine testable with table te
 - The termination message has a limit of 4 KiB. A larger standard output is not a result. Larger output parameters fail the node: use an artifact.
 - A container template without a command runs without the executor. It has no result and no output files.
 - A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects (Argo substitutes text before it parses the YAML).
+- An `http` template runs `chronicle-exec http` in a Pod without an API token. Header values from a Secret are `secretKeyRef` environment variables. A 2xx status is success, and the response body (at most 3 KiB) is the result. Logs and errors name the URL without its query.
 - `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on (#25).
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
@@ -228,7 +229,7 @@ The project follows these standards:
 
 - Pin exact versions (Go, pnpm, Cargo, uv). Commit the lockfiles. Pin images by digest, GitHub Actions by SHA, tools in the Makefile with SHA-256.
 - pnpm: `minimumReleaseAge`, no install scripts unless allowed by name.
-- Non-root Pods, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. The chronicle containers (controller, server, executor init and resource steps) have a read-only root file system. The container of a user step keeps a writable root file system, because many images write to it.
+- Non-root Pods, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. The chronicle containers (controller, server, executor init, resource and http steps) have a read-only root file system. The container of a user step keeps a writable root file system, because many images write to it.
 - Least-privilege RBAC. The server never stores OIDC tokens in the browser. Secrets come from Kubernetes Secrets.
 - The UI has a strict Content Security Policy: scripts, styles, fonts and images come only from the server. No inline script. An injected style (for example the scroll lock of a dialog) needs the nonce that the server puts into each page. Playwright fails a test when the browser reports a violation.
 - CI: lint, unit tests, envtest, e2e on Kind (with Dex for OIDC), Playwright, govulncheck, `pnpm audit`, `cargo audit`, Trivy, actionlint.

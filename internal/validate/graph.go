@@ -181,8 +181,8 @@ func (c *checker) outputNames(prefix, template string) []string {
 		names = append(names, prefix+".outputs.artifacts."+a.Name)
 	}
 	// Only the executor can capture the standard output. It runs when the template has a command.
-	// A task template has the result of its worker.
-	if t.Container != nil && len(t.Container.Command) > 0 || t.Script != nil || t.Task != nil {
+	// A task template has the result of its worker, and an http template the response body.
+	if t.Container != nil && len(t.Container.Command) > 0 || t.Script != nil || t.Task != nil || t.HTTP != nil {
 		names = append(names, prefix+".outputs.result")
 	}
 	if t.Container != nil || t.Script != nil {

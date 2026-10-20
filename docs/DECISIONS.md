@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: The `http` template sends its request from a Pod that runs `chronicle-exec http` in the namespace of the run, without an API token. Argo sends it from an agent Pod with its own service account and RBAC for task results. A plain Pod keeps one model for all steps: network policies, quotas and logs apply as for a container. Header values from a Secret are `secretKeyRef` environment variables, so the controller never reads Secrets. Success is a 2xx status, because chronicle has no expressions.
+
 - 2026-10-20: Input artifacts can come from `raw` text or an `http` URL, as in Argo, also in `spec.arguments.artifacts`. The step downloads the URL from its own Pod, so the controller and the server make no requests to user URLs. The executor saves the file as it is. Argo unpacks a tarball that it detects, but a file that changes its form by its content is a surprise; a step can unpack it. Other Argo sources (s3, gcs, git and others) need credentials per source and are not supported: use the repository of the namespace.
 
 - 2026-10-20: The node outputs in the status have `exitCode`, the exit code of the main container, as in Argo. The controller reads it from the Pod status, so it is also there when the executor did not write a message. Placeholders: `{{tasks.x.exitCode}}`, `{{steps.x.exitCode}}`, and the node fields `id`, `startedAt` and `finishedAt`. A fan-out has no `exitCode`, because the items can have different codes.

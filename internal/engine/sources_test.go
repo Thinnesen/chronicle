@@ -51,3 +51,37 @@ templates:
 		}
 	}
 }
+
+// TestHTTPTemplate checks that an http template runs as a Pod with its placeholders replaced, and that its result
+// reaches a later step.
+func TestHTTPTemplate(t *testing.T) {
+	s := newSim(t, `
+entrypoint: main
+arguments: {parameters: [{name: env, value: prod}]}
+templates:
+- name: main
+  steps:
+  - - {name: notify, template: notify}
+  - - {name: show, template: show, arguments: {parameters: [{name: x, value: "{{steps.notify.outputs.result}}"}]}}
+- name: notify
+  http:
+    url: "https://chat.example.com/{{workflow.parameters.env}}"
+    method: POST
+    headers: [{name: X-Run, value: "{{workflow.name}}"}, {name: Authorization, valueFrom: {secretKeyRef: {name: chat, key: token}}}]
+    body: '{"text": "{{workflow.name}} is done"}'
+- name: show
+  inputs: {parameters: [{name: x}]}
+  container: {image: x, command: [echo, "{{inputs.parameters.x}}"]}
+`, nil)
+	s.outputs["wf[0].notify"] = &v1alpha1.Outputs{Result: new("sent")}
+	if st := s.run(); st.Phase != v1alpha1.WorkflowSucceeded {
+		t.Fatalf("phase %s: %s", st.Phase, st.Message)
+	}
+	h := s.pods["wf[0].notify"].Template.HTTP
+	if h == nil || h.URL != "https://chat.example.com/prod" || h.Body != `{"text": "wf is done"}` || *h.Headers[0].Value != "wf" || h.Headers[1].ValueFrom == nil {
+		t.Errorf("http = %+v", h)
+	}
+	if cmd := s.pods["wf[1].show"].Template.Container.Command; cmd[1] != "sent" {
+		t.Errorf("show = %v", cmd)
+	}
+}

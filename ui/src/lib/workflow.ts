@@ -62,6 +62,8 @@ export interface Template {
   outputs?: { parameters?: { name: string; default?: string; enum?: string[]; description?: string }[] };
   dag?: { tasks: DAGTask[] };
   steps?: { name: string; template?: string }[][];
+  task?: { name: string };
+  http?: { url: string; method?: string };
 }
 
 export interface Workflow {
@@ -148,7 +150,10 @@ export function withPlan(wf: Workflow): Record<string, NodeStatus> {
   const templates = new Map((wf.status?.storedSpec?.templates ?? wf.spec.templates ?? []).map((t) => [t.name, t]));
   const typeOf = (template?: string): NodeStatus["type"] => {
     const t = template ? templates.get(template) : undefined;
-    return t?.dag ? "DAG" : t?.steps ? "Steps" : "Pod";
+    if (t?.dag) return "DAG";
+    if (t?.steps) return "Steps";
+    if (t?.suspend) return "Suspend";
+    return t?.task ? "Task" : "Pod";
   };
   const out = { ...nodes };
   for (const n of Object.values(nodes)) {

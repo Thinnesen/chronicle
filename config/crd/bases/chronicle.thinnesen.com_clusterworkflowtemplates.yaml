@@ -280,7 +280,7 @@ spec:
                 description: templates of the workflow.
                 items:
                   description: 'Template is one unit of work. It has exactly one type:
-                    container, script, dag, steps, suspend or resource.'
+                    container, script, dag, steps, suspend, resource, task or http.'
                   properties:
                     container:
                       description: container runs one container in a Pod.
@@ -851,6 +851,91 @@ spec:
                           x-kubernetes-list-type: map
                       required:
                       - tasks
+                      type: object
+                    http:
+                      description: http sends one HTTP request from a Pod, for example
+                        a message to a chat in an exit handler.
+                      properties:
+                        body:
+                          description: body of the request. It can have placeholders.
+                          maxLength: 65536
+                          type: string
+                        headers:
+                          description: headers of the request. A value can come from
+                            a Secret in the namespace.
+                          items:
+                            description: 'HTTPHeader is one header of a request: a
+                              value, or a value from a Secret.'
+                            properties:
+                              name:
+                                description: name of the header.
+                                maxLength: 256
+                                pattern: ^[A-Za-z0-9!#$%&'*+.^_|~-]+$
+                                type: string
+                              value:
+                                description: value of the header. It can have placeholders.
+                                maxLength: 8192
+                                type: string
+                              valueFrom:
+                                description: valueFrom reads the value from a Secret.
+                                  The Pod reads the Secret; the controller does not.
+                                properties:
+                                  secretKeyRef:
+                                    description: secretKeyRef is a key of a Secret
+                                      in the namespace of the workflow.
+                                    properties:
+                                      key:
+                                        description: The key of the secret to select
+                                          from.  Must be a valid secret key.
+                                        type: string
+                                      name:
+                                        default: ""
+                                        description: |-
+                                          Name of the referent.
+                                          This field is effectively required, but due to backwards compatibility is
+                                          allowed to be empty. Instances of this type with an empty value here are
+                                          almost certainly wrong.
+                                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                        type: string
+                                      optional:
+                                        description: Specify whether the Secret or
+                                          its key must be defined
+                                        type: boolean
+                                    required:
+                                    - key
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - secretKeyRef
+                                type: object
+                            required:
+                            - name
+                            type: object
+                            x-kubernetes-validations:
+                            - message: a header needs value or valueFrom
+                              rule: has(self.value) != has(self.valueFrom)
+                          maxItems: 32
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        method:
+                          description: method of the request. The default is GET.
+                          enum:
+                          - GET
+                          - POST
+                          - PUT
+                          - PATCH
+                          - DELETE
+                          - HEAD
+                          type: string
+                        url:
+                          description: url of the request. It can have placeholders.
+                          maxLength: 2048
+                          pattern: ^(https?://|\{\{)
+                          type: string
+                      required:
+                      - url
                       type: object
                     inputs:
                       description: inputs are the parameters that the template accepts.
@@ -1844,10 +1929,10 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: a template must have exactly one of container, script,
-                      dag, steps, suspend, resource or task
+                      dag, steps, suspend, resource, task or http
                     rule: '[has(self.container), has(self.script), has(self.dag),
-                      has(self.steps), has(self.suspend), has(self.resource), has(self.task)].filter(x,
-                      x).size() == 1'
+                      has(self.steps), has(self.suspend), has(self.resource), has(self.task),
+                      has(self.http)].filter(x, x).size() == 1'
                 maxItems: 200
                 type: array
                 x-kubernetes-list-map-keys:

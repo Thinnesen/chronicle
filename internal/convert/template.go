@@ -13,7 +13,7 @@ func (c *converter) template(in obj, path string) (obj, error) {
 	defer func(p string) { c.parent = p }(c.parent)
 	c.parent, _ = in[fName].(string)
 	out := c.pick(in, path, []string{fName, "dag", "steps"},
-		"inputs", "outputs", "container", "script", "suspend", "resource", "retryStrategy", "timeout", "activeDeadlineSeconds", "parallelism")
+		"inputs", "outputs", "container", "script", "suspend", "resource", "http", "retryStrategy", "timeout", "activeDeadlineSeconds", "parallelism")
 	var err error
 	if v, ok := in["parallelism"]; ok {
 		if out["dag"] != nil || out["steps"] != nil {
@@ -43,6 +43,9 @@ func (c *converter) template(in obj, path string) (obj, error) {
 	}
 	if v, ok := in["resource"]; ok {
 		out["resource"] = c.resource(asObj(v), join(path, "resource"))
+	}
+	if v, ok := in["http"]; ok {
+		out["http"] = c.http(asObj(v), join(path, "http"))
 	}
 	if v, ok := in["retryStrategy"]; ok {
 		if out["retryStrategy"], err = c.retry(asObj(v), join(path, "retryStrategy")); err != nil {
@@ -163,6 +166,27 @@ func (c *converter) resource(in obj, path string) obj {
 // bareValue matches a YAML value or list item that is only a placeholder without quotes. chronicle parses the
 // manifest before it puts the values in, so such a placeholder must be a string.
 var bareValue = regexp.MustCompile(`(?m)^(\s*(?:[^\s#:"'][^#:]*:\s+|-\s+))(\{\{[^{}]+\}\})\s*$`)
+
+// http keeps the request. A status from 200 to 299 is success in chronicle; Argo can test it with an expression.
+func (c *converter) http(in obj, path string) obj {
+	out := c.pick(in, path, []string{"url", "method", "body"}, "headers", "successCondition")
+	if _, ok := in["successCondition"]; ok {
+		c.warn(join(path, "successCondition"), "chronicle has no expressions: a status from 200 to 299 is success")
+	}
+	if hs, ok := in["headers"]; ok {
+		list := make([]any, 0, len(asList(hs)))
+		for i, h := range asList(hs) {
+			hp := index(join(path, "headers"), i)
+			ch := c.pick(asObj(h), hp, []string{fName, fValue}, "valueFrom")
+			if vf := asObj(asObj(h)["valueFrom"]); vf != nil {
+				ch["valueFrom"] = c.pick(vf, join(hp, "valueFrom"), []string{"secretKeyRef"})
+			}
+			list = append(list, ch)
+		}
+		out["headers"] = list
+	}
+	return out
+}
 
 func (c *converter) retry(in obj, path string) (obj, error) {
 	out := c.pick(in, path, []string{"retryPolicy"}, "limit", "backoff")

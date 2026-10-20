@@ -25,6 +25,8 @@ const (
 	execVolume = "chronicle-exec"
 	execDir    = "/var/run/chronicle"
 	execPath   = execDir + "/exec"
+	// executorBinary is the path of chronicle-exec in the executor image.
+	executorBinary = "/chronicle-exec"
 	// mainContainer is the name of the container that runs the template.
 	mainContainer = "main"
 	// podUser is the default user of workflow containers. The restricted Pod security standard needs a non-root user.
@@ -40,9 +42,13 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 	}
 	var main corev1.Container
 	wrapped, automount := false, spec.ServiceAccountName != ""
-	if a.Template.Resource != nil {
+	switch {
+	case a.Template.Resource != nil:
 		main, automount = resourceContainer(wf, a.Template, executorImage), true
-	} else {
+	case a.Template.HTTP != nil:
+		// An http request needs no access to the Kubernetes API.
+		main, automount = httpContainer(a.Template.HTTP, executorImage), false
+	default:
 		main, wrapped = mainContainerFor(a.Template)
 	}
 	annotations := map[string]string{AnnotationNode: a.NodeName}
@@ -68,7 +74,8 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
 			ServiceAccountName: spec.ServiceAccountName,
-			// A Pod gets an API token only for a resource template or when the workflow names a service account.
+			// A Pod gets an API token only for a resource template, or when the workflow names a service account
+			// and the template is not an http template.
 			AutomountServiceAccountToken: new(automount),
 			EnableServiceLinks:           new(false),
 			SecurityContext: &corev1.PodSecurityContext{
@@ -144,7 +151,7 @@ func resourceContainer(wf *v1alpha1.Workflow, t *v1alpha1.Template, executorImag
 	return corev1.Container{
 		Name:                     mainContainer,
 		Image:                    executorImage,
-		Command:                  []string{"/chronicle-exec", "resource"},
+		Command:                  []string{executorBinary, "resource"},
 		Env:                      []corev1.EnvVar{{Name: executor.EnvResource, Value: string(data)}},
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		SecurityContext:          readOnly(restricted()),
@@ -173,7 +180,7 @@ func initContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:            "init",
 		Image:           image,
-		Command:         []string{"/chronicle-exec", "install", execPath},
+		Command:         []string{executorBinary, "install", execPath},
 		SecurityContext: readOnly(restricted()),
 		VolumeMounts:    []corev1.VolumeMount{{Name: execVolume, MountPath: execDir}},
 		// The copy of the executor (about 40 MB) fills the page cache, which counts against the limit.

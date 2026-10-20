@@ -58,3 +58,27 @@ templates:
 ` + use, want: []string{`spec.arguments.artifacts[1].name: Not found: "other"`}},
 	}, true)
 }
+
+func TestHTTPTemplate(t *testing.T) {
+	runCases(t, []specCase{
+		{name: "valid", spec: `
+entrypoint: main
+templates:
+- name: main
+  steps: [[{name: hook, template: hook}], [{name: u, template: u, arguments: {parameters: [{name: r, value: "{{steps.hook.outputs.result}}"}]}}]]
+- name: hook
+  http: {url: "https://e.com/{{workflow.name}}", headers: [{name: A, value: "{{workflow.uid}}"}], body: "{{pod.name}}"}
+- {name: u, inputs: {parameters: [{name: r}]}, container: {image: x}}`},
+		{name: "unknown placeholders", spec: `
+entrypoint: main
+templates:
+- name: main
+  http: {url: "https://e.com/{{a.b}}", headers: [{name: A, value: "{{c.d}}"}], body: "{{e.f}}"}`, want: []string{`"a.b"`, `"c.d"`, `"e.f"`}},
+		{name: "no input artifacts", spec: `
+entrypoint: main
+templates:
+- name: main
+  inputs: {artifacts: [{name: f, path: /tmp/f, raw: {data: x}}]}
+  http: {url: "https://e.com"}`, want: []string{"cannot have input artifacts"}},
+	}, true)
+}

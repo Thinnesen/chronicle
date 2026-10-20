@@ -44,7 +44,7 @@ func (e *engine) applyPod(n *v1alpha1.NodeStatus, pod PodResult) {
 	e.setPhase(n, pod.Phase, pod.Message)
 }
 
-// substituteTemplate returns a copy of a container, script or resource template with the placeholders replaced.
+// substituteTemplate returns a copy of a container, script, resource or http template with the placeholders replaced.
 // A resource manifest becomes JSON.
 func substituteTemplate(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.Template, error) {
 	out := t.DeepCopy()
@@ -52,6 +52,15 @@ func substituteTemplate(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.
 		m, err := manifest.Substitute(out.Resource.Manifest, resolve)
 		out.Resource.Manifest = m
 		return out, err
+	}
+	if h := out.HTTP; h != nil {
+		fields := []*string{&h.URL, &h.Body}
+		for i := range h.Headers {
+			if h.Headers[i].Value != nil {
+				fields = append(fields, h.Headers[i].Value)
+			}
+		}
+		return out, substituteAll(fields, resolve)
 	}
 	ct := out.Container
 	if out.Script != nil {
@@ -68,12 +77,20 @@ func substituteTemplate(t *v1alpha1.Template, resolve expr.Resolver) (*v1alpha1.
 	for i := range ct.Env {
 		fields = append(fields, &ct.Env[i].Value)
 	}
+	if err := substituteAll(fields, resolve); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// substituteAll replaces the placeholders in each field.
+func substituteAll(fields []*string, resolve expr.Resolver) error {
 	for _, f := range fields {
 		v, err := expr.Substitute(*f, resolve)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		*f = v
 	}
-	return out, nil
+	return nil
 }
