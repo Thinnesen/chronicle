@@ -51,7 +51,9 @@ type WorkflowSummary struct {
 	// Unschedulable. It is empty when no step waits for such a reason.
 	WaitingReason string `protobuf:"bytes,15,opt,name=waiting_reason,json=waitingReason,proto3" json:"waiting_reason,omitempty"`
 	// start_at is the start time of a run that waits for it. It is empty when the run has started.
-	StartAt       *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	StartAt *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	// parent is the name of the run that started this run as a child run, or empty.
+	Parent        string `protobuf:"bytes,17,opt,name=parent,proto3" json:"parent,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,6 +198,13 @@ func (x *WorkflowSummary) GetStartAt() *timestamppb.Timestamp {
 		return x.StartAt
 	}
 	return nil
+}
+
+func (x *WorkflowSummary) GetParent() string {
+	if x != nil {
+		return x.Parent
+	}
+	return ""
 }
 
 type ListWorkflowsRequest struct {
@@ -1760,7 +1769,7 @@ var File_chronicle_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x05\n" +
+	"\x1bchronicle/v1/workflow.proto\x12\fchronicle.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd1\x05\n" +
 	"\x0fWorkflowSummary\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
@@ -1783,7 +1792,8 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\barchived\x18\r \x01(\bR\barchived\x12+\n" +
 	"\x11approvals_waiting\x18\x0e \x01(\x05R\x10approvalsWaiting\x12%\n" +
 	"\x0ewaiting_reason\x18\x0f \x01(\tR\rwaitingReason\x125\n" +
-	"\bstart_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x1a9\n" +
+	"\bstart_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x12\x16\n" +
+	"\x06parent\x18\x11 \x01(\tR\x06parent\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcf\x01\n" +

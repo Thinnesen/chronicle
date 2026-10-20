@@ -17,13 +17,10 @@ import (
 
 // The labels and annotations of a child run.
 const (
-	// LabelParentUID is the UID of the parent run.
-	LabelParentUID = "chronicle.thinnesen.com/parent-uid"
-	// AnnotationParent is the name of the parent run, and AnnotationParentNode the name of its node.
-	AnnotationParent     = "chronicle.thinnesen.com/parent"
-	AnnotationParentNode = "chronicle.thinnesen.com/parent-node"
-	// AnnotationDepth is the number of parent runs above the run.
-	AnnotationDepth = "chronicle.thinnesen.com/depth"
+	LabelParentUID       = chroniclev1alpha1.LabelParentUID
+	AnnotationParent     = chroniclev1alpha1.AnnotationParent
+	AnnotationParentNode = chroniclev1alpha1.AnnotationParentNode
+	AnnotationDepth      = chroniclev1alpha1.AnnotationDepth
 )
 
 // observe reads the Pods, the tasks, the child runs and the held locks of a run, for the engine.

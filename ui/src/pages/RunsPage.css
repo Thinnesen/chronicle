@@ -152,11 +152,17 @@
   white-space: nowrap;
 }
 
-/* The namespace link lies above the link that covers the row. */
-.board-ns a {
+/* The namespace and parent links lie above the link that covers the row. */
+.board-ns a,
+.board-parent a {
   position: relative;
   z-index: 1;
   color: inherit;
+}
+
+.board-parent {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
 }
 
 /* On a phone, the namespace shows in the run cell instead of its own column. */

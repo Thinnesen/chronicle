@@ -69,6 +69,8 @@ message WorkflowSummary {
   string waiting_reason = 15;
   // start_at is the start time of a run that waits for it. It is empty when the run has started.
   google.protobuf.Timestamp start_at = 16;
+  // parent is the name of the run that started this run as a child run, or empty.
+  string parent = 17;
 }
 
 message ListWorkflowsRequest {

@@ -100,7 +100,7 @@ func printWorkflow(out io.Writer, resp *chroniclev1.GetWorkflowResponse, format 
 	}
 	s := resp.Summary
 	_, _ = fmt.Fprintf(out, "Name:      %s/%s\n", s.Namespace, s.Name)
-	if parent := wf.Annotations["chronicle.thinnesen.com/parent"]; parent != "" {
+	if parent := s.Parent; parent != "" {
 		_, _ = fmt.Fprintf(out, "Parent:    %s\n", parent)
 	}
 	_, _ = fmt.Fprintf(out, "Phase:     %s\n", cmpOr(s.Phase, "Pending"))

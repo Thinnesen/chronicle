@@ -24,6 +24,13 @@ func TestSummaryCounts(t *testing.T) {
 	}
 }
 
+func TestSummaryParent(t *testing.T) {
+	wf := &v1alpha1.Workflow{Annotations: map[string]string{"chronicle.thinnesen.com/parent": "release-q4"}}
+	if s := summary(wf); s.Parent != "release-q4" {
+		t.Errorf("parent = %q", s.Parent)
+	}
+}
+
 func TestSummaryStartAt(t *testing.T) {
 	at := metav1.Now()
 	wf := &v1alpha1.Workflow{Spec: v1alpha1.WorkflowSpec{StartAt: &at}}

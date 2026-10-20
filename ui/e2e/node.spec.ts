@@ -123,9 +123,9 @@ test("links a child run and its parent", async ({ page }) => {
   await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) =>
     r.fulfill({
       json: {
-        summary: { namespace: "team-a", name: "nightly-x1", uid: "u7", phase: "Running", nodesDone: 0, nodesTotal: 1 },
+        summary: { namespace: "team-a", name: "nightly-x1", uid: "u7", phase: "Running", nodesDone: 0, nodesTotal: 1, parent: "release-q4" },
         workflow: {
-          metadata: { name: "nightly-x1", namespace: "team-a", annotations: { "chronicle.thinnesen.com/parent": "release-q4" } },
+          metadata: { name: "nightly-x1", namespace: "team-a" },
           spec: { templates: [{ name: "load", childWorkflow: { workflowTemplateRef: { name: "etl" } } }] },
           status: {
             phase: "Running",

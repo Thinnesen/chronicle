@@ -81,7 +81,7 @@ export interface VolumeMount {
 }
 
 export interface Workflow {
-  metadata: { name: string; namespace: string; creationTimestamp?: string; annotations?: Record<string, string> };
+  metadata: { name: string; namespace: string; creationTimestamp?: string };
   spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; startAt?: string; approvals?: { node: string }[] };
   status?: {
     phase?: string;
@@ -314,9 +314,4 @@ export function previewOf(template: { metadata?: { name?: string; namespace?: st
     spec,
     status: { nodes: { [name]: { id: name, name, type: "DAG", templateName: entry.name } } },
   };
-}
-
-// parentOf returns the name of the parent run of a child run, or undefined.
-export function parentOf(wf: Workflow): string | undefined {
-  return wf.metadata.annotations?.["chronicle.thinnesen.com/parent"];
 }

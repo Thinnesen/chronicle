@@ -179,6 +179,14 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                           {w.name}
                         </Link>
                         {all && <span className="board-ns-inline">{w.namespace}</span>}
+                        {w.parent && (
+                          <span className="board-parent">
+                            child of{" "}
+                            <Link to="/ns/$namespace/runs/$name" params={{ namespace: w.namespace, name: w.parent }}>
+                              {w.parent}
+                            </Link>
+                          </span>
+                        )}
                         {w.archived && <span className="badge">Archived</span>}
                         {w.approvalsWaiting > 0 && <span className="badge badge-caution">Needs approval</span>}
                         {startAt && (

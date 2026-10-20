@@ -160,3 +160,15 @@ test("shows the start time of a scheduled run in the list", async ({ page }) => 
   // The run has not started, so the Started cell is empty.
   await expect(row.locator(".board-time")).toHaveText("–");
 });
+
+test("names the parent of a child run in the list", async ({ page }) => {
+  await mockAPI(page);
+  await page.route("**/chronicle.v1.WorkflowService/ListWorkflows", (r) =>
+    r.fulfill({
+      json: { workflows: [{ namespace: "team-a", name: "release-q4-0a1b2c3d", uid: "u8", phase: "Running", createdAt: new Date(now).toISOString(), parent: "release-q4" }] },
+    }),
+  );
+  await page.goto("/ns/team-a");
+  const row = page.getByRole("row").filter({ hasText: "release-q4-0a1b2c3d" });
+  await expect(row.getByRole("link", { name: "release-q4", exact: true })).toHaveAttribute("href", "/ns/team-a/runs/release-q4");
+});

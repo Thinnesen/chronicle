@@ -89,15 +89,16 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 		phase, status["restarts"] = fmt.Sprintf("Failed in try %d", *r.Msg.Try), *r.Msg.Try
 	}
 	meta := map[string]any{"name": r.Msg.Name}
+	parent := ""
 	if s.child {
-		meta["annotations"] = map[string]any{"chronicle.thinnesen.com/parent": "release-q4"}
+		parent = "release-q4"
 		n1 := nodes["n1"].(map[string]any)
 		n1["type"], n1["childWorkflow"] = "ChildWorkflow", r.Msg.Name+"-0a1b2c3d"
 	}
 	wf, _ := structpb.NewStruct(map[string]any{"metadata": meta, "spec": spec, "status": status})
 	return connect.NewResponse(&chroniclev1.GetWorkflowResponse{Workflow: wf, Tries: s.tries,
 		Summary: &chroniclev1.WorkflowSummary{Name: r.Msg.Name, Namespace: r.Msg.Namespace, Phase: phase, NodesTotal: 1,
-			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil}}), nil
+			ApprovalsWaiting: int32(s.gates), Archived: r.Msg.Try != nil, Parent: parent}}), nil
 }
 
 func (s *stub) ListWorkflows(_ context.Context, r *connect.Request[chroniclev1.ListWorkflowsRequest]) (*connect.Response[chroniclev1.ListWorkflowsResponse], error) {
