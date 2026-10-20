@@ -10,7 +10,7 @@ import { useToast } from "./Toast";
 
 import { clock, duration } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { artifactSource, artifactURL, nodeLabel, queuedFor, type NodeStatus, type Parameter, type Workflow } from "../lib/workflow";
+import { artifactSource, artifactURL, nodeLabel, queuedFor, templateOf, type NodeStatus, type Parameter, type VolumeMount, type Workflow } from "../lib/workflow";
 import { ApprovalForm } from "./ApprovalForm";
 import { CopyButton } from "./CopyButton";
 import { Lamp } from "./Lamp";
@@ -33,6 +33,12 @@ type Tab = "details" | "logs" | "events" | "attempts";
 function retryOf(node: NodeStatus, nodes: Record<string, NodeStatus>): NodeStatus | undefined {
   if (node.type === "Retry") return node;
   return Object.values(nodes).find((n) => n.type === "Retry" && n.children?.includes(node.id));
+}
+
+// volumeMounts returns the volume mounts of the container or the script of a node.
+function volumeMounts(wf: Workflow, node: NodeStatus): VolumeMount[] | undefined {
+  const t = templateOf(wf, node);
+  return t?.container?.volumeMounts ?? t?.script?.volumeMounts;
 }
 
 // NodePanel shows one node: its facts, its log and its attempts. Each node opens with its own tabs.
@@ -71,7 +77,7 @@ function NodePanelInner({ wf, node, nodes, namespace, workflow, onSelect }: Pane
         {tab === "details" && (
           <>
             <RetryFromNode wf={wf} node={node} />
-            <Details node={node} namespace={namespace} />
+            <Details node={node} namespace={namespace} mounts={volumeMounts(wf, node)} />
             <Artifacts node={node} namespace={namespace} workflow={workflow} />
           </>
         )}
@@ -140,7 +146,7 @@ function Attempts({ retry, nodes, current, onSelect }: { retry: NodeStatus; node
   );
 }
 
-function Details({ node, namespace }: { node: NodeStatus; namespace: string }) {
+function Details({ node, namespace, mounts }: { node: NodeStatus; namespace: string; mounts?: VolumeMount[] }) {
   const phase = node.phase || "Pending";
   const started = node.startedAt ? new Date(node.startedAt) : undefined;
   const finished = node.finishedAt ? new Date(node.finishedAt) : undefined;
@@ -188,6 +194,19 @@ function Details({ node, namespace }: { node: NodeStatus; namespace: string }) {
             <dd>{node.outputs.exitCode}</dd>
           </>
         )}
+        {mounts?.length ? (
+          <>
+            <dt>Volumes</dt>
+            <dd>
+              {mounts.map((m) => (
+                <div key={m.mountPath}>
+                  {m.name} at <code>{m.mountPath}</code>
+                  {m.readOnly && ", read-only"}
+                </div>
+              ))}
+            </dd>
+          </>
+        ) : null}
         {node.podName && !queuedFor(node) && (
           <>
             <dt>Pod</dt>

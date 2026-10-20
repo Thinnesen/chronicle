@@ -31,13 +31,14 @@ export function run(phase: string, gate = false, archived = false, stuck = false
           arguments: { parameters: [{ name: "day", value: "2026-10-17", description: "The day to load." }, { name: "rows", value: "all", enum: ["all", "1000"] }] },
           templates: [
             { name: "main", dag: { tasks: [{ name: "fetch" }, { name: "validate", depends: "fetch" }, { name: "train", dependencies: ["validate"] }, { name: "report", depends: "train.Succeeded" }, { name: "gate", depends: "validate" }] } },
+            { name: "fetch", container: { volumeMounts: [{ name: "work", mountPath: "/work" }, { name: "creds", mountPath: "/creds", readOnly: true }] } },
             { name: "approve", suspend: {}, outputs: { parameters: [{ name: "env", default: "staging", enum: ["staging", "prod"], description: "The environment to deploy to." }, { name: "ticket" }] } },
           ],
         },
         nodes: {
           "etl-nightly-8k2pq": { id: "etl-nightly-8k2pq", name: "etl-nightly-8k2pq", type: "DAG", templateName: "main", phase, startedAt: ts(-290), children: ["n1", "n2", "n3", "n4"] },
           n1: node("n1", ".fetch", {
-            displayName: "fetch", type: "Pod", phase: "Succeeded", startedAt: ts(-290), finishedAt: ts(-230), podName: "n1",
+            displayName: "fetch", type: "Pod", templateName: "fetch", phase: "Succeeded", startedAt: ts(-290), finishedAt: ts(-230), podName: "n1",
             outputs: { result: "1204 rows\nchecksum ok", artifacts: [{ name: "rows", key: "team-a/u1/n1/rows.tgz" }] },
           }),
           n2: node("n2", ".validate", {

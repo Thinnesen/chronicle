@@ -65,6 +65,14 @@ export interface Template {
   steps?: { name: string; template?: string }[][];
   task?: { name: string };
   http?: { url: string; method?: string };
+  container?: { volumeMounts?: VolumeMount[] };
+  script?: { volumeMounts?: VolumeMount[] };
+}
+
+export interface VolumeMount {
+  name: string;
+  mountPath: string;
+  readOnly?: boolean;
 }
 
 export interface Workflow {
