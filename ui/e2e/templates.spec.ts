@@ -76,3 +76,17 @@ test("schedules a run of a template for later", async ({ page }) => {
   const req = (calls.SubmitWorkflow ?? [])[0] as { startAt?: string };
   expect(req.startAt).toMatch(/^2026-10-19T/);
 });
+
+test("backfills the runs of a schedule for a range of days", async ({ page }) => {
+  const calls = await mockAPI(page);
+  await page.goto("/ns/team-a/cron/etl-nightly");
+  await page.getByRole("button", { name: "Backfill" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("From").fill("2026-10-15");
+  await dialog.getByLabel("To").fill("2026-10-17");
+  await dialog.getByRole("button", { name: "Start the runs" }).click();
+  await expect(page.getByRole("status")).toContainText("Started 2 runs; 1 time had its run already");
+  const req = (calls.BackfillCronWorkflow ?? [])[0] as { name: string; from: string; to: string };
+  expect(req.name).toBe("etl-nightly");
+  expect(new Date(req.from).getTime()).toBeLessThan(new Date(req.to).getTime());
+});

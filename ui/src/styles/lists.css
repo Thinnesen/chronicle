@@ -104,6 +104,13 @@
   gap: var(--space-4);
 }
 
+/* field-stack spaces the fields of a dialog as the run form does. */
+.field-stack {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
 .run-form h2 {
   margin: 0;
 }

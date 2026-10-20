@@ -318,7 +318,7 @@ spec:
 ```
 
 - `workflowTemplateRef` runs a `WorkflowTemplate`. Add `clusterScope: true` for a `ClusterWorkflowTemplate`.
-- `chronicle cron backfill etl-nightly --from 2026-10-01 --to 2026-10-07` starts the runs of the schedule times in a range, for example for days that the schedule missed. A time that has its run already is skipped, because each run has the name `<cron>-<schedule time>`. The concurrency policy does not hold back these runs.
+- `chronicle cron backfill etl-nightly --from 2026-10-01 --to 2026-10-07`, or the button Backfill on the page of the schedule, starts the runs of the schedule times in a range, for example for days that the schedule missed. A time that has its run already is skipped, because each run has the name `<cron>-<schedule time>`. The concurrency policy does not hold back these runs.
 - A task or a step can call a template of another template with `templateRef: {name: <template object>, template: <template name>}`.
 - To run once at a later time, set `startAt` on the Workflow, or use `chronicle submit --from etl --at 2026-10-21T03:00:00+02:00` (or `--at 2h`), or with the field "Start at" on the template page of the UI. The run stays Pending until that time. Stop or delete it to cancel it.
 

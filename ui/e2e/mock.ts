@@ -175,6 +175,10 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     (calls.SubmitWorkflow ??= []).push(r.request().postDataJSON());
     r.fulfill({ json: { summary: { namespace: "team-a", name: "deploy-api-new01" } } });
   });
+  await page.route("**/chronicle.v1.CronService/BackfillCronWorkflow", (r) => {
+    (calls.BackfillCronWorkflow ??= []).push(r.request().postDataJSON());
+    r.fulfill({ json: { created: ["etl-nightly-1792461600", "etl-nightly-1792548000"], existing: ["etl-nightly-1792634400"] } });
+  });
   for (const rpc of ["SuspendCronWorkflow", "ResumeCronWorkflow"]) {
     await page.route(`**/chronicle.v1.CronService/${rpc}`, (r) => {
       (calls[rpc] ??= []).push(r.request().postDataJSON());

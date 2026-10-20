@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { crons, workflows } from "../api/client";
+import { BackfillDialog } from "../components/BackfillDialog";
 import { ManagedBadge } from "../components/Badge";
 import { useCanEdit } from "../components/RunActions";
 import { RunBars } from "../components/TemplateRuns";
@@ -23,6 +25,7 @@ export function CronPage() {
   const canEdit = useCanEdit(namespace);
   const toast = useToast();
   const client = useQueryClient();
+  const [backfilling, setBackfilling] = useState(false);
   const { data, error } = useQuery({ queryKey: ["cron", namespace, name], queryFn: () => crons.getCronWorkflow({ namespace, name }) });
   const runs = useQuery({
     queryKey: ["runs", namespace, "cron", name],
@@ -60,6 +63,11 @@ export function CronPage() {
         </div>
         <span className="item-title">
           {canEdit && (
+            <button type="button" className="button" onClick={() => setBackfilling(true)}>
+              Backfill
+            </button>
+          )}
+          {canEdit && (
             <button
               type="button"
               className="button"
@@ -72,6 +80,7 @@ export function CronPage() {
           )}
         </span>
       </header>
+      {backfilling && <BackfillDialog namespace={namespace} name={name} open={backfilling} onOpenChange={setBackfilling} />}
       {c.description && <p className="lead">{c.description}</p>}
       <div className="two-columns">
         <div className="panel">
