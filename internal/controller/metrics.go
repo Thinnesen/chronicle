@@ -12,16 +12,17 @@ import (
 // The metrics of the workflow controller. They are on the metrics endpoint of the controller with the
 // metrics of controller-runtime.
 var (
-	// The template and cron labels name Kubernetes objects, so they have a limited number of values.
+	// The template and cron labels name Kubernetes objects, so they have a limited number of values. The label is
+	// workflow_namespace, because Prometheus gives "namespace" to the namespace of the controller.
 	workflowsFinished = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "chronicle_workflows_finished_total",
 		Help: "The number of runs that finished, by namespace, WorkflowTemplate, CronWorkflow and phase.",
-	}, []string{"namespace", "template", "cron", "phase"})
+	}, []string{"workflow_namespace", "template", "cron", "phase"})
 	workflowDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "chronicle_workflow_duration_seconds",
 		Help:    "The time from the start to the end of a run, by namespace, WorkflowTemplate, CronWorkflow and phase.",
 		Buckets: prometheus.ExponentialBuckets(1, 2, 16), // 1 s to about 9 h
-	}, []string{"namespace", "template", "cron", "phase"})
+	}, []string{"workflow_namespace", "template", "cron", "phase"})
 	podsCreated = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "chronicle_pods_created_total",
 		Help: "The number of workflow Pods that the controller created.",
