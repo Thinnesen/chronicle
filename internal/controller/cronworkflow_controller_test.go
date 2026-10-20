@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
@@ -73,11 +74,12 @@ workflowSpec: {entrypoint: c, templates: [{name: c, container: {image: alpine}}]
 		Expect(k8sClient.Get(ctx, key, cw)).To(Succeed())
 		first := cw.CreationTimestamp.Truncate(10 * time.Minute).Add(10 * time.Minute)
 		now := first.Add(time.Minute)
-		r := &CronWorkflowReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), Now: func() time.Time { return now }}
+		recorder := events.NewFakeRecorder(10)
+		r := &CronWorkflowReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), Now: func() time.Time { return now }, Recorder: recorder}
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 		Expect(err).NotTo(HaveOccurred())
 
-		// The first run is still active, so Forbid skips the second schedule time.
+		// The first run is still active, so Forbid skips the second schedule time, with an Event.
 		now = now.Add(10 * time.Minute)
 		_, err = r.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 		Expect(err).NotTo(HaveOccurred())
@@ -85,5 +87,6 @@ workflowSpec: {entrypoint: c, templates: [{name: c, container: {image: alpine}}]
 		Expect(cw.Status.LastScheduledTime.Time).To(BeTemporally("==", first.Add(10*time.Minute)))
 		Expect(cw.Status.LastStartedTime).NotTo(BeNil())
 		Expect(cw.Status.LastStartedTime.Time).To(BeTemporally("==", first))
+		Expect(recorder.Events).To(Receive(ContainSubstring("Skipped")))
 	})
 })

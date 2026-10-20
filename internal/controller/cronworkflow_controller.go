@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,6 +35,8 @@ type CronWorkflowReconciler struct {
 	// Archive is true when the controller archives runs. Then the history limits delete a run only after the archive
 	// has it, as the TTL does.
 	Archive bool
+	// Recorder writes Kubernetes Events about skipped runs, or is nil.
+	Recorder events.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=chronicle.thinnesen.com,resources=cronworkflows,verbs=get;list;watch
@@ -73,6 +76,10 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	msg := "the schedules are valid"
 	if plan.Skipped != "" {
 		msg = "the last run was skipped: " + plan.Skipped
+		if r.Recorder != nil && plan.Due != nil && !old.LastScheduledTime.Equal(&metav1.Time{Time: *plan.Due}) {
+			r.Recorder.Eventf(&cw, nil, corev1.EventTypeWarning, "Skipped", "Schedule",
+				"the run of %s was skipped: %s", plan.Due.UTC().Format(time.RFC3339), plan.Skipped)
+		}
 	}
 	meta.SetStatusCondition(&cw.Status.Conditions, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Scheduled", Message: msg, ObservedGeneration: cw.Generation})
 	if !equality.Semantic.DeepEqual(old, &cw.Status) {
