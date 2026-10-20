@@ -18,6 +18,8 @@ export function TemplateRuns({ namespace, runs, now }: { namespace: string; runs
   );
 }
 
+const tail = 10;
+
 // RunBars lists the last runs of a template or a schedule with a bar for the duration of each, so that a slow or
 // failed run stands out against the others.
 export function RunBars({ namespace, runs, now }: { namespace: string; runs: WorkflowSummary[]; now: number }) {
@@ -32,8 +34,10 @@ export function RunBars({ namespace, runs, now }: { namespace: string; runs: Wor
       {last.map(({ w, start, took }) => (
         <li key={w.uid}>
           <Lamp phase={w.phase || "Pending"} />
-          <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: w.name }}>
-            {w.name}
+          <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: w.name }} title={w.name}>
+            {/* The end of a name tells runs apart, for example the time of a cron run, so the cut is in the middle. */}
+            <span>{w.name.slice(0, -tail)}</span>
+            <span>{w.name.slice(-tail)}</span>
           </Link>
           <span className="quiet">{start ? ago(start, new Date(now)) : "not started"}</span>
           <span className="run-bar" aria-hidden="true">

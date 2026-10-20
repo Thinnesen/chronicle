@@ -17,11 +17,20 @@
 }
 
 .run-bars a {
-  overflow: hidden;
+  display: flex;
+  min-width: 0;
   font-family: var(--font-code);
-  text-overflow: ellipsis;
   white-space: nowrap;
   text-decoration: none;
+}
+
+.run-bars a span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.run-bars a span:last-child {
+  flex: none;
 }
 
 .run-bars a:hover {
