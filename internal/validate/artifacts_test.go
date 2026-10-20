@@ -96,3 +96,22 @@ func TestWithSequence(t *testing.T) {
 		{name: "bad format", spec: call(`{count: 2, format: "%s"}`), want: []string{"format must have one number verb"}},
 	}, true)
 }
+
+func TestConfigMapParameters(t *testing.T) {
+	const ref = "valueFrom: {configMapKeyRef: {name: settings, key: region}}"
+	runCases(t, []specCase{
+		{name: "workflow and input parameters", spec: `
+entrypoint: main
+arguments: {parameters: [{name: region, ` + ref + `}]}
+templates:
+- name: main
+  inputs: {parameters: [{name: zone, ` + ref + `}]}
+  container: {image: x, args: ["{{inputs.parameters.zone}}", "{{workflow.parameters.region}}"]}`},
+		{name: "an output", spec: `
+entrypoint: main
+templates:
+- name: main
+  outputs: {parameters: [{name: o, ` + ref + `}]}
+  container: {image: x, command: [run]}`, want: []string{"only a workflow parameter or an input parameter can read a ConfigMap"}},
+	}, true)
+}

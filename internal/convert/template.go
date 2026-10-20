@@ -295,9 +295,28 @@ func (c *converter) outputParameter(in obj, path string) obj {
 func (c *converter) parameters(list []any, path string) []any {
 	out := make([]any, 0, len(list))
 	for i, p := range list {
-		out = append(out, c.pick(asObj(p), index(path, i), []string{fName, fValue, "default", "enum", "description"}))
+		pp := index(path, i)
+		cp := c.pick(asObj(p), pp, []string{fName, fValue, "default", "enum", "description"}, "valueFrom")
+		if vf := asObj(asObj(p)["valueFrom"]); vf != nil {
+			c.configMapParameter(vf, cp, join(pp, "valueFrom"))
+		}
+		out = append(out, cp)
 	}
 	return out
+}
+
+// configMapParameter keeps a parameter that reads a ConfigMap. chronicle reads only ConfigMaps with its label.
+func (c *converter) configMapParameter(vf, out obj, path string) {
+	kept := c.pick(vf, path, []string{"configMapKeyRef"}, "default")
+	if d, ok := vf["default"]; ok {
+		out["default"] = d
+	}
+	ref := asObj(kept["configMapKeyRef"])
+	if ref == nil {
+		return
+	}
+	out["valueFrom"] = obj{"configMapKeyRef": c.pick(ref, join(path, "configMapKeyRef"), []string{fName, "key"})}
+	c.warn(join(path, "configMapKeyRef"), "give ConfigMap %v the label chronicle.thinnesen.com/parameters: \"true\"", ref[fName])
 }
 
 // artifacts keeps the name and the given fields. The data always comes from the repository of the namespace.

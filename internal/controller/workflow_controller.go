@@ -216,12 +216,20 @@ func (r *WorkflowReconciler) spec(ctx context.Context, wf *chroniclev1alpha1.Wor
 	if wf.Status.StoredSpec != nil {
 		return wf.Status.StoredSpec, nil
 	}
-	if !resolve.Needed(&wf.Spec) {
-		return &wf.Spec.WorkflowTemplateSpec, nil
+	s := &wf.Spec.WorkflowTemplateSpec
+	if resolve.Needed(&wf.Spec) {
+		var err error
+		if s, err = resolve.Workflow(ctx, templateGetter{r.Client, wf.Namespace}, &wf.Spec); err != nil {
+			return nil, fmt.Errorf("resolve the template references: %w", err)
+		}
+	} else if !resolve.UsesConfigMaps(s) {
+		return s, nil
 	}
-	s, err := resolve.Workflow(ctx, templateGetter{r.Client, wf.Namespace}, &wf.Spec)
-	if err != nil {
-		return nil, fmt.Errorf("resolve the template references: %w", err)
+	if resolve.UsesConfigMaps(s) {
+		s = s.DeepCopy()
+		if err := resolve.ConfigMapValues(ctx, configMapGetter{r.reader(), wf.Namespace}, s); err != nil {
+			return nil, fmt.Errorf("read the ConfigMap parameters: %w", err)
+		}
 	}
 	wf.Status.StoredSpec = s
 	return s, nil

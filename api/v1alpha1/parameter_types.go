@@ -29,7 +29,7 @@ type Parameter struct {
 	// +optional
 	Description string `json:"description,omitempty"`
 
-	// valueFrom tells where an output parameter gets its value.
+	// valueFrom tells where an output parameter gets its value, or where a workflow or input parameter reads it.
 	// +optional
 	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
 
@@ -40,7 +40,7 @@ type Parameter struct {
 	GlobalName string `json:"globalName,omitempty"`
 }
 
-// ValueFrom is the source of an output parameter value.
+// ValueFrom is the source of a parameter value.
 type ValueFrom struct {
 	// path of a file in the main container. Its contents become the value.
 	// +kubebuilder:validation:MaxLength=4096
@@ -51,6 +51,26 @@ type ValueFrom struct {
 	// +kubebuilder:validation:MaxLength=1024
 	// +optional
 	JSONPath string `json:"jsonPath,omitempty"`
+
+	// configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+	// starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+	// +optional
+	ConfigMapKeyRef *ConfigMapKeyRef `json:"configMapKeyRef,omitempty"`
+}
+
+// ConfigMapKeyRef is one key of a ConfigMap.
+type ConfigMapKeyRef struct {
+	// name of the ConfigMap.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +required
+	Name string `json:"name"`
+
+	// key in the data of the ConfigMap.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +required
+	Key string `json:"key"`
 }
 
 // Arguments are the values that a caller gives to a workflow or a template.

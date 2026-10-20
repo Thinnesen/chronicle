@@ -50,7 +50,8 @@ func lockOf(spec *chroniclev1alpha1.WorkflowTemplateSpec) (string, int, bool) {
 	return "", 0, false
 }
 
-// reader reads the Lease and the holders past the cache, so that two reconciles never see an old holder list.
+// reader reads past the cache: the Lease and its holders, so that two reconciles never see an old holder list,
+// and ConfigMaps, which the manager does not cache.
 func (r *WorkflowReconciler) reader() client.Reader {
 	if r.APIReader != nil {
 		return r.APIReader

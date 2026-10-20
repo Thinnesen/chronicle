@@ -67,12 +67,8 @@ func artifactSpec(ctx context.Context, wf *chroniclev1alpha1.Workflow, a engine.
 // repository reads the artifact repository of a namespace. It returns nil when the namespace has none.
 // A bad ConfigMap is a badRepositoryError.
 func (r *WorkflowReconciler) repository(ctx context.Context, namespace string) (*artifact.Repository, error) {
-	reader := r.APIReader
-	if reader == nil {
-		reader = r.Client
-	}
 	var cm corev1.ConfigMap
-	err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: artifact.Name}, &cm)
+	err := r.reader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: artifact.Name}, &cm)
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}

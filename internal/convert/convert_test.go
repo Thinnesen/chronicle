@@ -157,6 +157,12 @@ func TestRules(t *testing.T) {
 			want: []string{"jsonPath: '{.metadata.name}'", "outputs.parameters[1]: chronicle has no jq filters"},
 		},
 		{
+			name: "a parameter from a ConfigMap",
+			templates: "  - {name: main, inputs: {parameters: [{name: m, valueFrom: {configMapKeyRef: {name: cfg, key: msg}, default: hi}}]}, " +
+				"container: {image: x, args: ['{{inputs.parameters.m}}']}}",
+			want: []string{"configMapKeyRef:\n            key: msg\n            name: cfg", "default: hi", `give ConfigMap cfg the label chronicle.thinnesen.com/parameters: "true"`},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

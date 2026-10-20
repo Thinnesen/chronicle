@@ -126,8 +126,28 @@ spec:
                             type: string
                           valueFrom:
                             description: valueFrom tells where an output parameter
-                              gets its value.
+                              gets its value, or where a workflow or input parameter
+                              reads it.
                             properties:
+                              configMapKeyRef:
+                                description: |-
+                                  configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                  starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                properties:
+                                  key:
+                                    description: key in the data of the ConfigMap.
+                                    maxLength: 253
+                                    minLength: 1
+                                    type: string
+                                  name:
+                                    description: name of the ConfigMap.
+                                    maxLength: 253
+                                    minLength: 1
+                                    type: string
+                                required:
+                                - key
+                                - name
+                                type: object
                               jsonPath:
                                 description: jsonPath reads the value from the object
                                   of a resource template, for example "{.metadata.name}".
@@ -284,8 +304,28 @@ spec:
                           type: string
                         valueFrom:
                           description: valueFrom tells where an output parameter gets
-                            its value.
+                            its value, or where a workflow or input parameter reads
+                            it.
                           properties:
+                            configMapKeyRef:
+                              description: |-
+                                configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                              properties:
+                                key:
+                                  description: key in the data of the ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                                name:
+                                  description: name of the ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - key
+                              - name
+                              type: object
                             jsonPath:
                               description: jsonPath reads the value from the object
                                 of a resource template, for example "{.metadata.name}".
@@ -871,8 +911,29 @@ spec:
                                           type: string
                                         valueFrom:
                                           description: valueFrom tells where an output
-                                            parameter gets its value.
+                                            parameter gets its value, or where a workflow
+                                            or input parameter reads it.
                                           properties:
+                                            configMapKeyRef:
+                                              description: |-
+                                                configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                                starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                              properties:
+                                                key:
+                                                  description: key in the data of
+                                                    the ConfigMap.
+                                                  maxLength: 253
+                                                  minLength: 1
+                                                  type: string
+                                                name:
+                                                  description: name of the ConfigMap.
+                                                  maxLength: 253
+                                                  minLength: 1
+                                                  type: string
+                                              required:
+                                              - key
+                                              - name
+                                              type: object
                                             jsonPath:
                                               description: jsonPath reads the value
                                                 from the object of a resource template,
@@ -1238,8 +1299,28 @@ spec:
                                 type: string
                               valueFrom:
                                 description: valueFrom tells where an output parameter
-                                  gets its value.
+                                  gets its value, or where a workflow or input parameter
+                                  reads it.
                                 properties:
+                                  configMapKeyRef:
+                                    description: |-
+                                      configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                      starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                    properties:
+                                      key:
+                                        description: key in the data of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                      name:
+                                        description: name of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - key
+                                    - name
+                                    type: object
                                   jsonPath:
                                     description: jsonPath reads the value from the
                                       object of a resource template, for example "{.metadata.name}".
@@ -1393,8 +1474,28 @@ spec:
                                 type: string
                               valueFrom:
                                 description: valueFrom tells where an output parameter
-                                  gets its value.
+                                  gets its value, or where a workflow or input parameter
+                                  reads it.
                                 properties:
+                                  configMapKeyRef:
+                                    description: |-
+                                      configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                      starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                    properties:
+                                      key:
+                                        description: key in the data of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                      name:
+                                        description: name of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - key
+                                    - name
+                                    type: object
                                   jsonPath:
                                     description: jsonPath reads the value from the
                                       object of a resource template, for example "{.metadata.name}".
@@ -1958,8 +2059,29 @@ spec:
                                         type: string
                                       valueFrom:
                                         description: valueFrom tells where an output
-                                          parameter gets its value.
+                                          parameter gets its value, or where a workflow
+                                          or input parameter reads it.
                                         properties:
+                                          configMapKeyRef:
+                                            description: |-
+                                              configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                              starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                            properties:
+                                              key:
+                                                description: key in the data of the
+                                                  ConfigMap.
+                                                maxLength: 253
+                                                minLength: 1
+                                                type: string
+                                              name:
+                                                description: name of the ConfigMap.
+                                                maxLength: 253
+                                                minLength: 1
+                                                type: string
+                                            required:
+                                            - key
+                                            - name
+                                            type: object
                                           jsonPath:
                                             description: jsonPath reads the value
                                               from the object of a resource template,
@@ -2403,8 +2525,28 @@ spec:
                                 type: string
                               valueFrom:
                                 description: valueFrom tells where an output parameter
-                                  gets its value.
+                                  gets its value, or where a workflow or input parameter
+                                  reads it.
                                 properties:
+                                  configMapKeyRef:
+                                    description: |-
+                                      configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                      starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                    properties:
+                                      key:
+                                        description: key in the data of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                      name:
+                                        description: name of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - key
+                                    - name
+                                    type: object
                                   jsonPath:
                                     description: jsonPath reads the value from the
                                       object of a resource template, for example "{.metadata.name}".
@@ -2565,8 +2707,28 @@ spec:
                                 type: string
                               valueFrom:
                                 description: valueFrom tells where an output parameter
-                                  gets its value.
+                                  gets its value, or where a workflow or input parameter
+                                  reads it.
                                 properties:
+                                  configMapKeyRef:
+                                    description: |-
+                                      configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                      starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                    properties:
+                                      key:
+                                        description: key in the data of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                      name:
+                                        description: name of the ConfigMap.
+                                        maxLength: 253
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - key
+                                    - name
+                                    type: object
                                   jsonPath:
                                     description: jsonPath reads the value from the
                                       object of a resource template, for example "{.metadata.name}".
@@ -2765,8 +2927,28 @@ spec:
                           type: string
                         valueFrom:
                           description: valueFrom tells where an output parameter gets
-                            its value.
+                            its value, or where a workflow or input parameter reads
+                            it.
                           properties:
+                            configMapKeyRef:
+                              description: |-
+                                configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                              properties:
+                                key:
+                                  description: key in the data of the ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                                name:
+                                  description: name of the ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - key
+                              - name
+                              type: object
                             jsonPath:
                               description: jsonPath reads the value from the object
                                 of a resource template, for example "{.metadata.name}".
@@ -2944,8 +3126,28 @@ spec:
                               type: string
                             valueFrom:
                               description: valueFrom tells where an output parameter
-                                gets its value.
+                                gets its value, or where a workflow or input parameter
+                                reads it.
                               properties:
+                                configMapKeyRef:
+                                  description: |-
+                                    configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                    starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                  properties:
+                                    key:
+                                      description: key in the data of the ConfigMap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      type: string
+                                    name:
+                                      description: name of the ConfigMap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - key
+                                  - name
+                                  type: object
                                 jsonPath:
                                   description: jsonPath reads the value from the object
                                     of a resource template, for example "{.metadata.name}".
@@ -3510,8 +3712,30 @@ spec:
                                               type: string
                                             valueFrom:
                                               description: valueFrom tells where an
-                                                output parameter gets its value.
+                                                output parameter gets its value, or
+                                                where a workflow or input parameter
+                                                reads it.
                                               properties:
+                                                configMapKeyRef:
+                                                  description: |-
+                                                    configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                                    starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                                  properties:
+                                                    key:
+                                                      description: key in the data
+                                                        of the ConfigMap.
+                                                      maxLength: 253
+                                                      minLength: 1
+                                                      type: string
+                                                    name:
+                                                      description: name of the ConfigMap.
+                                                      maxLength: 253
+                                                      minLength: 1
+                                                      type: string
+                                                  required:
+                                                  - key
+                                                  - name
+                                                  type: object
                                                 jsonPath:
                                                   description: jsonPath reads the
                                                     value from the object of a resource
@@ -3881,8 +4105,28 @@ spec:
                                     type: string
                                   valueFrom:
                                     description: valueFrom tells where an output parameter
-                                      gets its value.
+                                      gets its value, or where a workflow or input
+                                      parameter reads it.
                                     properties:
+                                      configMapKeyRef:
+                                        description: |-
+                                          configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                          starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                        properties:
+                                          key:
+                                            description: key in the data of the ConfigMap.
+                                            maxLength: 253
+                                            minLength: 1
+                                            type: string
+                                          name:
+                                            description: name of the ConfigMap.
+                                            maxLength: 253
+                                            minLength: 1
+                                            type: string
+                                        required:
+                                        - key
+                                        - name
+                                        type: object
                                       jsonPath:
                                         description: jsonPath reads the value from
                                           the object of a resource template, for example
@@ -4039,8 +4283,28 @@ spec:
                                     type: string
                                   valueFrom:
                                     description: valueFrom tells where an output parameter
-                                      gets its value.
+                                      gets its value, or where a workflow or input
+                                      parameter reads it.
                                     properties:
+                                      configMapKeyRef:
+                                        description: |-
+                                          configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                          starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                        properties:
+                                          key:
+                                            description: key in the data of the ConfigMap.
+                                            maxLength: 253
+                                            minLength: 1
+                                            type: string
+                                          name:
+                                            description: name of the ConfigMap.
+                                            maxLength: 253
+                                            minLength: 1
+                                            type: string
+                                        required:
+                                        - key
+                                        - name
+                                        type: object
                                       jsonPath:
                                         description: jsonPath reads the value from
                                           the object of a resource template, for example
@@ -4613,8 +4877,30 @@ spec:
                                             type: string
                                           valueFrom:
                                             description: valueFrom tells where an
-                                              output parameter gets its value.
+                                              output parameter gets its value, or
+                                              where a workflow or input parameter
+                                              reads it.
                                             properties:
+                                              configMapKeyRef:
+                                                description: |-
+                                                  configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                                  starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                                properties:
+                                                  key:
+                                                    description: key in the data of
+                                                      the ConfigMap.
+                                                    maxLength: 253
+                                                    minLength: 1
+                                                    type: string
+                                                  name:
+                                                    description: name of the ConfigMap.
+                                                    maxLength: 253
+                                                    minLength: 1
+                                                    type: string
+                                                required:
+                                                - key
+                                                - name
+                                                type: object
                                               jsonPath:
                                                 description: jsonPath reads the value
                                                   from the object of a resource template,

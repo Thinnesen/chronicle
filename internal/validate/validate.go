@@ -39,7 +39,7 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 	for i, p := range spec.Arguments.Parameters {
 		c.globals["workflow.parameters."+p.Name] = true
 		pp := path.Child("arguments", "parameters").Index(i)
-		if forWorkflow && p.Value == nil && p.Default == nil {
+		if forWorkflow && p.Value == nil && p.Default == nil && !readsConfigMap(&p) {
 			c.errs = append(c.errs, field.Required(pp.Child("value"), "a workflow parameter needs a value or a default"))
 		}
 		c.checkEnum(&p, pp)
@@ -50,7 +50,7 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 		c.errs = append(c.errs, field.NotFound(path.Child("entrypoint"), spec.Entrypoint))
 	} else {
 		for _, in := range t.Inputs.Parameters {
-			if in.Value == nil && in.Default == nil && findParam(spec.Arguments.Parameters, in.Name) == nil {
+			if in.Value == nil && in.Default == nil && !readsConfigMap(&in) && findParam(spec.Arguments.Parameters, in.Name) == nil {
 				c.errs = append(c.errs, field.Required(path.Child("arguments", "parameters"),
 					fmt.Sprintf("parameter %q of the entrypoint template", in.Name)))
 			}
@@ -66,6 +66,11 @@ func SpecAt(spec *v1alpha1.WorkflowTemplateSpec, forWorkflow bool, path *field.P
 		c.checkTemplate(&spec.Templates[i], path.Child("templates").Index(i))
 	}
 	return c.errs
+}
+
+// readsConfigMap tells if a parameter reads its value from a ConfigMap when the run starts.
+func readsConfigMap(p *v1alpha1.Parameter) bool {
+	return p.ValueFrom != nil && p.ValueFrom.ConfigMapKeyRef != nil
 }
 
 // scope is the set of placeholder names that a text can use.
@@ -155,6 +160,10 @@ func (c *checker) checkOutputs(t *v1alpha1.Template, path *field.Path, sc scope)
 	leaf := t.Container != nil || t.Script != nil
 	for i, p := range t.Outputs.Parameters {
 		pp := path.Index(i)
+		if readsConfigMap(&p) {
+			c.errs = append(c.errs, field.Forbidden(pp.Child("valueFrom", "configMapKeyRef"), "only a workflow parameter or an input parameter can read a ConfigMap"))
+			continue
+		}
 		hasPath := p.ValueFrom != nil && p.ValueFrom.Path != ""
 		hasJSONPath := p.ValueFrom != nil && p.ValueFrom.JSONPath != ""
 		switch {

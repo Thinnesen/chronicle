@@ -119,6 +119,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 
 - An input parameter gets its value from the arguments of the call, from `value`, or from `default`.
 - `enum` limits the values. The UI shows a list for such a parameter.
+- A workflow parameter or an input parameter can read a ConfigMap of the namespace: `valueFrom: {configMapKeyRef: {name: settings, key: region}}`. The controller reads it once when the run starts, so all steps see the same value. A missing key uses `default`. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, so that only ConfigMaps that a team shares on purpose reach the runs. Each reader of the run sees the value.
 - An output parameter reads a file (`valueFrom.path`). In a resource template, `valueFrom.jsonPath` reads a field of the object, for example `{.metadata.name}`.
 - `globalName` makes an output parameter or an output artifact a workflow output: `{{workflow.outputs.parameters.<name>}}` (or `{{workflow.outputs.artifacts.<name>}}` in `from`) in later steps and in the exit handler. The run shows its outputs in the UI and in `chronicle get`. When two steps give the same name, the later one wins.
 - Larger data goes through artifacts in S3 (see [artifacts.md](artifacts.md)).

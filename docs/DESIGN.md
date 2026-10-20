@@ -102,6 +102,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Timers: the engine has no clock. It returns the time until the next timer (backoff, `timeout`, `activeDeadlineSeconds`), and the controller runs it again then.
 - `timeout` fails a node of the template (each attempt of a retry). `activeDeadlineSeconds` fails the workflow. Both stop the running descendants and delete their Pods.
 - `parallelism` limits the Pods that run at the same time. A Pod node without a free slot stays Pending with a message. The slots go to the waiting nodes in the order of the walk, and a Pod that the engine asked for still holds its slot before the cache shows it.
+- A workflow or input parameter can read a ConfigMap (`valueFrom.configMapKeyRef`) that has the label `chronicle.thinnesen.com/parameters: "true"`. The controller reads it once into `status.storedSpec`.
 - `globalName` on an output parameter or artifact makes it a workflow output (`status.outputs`, `{{workflow.outputs.*}}`), as in Argo. The engine derives the outputs from the steps that finished; the later step wins.
 - `continueOn` (`failed`, `error`) on a task or step: its failure counts as success for the tasks after it and does not fail the boundary, as in Argo.
 - `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`, `{{workflow.duration}}` and `{{workflow.failures}}` (the failed steps as JSON, in the form of Argo). A failed exit handler fails a workflow that succeeded.
