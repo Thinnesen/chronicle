@@ -106,6 +106,10 @@ type Outputs struct {
 	// result is the standard output of a container or script node. Only the status sets it.
 	// +optional
 	Result *string `json:"result,omitempty"`
+
+	// exitCode is the exit code of the main container of a container or script node. Only the status sets it.
+	// +optional
+	ExitCode *int32 `json:"exitCode,omitempty"`
 }
 
 // Artifact is a file or a directory in the artifact repository of the namespace.

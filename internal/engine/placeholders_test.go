@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"strconv"
 	"testing"
@@ -51,7 +52,7 @@ templates:
 	}
 }
 
-// TestStepStatus checks tasks.x.status, which a later task or an exit handler reads, for example to report a failure.
+// TestStepStatus checks tasks.x.status, exitCode, id and times, which a later task reads, for example to report a failure.
 func TestStepStatus(t *testing.T) {
 	s := newSim(t, `
 entrypoint: main
@@ -60,15 +61,19 @@ templates:
   dag:
     tasks:
     - {name: a, template: c}
-    - {name: b, template: e, depends: a.Failed, arguments: {parameters: [{name: s, value: "{{tasks.a.status}}"}]}}
+    - {name: b, template: e, depends: a.Failed, arguments: {parameters: [{name: s, value: "{{tasks.a.status}} {{tasks.a.exitCode}} {{tasks.a.id}} {{tasks.a.startedAt}} {{tasks.a.finishedAt}}"}]}}
 - name: c
   container: {image: x}
 - name: e
   inputs: {parameters: [{name: s}]}
   container: {image: x, command: [echo, "{{inputs.parameters.s}}"]}
 `, map[string]v1alpha1.NodePhase{"wf.a": v1alpha1.NodeFailed})
-	s.run()
-	if cmd := s.pods["wf.b"].Template.Container.Command; len(cmd) < 2 || cmd[1] != "Failed" {
+	code := int32(3)
+	s.outputs["wf.a"] = &v1alpha1.Outputs{ExitCode: &code}
+	st := s.run()
+	a := st.Nodes[s.pods["wf.a"].NodeID]
+	want := fmt.Sprintf("Failed 3 %s %s %s", a.ID, a.StartedAt.UTC().Format(time.RFC3339), a.FinishedAt.UTC().Format(time.RFC3339))
+	if cmd := s.pods["wf.b"].Template.Container.Command; len(cmd) < 2 || cmd[1] != want {
 		t.Errorf("command of b = %v", cmd)
 	}
 }

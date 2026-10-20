@@ -56,7 +56,7 @@ In a test with the 190 examples of Argo Workflows (October 2026), 53 converted w
 
 DAG (`dependencies`, `depends` with `.Succeeded`, `.Failed`, `.Errored`, `.Skipped`, `.Omitted`, `.AnySucceeded`, `.AllFailed`), steps, `when`, `withItems`, `withParam`, `failFast`, container and script templates, `suspend` (manual approval and `duration`), `resource` templates, `retryStrategy` with `backoff`, `continueOn` (`failed`, `error`), `timeout`, `activeDeadlineSeconds`, `onExit`, `templateRef`, `workflowTemplateRef`, input and output parameters (`valueFrom.path`, `valueFrom.jsonPath`), artifacts between steps and out of a `dag` or `steps` template (`from`), `podGC`, `ttlStrategy`, `serviceAccountName`, `inline` templates (the converter makes a named template `<parent>-<task>`), and CronWorkflow (`timezone`, `concurrencyPolicy`, `startingDeadlineSeconds`, history limits, `suspend`).
 
-Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.mainEntrypoint`, `workflow.creationTimestamp.*` (strftime letters, `RFC3339`, `s`), `workflow.labels.*`, `workflow.annotations.*`, `workflow.parameters.json`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
+Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.status`, `workflow.creationTimestamp`, `workflow.scheduledTime`, `workflow.duration`, `workflow.failures`, `workflow.serviceAccountName`, `workflow.mainEntrypoint`, `workflow.creationTimestamp.*` (strftime letters, `RFC3339`, `s`), `workflow.labels.*`, `workflow.annotations.*`, `workflow.parameters.json`, `workflow.outputs.*` (with `globalName`), `workflow.parameters.*`, `inputs.parameters.*`, `tasks.*.outputs.*`, `tasks.*.status`, `tasks.*.exitCode`, `tasks.*.id`, `tasks.*.startedAt`, `tasks.*.finishedAt` (the same for `steps.*`), `steps.*.outputs.*`, `steps.*.status`, `pod.name`, `node.name`, `retries` and `item`.
 
 ## Not supported
 
@@ -70,4 +70,4 @@ Placeholders: `workflow.name`, `workflow.namespace`, `workflow.uid`, `workflow.s
 | `http`, `plugin`, `data` and `containerSet` templates | Not supported. Task workers (M7) cover calls to services. |
 | Artifacts that a workflow gives (`arguments.artifacts` on the Workflow) | A workflow cannot give artifacts. Make them in a first step. |
 | Parameters from a ConfigMap (`valueFrom.configMapKeyRef`) | Give the value in the Workflow, or read the ConfigMap in a step. |
-| `outputs.result` of a container without a command, exit codes as placeholders (`exitCode`) | Not supported. |
+| `outputs.result` of a container without a command | Not supported. Give the container a command. |

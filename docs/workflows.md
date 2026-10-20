@@ -59,6 +59,8 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{tasks.<task>.outputs.parameters.<name>}}` | An output parameter of a DAG task. |
 | `{{steps.<step>.outputs.result}}`, `{{steps.<step>.outputs.parameters.<name>}}` | The same for a step. |
 | `{{tasks.<task>.status}}`, `{{steps.<step>.status}}` | The phase of a finished task or step. |
+| `{{tasks.<task>.exitCode}}`, `{{steps.<step>.exitCode}}` | The exit code of the main container of a container or script task or step. Use it with `continueOn` or `depends: a.Failed`. |
+| `{{tasks.<task>.id}}`, `{{tasks.<task>.startedAt}}`, `{{tasks.<task>.finishedAt}}` | The node ID and the times (RFC 3339) of a task. The same for a step. |
 | `{{pod.name}}`, `{{node.name}}`, `{{retries}}` | In a container, script or resource template: its Pod, its node and the number of its retry (from 0). |
 | `{{item}}`, `{{item.<key>}}` | The item of a fan-out. |
 

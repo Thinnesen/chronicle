@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: The node outputs in the status have `exitCode`, the exit code of the main container, as in Argo. The controller reads it from the Pod status, so it is also there when the executor did not write a message. Placeholders: `{{tasks.x.exitCode}}`, `{{steps.x.exitCode}}`, and the node fields `id`, `startedAt` and `finishedAt`. A fan-out has no `exitCode`, because the items can have different codes.
+
 - 2026-10-20: Global outputs as in Argo: `globalName` on output parameters and artifacts, `status.outputs`, and `{{workflow.outputs.*}}`. The engine computes the outputs from the finished nodes on each run, so a retry or a re-run gives the same result as the nodes. Reason: exit handlers and runs that report one result need them, and the Argo converter dropped them.
 
 - 2026-10-20: `continueOn` (`failed`, `error`) on a DAG task or a step, as in Argo. A failure that continues counts as success for the depends of later tasks and does not fail the DAG or the steps; the node stays Failed. Reason: steps templates have no `depends`, so users moving from Argo had no way to go on after a failed step.

@@ -1093,6 +1093,11 @@ spec:
                           x-kubernetes-list-map-keys:
                           - name
                           x-kubernetes-list-type: map
+                        exitCode:
+                          description: exitCode is the exit code of the main container
+                            of a container or script node. Only the status sets it.
+                          format: int32
+                          type: integer
                         parameters:
                           description: parameters that the template produces.
                           items:
@@ -2123,6 +2128,11 @@ spec:
                           x-kubernetes-list-map-keys:
                           - name
                           x-kubernetes-list-type: map
+                        exitCode:
+                          description: exitCode is the exit code of the main container
+                            of a container or script node. Only the status sets it.
+                          format: int32
+                          type: integer
                         parameters:
                           description: parameters that the template produces.
                           items:
@@ -2286,6 +2296,11 @@ spec:
                     x-kubernetes-list-map-keys:
                     - name
                     x-kubernetes-list-type: map
+                  exitCode:
+                    description: exitCode is the exit code of the main container of
+                      a container or script node. Only the status sets it.
+                    format: int32
+                    type: integer
                   parameters:
                     description: parameters that the template produces.
                     items:
@@ -3295,6 +3310,12 @@ spec:
                               x-kubernetes-list-map-keys:
                               - name
                               x-kubernetes-list-type: map
+                            exitCode:
+                              description: exitCode is the exit code of the main container
+                                of a container or script node. Only the status sets
+                                it.
+                              format: int32
+                              type: integer
                             parameters:
                               description: parameters that the template produces.
                               items:

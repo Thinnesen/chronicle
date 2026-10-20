@@ -163,6 +163,12 @@ function Details({ node }: { node: NodeStatus }) {
             <dd>{duration((finished?.getTime() ?? now) - started.getTime())}</dd>
           </>
         )}
+        {node.outputs?.exitCode !== undefined && (
+          <>
+            <dt>Exit code</dt>
+            <dd>{node.outputs.exitCode}</dd>
+          </>
+        )}
         {node.podName && (
           <>
             <dt>Pod</dt>

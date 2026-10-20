@@ -64,12 +64,13 @@ test("finds a run with the command palette", async ({ page }) => {
 test("finds a template and a schedule with the command palette", async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
+  await expect(page.getByRole("link", { name: "backfill-2026-10" })).toBeVisible();
   await page.keyboard.press("Control+k");
-  await page.getByRole("combobox").fill("deploy-api");
+  await page.getByRole("dialog").getByRole("combobox").fill("deploy-api");
   await page.getByRole("option", { name: /deploy-api/ }).filter({ hasText: "Template" }).click();
   await expect(page).toHaveURL(/\/templates\/deploy-api$/);
   await page.keyboard.press("Control+k");
-  await page.getByRole("combobox").fill("cleanup");
+  await page.getByRole("dialog").getByRole("combobox").fill("cleanup");
   await page.getByRole("option", { name: /cleanup/ }).click();
   await expect(page).toHaveURL(/\/cron\/cleanup$/);
 });

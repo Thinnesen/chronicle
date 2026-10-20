@@ -10,6 +10,7 @@ import (
 	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/expr"
@@ -213,11 +214,24 @@ func resolveArtifacts(args v1alpha1.Arguments, resolve expr.Resolver) map[string
 	return out
 }
 
-// nodeOutput returns an output of a node: "outputs.result", "outputs.parameters.x", or "status" (its phase).
+// nodeOutput returns an output of a node: "outputs.result", "outputs.parameters.x", "exitCode", or a field of
+// the node: "status" (its phase), "id", "startedAt" or "finishedAt".
 // For a task group, it returns a JSON list with the output of each item.
 func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
-	if key == "status" {
+	switch key {
+	case "status":
 		return string(n.Phase), true
+	case "id":
+		return n.ID, true
+	case "startedAt":
+		return timeText(n.StartedAt)
+	case "finishedAt":
+		return timeText(n.FinishedAt)
+	case "exitCode":
+		if n.Outputs == nil || n.Outputs.ExitCode == nil {
+			return "", false
+		}
+		return strconv.Itoa(int(*n.Outputs.ExitCode)), true
 	}
 	if n.Type != v1alpha1.NodeTaskGroup {
 		return outputOf(n.Outputs, key)
@@ -240,6 +254,13 @@ func (e *engine) nodeOutput(n v1alpha1.NodeStatus, key string) (string, bool) {
 	}
 	b, _ := json.Marshal(list)
 	return string(b), true
+}
+
+func timeText(t *metav1.Time) (string, bool) {
+	if t == nil {
+		return "", false
+	}
+	return t.UTC().Format(time.RFC3339), true
 }
 
 func outputOf(o *v1alpha1.Outputs, key string) (string, bool) {

@@ -68,6 +68,10 @@ func terminated(t *corev1.ContainerStateTerminated, prefix string) engine.PodRes
 			r.LogKey = artifact.LogKey(prefix)
 		}
 	}
+	if r.Outputs == nil {
+		r.Outputs = &v1alpha1.Outputs{}
+	}
+	r.Outputs.ExitCode = &t.ExitCode
 	if t.ExitCode == 0 {
 		return r
 	}

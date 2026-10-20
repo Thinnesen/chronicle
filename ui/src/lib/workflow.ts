@@ -23,7 +23,7 @@ export interface NodeStatus {
   // planned is true for a DAG task or a step that has not started yet. Only the graph draws it.
   planned?: boolean;
   inputs?: { parameters?: Parameter[]; artifacts?: Artifact[] };
-  outputs?: { parameters?: Parameter[]; result?: string; artifacts?: Artifact[] };
+  outputs?: { parameters?: Parameter[]; result?: string; artifacts?: Artifact[]; exitCode?: number };
 }
 
 export interface Artifact {

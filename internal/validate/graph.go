@@ -157,7 +157,7 @@ func (c *checker) callOutputs(prefix string, call v1alpha1.Call) []string {
 	}
 	names := c.outputNames(prefix, call.Template)
 	if len(call.WithItems) > 0 || call.WithParam != "" {
-		names = slices.DeleteFunc(names, isArtifact)
+		names = slices.DeleteFunc(names, func(n string) bool { return isArtifact(n) || strings.HasSuffix(n, ".exitCode") })
 	}
 	return names
 }
@@ -168,8 +168,8 @@ func (c *checker) outputNames(prefix, template string) []string {
 	if !ok {
 		return nil
 	}
-	// The phase of a finished task or step, for example to report it.
-	names := []string{prefix + ".status"}
+	// The phase, the ID and the times of a task or step, for example to report it.
+	names := []string{prefix + ".status", prefix + ".id", prefix + ".startedAt", prefix + ".finishedAt"}
 	for _, p := range t.Outputs.Parameters {
 		names = append(names, prefix+".outputs.parameters."+p.Name)
 	}
@@ -180,6 +180,9 @@ func (c *checker) outputNames(prefix, template string) []string {
 	// A task template has the result of its worker.
 	if t.Container != nil && len(t.Container.Command) > 0 || t.Script != nil || t.Task != nil {
 		names = append(names, prefix+".outputs.result")
+	}
+	if t.Container != nil || t.Script != nil {
+		names = append(names, prefix+".exitCode")
 	}
 	return names
 }

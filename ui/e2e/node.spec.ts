@@ -36,7 +36,9 @@ test("lists the attempts of a retried node", async ({ page }) => {
   await expect(panel.getByText("OOMKilled (exit code 137)")).toBeVisible();
   await panel.getByRole("button", { name: /Attempt 1/ }).click();
   await expect(page).toHaveURL(/node=n3a/);
-  await expect(page.getByRole("complementary", { name: "Step train(0)" })).toBeVisible();
+  const attempt = page.getByRole("complementary", { name: "Step train(0)" });
+  await attempt.getByRole("tab", { name: "Summary" }).click();
+  await expect(attempt.locator("dt", { hasText: "Exit code" }).locator("+ dd")).toHaveText("137");
 });
 
 test("shows the archived log and the artifacts of a node", async ({ page }, info) => {

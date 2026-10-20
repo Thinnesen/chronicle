@@ -52,6 +52,10 @@ func TestPodResult(t *testing.T) {
 			if r.Phase != tt.phase || r.Message != tt.msg {
 				t.Errorf("got %s %q, want %s %q", r.Phase, r.Message, tt.phase, tt.msg)
 			}
+			if m := containerStatus(tt.status.ContainerStatuses, mainContainer).State.Terminated; m != nil &&
+				(r.Outputs == nil || r.Outputs.ExitCode == nil || *r.Outputs.ExitCode != m.ExitCode) {
+				t.Errorf("outputs %+v, want exit code %d", r.Outputs, m.ExitCode)
+			}
 		})
 	}
 }
