@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 )
 
@@ -128,11 +129,14 @@ func (c *converter) cronSpec(in obj, path string) (obj, error) {
 	return out, nil
 }
 
-var callFields = []string{fName, "template", "templateRef", "when", "withItems", "withParam", "continueOn"}
+var callFields = []string{fName, fTemplate, "templateRef", "when", "withItems", "withParam", "continueOn"}
 
 // call converts the parts that a DAG task and a step share.
 func (c *converter) call(in obj, path string, extra ...string) (obj, error) {
-	out := c.pick(in, path, append(callFields, extra...), "arguments", "withSequence", "inline")
+	out := c.pick(in, path, append(callFields, extra...), "arguments", "withSequence", "inline", "hooks", "onExit")
+	if hook := c.exitHook(in, path); hook != nil {
+		out["onExit"] = hook
+	}
 	if _, ok := in["inline"]; ok {
 		name, err := c.inline(in, path)
 		if err != nil {
@@ -205,4 +209,33 @@ func (c *converter) synchronization(in obj, path string) obj {
 		return nil
 	}
 	return obj{"mutex": obj{"name": names[0]}}
+}
+
+// exitHook converts the exit hook of a task or a step: hooks.exit, or the older onExit with a template name.
+// Hooks with an expression need expressions, which chronicle does not have.
+func (c *converter) exitHook(in obj, path string) obj {
+	var hook obj
+	if name, ok := in["onExit"].(string); ok {
+		hook = obj{fTemplate: name}
+	}
+	for _, name := range slices.Sorted(maps.Keys(asObj(in["hooks"]))) {
+		h := asObj(in["hooks"])[name]
+		if name != "exit" {
+			c.warn(join(join(path, "hooks"), name), "chronicle has only exit hooks: this hook is dropped")
+			continue
+		}
+		hp := join(path, "hooks.exit")
+		hook = c.pick(asObj(h), hp, []string{fTemplate}, "arguments")
+		if a := asObj(asObj(h)["arguments"]); a != nil {
+			args := c.pick(a, join(hp, "arguments"), nil, "parameters", "artifacts")
+			if ps, ok := a["parameters"]; ok {
+				args["parameters"] = c.parameters(asList(ps), join(hp, "arguments.parameters"))
+			}
+			if as, ok := a["artifacts"]; ok {
+				args["artifacts"] = c.inputArtifacts(asList(as), join(hp, "arguments.artifacts"), "from")
+			}
+			hook["arguments"] = args
+		}
+	}
+	return hook
 }

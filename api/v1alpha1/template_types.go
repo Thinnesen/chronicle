@@ -368,6 +368,11 @@ type Call struct {
 	// fail the DAG or the steps.
 	// +optional
 	ContinueOn *ContinueOn `json:"continueOn,omitempty"`
+
+	// onExit runs a template after this task or step ends, also after a failure. The tasks after it wait for it. An
+	// exit hook that ends Error fails the DAG or the steps; one that ends Failed does not.
+	// +optional
+	OnExit *ExitHook `json:"onExit,omitempty"`
 }
 
 // ContinueOn names the failures after which a run goes on.

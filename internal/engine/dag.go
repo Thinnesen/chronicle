@@ -93,7 +93,8 @@ func (e *engine) updateGroups(steps v1alpha1.NodeStatus, tasks []task) {
 	}
 	for _, gid := range steps.Children {
 		g := e.nodes[gid]
-		if IsTerminal(g.Phase) {
+		// An exit hook of a step is also a child of the steps node.
+		if g.Type != v1alpha1.NodeStepGroup || IsTerminal(g.Phase) {
 			continue
 		}
 		phase, omitted := v1alpha1.NodeSucceeded, true

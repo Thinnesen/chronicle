@@ -192,6 +192,16 @@ spec:
       env: [{name: STATUS, value: "{{workflow.status}}"}]
 ```
 
+A DAG task or a step can have its own exit handler. It runs when the task ends, also after a failure, and can read the status and the outputs of the task. The tasks after it wait for it. A hook that ends Error fails the DAG or the steps; one that ends Failed does not count. For a fan-out, the hook runs once after all items.
+
+```yaml
+  - name: build
+    template: build
+    onExit:
+      template: report
+      arguments: {parameters: [{name: status, value: "{{tasks.build.status}}"}]}
+```
+
 Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values: the API refuses other values, and the node fails if such a value comes in another way. The node message names the approver, for example "approved by oidc:alice@example.com". A `resource` template runs with the service account of the run (`spec.serviceAccountName`), so a step can do only what that account can do.
 
 An `http` template sends one request, for example a chat message from the exit handler:

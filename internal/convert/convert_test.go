@@ -173,6 +173,12 @@ func TestRules(t *testing.T) {
 			want:      []string{"memoize:\n      key: k1\n      maxAge: 1h", "memoize.cache: chronicle keeps the results in its archive database"},
 		},
 		{
+			name: "exit hooks of steps",
+			templates: "  - {name: main, steps: [[{name: a, template: c, hooks: {exit: {template: c}, running: {expression: 'x', template: c}}}, {name: b, template: c, onExit: c}]]}\n" +
+				"  - {name: c, container: {image: x}}",
+			want: []string{"onExit:\n          template: c", "steps[0][0].hooks.running: chronicle has only exit hooks"},
+		},
+		{
 			name: "bare placeholders in a manifest get quotes",
 			templates: "  - name: main\n    inputs: {parameters: [{name: job, value: j}]}\n    resource:\n      action: delete\n" +
 				"      manifest: |\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n          name: {{inputs.parameters.job}}\n",

@@ -15,6 +15,7 @@ type obj = map[string]any
 const (
 	fName        = "name"
 	fValue       = "value"
+	fTemplate    = "template"
 	kindCron     = "CronWorkflow"
 	kindWorkflow = "Workflow"
 )

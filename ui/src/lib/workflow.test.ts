@@ -49,6 +49,15 @@ describe("buildGraph", () => {
     expect(edges).toEqual(["T0>T1", "T1>L", "T>T0", "r>T"].sort());
   });
 
+  it("connects the exit hook of a step after the step", () => {
+    const nodes = wf.status?.nodes ?? {};
+    const steps = { id: "C", name: "wf.c", type: "Steps" as const, templateName: "st", children: ["G0", "G1", "H"] };
+    const withHook: Workflow = { ...wf, status: { nodes: { ...nodes, C: steps, H: { id: "H", name: "wf.c[0].x.onExit", type: "Pod" } } } };
+    const edges = buildGraph(withHook).map((e) => `${e.from}>${e.to}`);
+    expect(edges).toContain("X>H");
+    expect(edges.filter((e) => e.endsWith(">H"))).toHaveLength(1);
+  });
+
   it("connects the exit handler after the last steps", () => {
     const withExit: Workflow = { ...wf, status: { nodes: { ...wf.status?.nodes, E: { id: "E", name: "wf.onExit", type: "Pod" } } } };
     expect(buildGraph(withExit).map((e) => `${e.from}>${e.to}`)).toContain("Y0>E");

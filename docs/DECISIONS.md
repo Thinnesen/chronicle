@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-20: DAG tasks and steps can have an exit hook (`onExit` with a template and arguments), with the rules of Argo v4: the tasks after it wait for the hook, a hook that ends Error fails the DAG or the steps, one that ends Failed does not. A fan-out runs its hook once after all items, not once for each item as in Argo, which keeps the node tree simple. Hooks with expressions are not supported, because chronicle has no expressions.
+
 - 2026-10-20: `memoize` on a container, script, resource or http template, as in Argo, with the results in the archive database. Argo keeps them in ConfigMaps; that needs write access to ConfigMaps, so the controller could change any ConfigMap. The engine stays pure: it asks for cache keys with an action, and the controller runs the same step again with the answers, so no state lives between steps. A hit ends the node without a Pod.
 
 - 2026-10-20: A container, script, resource, http or task template can have a lock (`synchronization`), as in Argo. Each node holds it while it runs. The engine stays pure: it asks for the lock with an action and starts the node when the controller reports it as held; it gives it back when the node ends. The locks use the same Leases as run locks, with the node ID in the holder. The converter dropped Argo template locks before, so a converted pipeline could run two migrations at once.

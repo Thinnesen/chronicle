@@ -1064,6 +1064,207 @@ spec:
                                     maxLength: 128
                                     pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
                                     type: string
+                                  onExit:
+                                    description: |-
+                                      onExit runs a template after this task or step ends, also after a failure. The tasks after it wait for it. An
+                                      exit hook that ends Error fails the DAG or the steps; one that ends Failed does not.
+                                    properties:
+                                      arguments:
+                                        description: arguments to give to the template.
+                                          They can use the outputs and the status
+                                          of the task.
+                                        properties:
+                                          artifacts:
+                                            description: artifacts to give.
+                                            items:
+                                              description: Artifact is a file or a
+                                                directory in the artifact repository
+                                                of the namespace.
+                                              properties:
+                                                from:
+                                                  description: from is the artifact
+                                                    that an argument gives, as one
+                                                    placeholder, for example "{{tasks.make.outputs.artifacts.data}}".
+                                                  maxLength: 1024
+                                                  type: string
+                                                globalName:
+                                                  description: |-
+                                                    globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
+                                                    in the from of a later argument, and status.outputs of the run.
+                                                  maxLength: 128
+                                                  type: string
+                                                http:
+                                                  description: http is a file that
+                                                    the step downloads before it starts.
+                                                    The executor saves the file as
+                                                    it is.
+                                                  properties:
+                                                    url:
+                                                      description: url of the file.
+                                                        The step downloads it from
+                                                        its own Pod, with a GET request.
+                                                      maxLength: 2048
+                                                      pattern: ^https?://
+                                                      type: string
+                                                  required:
+                                                  - url
+                                                  type: object
+                                                key:
+                                                  description: key of the object in
+                                                    the artifact repository. Only
+                                                    the status sets it.
+                                                  maxLength: 1024
+                                                  type: string
+                                                mode:
+                                                  description: |-
+                                                    mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                                                    It has no effect on an artifact from the repository.
+                                                  format: int32
+                                                  maximum: 511
+                                                  minimum: 0
+                                                  type: integer
+                                                name:
+                                                  description: name of the artifact.
+                                                  maxLength: 128
+                                                  pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                                  type: string
+                                                optional:
+                                                  description: optional makes a missing
+                                                    output file or a missing argument
+                                                    not an error.
+                                                  type: boolean
+                                                path:
+                                                  description: path in the main container.
+                                                    The executor puts an input artifact
+                                                    there and saves an output artifact
+                                                    from there.
+                                                  maxLength: 4096
+                                                  pattern: ^/
+                                                  type: string
+                                                raw:
+                                                  description: raw is the content
+                                                    of an input artifact, as text
+                                                    in the spec.
+                                                  properties:
+                                                    data:
+                                                      description: data is the content
+                                                        of the file.
+                                                      maxLength: 65536
+                                                      type: string
+                                                  required:
+                                                  - data
+                                                  type: object
+                                              required:
+                                              - name
+                                              type: object
+                                            maxItems: 32
+                                            type: array
+                                            x-kubernetes-list-map-keys:
+                                            - name
+                                            x-kubernetes-list-type: map
+                                          parameters:
+                                            description: parameters to give.
+                                            items:
+                                              description: Parameter is a named string
+                                                value. Inputs, outputs and arguments
+                                                use parameters.
+                                              properties:
+                                                default:
+                                                  description: default is the value
+                                                    when the caller does not give
+                                                    a value.
+                                                  maxLength: 262144
+                                                  type: string
+                                                description:
+                                                  description: description of the
+                                                    parameter, for people and for
+                                                    the UI.
+                                                  maxLength: 1024
+                                                  type: string
+                                                enum:
+                                                  description: enum is the list of
+                                                    permitted values.
+                                                  items:
+                                                    maxLength: 1024
+                                                    type: string
+                                                  maxItems: 256
+                                                  type: array
+                                                globalName:
+                                                  description: |-
+                                                    globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
+                                                    in later steps and in the exit handler, and status.outputs of the run.
+                                                  maxLength: 128
+                                                  type: string
+                                                name:
+                                                  description: name of the parameter.
+                                                  maxLength: 128
+                                                  pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                                  type: string
+                                                value:
+                                                  description: value of the parameter.
+                                                    For an input, a value cannot be
+                                                    changed by the caller.
+                                                  maxLength: 262144
+                                                  type: string
+                                                valueFrom:
+                                                  description: valueFrom tells where
+                                                    an output parameter gets its value,
+                                                    or where a workflow or input parameter
+                                                    reads it.
+                                                  properties:
+                                                    configMapKeyRef:
+                                                      description: |-
+                                                        configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                                        starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                                      properties:
+                                                        key:
+                                                          description: key in the
+                                                            data of the ConfigMap.
+                                                          maxLength: 253
+                                                          minLength: 1
+                                                          type: string
+                                                        name:
+                                                          description: name of the
+                                                            ConfigMap.
+                                                          maxLength: 253
+                                                          minLength: 1
+                                                          type: string
+                                                      required:
+                                                      - key
+                                                      - name
+                                                      type: object
+                                                    jsonPath:
+                                                      description: jsonPath reads
+                                                        the value from the object
+                                                        of a resource template, for
+                                                        example "{.metadata.name}".
+                                                      maxLength: 1024
+                                                      type: string
+                                                    path:
+                                                      description: path of a file
+                                                        in the main container. Its
+                                                        contents become the value.
+                                                      maxLength: 4096
+                                                      type: string
+                                                  type: object
+                                              required:
+                                              - name
+                                              type: object
+                                            maxItems: 256
+                                            type: array
+                                            x-kubernetes-list-map-keys:
+                                            - name
+                                            x-kubernetes-list-type: map
+                                        type: object
+                                      template:
+                                        description: template is the name of a template
+                                          of this workflow.
+                                        maxLength: 128
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - template
+                                    type: object
                                   template:
                                     description: template is the name of a template
                                       of this workflow.
@@ -2235,6 +2436,203 @@ spec:
                                   maxLength: 128
                                   pattern: ^[a-zA-Z0-9][-a-zA-Z0-9_]*$
                                   type: string
+                                onExit:
+                                  description: |-
+                                    onExit runs a template after this task or step ends, also after a failure. The tasks after it wait for it. An
+                                    exit hook that ends Error fails the DAG or the steps; one that ends Failed does not.
+                                  properties:
+                                    arguments:
+                                      description: arguments to give to the template.
+                                        They can use the outputs and the status of
+                                        the task.
+                                      properties:
+                                        artifacts:
+                                          description: artifacts to give.
+                                          items:
+                                            description: Artifact is a file or a directory
+                                              in the artifact repository of the namespace.
+                                            properties:
+                                              from:
+                                                description: from is the artifact
+                                                  that an argument gives, as one placeholder,
+                                                  for example "{{tasks.make.outputs.artifacts.data}}".
+                                                maxLength: 1024
+                                                type: string
+                                              globalName:
+                                                description: |-
+                                                  globalName makes an output artifact a workflow output with this name: "{{workflow.outputs.artifacts.<name>}}"
+                                                  in the from of a later argument, and status.outputs of the run.
+                                                maxLength: 128
+                                                type: string
+                                              http:
+                                                description: http is a file that the
+                                                  step downloads before it starts.
+                                                  The executor saves the file as it
+                                                  is.
+                                                properties:
+                                                  url:
+                                                    description: url of the file.
+                                                      The step downloads it from its
+                                                      own Pod, with a GET request.
+                                                    maxLength: 2048
+                                                    pattern: ^https?://
+                                                    type: string
+                                                required:
+                                                - url
+                                                type: object
+                                              key:
+                                                description: key of the object in
+                                                  the artifact repository. Only the
+                                                  status sets it.
+                                                maxLength: 1024
+                                                type: string
+                                              mode:
+                                                description: |-
+                                                  mode is the file mode of a raw or http input artifact, for example 0755 for a program. The default is 0644.
+                                                  It has no effect on an artifact from the repository.
+                                                format: int32
+                                                maximum: 511
+                                                minimum: 0
+                                                type: integer
+                                              name:
+                                                description: name of the artifact.
+                                                maxLength: 128
+                                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                                type: string
+                                              optional:
+                                                description: optional makes a missing
+                                                  output file or a missing argument
+                                                  not an error.
+                                                type: boolean
+                                              path:
+                                                description: path in the main container.
+                                                  The executor puts an input artifact
+                                                  there and saves an output artifact
+                                                  from there.
+                                                maxLength: 4096
+                                                pattern: ^/
+                                                type: string
+                                              raw:
+                                                description: raw is the content of
+                                                  an input artifact, as text in the
+                                                  spec.
+                                                properties:
+                                                  data:
+                                                    description: data is the content
+                                                      of the file.
+                                                    maxLength: 65536
+                                                    type: string
+                                                required:
+                                                - data
+                                                type: object
+                                            required:
+                                            - name
+                                            type: object
+                                          maxItems: 32
+                                          type: array
+                                          x-kubernetes-list-map-keys:
+                                          - name
+                                          x-kubernetes-list-type: map
+                                        parameters:
+                                          description: parameters to give.
+                                          items:
+                                            description: Parameter is a named string
+                                              value. Inputs, outputs and arguments
+                                              use parameters.
+                                            properties:
+                                              default:
+                                                description: default is the value
+                                                  when the caller does not give a
+                                                  value.
+                                                maxLength: 262144
+                                                type: string
+                                              description:
+                                                description: description of the parameter,
+                                                  for people and for the UI.
+                                                maxLength: 1024
+                                                type: string
+                                              enum:
+                                                description: enum is the list of permitted
+                                                  values.
+                                                items:
+                                                  maxLength: 1024
+                                                  type: string
+                                                maxItems: 256
+                                                type: array
+                                              globalName:
+                                                description: |-
+                                                  globalName makes an output parameter a workflow output with this name: "{{workflow.outputs.parameters.<name>}}"
+                                                  in later steps and in the exit handler, and status.outputs of the run.
+                                                maxLength: 128
+                                                type: string
+                                              name:
+                                                description: name of the parameter.
+                                                maxLength: 128
+                                                pattern: ^[a-zA-Z0-9_][-a-zA-Z0-9_]*$
+                                                type: string
+                                              value:
+                                                description: value of the parameter.
+                                                  For an input, a value cannot be
+                                                  changed by the caller.
+                                                maxLength: 262144
+                                                type: string
+                                              valueFrom:
+                                                description: valueFrom tells where
+                                                  an output parameter gets its value,
+                                                  or where a workflow or input parameter
+                                                  reads it.
+                                                properties:
+                                                  configMapKeyRef:
+                                                    description: |-
+                                                      configMapKeyRef reads a workflow parameter or an input parameter from a ConfigMap in the namespace when the run
+                                                      starts. The ConfigMap needs the label chronicle.thinnesen.com/parameters: "true". A missing key uses the default.
+                                                    properties:
+                                                      key:
+                                                        description: key in the data
+                                                          of the ConfigMap.
+                                                        maxLength: 253
+                                                        minLength: 1
+                                                        type: string
+                                                      name:
+                                                        description: name of the ConfigMap.
+                                                        maxLength: 253
+                                                        minLength: 1
+                                                        type: string
+                                                    required:
+                                                    - key
+                                                    - name
+                                                    type: object
+                                                  jsonPath:
+                                                    description: jsonPath reads the
+                                                      value from the object of a resource
+                                                      template, for example "{.metadata.name}".
+                                                    maxLength: 1024
+                                                    type: string
+                                                  path:
+                                                    description: path of a file in
+                                                      the main container. Its contents
+                                                      become the value.
+                                                    maxLength: 4096
+                                                    type: string
+                                                type: object
+                                            required:
+                                            - name
+                                            type: object
+                                          maxItems: 256
+                                          type: array
+                                          x-kubernetes-list-map-keys:
+                                          - name
+                                          x-kubernetes-list-type: map
+                                      type: object
+                                    template:
+                                      description: template is the name of a template
+                                        of this workflow.
+                                      maxLength: 128
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - template
+                                  type: object
                                 template:
                                   description: template is the name of a template
                                     of this workflow.

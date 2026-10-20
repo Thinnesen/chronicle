@@ -119,7 +119,8 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
       let prev: NodeStatus[] = [n];
       for (const groupID of n.children ?? []) {
         const group = nodes[groupID];
-        if (!group) continue;
+        // An exit hook of a step is also a child of the steps node.
+        if (group?.type !== "StepGroup") continue;
         for (const p of prev) add(p, group);
         const steps = (group.children ?? []).map((id) => nodes[id]).filter((c): c is NodeStatus => !!c);
         for (const step of steps) add(group, step);
@@ -140,10 +141,11 @@ export function buildGraph(wf: Workflow, nodes: Record<string, NodeStatus> = wf.
       for (const id of n.children ?? []) add(n, nodes[id]);
     }
   }
-  // The exit handler runs after the whole run, so it comes after the nodes where the run ends.
-  const root = byName.get(wf.metadata.name);
-  const onExit = byName.get(`${wf.metadata.name}.onExit`);
-  for (const e of root && onExit ? exitsOf(root) : []) add(e, onExit);
+  // An exit handler comes after the nodes where its run, task or step ends.
+  for (const hook of Object.values(nodes)) {
+    const owner = hook.name.endsWith(".onExit") ? byName.get(hook.name.slice(0, -".onExit".length)) : undefined;
+    for (const e of owner ? exitsOf(owner) : []) add(e, hook);
+  }
   return edges;
 }
 

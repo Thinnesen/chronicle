@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -58,6 +59,7 @@ func (b *boundary) walk() (v1alpha1.NodePhase, string) {
 		n, ok := b.node(t.name)
 		switch {
 		case ok && IsTerminal(n.Phase):
+			b.runHook(t)
 			continue
 		case !ok && (stopped != "" || b.e.in.Suspend || !b.ready(t)):
 			continue
@@ -137,7 +139,7 @@ func (b *boundary) link(t *task, parentID, id string) {
 
 func (b *boundary) ready(t *task) bool {
 	for _, d := range t.deps {
-		if n, ok := b.node(d); !ok || !IsTerminal(n.Phase) {
+		if !b.done(d) {
 			return false
 		}
 	}
@@ -216,8 +218,8 @@ func (t *task) handles(dep string, p v1alpha1.NodePhase) bool {
 func (b *boundary) outcome(stopped string) (v1alpha1.NodePhase, string) {
 	var unstarted []*task
 	for i := range b.tasks {
-		n, ok := b.node(b.tasks[i].name)
-		if ok && !IsTerminal(n.Phase) {
+		_, ok := b.node(b.tasks[i].name)
+		if ok && !b.done(b.tasks[i].name) {
 			return v1alpha1.NodeRunning, ""
 		}
 		if !ok {
@@ -238,6 +240,10 @@ func (b *boundary) outcome(stopped string) (v1alpha1.NodePhase, string) {
 			msg = fmt.Sprintf("task %q failed", b.failedTask(t.name, memo))
 		}
 		phase = worse(phase, p)
+	}
+	if hook := b.hookError(); hook != "" {
+		phase = worse(phase, v1alpha1.NodeError)
+		msg = cmp.Or(msg, hook)
 	}
 	return phase, msg
 }

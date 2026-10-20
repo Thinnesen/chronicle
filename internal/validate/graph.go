@@ -35,6 +35,7 @@ func (c *checker) checkDAG(dag *v1alpha1.DAGTemplate, path *field.Path, sc scope
 			return ""
 		}
 		c.checkCall(task.Call, tasksPath.Index(i), taskScope, hint)
+		c.checkHook(task.Call, tasksPath.Index(i), taskScope.with(c.callOutputs("tasks."+task.Name, task.Call)...))
 	}
 }
 
@@ -142,6 +143,7 @@ func (c *checker) checkSteps(groups [][]v1alpha1.WorkflowStep, path *field.Path,
 				c.errs = append(c.errs, field.Duplicate(sp.Child("name"), step.Name))
 			}
 			c.checkCall(step.Call, sp, groupScope, nil)
+			c.checkHook(step.Call, sp, groupScope.with(c.callOutputs("steps."+step.Name, step.Call)...))
 		}
 		for _, step := range group {
 			seen[step.Name] = true
@@ -235,5 +237,12 @@ func (c *checker) checkFanOut(call v1alpha1.Call, path *field.Path, sc scope, hi
 	}
 	if err := expr.CheckSequenceFormat(seq.Format); err != nil {
 		c.errs = append(c.errs, field.Invalid(sp.Child("format"), seq.Format, err.Error()))
+	}
+}
+
+// checkHook checks the exit hook of a task or a step like a call. sc has the outputs and the status of the task.
+func (c *checker) checkHook(call v1alpha1.Call, path *field.Path, sc scope) {
+	if h := call.OnExit; h != nil {
+		c.checkCall(v1alpha1.Call{Template: h.Template, Arguments: h.Arguments}, path.Child("onExit"), sc, nil)
 	}
 }

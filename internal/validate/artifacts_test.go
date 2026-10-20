@@ -133,3 +133,15 @@ func TestMemoize(t *testing.T) {
 			want: []string{`unknown placeholder "inputs.parameters.nope"`}},
 	}, true)
 }
+
+func TestExitHook(t *testing.T) {
+	const tmpl = "- {name: c, container: {image: x}}\n- {name: r, inputs: {parameters: [{name: s}]}, container: {image: x}}"
+	runCases(t, []specCase{
+		{name: "a hook that reads the status of its task", spec: "entrypoint: m\ntemplates:\n- {name: m, dag: {tasks: [{name: a, template: c, " +
+			"onExit: {template: r, arguments: {parameters: [{name: s, value: '{{tasks.a.status}}'}]}}}]}}\n" + tmpl},
+		{name: "an unknown template", spec: "entrypoint: m\ntemplates:\n- {name: m, steps: [[{name: a, template: c, onExit: {template: nope}}]]}\n" + tmpl,
+			want: []string{`steps[0][0].onExit.template: Not found: "nope"`}},
+		{name: "a missing argument", spec: "entrypoint: m\ntemplates:\n- {name: m, steps: [[{name: a, template: c, onExit: {template: r}}]]}\n" + tmpl,
+			want: []string{`parameter "s" of template "r"`}},
+	}, true)
+}
