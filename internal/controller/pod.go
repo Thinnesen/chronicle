@@ -113,7 +113,9 @@ func mainContainerFor(t *v1alpha1.Template) (corev1.Container, bool) {
 	if t.Script != nil {
 		ct = &t.Script.ContainerTemplate
 		command = []string{"sh"}
-		env = append(env, corev1.EnvVar{Name: executor.EnvScript, Value: t.Script.Source})
+		for i, part := range executor.SplitScript(t.Script.Source) {
+			env = append(env, corev1.EnvVar{Name: executor.ScriptEnvName(i), Value: part})
+		}
 	}
 	if len(ct.Command) > 0 {
 		command = ct.Command

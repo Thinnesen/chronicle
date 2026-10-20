@@ -188,10 +188,12 @@ func (f *files) saveLog(ctx context.Context) error {
 	return f.store.Put(ctx, artifact.LogKey(f.spec.Prefix), f.log, size, "text/plain; charset=utf-8")
 }
 
-// childEnv returns the environment of the main command without the repository credentials.
+// childEnv returns the environment of the main command without the repository credentials and the script source,
+// which is in a file.
 func childEnv() []string {
 	return slices.DeleteFunc(os.Environ(), func(kv string) bool {
-		return strings.HasPrefix(kv, EnvAccessKey+"=") || strings.HasPrefix(kv, EnvSecretKey+"=") || strings.HasPrefix(kv, EnvArtifacts+"=")
+		return strings.HasPrefix(kv, EnvAccessKey+"=") || strings.HasPrefix(kv, EnvSecretKey+"=") || strings.HasPrefix(kv, EnvArtifacts+"=") ||
+			strings.HasPrefix(kv, EnvScript+"=") || strings.HasPrefix(kv, EnvScript+"_")
 	})
 }
 

@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -173,6 +174,25 @@ func cliSpecs() {
 			Eventually(func() (string, error) {
 				return utils.Run(exec.Command("kubectl", "get", "pvc", "-n", cliNS, "--ignore-not-found", "-o", "name"))
 			}).WithTimeout(time.Minute).WithPolling(2*time.Second).Should(BeEmpty(), "a run that succeeded deletes its claims")
+		})
+
+		It("runs a script larger than one environment variable can hold", func() {
+			// Linux refuses one environment variable larger than 128 KiB. The controller splits the source.
+			var src strings.Builder
+			for i := range 2500 {
+				fmt.Fprintf(&src, "# padding line %06d %s\n", i, strings.Repeat("x", 50))
+			}
+			src.WriteString("echo big-script-ran\n")
+			wf := map[string]any{"apiVersion": "chronicle.thinnesen.com/v1alpha1", "kind": "Workflow", "metadata": map[string]any{"name": "big-script"},
+				"spec": map[string]any{"entrypoint": "main", "templates": []any{map[string]any{"name": "main", "script": map[string]any{
+					"image": "busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e", "source": src.String()}}}}}
+			data, err := json.Marshal(wf)
+			Expect(err).NotTo(HaveOccurred())
+			file := filepath.Join(GinkgoT().TempDir(), "big-script.json")
+			Expect(os.WriteFile(file, data, 0o600)).To(Succeed())
+			out, err := chronicle("submit", "-f", file, "--watch")
+			Expect(err).NotTo(HaveOccurred(), out)
+			Expect(out).To(ContainSubstring("big-script Succeeded"))
 		})
 
 		It("runs a task in a worker of each SDK", func() {

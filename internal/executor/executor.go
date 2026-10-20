@@ -120,7 +120,7 @@ func fail(stderr io.Writer, err error) int {
 
 // addScript writes the script source next to the executor and adds its path as the last argument.
 func addScript(args []string) ([]string, error) {
-	src, ok := os.LookupEnv(EnvScript)
+	src, ok := readScript()
 	if !ok {
 		return args, nil
 	}
