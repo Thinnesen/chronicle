@@ -197,7 +197,7 @@ function Details({ node, namespace, mounts }: { node: NodeStatus; namespace: str
         {mounts?.length ? (
           <>
             <dt>Volumes</dt>
-            <dd>
+            <dd className="mounts">
               {mounts.map((m) => (
                 <div key={m.mountPath}>
                   {m.name} at <code>{m.mountPath}</code>

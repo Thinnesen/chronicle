@@ -226,3 +226,9 @@
   width: 0.875rem;
   height: 0.875rem;
 }
+
+/* Each mount is one entry. A long path wraps, so the entries need space between them. */
+.facts .mounts {
+  display: grid;
+  gap: var(--space-1);
+}
