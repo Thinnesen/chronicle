@@ -314,11 +314,13 @@ func TestGetChild(t *testing.T) {
 
 func TestSubmitAt(t *testing.T) {
 	s := &stub{}
-	out, err := run(t, s, "submit", "--from", "etl", "--at", "2026-10-21T03:00:00+02:00")
+	// A time in the future, with a zone, so that the CLI gives no warning and keeps the zone apart from UTC.
+	at := time.Now().Add(48 * time.Hour).Truncate(time.Second).In(time.FixedZone("UTC+2", 2*3600))
+	out, err := run(t, s, "submit", "--from", "etl", "--at", at.Format(time.RFC3339))
 	if err != nil || !strings.HasPrefix(out, "Submitted team-a/hello-abc. It starts at ") {
 		t.Fatalf("err %v, output %s", err, out)
 	}
-	if got := s.requests[0].(*chroniclev1.SubmitWorkflowRequest).StartAt.AsTime(); !got.Equal(time.Date(2026, 10, 21, 1, 0, 0, 0, time.UTC)) {
+	if got := s.requests[0].(*chroniclev1.SubmitWorkflowRequest).StartAt.AsTime(); !got.Equal(at) {
 		t.Errorf("start time = %v", got)
 	}
 	if _, err := run(t, s, "submit", "--from", "etl", "--at", "2h"); err != nil {
