@@ -92,20 +92,20 @@ Method: the GitHub issues of argoproj/argo-workflows, dagster-io/dagster and tem
 
 The ranked list, with the state of chronicle:
 
-1. Keep the failed attempts after a manual retry. Argo #13839 (r11). Done in 6174ab9: the archive keeps each try.
-2. Scripts larger than 128 KiB. Argo #7586 (r23). chronicle had the same bug. Fixed in a2591a8.
+1. Keep the failed attempts after a manual retry. Argo #13839 (r11). Done in d02ec2d: the archive keeps each try.
+2. Scripts larger than 128 KiB. Argo #7586 (r23). chronicle had the same bug. Fixed in 1546f4a.
 3. "Skip or replace when a run is busy" for runs that do not come from cron. Argo #12757 (r41), #13055 (r13), Dagster #15488 (r57), Temporal #7666 (r15). chronicle has wait (locks) and cron Forbid and Replace.
 4. Fairness across a namespace or the cluster: Pod limits, priority, Kueue. Argo #12363 (r46), #4561 (r15), Temporal #1507 (r55). chronicle has limits per run and per template only.
-5. S3 access without static keys (workload identity), and a custom CA. Argo #10597 (r39), #5446 (r20), #10560 (r20). The custom CA is done (9e6815c). Workload identity waits for an owner decision.
+5. S3 access without static keys (workload identity), and a custom CA. Argo #10597 (r39), #5446 (r20), #10560 (r20). The custom CA is done (c88abd6). Workload identity waits for an owner decision.
 6. Sensitive parameters that do not show in the status, the archive or the UI. Argo #5506 (r61), #8685 (r57). chronicle gap.
-7. Archive retention. Dagster #4497 (r27), Temporal #2617. Done in 94d54f6.
-8. The UI under a path prefix. Argo #3080 (r55), Dagster #17641 (r26), Temporal UI #576 (r18). Done in 2db231d.
+7. Archive retention. Dagster #4497 (r27), Temporal #2617. Done in 417bda8.
+8. The UI under a path prefix. Argo #3080 (r55), Dagster #17641 (r26), Temporal UI #576 (r18). Done in 9587b32.
 9. Backfill and one-time scheduled runs. Argo #2706 (r27), #10620 (r25). Backfill is done (chronicle cron backfill). One-time runs are done (startAt, chronicle submit --at).
 10. Workflow of workflows with links and stop propagation. Argo #6922 (r69), Temporal #680 (r76). Done: the childWorkflow template (Kestra Subflow and Temporal child workflows were the models).
 11. Four-eyes approval (the approver is not the submitter). Argo #12108 (r15), #12270 (r26), Dagster #8067 (r40). chronicle records the approver, not the rules.
-12. Task queue depth as a metric, for KEDA. Temporal #33 (r51). Done in 87ebf01.
+12. Task queue depth as a metric, for KEDA. Temporal #33 (r51). Done in dde8921.
 13. OpenTelemetry spans for runs and steps. Dagster #12353 (r138), #11191 (r84), Argo #12589 (r30). Runs and steps are done (spans when a run finishes, TRACEPARENT in each Pod, the traceparent of each task).
 14. One view across namespaces. Argo #9140 (r32), #6769 (r57). Done (the UI page /runs and chronicle list -A).
-15. Fail a step that cannot start after a time (pendingTimeout). Argo #10341 (r28). A bad image name fails at once (bcf2d5b). The node timeout also counts the pending time. Done: the timeout of a template covers the pendingTimeout use case.
+15. Fail a step that cannot start after a time (pendingTimeout). Argo #10341 (r28). A bad image name fails at once (8c098a1). The node timeout also counts the pending time. Done: the timeout of a template covers the pendingTimeout use case.
 
 chronicle already has what many users ask for: authentication and RBAC (Dagster #2219, r310, is still open), task workers against slow Pod starts (Argo discussion #7144), and no Pod patches (the Argo podSpecPatch advisories). Teams that left Argo named over-privileged service accounts and "YAML hell".

@@ -61,21 +61,21 @@ Smaller:
 - S20. (done; LAST uses the new status field `lastStartedTime`) `get` does not show global output artifacts. `cron list` LAST and NEXT texts. `list` hides "only in the archive" when the run has a message.
 - S21. (done; the missing edge did not come back on the current build) UI: at 390 px the graph is cut off on first render; a running graph does not refit; a missing edge from a nested DAG task; Tasks page icons and filters; a duration suspend uses the hand icon; "the depends condition is false" in steps; "soak-tlock, soak-tlock holds"; "<nil>: Invalid value" in a submit error; a foreign namespace URL keeps "demo" in the sidebar.
 
-## Soak test 2 findings (2026-10-20, build a19d3a9)
+## Soak test 2 findings (2026-10-20, build 30e579f)
 
-- T1. (done, b297640) HIGH. A run with a name over 63 characters and a Pod root node stays Pending: the root node ID is the run name, and it is a Pod label. Child run names add 9 characters for each level.
-- T2. (done, 0bdf6ef) MEDIUM. A childWorkflow argument that the child template does not declare is accepted without an error.
-- T3. (done, 6599b64) MEDIUM. The run page says "has not started yet" for a run that ended in Error before it started.
-- T4. (done, 92b1f60) MEDIUM. Lint accepts a negative duration (`-5s`). A bad `startAt` error has no field path in lint and submit.
-- T5. (done, 6599b64; the section links stay hidden on /runs, because they need one namespace) MEDIUM. With one namespace, the picker on /runs shows that namespace, not "All namespaces".
-- T6. (done, c0b0054) LOW. The depth error of nested child runs repeats the messages of all levels below.
-- T7. (done: "child of" in the list, 51d3a6f; child runs count in the totals on purpose) LOW. Child runs look like top-level runs in the lists (the UI marker came in 51d3a6f).
-- T8. (done for the output, c0b0054; the stop message is the same for all steps) LOW. Stop and timeout messages do not name the child run; a missing output does not name it.
-- T9. (done, b9428cf; suspend does not reach the child by design, documented) LOW. The delete dialog does not say that child runs go too. Suspend of the parent does not suspend the child.
-- T10. (done, 30cad48) LOW. `--at -5m` and `--at 0s` say "not a duration". A past time gives no warning. `rerun` prints "Started" for a waiting run.
-- T11. (done, 30cad48) LOW. `list --phase failed` (lower case) or an unknown phase gives an empty list without an error.
-- T12. (done, 3684e3b) LOW. A Forbid skip leaves no Event.
-- T13. (Started done, 6599b64; the graph centers the selected step when it does not fit at the smallest readable zoom, by design) LOW. The UI list "Started" shows the creation time for a run that never started. Fan-out nodes are cut at the right edge of the graph.
+- T1. (done, 32dcf2c) HIGH. A run with a name over 63 characters and a Pod root node stays Pending: the root node ID is the run name, and it is a Pod label. Child run names add 9 characters for each level.
+- T2. (done, ca5f0d4) MEDIUM. A childWorkflow argument that the child template does not declare is accepted without an error.
+- T3. (done, d47b530) MEDIUM. The run page says "has not started yet" for a run that ended in Error before it started.
+- T4. (done, a2e4f95) MEDIUM. Lint accepts a negative duration (`-5s`). A bad `startAt` error has no field path in lint and submit.
+- T5. (done, d47b530; the section links stay hidden on /runs, because they need one namespace) MEDIUM. With one namespace, the picker on /runs shows that namespace, not "All namespaces".
+- T6. (done, a799305) LOW. The depth error of nested child runs repeats the messages of all levels below.
+- T7. (done: "child of" in the list, da468b8; child runs count in the totals on purpose) LOW. Child runs look like top-level runs in the lists (the UI marker came in da468b8).
+- T8. (done for the output, a799305; the stop message is the same for all steps) LOW. Stop and timeout messages do not name the child run; a missing output does not name it.
+- T9. (done, 7363fd4; suspend does not reach the child by design, documented) LOW. The delete dialog does not say that child runs go too. Suspend of the parent does not suspend the child.
+- T10. (done, 64db103) LOW. `--at -5m` and `--at 0s` say "not a duration". A past time gives no warning. `rerun` prints "Started" for a waiting run.
+- T11. (done, 64db103) LOW. `list --phase failed` (lower case) or an unknown phase gives an empty list without an error.
+- T12. (done, 637a79a) LOW. A Forbid skip leaves no Event.
+- T13. (Started done, d47b530; the graph centers the selected step when it does not fit at the smallest readable zoom, by design) LOW. The UI list "Started" shows the creation time for a run that never started. Fan-out nodes are cut at the right edge of the graph.
 
 ## Later (do not start in this run)
 
