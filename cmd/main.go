@@ -224,6 +224,7 @@ func main() {
 		defer store.Close()
 		workflows.Archive = store
 		workflows.Tasks = store
+		workflows.TaskEvents = store
 		workflows.Cache = store
 		ctrlmetrics.Registry.MustRegister(controller.NewQueueCollector(store))
 		if archiveRetention > 0 {

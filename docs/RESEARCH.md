@@ -121,3 +121,17 @@ chronicle already has what many users ask for: authentication and RBAC (Dagster 
 - Community files: Argo Workflows has CONTRIBUTING, SECURITY (private GitHub security advisories), CODE_OF_CONDUCT,
   CODEOWNERS, issue forms with blank issues off, and a pull request checklist. chronicle has the same set, sized for a
   small project.
+
+## Wake-ups of the task queue (River, Hatchet, Oban, 2026-10-22)
+
+A chain of task steps waited for two polls on each step: the poll of the queue in the server (1 s) and the check of
+open tasks in the controller (2 s).
+
+- River (`riverdriver/riverpgxv5`) sends `pg_notify` when it inserts a job, and its producers also poll
+  (`FetchPollInterval`). A lost notification only delays a job.
+- Hatchet (`pkg/repository/mq.go`) runs its Postgres message queue with one multiplexed `LISTEN` connection for each
+  process.
+- Oban creates `pg_notify` triggers in its migrations and keeps a poll as a fallback.
+
+chronicle does the same: `pg_notify` in the statement that adds a task or stores a result, one `LISTEN` connection
+outside the pool for each process, and the old polls as the fallback.

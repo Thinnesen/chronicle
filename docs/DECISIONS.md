@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-22: The task queue sends PostgreSQL notifications (`LISTEN`/`NOTIFY`). A new task wakes the long polls of its queue in the server. A result wakes its run in the controller. The polls stay as a fallback for lost notifications: 1 s in the server, 2 s in the controller. Reason: a chain of 10 task steps took 20 s, nearly all of it in the polls. River, Oban and Hatchet also wake Postgres queues with notifications and keep a poll.
+
 - 2026-10-20: A run lock can have `whenBusy: Skip`. When the lock is full, the run ends as Succeeded with the condition `Skipped` and the message "skipped: the lock ... is busy". A lost race for the lock is not full, so it does not skip. Succeeded, not a new phase, keeps alerts on Failed quiet and needs no change of the API clients and the metrics. The owner can still choose a phase Skipped. Only run locks have it, because a skipped node has no clear meaning for the steps after it.
 
 - 2026-10-20: A list of all namespaces uses one cluster-wide list when the caller may list Workflows in the whole cluster, for example a platform admin. Then the limit of 100 namespaces does not apply. Other callers keep the list for each namespace, as the caller.

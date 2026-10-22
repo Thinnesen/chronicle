@@ -26,7 +26,8 @@ type TaskStore interface {
 }
 
 const (
-	// longPoll is the longest wait of PollTask, and pollEvery the wait between two reads of the queue.
+	// longPoll is the longest wait of PollTask, and pollEvery the wait between two reads of the queue. A notification
+	// of a new task ends the wait sooner.
 	longPoll  = 30 * time.Second
 	pollEvery = time.Second
 	// workerCacheTTL is how long the server keeps an access decision for a worker.
@@ -39,6 +40,7 @@ const (
 type taskService struct {
 	workflows *workflowService
 	store     TaskStore
+	wake      *TaskWake // or nil: then only the poll of the database finds new tasks
 	drain     <-chan struct{}
 
 	mu      sync.Mutex
@@ -60,6 +62,7 @@ func (s *taskService) PollTask(ctx context.Context, req *connect.Request[chronic
 	ctx, cancel := context.WithTimeout(ctx, longPoll)
 	defer cancel()
 	for {
+		woken := s.wake.wait(m.Namespace, queue)
 		task, lease, err := s.store.Poll(ctx, m.Namespace, queue, m.Names, m.Worker)
 		if err != nil && ctx.Err() == nil {
 			return nil, connect.NewError(connect.CodeUnavailable, err)
@@ -75,6 +78,7 @@ func (s *taskService) PollTask(ctx context.Context, req *connect.Request[chronic
 			return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
 		case <-s.drain:
 			return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
+		case <-woken:
 		case <-time.After(pollEvery):
 		}
 	}

@@ -96,9 +96,13 @@ func main() {
 	}
 	drain := make(chan struct{})
 	apiOpts := server.Options{Config: restConfig, Scheme: scheme, Authenticators: authn, Drain: drain}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
 	if store != nil {
 		apiOpts.Archive = store
 		apiOpts.Tasks = store
+		apiOpts.TaskWake = server.NewTaskWake()
+		go func() { _ = store.ListenTaskQueued(ctrl.LoggerInto(ctx, log), apiOpts.TaskWake.Notify) }()
 	}
 	if telemetry.Enabled() {
 		tracing, err := otelconnect.NewInterceptor()
@@ -138,8 +142,6 @@ func main() {
 		IdleTimeout:       2 * time.Minute,
 		MaxHeaderBytes:    64 << 10,
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	defer stop()
 	go func() {
 		<-ctx.Done()
 		close(drain)

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func newTask(i int) NewTask {
@@ -132,5 +133,52 @@ func TestCompleteKinds(t *testing.T) {
 	tasks, err := s.ForWorkflow(ctx, task.WorkflowUID)
 	if err != nil || len(tasks) != 1 || tasks[0].State != TaskError || tasks[0].Message != "the address is invalid" {
 		t.Errorf("tasks = %+v, %v", tasks, err)
+	}
+}
+
+// TestTaskNotifications covers the wake-ups: a new task notifies its queue, a result notifies its workflow, and a
+// second enqueue of the same task notifies nobody.
+func TestTaskNotifications(t *testing.T) {
+	s := openTest(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	got := make(chan string, 8)
+	go func() {
+		_ = s.ListenTaskQueued(ctx, func(ns, queue string) { got <- "queued " + ns + "/" + queue })
+	}()
+	go func() {
+		_ = s.ListenTaskDone(ctx, func(ns, wf string) { got <- "done " + ns + "/" + wf })
+	}()
+	for {
+		var n int
+		if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE query LIKE 'LISTEN chronicle_task_%'`).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n >= 2 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	for range 2 {
+		if err := s.Enqueue(ctx, newTask(0)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	task, lease, err := s.Poll(ctx, "team-a", "default", []string{"greet"}, "w1")
+	if err != nil || task == nil {
+		t.Fatalf("poll: %v %v", task, err)
+	}
+	if err := s.Complete(ctx, "team-a", task.ID, lease, `{}`, "", false); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"queued team-a/default", "done team-a/wf"} {
+		select {
+		case msg := <-got:
+			if msg != want {
+				t.Errorf("notification %q, want %q", msg, want)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatalf("no notification %q", want)
+		}
 	}
 }

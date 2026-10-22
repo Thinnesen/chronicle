@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
@@ -41,6 +42,8 @@ type WorkflowReconciler struct {
 	Archive Archiver
 	// Tasks is the task queue of the task templates, or nil without the archive database.
 	Tasks TaskQueue
+	// TaskEvents wakes a run when one of its tasks has a result, or is nil.
+	TaskEvents TaskEvents
 	// Cache keeps the results of templates with memoize, or is nil without the archive database.
 	Cache StepCache
 	// Tracer records the spans of finished runs, or is nil without traces.
@@ -56,7 +59,7 @@ type WorkflowReconciler struct {
 	MaxObjectBytes int
 
 	created createdPods
-	// wake queues runs that wait for a lock, when a holder gives the lock back.
+	// wake queues runs that a lock or a task result wakes.
 	wake chan event.GenericEvent
 }
 
@@ -368,9 +371,18 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 }
 
 // SetupWithManager sets up the controller with the Manager. It watches the Pods that the controller owns, and the
-// runs that a lock wakes.
+// runs that a lock or a task result wakes.
 func (r *WorkflowReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.wake = make(chan event.GenericEvent, wakeBuffer)
+	if r.TaskEvents != nil {
+		// A runnable of the manager runs only on the leader, like the reconciler.
+		listen := manager.RunnableFunc(func(ctx context.Context) error {
+			return r.TaskEvents.ListenTaskDone(ctrl.LoggerInto(ctx, mgr.GetLogger().WithName("tasks")), r.wakeRun)
+		})
+		if err := mgr.Add(listen); err != nil {
+			return fmt.Errorf("add the listener of the task results: %w", err)
+		}
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&chroniclev1alpha1.Workflow{}).
 		Owns(&corev1.Pod{}).

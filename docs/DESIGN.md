@@ -200,7 +200,7 @@ Security is the first priority. The main risks and the controls:
 
 A `task` template sends a task to a queue. A worker that an SDK runs takes the task, runs a function and returns the result.
 
-- Transport: the server API (gRPC streaming). Workers poll with long polls.
+- Transport: the server API (gRPC streaming). Workers poll with long polls. PostgreSQL notifications wake the polls when a task arrives, and wake the run when a task has a result.
 - At-least-once with task IDs for idempotency. Heartbeats. Timeouts (schedule-to-start, start-to-close, heartbeat). Retries with the template `retryStrategy`.
 - State: the task queue is in the archive database. Without a database, `task` templates are not available.
 - The SDKs give a small API: `@task` (Python), `task!` or a trait (Rust), `RegisterTask` (Go).

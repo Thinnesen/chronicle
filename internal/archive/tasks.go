@@ -59,8 +59,11 @@ func scanTask(row pgx.Row) (Task, error) {
 
 // Enqueue puts a task into the queue. A second enqueue of the same ID does nothing.
 func (s *Store) Enqueue(ctx context.Context, t NewTask) error {
-	_, err := s.pool.Exec(ctx, `INSERT INTO tasks (id, namespace, workflow_uid, workflow, node_id, node_name, idempotency_key, queue, name, input, traceparent)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11) ON CONFLICT (id) DO NOTHING`,
+	// The notification wakes the long polls of the queue. PostgreSQL sends it at the commit.
+	_, err := s.pool.Exec(ctx, `WITH added AS (
+		INSERT INTO tasks (id, namespace, workflow_uid, workflow, node_id, node_name, idempotency_key, queue, name, input, traceparent)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11) ON CONFLICT (id) DO NOTHING RETURNING namespace, queue)
+		SELECT pg_notify('`+channelTaskQueued+`', namespace || '/' || queue) FROM added`,
 		t.ID, t.Namespace, t.WorkflowUID, t.Workflow, t.NodeID, t.NodeName, t.IdempotencyKey, t.Queue, t.Name, t.Input, t.Traceparent)
 	if err != nil {
 		return fmt.Errorf("enqueue the task %s: %w", t.ID, err)
@@ -144,12 +147,17 @@ func (s *Store) Complete(ctx context.Context, namespace, id, lease, output, fail
 	case !json.Valid([]byte(output)):
 		return fmt.Errorf("the result is not JSON")
 	}
-	tag, err := s.pool.Exec(ctx, `UPDATE tasks SET state = $5, output = $6::jsonb, message = $7, finished_at = now(), lease = ''
-		WHERE id = $1 AND namespace = $2 AND state = $3 AND lease = $4`, id, namespace, TaskRunning, lease, state, out, failure)
+	// The notification wakes the controller, so that the run goes on at once.
+	var stored int
+	err := s.pool.QueryRow(ctx, `WITH done AS (
+		UPDATE tasks SET state = $5, output = $6::jsonb, message = $7, finished_at = now(), lease = ''
+		WHERE id = $1 AND namespace = $2 AND state = $3 AND lease = $4 RETURNING namespace, workflow)
+		SELECT count(pg_notify('`+channelTaskDone+`', namespace || '/' || workflow)) FROM done`,
+		id, namespace, TaskRunning, lease, state, out, failure).Scan(&stored)
 	if err != nil {
 		return fmt.Errorf("store the result: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
+	if stored == 0 {
 		return ErrLeaseLost
 	}
 	return nil

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/archive"
@@ -19,6 +20,21 @@ type TaskQueue interface {
 	Enqueue(ctx context.Context, t archive.NewTask) error
 	Cancel(ctx context.Context, id, reason string) error
 	ForWorkflow(ctx context.Context, workflowUID string) ([]archive.Task, error)
+}
+
+// TaskEvents tells when a task of a run has a result, so that the run goes on at once. The archive database
+// implements it. The check of open tasks every taskPollInterval stays as a fallback for lost notifications.
+type TaskEvents interface {
+	ListenTaskDone(ctx context.Context, fn func(namespace, workflow string)) error
+}
+
+// wakeRun queues a run for a reconcile.
+func (r *WorkflowReconciler) wakeRun(namespace, name string) {
+	wf := &chroniclev1alpha1.Workflow{Namespace: namespace, Name: name}
+	select {
+	case r.wake <- event.GenericEvent{Object: wf}:
+	default: // The queue is full. The poll of the task wakes the run later.
+	}
 }
 
 // observeTasks returns the state of the tasks of a workflow by task ID.
