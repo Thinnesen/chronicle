@@ -1,3 +1,4 @@
+// Command manager runs the chronicle controller: the reconcilers, the admission webhooks and the metrics.
 package main
 
 import (

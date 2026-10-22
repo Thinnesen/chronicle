@@ -35,6 +35,33 @@ linters:
           deny:
             - pkg: sort
               desc: Should be replaced with slices package
+        # The core packages are pure logic: they take data and return decisions, so table tests and fuzzing cover them.
+        # The controller, the server and the CLI do the I/O.
+        pure-core:
+          files:
+            - "**/internal/engine/**"
+            - "**/internal/validate/**"
+            - "**/internal/expr/**"
+            - "**/internal/manifest/**"
+            - "**/internal/schedule/**"
+            - "**/internal/resolve/**"
+            - "**/internal/convert/**"
+            - "!$test"
+          deny:
+            - pkg: k8s.io/client-go
+              desc: The core packages do no I/O. Do it in the controller or the server.
+            - pkg: sigs.k8s.io/controller-runtime
+              desc: The core packages do no I/O. Do it in the controller or the server.
+            - pkg: net/http
+              desc: The core packages do no I/O. Do it in the controller or the server.
+            - pkg: os/exec
+              desc: The core packages do no I/O. Do it in the controller or the server.
+            - pkg: github.com/jackc/pgx
+              desc: The core packages do no I/O. Use the archive from the controller or the server.
+            - pkg: github.com/Thinnesen/chronicle/internal/controller
+              desc: The core packages must not depend on the controller.
+            - pkg: github.com/Thinnesen/chronicle/internal/server
+              desc: The core packages must not depend on the server.
     revive:
       rules:
         - name: comment-spacings
