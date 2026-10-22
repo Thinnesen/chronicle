@@ -297,21 +297,6 @@ func startAt(t *time.Time) *timestamppb.Timestamp {
 	return timestamppb.New(*t)
 }
 
-func TestGetWaiting(t *testing.T) {
-	at := time.Date(2026, 10, 21, 3, 0, 0, 0, time.UTC)
-	out, err := run(t, &stub{phase: "Pending", startAt: &at}, "get", "later")
-	if err != nil || !strings.Contains(out, "Starts:    "+at.Local().Format(time.DateTime)) {
-		t.Errorf("err %v, output:\n%s", err, out)
-	}
-}
-
-func TestGetChild(t *testing.T) {
-	out, err := run(t, &stub{phase: "Running", child: true}, "get", "nightly")
-	if err != nil || !strings.Contains(out, "Parent:    release-q4") || !strings.Contains(out, "child run nightly-0a1b2c3d") {
-		t.Errorf("err %v, output:\n%s", err, out)
-	}
-}
-
 func TestSubmitAt(t *testing.T) {
 	s := &stub{}
 	// A time in the future, with a zone, so that the CLI gives no warning and keeps the zone apart from UTC.

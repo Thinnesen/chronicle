@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -25,13 +26,6 @@ func TestApproveTheWaitingNode(t *testing.T) {
 		if _, err := run(t, &stub{phase: "Running", gates: gates}, "approve", "deploy"); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%d waiting nodes: %v, want %q", gates, err, want)
 		}
-	}
-}
-
-func TestGetNamesTheApproveCommand(t *testing.T) {
-	out, err := run(t, &stub{phase: "Running", gates: 1}, "get", "deploy")
-	if err != nil || !strings.Contains(out, "chronicle approve deploy --namespace team-a") {
-		t.Errorf("get: %q %v", out, err)
 	}
 }
 
@@ -78,13 +72,6 @@ func TestListWithoutTheArchive(t *testing.T) {
 	}
 }
 
-func TestGetShowsTheOutputs(t *testing.T) {
-	out, err := run(t, &stub{phase: "Succeeded"}, "get", "release")
-	if err != nil || !strings.Contains(out, "Outputs:   version=1.4.2") || !strings.Contains(out, "Artifacts: report") {
-		t.Errorf("get: %q %v", out, err)
-	}
-}
-
 func TestGetShowsTheEarlierTries(t *testing.T) {
 	st := &stub{phase: "Succeeded", tries: []*chroniclev1.Try{{Number: 0, Phase: "Failed"}}}
 	out, err := run(t, st, "get", "release")
@@ -98,9 +85,30 @@ func TestGetShowsTheEarlierTries(t *testing.T) {
 	}
 }
 
-func TestGetShowsTheExitHandler(t *testing.T) {
-	out, err := run(t, &stub{phase: "Failed", exitHandler: true}, "get", "release")
-	if err != nil || !strings.Contains(out, "release.onExit") || !strings.Contains(out, "notify failed") {
-		t.Errorf("get: %q %v", out, err)
+func TestGetShows(t *testing.T) {
+	at := time.Date(2026, 10, 21, 3, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name string
+		stub *stub
+		want []string
+	}{
+		{"the approve command", &stub{phase: "Running", gates: 1}, []string{"chronicle approve release --namespace team-a"}},
+		{"the outputs", &stub{phase: "Succeeded"}, []string{"Outputs:   version=1.4.2", "Artifacts: report"}},
+		{"the exit handler", &stub{phase: "Failed", exitHandler: true}, []string{"release.onExit", "notify failed"}},
+		{"the start time", &stub{phase: "Pending", startAt: &at}, []string{"Starts:    " + at.Local().Format(time.DateTime)}},
+		{"the parent and the child", &stub{phase: "Running", child: true}, []string{"Parent:    release-q4", "child run release-0a1b2c3d"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := run(t, tt.stub, "get", "release")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(out, want) {
+					t.Errorf("no %q in:\n%s", want, out)
+				}
+			}
+		})
 	}
 }
