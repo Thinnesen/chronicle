@@ -108,7 +108,7 @@ The ranked list, with the state of chronicle:
 14. One view across namespaces. Argo #9140 (r32), #6769 (r57). Done (the UI page /runs and chronicle list -A).
 15. Fail a step that cannot start after a time (pendingTimeout). Argo #10341 (r28). A bad image name fails at once (8c098a1). The node timeout also counts the pending time. Done: the timeout of a template covers the pendingTimeout use case.
 
-chronicle already has what many users ask for: authentication and RBAC (Dagster #2219, r310, is still open), task workers against slow Pod starts (Argo discussion #7144), and no Pod patches (the Argo podSpecPatch advisories). Teams that left Argo named over-privileged service accounts and "YAML hell".
+chronicle already has what many users ask for: authentication and RBAC (Dagster #2219, r310, is still open), task workers against slow Pod starts (Argo discussion #7144), and no Pod patches (the Argo podSpecPatch advisories).
 
 ## Releases and community files (Argo Workflows, Temporal, Hatchet, Dagster, Kestra, 2026-10-22)
 
