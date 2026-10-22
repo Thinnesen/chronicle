@@ -86,7 +86,7 @@ func main() {
 	var executorImageVolume bool
 	var workflowWorkers int
 	var archiveRetention time.Duration
-	flag.IntVar(&workflowWorkers, "workflow-workers", 8,
+	flag.IntVar(&workflowWorkers, "workflow-workers", 32,
 		"The number of runs that the controller reconciles at the same time.")
 	flag.StringVar(&archiveDSNFile, "archive-dsn-file", "",
 		"A file with the PostgreSQL DSN of the archive. Without it, runs are not archived.")

@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-22: The controller reconciles 32 runs at the same time by default (`--workflow-workers`), not 8. One run is still never reconciled twice at the same time. Reason: with 20 runs of task steps at once, the runs waited in the queue while each reconcile waited for the API server. The burst took 13.3 s with 8 workers and 9.2 s with 32 on the demo cluster. Argo Workflows also uses 32 workflow workers by default.
+
 - 2026-10-22: Workflow Pods run `chronicle-exec` from an image volume of the chronicle image (GA in Kubernetes 1.37). A Pod without input artifacts has no init container. The Helm value `manager.executorImageVolume: false` brings back the init container for older container runtimes. Reason: the init container added one container start and a 40 MB copy to each step. On the demo cluster, a step took 6.3 s with it and 5.0 s without it. Argo still uses an init container and a wait sidecar.
 
 - 2026-10-22: The task queue sends PostgreSQL notifications (`LISTEN`/`NOTIFY`). A new task wakes the long polls of its queue in the server. A result wakes its run in the controller. The polls stay as a fallback for lost notifications: 1 s in the server, 2 s in the controller. Reason: a chain of 10 task steps took 20 s, nearly all of it in the polls. River, Oban and Hatchet also wake Postgres queues with notifications and keep a poll.

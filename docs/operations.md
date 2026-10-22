@@ -87,7 +87,7 @@ Runs continue during an upgrade. The engine reads all state from the Workflow st
 
 ## 9. Sizing
 
-The defaults fit small and medium clusters. Raise `manager.resources` for many active runs, because the controller keeps the Workflows and their Pods in its cache. The controller works on 8 runs at the same time; for many active runs, add `--workflow-workers=<n>` to `manager.args`. Use `podGC` and `ttlStrategy` in your templates, so that finished Pods and Workflows do not pile up.
+The defaults fit small and medium clusters. Raise `manager.resources` for many active runs, because the controller keeps the Workflows and their Pods in its cache. The controller works on 32 runs at the same time; for many more active runs, add `--workflow-workers=<n>` to `manager.args`. Use `podGC` and `ttlStrategy` in your templates, so that finished Pods and Workflows do not pile up.
 
 Each step is a Pod. So a burst of many steps loads the kubelet and the container runtime of the nodes more than the controller. On a small node, 120 Pods at once took minutes each to start. Limit large fan-outs with `parallelism`. Limit many runs of one template with a `synchronization.semaphore`.
 
