@@ -13,3 +13,4 @@ keywords:
 
 annotations:
   kubebuilder.io/generated-by: kubebuilder
+  artifacthub.io/license: Apache-2.0
