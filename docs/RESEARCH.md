@@ -109,3 +109,15 @@ The ranked list, with the state of chronicle:
 15. Fail a step that cannot start after a time (pendingTimeout). Argo #10341 (r28). A bad image name fails at once (8c098a1). The node timeout also counts the pending time. Done: the timeout of a template covers the pendingTimeout use case.
 
 chronicle already has what many users ask for: authentication and RBAC (Dagster #2219, r310, is still open), task workers against slow Pod starts (Argo discussion #7144), and no Pod patches (the Argo podSpecPatch advisories). Teams that left Argo named over-privileged service accounts and "YAML hell".
+
+## Releases and community files (Argo Workflows, Temporal, Hatchet, Dagster, Kestra, 2026-10-22)
+
+- CLI binaries: Temporal and Hatchet build them with GoReleaser (archives, checksums, version through ldflags,
+  reproducible file times). chronicle does the same.
+- Images: Argo Workflows builds them with `docker buildx` and signs images and checksums with cosign. chronicle builds
+  one multi-platform image with buildx (the build stages cross-compile, so no emulation), with SBOM and provenance
+  attestations, and signs it keyless with cosign. The chart goes to ghcr.io as an OCI artifact.
+- All of them pin GitHub Actions by commit SHA.
+- Community files: Argo Workflows has CONTRIBUTING, SECURITY (private GitHub security advisories), CODE_OF_CONDUCT,
+  CODEOWNERS, issue forms with blank issues off, and a pull request checklist. chronicle has the same set, sized for a
+  small project.
