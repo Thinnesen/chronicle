@@ -18,7 +18,7 @@ const pages = [
 ];
 
 for (const scheme of ["light", "dark"] as const) {
-  test(`has no accessibility violations in ${scheme} mode`, async ({ page }) => {
+  test(`has no accessibility violations in ${scheme} mode`, { tag: "@phone" }, async ({ page }) => {
     // The test checks many pages, which takes longer than one page test, most of all in Firefox under load.
     test.setTimeout(90_000);
     await page.emulateMedia({ colorScheme: scheme });

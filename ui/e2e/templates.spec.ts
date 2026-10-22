@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 
 import { mockAPI, openMenu } from "./mock";
 
-test("starts a run from a template with parameters", async ({ page }) => {
+test("starts a run from a template with parameters", { tag: "@phone" }, async ({ page }) => {
   const calls = await mockAPI(page);
   await page.goto("/ns/team-a");
   await openMenu(page);
@@ -52,7 +52,7 @@ test("shows cron schedules and suspends one", async ({ page }) => {
 });
 
 for (const scheme of ["light", "dark"] as const) {
-  test(`renders a template and a cron workflow in ${scheme} mode`, async ({ page }, info) => {
+  test(`renders a template and a cron workflow in ${scheme} mode`, { tag: "@phone" }, async ({ page }, info) => {
     await page.emulateMedia({ colorScheme: scheme });
     await mockAPI(page);
     await page.goto("/ns/team-a/templates/deploy-api");

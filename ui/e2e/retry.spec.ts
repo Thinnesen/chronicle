@@ -62,7 +62,7 @@ test("an archived run offers only a re-run", async ({ page }) => {
   await expect(page.getByRole("row", { name: /backfill-2026-10/ }).getByText("Archived")).toBeVisible();
 });
 
-test("shows an earlier try of a retried run", async ({ page }, info) => {
+test("shows an earlier try of a retried run", { tag: "@phone" }, async ({ page }, info) => {
   const calls = await mockAPI(page, { runPhase: "Succeeded" });
   // The archive keeps the first try, which failed. Routes added later win.
   await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => {

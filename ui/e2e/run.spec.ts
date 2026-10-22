@@ -30,7 +30,7 @@ test("shows the run as a graph and a timeline, and selects a node in both", asyn
   await expect(page.getByRole("complementary", { name: "Step fetch" })).toBeVisible();
 });
 
-test("finds runs by name and by phase", async ({ page }, info) => {
+test("finds runs by name and by phase", { tag: "@phone" }, async ({ page }, info) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
   await expect(page.getByRole("row", { name: /deploy-api-x7c1m/ }).getByText("Needs approval")).toBeVisible();
@@ -94,7 +94,7 @@ test("loads older runs on request", async ({ page }) => {
 });
 
 for (const scheme of ["light", "dark"] as const) {
-  test(`renders a finished run in ${scheme} mode`, async ({ page }, info) => {
+  test(`renders a finished run in ${scheme} mode`, { tag: "@phone" }, async ({ page }, info) => {
     await page.emulateMedia({ colorScheme: scheme });
     await mockAPI(page, { runPhase: "Succeeded" });
     await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n3");

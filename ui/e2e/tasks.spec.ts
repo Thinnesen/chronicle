@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 
 import { mockAPI, openMenu } from "./mock";
 
-test("lists the tasks of the queue and filters them by state", async ({ page }, info) => {
+test("lists the tasks of the queue and filters them by state", { tag: "@phone" }, async ({ page }, info) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
   await openMenu(page);

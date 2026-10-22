@@ -25,7 +25,7 @@ test("lets the user choose a namespace and shows its runs", async ({ page }) => 
   await expect(page).toHaveTitle("Runs in team-a - chronicle");
 });
 
-test("lists the runs of all namespaces", async ({ page }, info) => {
+test("lists the runs of all namespaces", { tag: "@phone" }, async ({ page }, info) => {
   await mockAPI(page);
   await page.goto("/");
   await page.getByRole("link", { name: "All namespaces" }).click();
@@ -57,7 +57,7 @@ test("opens the only namespace at once", async ({ page }) => {
   await expect(page).toHaveURL(/\/ns\/team-a$/);
 });
 
-test("switches the theme and keeps it", async ({ page }) => {
+test("switches the theme and keeps it", { tag: "@phone" }, async ({ page }) => {
   await mockAPI(page);
   await page.goto("/ns/team-a");
   await openMenu(page);
@@ -68,7 +68,7 @@ test("switches the theme and keeps it", async ({ page }) => {
 });
 
 for (const scheme of ["light", "dark"] as const) {
-  test(`renders the runs board in ${scheme} mode`, async ({ page }, info) => {
+  test(`renders the runs board in ${scheme} mode`, { tag: "@phone" }, async ({ page }, info) => {
     await page.emulateMedia({ colorScheme: scheme });
     await mockAPI(page);
     await page.goto("/ns/team-a");

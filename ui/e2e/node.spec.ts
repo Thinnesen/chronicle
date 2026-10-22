@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 
 import { errorStream, mockAPI } from "./mock";
 
-test("shows the live log of a node and filters it", async ({ page }, info) => {
+test("shows the live log of a node and filters it", { tag: "@phone" }, async ({ page }, info) => {
   await mockAPI(page);
   await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n1");
   const panel = page.getByRole("complementary", { name: "Step fetch" });
@@ -46,7 +46,7 @@ test("lists the attempts of a retried node", async ({ page }) => {
   await expect(attempt.locator("dt", { hasText: "Exit code" }).locator("+ dd")).toHaveText("137");
 });
 
-test("shows the archived log and the artifacts of a node", async ({ page }, info) => {
+test("shows the archived log and the artifacts of a node", { tag: "@phone" }, async ({ page }, info) => {
   await mockAPI(page, { archived: true, runPhase: "Succeeded" });
   await page.goto("/ns/team-a/runs/etl-nightly-8k2pq?node=n1");
   const panel = page.getByRole("complementary", { name: "Step fetch" });

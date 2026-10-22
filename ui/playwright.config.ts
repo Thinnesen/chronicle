@@ -12,9 +12,11 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
+  // All tests run on the desktop. On the phone, only the tests tagged @phone run: they cover the layout of the phone
+  // (the menu drawer, the card list, the node panel), the screenshots and accessibility. The logic is the same.
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "phone", use: { ...devices["Pixel 7"] } },
+    { name: "phone", use: { ...devices["Pixel 7"] }, grep: /@phone/ },
   ],
   // The shim starts vite directly. Through "pnpm exec", the stop signal did not reach vite, and CI waited for 10 minutes.
   webServer: {
