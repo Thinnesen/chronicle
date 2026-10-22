@@ -1,0 +1,19 @@
+name: Feature request
+description: Propose a new feature or a change of behavior.
+type: Feature
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+      description: Describe your use case. A use case helps more than a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What do you propose?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?

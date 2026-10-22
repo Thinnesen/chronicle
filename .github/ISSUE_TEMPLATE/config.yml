@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/Thinnesen/chronicle#docs
+    about: Many answers are in the docs.
+  - name: Report a security problem
+    url: https://github.com/Thinnesen/chronicle/security/advisories/new
+    about: Report a vulnerability privately, not in a public issue.

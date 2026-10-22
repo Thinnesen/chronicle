@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a bug that you can reproduce. For a security problem, use a private security advisory instead.
+type: Bug
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you report
+      options:
+        - label: I searched the existing issues and found no match.
+          required: true
+        - label: I can reproduce the bug with the latest release.
+          required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: chronicle version
+      description: The version of the chart or the image, and of the CLI if you used it (`chronicle --version`).
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: A minimal workflow that reproduces the bug
+      description: We must be able to run it. Do not use private images.
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs of the controller and the server
+      description: Remove tokens and other secrets before you paste.
+      render: text
+      value: |
+        kubectl logs --namespace chronicle-system deploy/chronicle-controller-manager --tail=200
+        kubectl logs --namespace chronicle-system deploy/chronicle-server --tail=200
+  - type: input
+    id: kubernetes
+    attributes:
+      label: Kubernetes version and distribution
+      placeholder: 1.35, EKS

@@ -159,22 +159,24 @@ flowchart LR
   Pods --> S3
 ```
 
-## Roadmap
+## Status
 
-| Milestone | Scope |
-|---|---|
-| [M1 Engine core](https://github.com/Thinnesen/chronicle/milestone/1) | API, DAG and steps engine, Pods, retries, timeouts, exit handlers, suspend and approve |
-| [M2 Scheduling and templates](https://github.com/Thinnesen/chronicle/milestone/2) | CronWorkflow, template references, cluster templates |
-| [M3 Server, login and CLI](https://github.com/Thinnesen/chronicle/milestone/3) | Connect-RPC API, OIDC, RBAC through SubjectAccessReview, CLI, logs, audit |
-| [M4 Web UI](https://github.com/Thinnesen/chronicle/milestone/4) | Runs, live DAG graph, logs, actions, templates, cron |
-| [M5 History and re-runs](https://github.com/Thinnesen/chronicle/milestone/5) | PostgreSQL archive, retry from step, re-run, artifacts |
-| [M6 SDKs and Argo migration](https://github.com/Thinnesen/chronicle/milestone/6) | Go, Python and Rust SDKs, `chronicle convert` |
-| [M7 Durable task workers](https://github.com/Thinnesen/chronicle/milestone/7) | Task queue, workers with heartbeats and timeouts |
-| [M8 Release readiness](https://github.com/Thinnesen/chronicle/milestone/8) | Helm chart, app-of-apps example, observability, e2e, security review |
+chronicle 0.1.0 is the first public release. The API is `v1alpha1`: it can still change in a minor release, and the
+release notes describe each change.
+
+Next on the roadmap:
+
+- Durable workflow code with deterministic replay, in addition to task workers.
+- Event triggers: webhooks, message queues and object store events.
+- Edits of GitOps-managed resources from the UI as pull requests.
+- Runs across clusters.
+
+Ideas and feedback are welcome in the [issues](https://github.com/Thinnesen/chronicle/issues).
 
 ## Development
 
-Run `make test lint` before a change. For the UI, run `pnpm lint`, `pnpm typecheck` and `pnpm test` in `ui/`. Docs, comments and commits use ASD-STE100 Simplified Technical English.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the tests and the conventions. Report security problems as
+described in [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -91,7 +91,7 @@ One entry for each design change. Newest first.
 - 2026-10-19: The Python and Rust SDKs are hand-written builders that make plain objects. They have no generated types and no runtime dependencies. The Python client uses only the standard library. The server validates a workflow when it gets it. A shared test fixture keeps the output of the three SDKs equal. Reason: generated CRD types are large and need a generator and dependencies. They give little to a builder API. Section 6 said that the SDKs generate their workflow types from the CRD schema.
 
 - 2026-10-19: Each namespace has one S3-compatible artifact repository, from a ConfigMap and a Secret with a fixed name. The value of an artifact is its key. The archived log is the node field `logKey`, not an artifact. Reason: a team owns its storage and its credentials. The fixed name lets the server read only these Secrets. Keys use the same flow in the engine as parameters. Argo has more storage drivers and a default repository in the controller ConfigMap. chronicle supports only S3 for now.
-- 2026-10-19: The e2e tests use SeaweedFS as the S3 store, not MinIO. Reason: MinIO no longer publishes container images. Issue #25 named MinIO.
+- 2026-10-19: The e2e tests use SeaweedFS as the S3 store, not MinIO. Reason: MinIO no longer publishes container images.
 
 - 2026-10-18: A retry is the spec field `restart` with a generation. A retried Pod gets the generation in its name. Reason: kubectl, GitOps, the CLI and the UI use the same mechanism. The status stays owned by the controller. A new Pod can never look like a terminating Pod of the same node. Argo resets the nodes through its own API and uses the Pod names again.
 
