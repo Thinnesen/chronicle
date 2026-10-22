@@ -149,7 +149,7 @@ func TestTaskNotifications(t *testing.T) {
 	go func() {
 		_ = s.ListenTaskDone(ctx, func(ns, wf string) { got <- "done " + ns + "/" + wf })
 	}()
-	for {
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(10 * time.Millisecond) {
 		var n int
 		if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE query LIKE 'LISTEN chronicle_task_%'`).Scan(&n); err != nil {
 			t.Fatal(err)
@@ -157,7 +157,9 @@ func TestTaskNotifications(t *testing.T) {
 		if n >= 2 {
 			break
 		}
-		time.Sleep(10 * time.Millisecond)
+		if time.Now().After(deadline) {
+			t.Fatalf("%d of 2 listeners after 5 s", n)
+		}
 	}
 	for range 2 {
 		if err := s.Enqueue(ctx, newTask(0)); err != nil {
