@@ -63,20 +63,18 @@ The CLI submits a run from a template, follows it to the end, and reads its logs
 
 ## Quick start
 
-You need Docker, [Kind](https://kind.sigs.k8s.io), kubectl and Helm. There are no published images yet, so you build the image yourself.
+You need a Kubernetes cluster, kubectl and Helm. A local [Kind](https://kind.sigs.k8s.io) cluster is enough.
 
 ```sh
-git clone https://github.com/Thinnesen/chronicle && cd chronicle
 kind create cluster --name chronicle
-make docker-build IMG=chronicle:dev && kind load docker-image chronicle:dev --name chronicle
 
 # The admission webhook needs cert-manager.
 helm repo add jetstack https://charts.jetstack.io
 helm install cert-manager jetstack/cert-manager --version v1.21.2 \
-  -n cert-manager --create-namespace --set crds.enabled=true --wait
+  --namespace cert-manager --create-namespace --set crds.enabled=true --wait
 
-helm install chronicle dist/chart -n chronicle-system --create-namespace --wait \
-  --set manager.image.repository=chronicle --set manager.image.tag=dev --set manager.image.pullPolicy=Never
+helm install chronicle oci://ghcr.io/thinnesen/charts/chronicle --version 0.1.0 \
+  --namespace chronicle-system --create-namespace --wait
 ```
 
 Run a first workflow with kubectl. A DAG with two steps that run in parallel after the first one:
