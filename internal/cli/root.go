@@ -25,12 +25,16 @@ type app struct {
 	cfg        *Config
 }
 
+// Version is the version of the CLI. The release build sets it with -ldflags "-X ...cli.Version=v0.1.0".
+var Version = "dev"
+
 // NewCommand returns the root command of the CLI.
 func NewCommand() *cobra.Command {
 	a := &app{out: os.Stdout, errOut: os.Stderr}
 	root := &cobra.Command{
 		Use:           "chronicle",
 		Short:         "Run and watch chronicle workflows",
+		Version:       Version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {

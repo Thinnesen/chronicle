@@ -2,8 +2,9 @@
 # Override BASE_IMAGE to build from another registry. Pin it by digest.
 ARG BASE_IMAGE=golang:1.27.2@sha256:820153096fda4de6ac1b7194d12e416b7dd8f4e9a33d17e0345b111b945162d8
 
-# Build the web UI. The pnpm settings block install scripts and new releases.
-FROM node:26.12.0-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS ui
+# Build the web UI. The pnpm settings block install scripts and new releases. The build stages run on the platform of
+# the build machine and cross-compile, so a multi-platform build needs no emulation.
+FROM --platform=$BUILDPLATFORM node:26.12.0-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS ui
 WORKDIR /ui
 RUN npm install --global --ignore-scripts pnpm@12.6.0
 COPY ui/package.json ui/pnpm-lock.yaml ui/pnpm-workspace.yaml ./
@@ -11,7 +12,7 @@ RUN pnpm install --frozen-lockfile
 COPY ui/ ./
 RUN pnpm build
 
-FROM ${BASE_IMAGE} AS builder
+FROM --platform=$BUILDPLATFORM ${BASE_IMAGE} AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
