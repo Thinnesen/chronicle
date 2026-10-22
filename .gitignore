@@ -1,5 +1,8 @@
 # Binaries and tools
 bin/
+# Release output of GoReleaser and of the chart package
+build/
+out/
 dist/install.yaml
 cover.out
 *.test

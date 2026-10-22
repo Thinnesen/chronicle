@@ -1,0 +1,72 @@
+# GoReleaser builds the CLI, its archives, checksums and SBOMs, signs the checksums and creates the GitHub release.
+# The release workflow builds the image and the Helm chart; the chart is attached to the release here.
+version: 2
+
+project_name: chronicle
+
+# Not dist/: the Helm chart lives in dist/chart, and --clean removes the output directory.
+dist: build/release
+
+builds:
+  - id: chronicle
+    main: ./cmd/chronicle
+    binary: chronicle
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/Thinnesen/chronicle/internal/cli.Version={{ .Tag }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    # Builds are reproducible: the file times come from the commit.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: chronicle
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+sboms:
+  - artifacts: archive
+
+# Keyless signing with Sigstore: the signature binds the checksums to this workflow run.
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--yes", "--bundle=${signature}", "${artifact}"]
+
+changelog:
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+
+release:
+  github:
+    owner: Thinnesen
+    name: chronicle
+  extra_files:
+    - glob: ./out/chronicle-*.tgz
+  footer: |
+    ## Install
+
+    Image: `ghcr.io/thinnesen/chronicle:{{ .Version }}` (linux/amd64 and linux/arm64), signed with cosign.
+
+    Helm chart: `helm install chronicle oci://ghcr.io/thinnesen/charts/chronicle --version {{ .Version }} --namespace chronicle-system --create-namespace`
+
+    Verify a download: `sha256sum --check --ignore-missing checksums.txt`, and the signature of the checksums with
+    `cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity-regexp 'https://github.com/Thinnesen/chronicle/' --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt`.
