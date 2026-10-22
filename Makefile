@@ -125,8 +125,9 @@ setup-test-e2e: kind kubectl ## Set up a Kind cluster for e2e tests if it does n
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	PATH="$(LOCALBIN):$$PATH" KUBECONFIG="$(E2E_KUBECONFIG)" KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER) go test -tags=e2e ./test/e2e/ -v -ginkgo.v -timeout 45m
-	$(MAKE) cleanup-test-e2e
+	@# The cluster goes away also after a failure, so that the next run starts clean.
+	PATH="$(LOCALBIN):$$PATH" KUBECONFIG="$(E2E_KUBECONFIG)" KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER) go test -tags=e2e ./test/e2e/ -v -ginkgo.v -timeout 45m \
+		|| status=$$?; $(MAKE) cleanup-test-e2e; exit $${status:-0}
 
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: kind ## Tear down the Kind cluster used for e2e tests
