@@ -62,26 +62,37 @@ func (s *taskService) PollTask(ctx context.Context, req *connect.Request[chronic
 	ctx, cancel := context.WithTimeout(ctx, longPoll)
 	defer cancel()
 	for {
-		woken := s.wake.wait(m.Namespace, queue)
-		task, lease, err := s.store.Poll(ctx, m.Namespace, queue, m.Names, m.Worker)
-		if err != nil && ctx.Err() == nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
-		}
-		if task != nil {
-			return connect.NewResponse(&chroniclev1.PollTaskResponse{Task: &chroniclev1.Task{
-				Id: task.ID, Name: task.Name, InputJson: task.Input, IdempotencyKey: task.IdempotencyKey,
-				Workflow: task.Workflow, NodeName: task.NodeName, Lease: lease, Traceparent: task.Traceparent,
-			}}), nil
-		}
-		select {
-		case <-ctx.Done():
-			return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
-		case <-s.drain:
-			return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
-		case <-woken:
-		case <-time.After(pollEvery):
+		resp, err := s.pollOnce(ctx, m, queue)
+		if resp != nil || err != nil {
+			return resp, err
 		}
 	}
+}
+
+// pollOnce reads the queue once and waits for a new task, the next poll or the end. It returns nil and no error when
+// the caller must read the queue again.
+func (s *taskService) pollOnce(ctx context.Context, m *chroniclev1.PollTaskRequest, queue string) (*connect.Response[chroniclev1.PollTaskResponse], error) {
+	woken, done := s.wake.wait(m.Namespace, queue)
+	defer done()
+	task, lease, err := s.store.Poll(ctx, m.Namespace, queue, m.Names, m.Worker)
+	if err != nil && ctx.Err() == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	if task != nil {
+		return connect.NewResponse(&chroniclev1.PollTaskResponse{Task: &chroniclev1.Task{
+			Id: task.ID, Name: task.Name, InputJson: task.Input, IdempotencyKey: task.IdempotencyKey,
+			Workflow: task.Workflow, NodeName: task.NodeName, Lease: lease, Traceparent: task.Traceparent,
+		}}), nil
+	}
+	select {
+	case <-ctx.Done():
+		return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
+	case <-s.drain:
+		return connect.NewResponse(&chroniclev1.PollTaskResponse{}), nil
+	case <-woken:
+	case <-time.After(pollEvery):
+	}
+	return nil, nil
 }
 
 func (s *taskService) HeartbeatTask(ctx context.Context, req *connect.Request[chroniclev1.HeartbeatTaskRequest]) (*connect.Response[chroniclev1.HeartbeatTaskResponse], error) {
