@@ -25,6 +25,11 @@ manager:
     # tag: ""
     pullPolicy: IfNotPresent
 
+  ## Workflow Pods run the executor from an image volume of the chronicle image, so most Pods need no init container.
+  ## Set false for container runtimes without image volumes (containerd before 2.1, CRI-O before 1.31).
+  ##
+  executorImageVolume: true
+
   ## Arguments
   ##
   args:

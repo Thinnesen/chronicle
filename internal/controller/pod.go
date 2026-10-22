@@ -28,6 +28,10 @@ const (
 	execPath   = execDir + "/exec"
 	// executorBinary is the path of chronicle-exec in the executor image.
 	executorBinary = "/chronicle-exec"
+	// imageVolume holds the executor image, read-only, when the controller uses image volumes.
+	imageVolume   = "chronicle-image"
+	imageDir      = "/var/run/chronicle-image"
+	imageExecPath = imageDir + executorBinary
 	// mainContainer is the name of the container that runs the template.
 	mainContainer = "main"
 	// podUser is the default user of workflow containers. The restricted Pod security standard needs a non-root user.
@@ -35,8 +39,10 @@ const (
 )
 
 // buildPod returns the Pod for a CreatePod action. The Pod meets the "restricted" Pod security standard.
-// files is the artifact work of the executor, or nil.
-func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engine.CreatePod, executorImage string, files *executor.ArtifactSpec) *corev1.Pod {
+// files is the artifact work of the executor, or nil. With useImageVolume, the main container runs the executor from
+// an image volume. Then a Pod without input artifacts needs no init container, which saves one container start.
+func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engine.CreatePod, executorImage string,
+	useImageVolume bool, files *executor.ArtifactSpec) *corev1.Pod {
 	labels := map[string]string{LabelWorkflowUID: string(wf.UID)}
 	// A label value has at most 63 characters. The ID of the root node is the run name, which can be longer.
 	if len(wf.Name) <= 63 {
@@ -69,14 +75,21 @@ func buildPod(wf *v1alpha1.Workflow, spec *v1alpha1.WorkflowTemplateSpec, a engi
 		volumes = []corev1.Volume{{Name: execVolume, EmptyDir: &corev1.EmptyDirVolumeSource{
 			SizeLimit: new(resource.MustParse("128Mi")),
 		}}}
-		initContainers = []corev1.Container{initContainer(executorImage)}
+		if useImageVolume && (files == nil || len(files.Inputs) == 0) {
+			volumes = append(volumes, corev1.Volume{Name: imageVolume, Image: &corev1.ImageVolumeSource{Reference: executorImage}})
+			runFromImage(&main)
+		} else {
+			initContainers = []corev1.Container{initContainer(executorImage)}
+		}
 		if files != nil {
 			main.Env = append(main.Env, artifactEnv(withoutInputs(files))...)
 			annotations[AnnotationArtifactPrefix] = files.Prefix
 			if files.Repository != nil && files.Repository.ArchiveLogs {
 				annotations[AnnotationLogKey] = artifact.LogKey(files.Prefix)
 			}
-			volumes = mountInputs(files, &initContainers[0], &main, volumes)
+			if len(initContainers) > 0 {
+				volumes = mountInputs(files, &initContainers[0], &main, volumes)
+			}
 		}
 	}
 	volumes = mountVolumes(wf, spec, mounts, &main, volumes)
@@ -191,6 +204,14 @@ func outputFiles(t *v1alpha1.Template) string {
 	}
 	b, _ := json.Marshal(outs)
 	return string(b)
+}
+
+// runFromImage makes the main container run the executor of the image volume. The executor keeps its work files,
+// such as the log for the archive, in the shared volume.
+func runFromImage(main *corev1.Container) {
+	main.Command[0] = imageExecPath
+	main.VolumeMounts = append(main.VolumeMounts, corev1.VolumeMount{Name: imageVolume, MountPath: imageDir, ReadOnly: true})
+	main.Env = append(main.Env, corev1.EnvVar{Name: executor.EnvWorkDir, Value: execDir})
 }
 
 func initContainer(image string) corev1.Container {

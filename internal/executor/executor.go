@@ -23,6 +23,8 @@ const (
 	EnvOutputs     = "CHRONICLE_OUTPUTS"
 	EnvScript      = "CHRONICLE_SCRIPT"
 	EnvTermination = "CHRONICLE_TERMINATION_PATH"
+	// EnvWorkDir is the writable directory of the executor. Without it, the executor uses its own directory.
+	EnvWorkDir = "CHRONICLE_WORK_DIR"
 )
 
 // MaxMessage is the Kubernetes limit for a termination message.
@@ -124,17 +126,13 @@ func fail(stderr io.Writer, err error) int {
 	return 1
 }
 
-// addScript writes the script source next to the executor and adds its path as the last argument.
+// addScript writes the script source into the work directory and adds its path as the last argument.
 func addScript(args []string) ([]string, error) {
 	src, ok := readScript()
 	if !ok {
 		return args, nil
 	}
-	self, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("find the executable: %w", err)
-	}
-	path := filepath.Join(filepath.Dir(self), "script")
+	path := filepath.Join(workDir(), "script")
 	if err := os.WriteFile(path, []byte(src), 0o555); err != nil {
 		return nil, fmt.Errorf("write the script: %w", err)
 	}

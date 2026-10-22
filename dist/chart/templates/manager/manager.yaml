@@ -94,6 +94,7 @@ spec:
         - {{ tpl . $ }}
         {{- end }}
         - --executor-image={{ include "chronicle.image" . }}
+        - --executor-image-volume={{ .Values.manager.executorImageVolume }}
         {{- if .Values.archive.existingSecret }}
         - --archive-dsn-file=/etc/chronicle/archive/{{ .Values.archive.key }}
         {{- with .Values.archive.retention }}

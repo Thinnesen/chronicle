@@ -83,6 +83,7 @@ func main() {
 		Development: true,
 	}
 	var executorImage, archiveDSNFile string
+	var executorImageVolume bool
 	var workflowWorkers int
 	var archiveRetention time.Duration
 	flag.IntVar(&workflowWorkers, "workflow-workers", 8,
@@ -93,6 +94,9 @@ func main() {
 		"Delete archived runs, finished tasks and step cache entries older than this, for example 2160h. 0 keeps them.")
 	flag.StringVar(&executorImage, "executor-image", os.Getenv("CHRONICLE_EXECUTOR_IMAGE"),
 		"The image with the chronicle-exec binary for workflow Pods. The default is $CHRONICLE_EXECUTOR_IMAGE.")
+	flag.BoolVar(&executorImageVolume, "executor-image-volume", true,
+		"Mount the executor image as an image volume, so that most Pods need no init container. "+
+			"Turn it off for container runtimes without image volumes (containerd before 2.1, CRI-O before 1.31).")
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -199,12 +203,13 @@ func main() {
 		os.Exit(1)
 	}
 	workflows := &controller.WorkflowReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		ExecutorImage: executorImage,
-		APIReader:     mgr.GetAPIReader(),
-		Recorder:      mgr.GetEventRecorder("chronicle-controller"),
-		Workers:       workflowWorkers,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		ExecutorImage:       executorImage,
+		ExecutorImageVolume: executorImageVolume,
+		APIReader:           mgr.GetAPIReader(),
+		Recorder:            mgr.GetEventRecorder("chronicle-controller"),
+		Workers:             workflowWorkers,
 	}
 	shutdownTraces, err := telemetry.Setup(context.Background(), "chronicle-controller")
 	if err != nil {

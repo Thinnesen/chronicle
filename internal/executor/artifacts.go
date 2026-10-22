@@ -92,7 +92,7 @@ func openFiles() (*files, error) {
 		return nil, err
 	}
 	if r.ArchiveLogs {
-		if f.log, err = os.Create(filepath.Join(execDir(), "main.log")); err != nil {
+		if f.log, err = os.Create(filepath.Join(workDir(), "main.log")); err != nil {
 			return nil, fmt.Errorf("create the log file: %w", err)
 		}
 		f.logW = &limitWriter{w: f.log, n: maxLog}
@@ -197,7 +197,11 @@ func childEnv() []string {
 	})
 }
 
-func execDir() string {
+// workDir is the writable directory for the script and the log: $CHRONICLE_WORK_DIR, or the directory of the executor.
+func workDir() string {
+	if dir := os.Getenv(EnvWorkDir); dir != "" {
+		return dir
+	}
 	self, err := os.Executable()
 	if err != nil {
 		return os.TempDir()

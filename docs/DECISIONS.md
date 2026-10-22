@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-10-22: Workflow Pods run `chronicle-exec` from an image volume of the chronicle image (GA in Kubernetes 1.37). A Pod without input artifacts has no init container. The Helm value `manager.executorImageVolume: false` brings back the init container for older container runtimes. Reason: the init container added one container start and a 40 MB copy to each step. On the demo cluster, a step took 6.3 s with it and 5.0 s without it. Argo still uses an init container and a wait sidecar.
+
 - 2026-10-22: The task queue sends PostgreSQL notifications (`LISTEN`/`NOTIFY`). A new task wakes the long polls of its queue in the server. A result wakes its run in the controller. The polls stay as a fallback for lost notifications: 1 s in the server, 2 s in the controller. Reason: a chain of 10 task steps took 20 s, nearly all of it in the polls. River, Oban and Hatchet also wake Postgres queues with notifications and keep a poll.
 
 - 2026-10-20: A run lock can have `whenBusy: Skip`. When the lock is full, the run ends as Succeeded with the condition `Skipped` and the message "skipped: the lock ... is busy". A lost race for the lock is not full, so it does not skip. Succeeded, not a new phase, keeps alerts on Failed quiet and needs no change of the API clients and the metrics. The owner can still choose a phase Skipped. Only run locks have it, because a skipped node has no clear meaning for the steps after it.

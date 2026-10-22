@@ -127,7 +127,7 @@ The controller applies the actions. This makes the engine testable with table te
 
 - The controller creates one Pod for each container or script node. The Pod name is the node ID. The Workflow owns the Pod.
 - Pods meet the "restricted" Pod security standard: user 65532, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. A Pod gets a service account token only when the workflow names a service account.
-- An init container copies `chronicle-exec` from the controller image into an `emptyDir`. The executor wraps the main command. It keeps the standard output and reads the output files. It writes the outputs as JSON to the termination message. So the workflow Pod needs no access to the Kubernetes API.
+- The main container runs `chronicle-exec` from an image volume of the controller image. Without image volumes, or when the step has input artifacts, an init container copies it into an `emptyDir`. The executor wraps the main command. It keeps the standard output and reads the output files. It writes the outputs as JSON to the termination message. So the workflow Pod needs no access to the Kubernetes API.
 - The termination message has a limit of 4 KiB. A larger standard output is not a result. Larger output parameters fail the node: use an artifact.
 - A container template without a command runs without the executor. It has no result and no output files.
 - A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects (Argo substitutes text before it parses the YAML).

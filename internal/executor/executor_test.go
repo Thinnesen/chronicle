@@ -65,17 +65,18 @@ func TestRun(t *testing.T) {
 	}
 }
 
+// TestRunScript runs a script from the work directory. The directory of the executor can be read-only (image volume).
 func TestRunScript(t *testing.T) {
-	self, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Remove(filepath.Join(filepath.Dir(self), "script")) })
+	work := t.TempDir()
+	t.Setenv(EnvWorkDir, work)
 	t.Setenv(EnvScript, "echo from script")
 	t.Setenv(EnvTermination, filepath.Join(t.TempDir(), "term"))
 	var out, errOut bytes.Buffer
 	if code := Run([]string{"sh"}, &out, &errOut); code != 0 || out.String() != "from script\n" {
 		t.Errorf("code %d, out %q, stderr %q", code, out.String(), errOut.String())
+	}
+	if _, err := os.Stat(filepath.Join(work, "script")); err != nil {
+		t.Errorf("the script is not in the work directory: %v", err)
 	}
 }
 

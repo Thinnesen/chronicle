@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -18,12 +19,8 @@ import (
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/artifact"
@@ -38,6 +35,8 @@ type WorkflowReconciler struct {
 	Scheme *runtime.Scheme
 	// ExecutorImage is the image with the chronicle-exec binary.
 	ExecutorImage string
+	// ExecutorImageVolume mounts the executor image as an image volume instead of a copy by an init container.
+	ExecutorImageVolume bool
 	// Archive keeps finished runs, or is nil without an archive.
 	Archive Archiver
 	// Tasks is the task queue of the task templates, or nil without the archive database.
@@ -319,7 +318,14 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(applyWorkers)
 	for _, a := range rest {
-		g.Go(func() error {
+		g.Go(func() (err error) {
+			// A panic here would stop the whole controller, because it is outside the reconcile goroutine. Then no
+			// run would go on. As an error, it stops only this run, with a retry.
+			defer func() {
+				if p := recover(); p != nil {
+					err = fmt.Errorf("apply %T: panic: %v\n%s", a, p, debug.Stack())
+				}
+			}()
 			if err := r.apply(gctx, wf, spec, a, repo); err != nil {
 				return err
 			}
@@ -341,7 +347,7 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 				return err
 			}
 		}
-		pod := buildPod(wf, spec, a, r.ExecutorImage, files)
+		pod := buildPod(wf, spec, a, r.ExecutorImage, r.ExecutorImageVolume, files)
 		if tp := r.traceparent(wf, a.NodeID); tp != "" {
 			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, corev1.EnvVar{Name: envTraceparent, Value: tp})
 		}
@@ -368,28 +374,4 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 		}
 	}
 	return nil
-}
-
-// SetupWithManager sets up the controller with the Manager. It watches the Pods that the controller owns, and the
-// runs that a lock or a task result wakes.
-func (r *WorkflowReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.wake = make(chan event.GenericEvent, wakeBuffer)
-	if r.TaskEvents != nil {
-		// A runnable of the manager runs only on the leader, like the reconciler.
-		listen := manager.RunnableFunc(func(ctx context.Context) error {
-			return r.TaskEvents.ListenTaskDone(ctrl.LoggerInto(ctx, mgr.GetLogger().WithName("tasks")), r.wakeRun)
-		})
-		if err := mgr.Add(listen); err != nil {
-			return fmt.Errorf("add the listener of the task results: %w", err)
-		}
-	}
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&chroniclev1alpha1.Workflow{}).
-		Owns(&corev1.Pod{}).
-		// A child run wakes its parent run when its status changes.
-		Owns(&chroniclev1alpha1.Workflow{}).
-		WatchesRawSource(source.Channel(r.wake, &handler.EnqueueRequestForObject{})).
-		Named("workflow").
-		WithOptions(controller.Options{MaxConcurrentReconciles: max(r.Workers, 1)}).
-		Complete(r)
 }

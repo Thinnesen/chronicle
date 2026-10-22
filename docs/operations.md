@@ -23,7 +23,7 @@ manager:
     tag: "<tag>@sha256:<digest>"   # pin the digest
 ```
 
-The server and the executor init container of each workflow Pod use the same image.
+The server and the executor of each workflow Pod use the same image. Workflow Pods mount it as an image volume, which needs containerd 2.1 or later, or CRI-O 1.31 or later. On older runtimes, set `manager.executorImageVolume: false`: then an init container copies the executor into each Pod.
 
 ## 3. Login and teams
 
@@ -89,6 +89,6 @@ Runs continue during an upgrade. The engine reads all state from the Workflow st
 
 The defaults fit small and medium clusters. Raise `manager.resources` for many active runs, because the controller keeps the Workflows and their Pods in its cache. The controller works on 8 runs at the same time; for many active runs, add `--workflow-workers=<n>` to `manager.args`. Use `podGC` and `ttlStrategy` in your templates, so that finished Pods and Workflows do not pile up.
 
-Each step is a Pod with an init container. So a burst of many steps loads the kubelet and the container runtime of the nodes more than the controller. On a small node, 120 Pods at once took minutes each to start. Limit large fan-outs with `parallelism`. Limit many runs of one template with a `synchronization.semaphore`.
+Each step is a Pod. So a burst of many steps loads the kubelet and the container runtime of the nodes more than the controller. On a small node, 120 Pods at once took minutes each to start. Limit large fan-outs with `parallelism`. Limit many runs of one template with a `synchronization.semaphore`.
 
 The status of a run holds all its nodes, about 0.5 KiB each, and the step results (up to 3 KiB each). etcd refuses objects above about 1.5 MiB. So the controller fails a run with "the run is too large" when its Workflow would be larger than 1 MiB. It does this before it starts more Pods. It deletes the Pods of the run that still run. A fan-out of 1000 items fits. 1000 items with retries, or nested fan-outs, can be too large. Split such work into more runs, for example one run for each day.
