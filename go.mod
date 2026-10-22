@@ -2,7 +2,7 @@ module github.com/Thinnesen/chronicle
 
 go 1.27.0
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	connectrpc.com/connect v1.21.1
