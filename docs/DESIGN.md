@@ -194,6 +194,7 @@ Security is the first priority. The main risks and the controls:
 | Token leaks | Tokens never go to the browser or to logs. Secrets come from Kubernetes Secrets. |
 | Supply chain | Pinned versions and lockfiles, SHA-pinned Actions, digest-pinned images, signed releases, SBOM, scans in CI. |
 | A user reads artifacts of another team | One repository per namespace. Downloads and archived logs need an access check as the caller. The server can read only the Secret named `chronicle-artifact-repository`. |
+| A user who may create Workflows reads Secrets of the namespace | A step can read Secrets of its namespace through `env` and `secret` volumes, as any Pod can. So creating Workflows gives the same reach as creating Pods. Give `chronicle-editor` and `chronicle-admin` only to people who may read the Secrets of the namespace. Keep sensitive Secrets in other namespaces. |
 | Injection through parameters | Parameters are never passed to a shell by the engine. Script templates get parameters as environment variables or files, not by string concatenation. |
 
 ## 7. Durable task workers

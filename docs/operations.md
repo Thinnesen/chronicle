@@ -31,6 +31,7 @@ The server and the executor of each workflow Pod use the same image. Workflow Po
 - `auth.oidc` works with any OIDC provider. `auth.entra` is for Microsoft Entra ID with group overage (see [entra-id.md](entra-id.md)).
 - Set `auth.redirectURL` to `https://<host>/auth/callback`. Keep `auth.insecureCookies: false`: the cookies then have the `Secure` flag and need HTTPS.
 - `teams` binds the roles `chronicle-viewer`, `chronicle-editor` and `chronicle-admin` to groups in the team namespaces. You can also bind these ClusterRoles with your own RoleBindings, for example through GitOps.
+- A step can read the Secrets of its namespace through `env` and `secret` volumes, as any Pod can. So `chronicle-editor` and `chronicle-admin` have the same reach as permission to create Pods. Give them only to people who may read the Secrets of the namespace, and keep sensitive Secrets in other namespaces.
 - Sessions last `auth.session.ttl` (8h) and end after `auth.session.idleTimeout` (1h) without use. A logout ends a session at once.
 
 A proxy or an ingress can serve chronicle under a path of a host, for example `https://example.com/chronicle`. Set `server.basePath: /chronicle`, and give `auth.redirectURL` the same path (`https://example.com/chronicle/auth/callback`). The ingress passes the full path; the server strips the base path itself. The CLI and the SDKs take the server URL with the path, for example `chronicle login --server https://example.com/chronicle`. The probes stay at `/healthz`.
