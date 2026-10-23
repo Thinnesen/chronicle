@@ -125,7 +125,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	} else if err != nil {
 		return ctrl.Result{}, err
 	}
-	took, messages, err := r.applyAll(ctx, &wf, spec, res.Actions)
+	took, messages, refused, err := r.applyAll(ctx, &wf, spec, res.Actions)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -135,13 +135,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		result.RequeueAfter = lockStart
 	}
 	wf.Status = res.Status
-	for id, msg := range messages {
-		// A node that ended in this step, for example by its timeout, keeps the message of its end.
-		if n, ok := wf.Status.Nodes[id]; ok && n.Phase == chroniclev1alpha1.NodePending {
-			n.Message = msg
-			wf.Status.Nodes[id] = n
-		}
-	}
+	noteApplied(&wf.Status, messages, refused, &result)
 	if err := r.unlock(ctx, &wf, spec); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -287,10 +281,11 @@ const applyWorkers = 8
 const lockStart = 100 * time.Millisecond
 
 // applyAll applies the actions of one engine step. It returns true when a node took a lock, so that the run goes on
-// soon. It also returns the message of each node that waits for a lock: the holders, or the problem of its limit. The lock actions run one after the other, because they change the same Leases. The other actions are
+// soon. It also returns the message of each node that waits for a lock: the holders, or the problem of its limit, and
+// the Pods that Kubernetes refused. The lock actions run one after the other, because they change the same Leases. The other actions are
 // independent and run in parallel. The artifact repository is read once.
 func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec,
-	actions []engine.Action) (bool, map[string]string, error) {
+	actions []engine.Action) (bool, map[string]string, []refusedPodError, error) {
 	took := false
 	messages := map[string]string{}
 	rest := make([]engine.Action, 0, len(actions))
@@ -304,7 +299,7 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 				continue
 			}
 			if err != nil {
-				return false, nil, err
+				return false, nil, nil, err
 			}
 			if isAcquire && msg != "" {
 				messages[acquire.NodeID] = msg
@@ -315,6 +310,8 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 		}
 	}
 	repo := sync.OnceValues(func() (*artifact.Repository, error) { return r.repository(ctx, wf.Namespace) })
+	var mu sync.Mutex
+	var refused []refusedPodError
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(applyWorkers)
 	for _, a := range rest {
@@ -326,14 +323,22 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 					err = fmt.Errorf("apply %T: panic: %v\n%s", a, p, debug.Stack())
 				}
 			}()
-			if err := r.apply(gctx, wf, spec, a, repo); err != nil {
+			err = r.apply(gctx, wf, spec, a, repo)
+			if rp, ok := asRefusal(err); ok {
+				mu.Lock()
+				refused = append(refused, rp)
+				mu.Unlock()
+				return nil
+			}
+			if err != nil {
 				return err
 			}
 			countAction(a)
 			return nil
 		})
 	}
-	return took, messages, g.Wait()
+	err := g.Wait()
+	return took, messages, refused, err
 }
 
 func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec, a engine.Action,
@@ -352,6 +357,9 @@ func (r *WorkflowReconciler) apply(ctx context.Context, wf *chroniclev1alpha1.Wo
 			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, corev1.EnvVar{Name: envTraceparent, Value: tp})
 		}
 		if err := r.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
+			if refused := refusal(a.NodeID, err); refused != nil {
+				return refused
+			}
 			return fmt.Errorf("create the Pod of node %s: %w", a.NodeName, err)
 		}
 		r.created.add(wf.UID, pod.Name, time.Now())
