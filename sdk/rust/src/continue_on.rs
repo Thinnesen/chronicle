@@ -5,7 +5,7 @@ use serde_json::{Map, Value};
 use crate::Task;
 
 impl Task {
-    /// Lets the run go on after the task fails (`failed`) or cannot run (`error`), as Argo's continueOn.
+    /// Lets the run go on after the task fails (`failed`) or cannot run (`error`).
     pub fn continue_on(mut self, failed: bool, error: bool) -> Self {
         let mut on = Map::new();
         if failed {

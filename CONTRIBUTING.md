@@ -37,7 +37,7 @@ make test lint
 | `internal/engine/` | The workflow engine: a pure package without I/O, tested with table tests and fuzzing |
 | `internal/controller/` | The reconcilers that apply the decisions of the engine to Kubernetes |
 | `internal/server/` | The Connect-RPC API, the login and the web UI server |
-| `internal/` (other) | Validation, the Argo converter, the archive, artifacts, telemetry and more, one package per concern |
+| `internal/` (other) | Validation, the archive, artifacts, telemetry and more, one package per concern |
 | `proto/` | The API definition. `gen/` and `ui/src/gen/` are generated from it |
 | `ui/` | The web UI: TypeScript, React and Vite |
 | `sdk/` | The SDKs for Go, Python and Rust |

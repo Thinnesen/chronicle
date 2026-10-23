@@ -12,11 +12,10 @@ Goals:
 
 - Kubernetes-native and GitOps-first. All definitions are custom resources. Argo CD or Flux can deploy them ("app of apps").
 - A good web UI and a good login. The UI uses the same permissions as `kubectl` (Kubernetes RBAC).
-- Workflows as code. SDKs for Go, Python and Rust define and submit workflows, like Dagster or Temporal.
-- Almost a drop-in replacement for Argo Workflows: a converter for Argo YAML, and the same core concepts.
-- Durable task workers (Temporal-like activities): a step can call code in a worker process, with retries and heartbeats.
+- Workflows as code. SDKs for Go, Python and Rust define and submit workflows.
+- Durable task workers: a step can call code in a worker process, with retries and heartbeats.
 
-Not goals (for now): a full Temporal clone with deterministic replay of workflow code. See section 10.
+Not goals for the first version: deterministic replay of workflow code. See section 10.
 
 ## 2. Components
 
@@ -24,7 +23,7 @@ Not goals (for now): a full Temporal clone with deterministic replay of workflow
 |---|---|---|
 | `chronicle-controller` | Go (Kubebuilder) | Reconciles the custom resources. Runs the workflow engine. Creates and watches Pods. |
 | `chronicle-server` | Go | API (Connect-RPC: gRPC and HTTP/JSON), OIDC login, web UI (embedded), log streaming, archive. |
-| `chronicle` CLI | Go | Submit, list, watch, logs, retry, re-run, suspend, resume, approve, convert. |
+| `chronicle` CLI | Go | Submit, list, watch, logs, retry, re-run, suspend, resume, approve, lint. |
 | Web UI | TypeScript, React, Vite | Runs, DAG graph, logs, history, templates, cron, actions. pnpm, lockfile committed. |
 | SDKs | Go, Python, Rust | Define workflows as code with builders. Submit them through the API. Run task workers. |
 | Archive | PostgreSQL (optional) | Completed runs and node history. Without a database, chronicle keeps runs in Kubernetes only. |
@@ -44,7 +43,7 @@ The controller and the server are two binaries in one Go module. The Helm chart 
 
 ### 3.2 Workflow spec
 
-The spec follows the Argo Workflows concepts, so that the converter is simple:
+The spec uses the common concepts of Kubernetes workflow engines:
 
 - `entrypoint`, `arguments.parameters`, `templates`.
 - Template types:
@@ -55,6 +54,7 @@ The spec follows the Argo Workflows concepts, so that the converter is simple:
   - `resource`: create or change a Kubernetes object.
   - `task`: call a task worker (section 7).
   - `http`: send one HTTP request.
+  - `childWorkflow`: start a run of another template and wait for it.
 - Run controls: `retryStrategy` (limit, backoff, retry policy), `activeDeadlineSeconds`, `timeout`, `onExit`, `when` conditions and the fan-outs `withItems`, `withParam` and `withSequence`.
 - `parallelism` limits the Pods of the workflow, or of a `dag` or `steps` template.
 - `synchronization` is a mutex or a semaphore. It locks runs in a namespace, or the nodes of one template.
@@ -85,7 +85,7 @@ Validation: CEL rules and a validating webhook for the DAG (no cycles, known tem
 
 `schedules` (one or more cron expressions), `timezone`, `concurrencyPolicy` (Allow, Forbid, Replace), `startingDeadlineSeconds`, `successfulJobsHistoryLimit`, `failedJobsHistoryLimit`, `suspend`, `workflowMetadata`, `workflowSpec` (inline or `workflowTemplateRef`).
 
-- The controller reconciles and requeues at the next schedule time, as the Kubernetes CronJob does. Argo runs a cron scheduler in memory. A run has the name `<cron>-<unix time>`. So a second create of the same run fails, and a restart loses no run.
+- The controller reconciles and requeues at the next schedule time, as the Kubernetes CronJob does. A run has the name `<cron>-<unix time>`. So a second create of the same run fails, and a restart loses no run.
 - After a long outage, only the latest missed time runs. The search for missed times stops after 1000 times.
 - Replace sets `shutdown: Terminate` on the active runs, so their history stays.
 - The pure package `internal/schedule` decides; the controller applies the plan.
@@ -103,7 +103,7 @@ The controller applies the actions. This makes the engine testable with table te
 - One walker for DAG and steps. A step depends on all steps of the previous group. Each run of the engine visits the tasks once in dependency order, so an omission cascades in one pass.
 - A DAG ends when no task runs. Then each leaf task decides. A task that ran gives its own phase. A task that was omitted or skipped gives the worst phase of its dependencies. A dependency failure that the task tests for (for example `a.Failed` or `!a.Failed`) does not pass down.
 - `failFast` (default true) stops new tasks after a failure that no task tests for. The tasks that did not start become Omitted.
-- `when`: the engine parses the condition first, then puts each placeholder value in as one literal operand. A value can never change the condition (Argo puts values into the text before it parses). Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, parentheses. Two numbers compare as numbers, other values as text. A false condition makes the node Skipped.
+- `when`: the engine parses the condition first, then puts each placeholder value in as one literal operand. A value can never change the condition. Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, parentheses. Two numbers compare as numbers, other values as text. A false condition makes the node Skipped.
 - Fan-out: `withItems` or `withParam` (a JSON list) makes a TaskGroup node with one child for each item (`a(0:x)`). `AnySucceeded` and `AllFailed` test the items. The outputs of a group are JSON lists of the item outputs.
 - Each node stores its resolved input parameters, for the UI and for retries. The Pod gets the template with all placeholders replaced.
 - Node IDs: the root node has the workflow name. Other nodes have the workflow name and a hash of the node path (`wf.main.a`, `wf[0].step`). The Pod name is the node ID.
@@ -114,25 +114,25 @@ The controller applies the actions. This makes the engine testable with table te
 - `parallelism` limits the Pods that run at the same time. A Pod node without a free slot stays Pending with a message. The waiting nodes get the slots in the order of the walk. A Pod that the engine asked for holds its slot also before the cache shows it.
 - A container, script, resource or http template can have `memoize`: a key with placeholders and an optional `maxAge`. The controller looks up the key in the archive database before the node starts. A valid result ends the node with the saved outputs, without a Pod. A node that ran saves its outputs when it succeeds.
 - A workflow or input parameter can read a ConfigMap (`valueFrom.configMapKeyRef`) that has the label `chronicle.thinnesen.com/parameters: "true"`. The controller reads it once into `status.storedSpec`.
-- `globalName` on an output parameter or artifact makes it a workflow output (`status.outputs`, `{{workflow.outputs.*}}`), as in Argo. The engine derives the outputs from the steps that finished; the later step wins.
-- A task or a step can have `continueOn` (`failed`, `error`), as in Argo. Its failure then counts as success for the tasks after it. It does not fail the DAG or the steps.
-- `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`, `{{workflow.duration}}` and `{{workflow.failures}}` (the failed steps as JSON, in the form of Argo). A failed exit handler fails a workflow that succeeded.
+- `globalName` on an output parameter or artifact makes it a workflow output (`status.outputs`, `{{workflow.outputs.*}}`). The engine derives the outputs from the steps that finished; the later step wins.
+- A task or a step can have `continueOn` (`failed`, `error`). Its failure then counts as success for the tasks after it. It does not fail the DAG or the steps.
+- `onExit` runs a template after the entrypoint, also after a failure. It can use `{{workflow.status}}`, `{{workflow.duration}}` and `{{workflow.failures}}` (the failed steps as JSON). A failed exit handler fails a workflow that succeeded.
 - The exit handler is protected: `activeDeadlineSeconds` and `shutdown: Stop` stop only the entrypoint, so that cleanup can run. Give the exit template a `timeout`. `shutdown: Terminate` always stops the exit handler too.
 - `withParam` has a limit of 1000 items, like `withItems`.
 
 - Run controls are fields of the Workflow spec, so `kubectl`, GitOps, the CLI and the UI use one mechanism. `suspend: true` pauses the run (no new node starts). `shutdown: Stop` fails the running nodes, deletes their Pods and runs the exit handler. `shutdown: Terminate` does not run the exit handler. A shutdown cannot be removed. Only Stop can change to Terminate.
-- A `suspend` template waits for its `duration`, or for an entry in `spec.approvals`. An entry has the node ID or name, Approve or Reject, optional output parameters and an optional `user`. The API sets `user` to the caller. The admission webhook refuses a new approval when its `user` is not the user of the request. So the node message "approved by <user>" is always true. The server also writes the approver to the audit log (#17).
+- A `suspend` template waits for its `duration`, or for an entry in `spec.approvals`. An entry has the node ID or name, Approve or Reject, optional output parameters and an optional `user`. The API sets `user` to the caller. The admission webhook refuses a new approval when its `user` is not the user of the request. So the node message "approved by <user>" is always true. The server also writes the approver to the audit log.
 
 ### 4.1 Workflow Pods and outputs
 
 - The controller creates one Pod for each container or script node. The Pod name is the node ID. The Workflow owns the Pod.
-- Pods meet the "restricted" Pod security standard: user 65532, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. A Pod gets a service account token only when the workflow names a service account.
+- Pods meet the "restricted" Pod security standard: user 65532, no privilege escalation, no capabilities, seccomp `RuntimeDefault`. A Pod gets a service account token only for a resource step, or when the workflow names a service account (except for an http step).
 - The main container runs `chronicle-exec` from an image volume of the controller image. Without image volumes, or when the step has input artifacts, an init container copies it into an `emptyDir`. The executor wraps the main command. It keeps the standard output and reads the output files. It writes the outputs as JSON to the termination message. So the workflow Pod needs no access to the Kubernetes API.
 - The termination message has a limit of 4 KiB. A larger standard output is not a result. Larger output parameters fail the node: use an artifact.
 - A container template without a command runs without the executor. It has no result and no output files.
-- A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects (Argo substitutes text before it parses the YAML).
+- A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects.
 - An `http` template runs `chronicle-exec http` in a Pod without an API token. Header values from a Secret are `secretKeyRef` environment variables. A 2xx status is success, and the response body (at most 3 KiB) is the result. Logs and errors name the URL without its query.
-- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on (#25).
+- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on.
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
 ### 4.2 Artifacts and the log archive
@@ -143,7 +143,7 @@ The controller applies the actions. This makes the engine testable with table te
 - An input artifact or an artifact argument can bring its own content. This is `raw.data` (text, at most 64 KiB) or `http.url` (a GET from the Pod of the step). Both can have a `mode`. The workflow can give such artifacts in `spec.arguments.artifacts`. The executor writes them without the repository, as one file. Its errors leave out the query of a URL.
 - The init container downloads the inputs into a volume. The main container mounts each input with `subPath` at its path. So an input works at any path, although the step runs without root. The executor saves the outputs after the main command. Each output is a tar.gz archive of a file or a directory. It skips symbolic links and refuses archive entries outside the path. Keys: `<keyPrefix>/<namespace>/<workflow UID>/<Pod name>/<name>.tgz`. The Pod annotation `chronicle.thinnesen.com/artifact-prefix` keeps the prefix. So the termination message carries only the names.
 - With `archiveLogs: "true"`, the executor also saves the log of the main command (up to 32 MiB) as `main.log`. The node then gets `logKey`. The log API sends the archived log when the Pod is gone.
-- The controller reads only the ConfigMap. The Pod gets the credentials from the Secret through `secretKeyRef`. The executor removes them from the environment of the main command. Workflow code in the namespace can still read them: the repository credentials belong to the namespace, as in Argo.
+- The controller reads only the ConfigMap. The Pod gets the credentials from the Secret through `secretKeyRef`. The executor removes them from the environment of the main command. Workflow code in the namespace can still read them: the repository credentials belong to the namespace.
 - The server can read only the ConfigMap and the Secret with that one name (RBAC `resourceNames`). It reads them only after an access check as the caller. A download (`GET /artifacts/{namespace}/{workflow}/{node}/{name}`) needs `get` on the Workflow. An archived log needs `get pods/log`.
 
 ## 5. Re-run, retry and history
@@ -167,7 +167,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Login (UI): OIDC authorization code flow with PKCE (any OIDC provider: Dex, Keycloak, Okta, Google, GitHub through Dex). The session cookie is `HttpOnly`, `Secure` and `SameSite=Lax`, with a short life. The sessions are on the server. With an archive database, they are in it, so all server replicas share them and a restart keeps them. Without one, they are in memory, with one replica. CSRF protection for state-changing calls.
 - Login (CLI and SDK): OIDC device flow, or a Kubernetes service account token (TokenReview).
 - Permissions: the server checks each request with a Kubernetes SubjectAccessReview for the user and the groups of the user. The groups come from OIDC claims, with a claim mapping that you can configure. Writes use impersonation. So the RBAC for the UI is the same RBAC as for `kubectl` and GitOps.
-- Teams: a team is a set of namespaces. The Helm value `teams` creates the RoleBindings for each team. An IdP group gets `chronicle-viewer`, `chronicle-editor` or `chronicle-admin` (ClusterRoles) in the namespaces of the team. The UI and the API show only the namespaces that the user can list (SelfSubjectRulesReview). So each team sees only its own work.
+- Teams: a team is a set of namespaces. The Helm value `teams` creates the RoleBindings for each team. An IdP group gets `chronicle-viewer`, `chronicle-editor` or `chronicle-admin` (ClusterRoles) in the namespaces of the team. The UI and the API show only the namespaces where an access review as the user allows a list of Workflows. So each team sees only its own work.
 - GitOps safety: the UI shows a resource that a GitOps tool manages as read-only by default. The labels and annotations of Argo CD or Flux mark such a resource. Runs (Workflows) are always allowed.
 - Audit log: each call that changes state writes a structured audit entry. The logger is `audit`, with action, user, groups, namespace, name, detail and result. The call also writes a Kubernetes Event on the Workflow, so `kubectl describe` shows who did what. A Connect interceptor audits each RPC that the protobuf API does not mark as free of side effects. So a new RPC cannot skip the audit.
 
@@ -180,7 +180,7 @@ Microsoft Entra ID is a first-class identity provider, because many companies us
 - Group overage: when a user has more than 200 groups, Entra sends `_claim_names` instead of `groups`. Then the server reads the groups from Microsoft Graph (`/me/getMemberObjects`, permission `GroupMember.Read.All` or `User.Read` with `securityEnabledOnly`), with a short cache.
 - Users map to the Kubernetes user `entra:<oid>` and to the groups `entra:group:<object-id>` (prefixes are configurable). RBAC and the `teams` value use these names.
 - The admin guide (`docs/entra-id.md`) shows each step. It covers the app registration, the token configuration (groups claim), the redirect URIs and a team example.
-- Tests: an e2e test uses a mock OIDC server and a mock Graph endpoint. The mock server sends tokens in the form of Entra, with `tid`, `oid`, `groups` and the overage claim. A live test against a real tenant is owner work.
+- Tests: an e2e test uses a mock OIDC server and a mock Graph endpoint. The mock server sends tokens in the form of Entra, with `tid`, `oid`, `groups` and the overage claim. There is no automated test against a real tenant.
 
 ### 6.2 Threat model (summary)
 
@@ -201,13 +201,13 @@ Security is the first priority. The main risks and the controls:
 
 A `task` template sends a task to a queue. A worker that an SDK runs takes the task, runs a function and returns the result.
 
-- Transport: the server API (gRPC streaming). Workers poll with long polls. PostgreSQL notifications wake the polls when a task arrives, and wake the run when a task has a result.
+- Transport: the server API (Connect-RPC). Workers poll with long polls of at most 30 s. PostgreSQL notifications wake the polls when a task arrives, and wake the run when a task has a result.
 - At-least-once with task IDs for idempotency. Heartbeats. Timeouts (schedule-to-start, start-to-close, heartbeat). Retries with the template `retryStrategy`.
 - State: the task queue is in the archive database. Without a database, `task` templates are not available.
-- The SDKs give a small API: `@task` (Python), `task!` or a trait (Rust), `RegisterTask` (Go).
+- The SDKs give a small API: `@worker.task(name)` (Python), `worker.register(name, fn)` (Rust), `w.Register(name, fn)` (Go).
 - A `task` template has `name` (the task type), `queue` (default "default"), `heartbeatTimeout` and `scheduleToStartTimeout`. The template `timeout` is the start-to-close timeout.
 - The worker gets the input parameters as a JSON object and returns JSON. The result becomes `outputs.result`. The fields of a result object become the output parameters with the same names. A result can have at most 64 KiB.
-- The engine stays pure. A task node has a `taskID` (`<workflow UID>/<node ID>`, with the retry suffix of the workflow). The engine returns `EnqueueTask` (idempotent) and `CancelTask` actions, and it reads the observed tasks like Pods. It decides the timeouts from `now`. It asks to run again every 2 s while a task waits or runs.
+- The engine stays pure. A task node has a `taskID` (`<workflow UID>/<node ID>`, with the retry suffix of the workflow). The engine returns `EnqueueTask` (idempotent) and `CancelTask` actions, and it reads the observed tasks like Pods. It decides the timeouts from `now`. It asks to run again every 2 s while a task waits or runs. A notification of a result wakes the run sooner.
 - Delivery is at-least-once. A timeout or a stop fails the attempt and cancels its task: a late result is refused. A retry comes only from `retryStrategy`: each attempt is a new task. All attempts of a node have the same idempotency key (`<workflow UID>/<node name without the attempt>`), so that a worker can detect a repeated call.
 
 ## 8. Web UI
@@ -221,7 +221,7 @@ A `task` template sends a task to a queue. A worker that an SDK runs takes the t
 
 ### 8.1 Visual direction
 
-The UI is an ops console. It takes the strong parts of the UIs of Argo Workflows, Argo CD, Temporal and Dagster (see docs/RESEARCH.md). It leaves out their extra controls.
+The UI is an ops console with few controls.
 
 - Frame: a sidebar with the namespace, the sections (Runs, Templates, Cron, Tasks) and the theme switch. A top bar with breadcrumbs, the search (Cmd+K or Ctrl+K) and the user menu. On a phone the sidebar is a drawer.
 - Palette (light / dark):
@@ -252,7 +252,7 @@ The project follows these standards:
 
 ## 10. Later (not in the first version)
 
-- Durable workflow code with deterministic replay (Temporal-style workflows, not only activities).
+- Durable workflow code with deterministic replay, not only task workers.
 - Event triggers (webhooks, NATS, Kafka, S3 events).
 - UI edits of GitOps resources as pull requests.
 - Multi-cluster runs.

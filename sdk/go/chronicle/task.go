@@ -57,7 +57,7 @@ func (k *Task) When(cond string) *Task {
 	return k
 }
 
-// ContinueOn lets the run go on after the task fails (onFailed) or cannot run (onError), as Argo's continueOn.
+// ContinueOn lets the run go on after the task fails (onFailed) or cannot run (onError).
 func (k *Task) ContinueOn(onFailed, onError bool) *Task {
 	k.task().ContinueOn = &v1alpha1.ContinueOn{Failed: onFailed, Error: onError}
 	return k

@@ -9,7 +9,7 @@ appVersion: "0.1.0"
 keywords:
   - kubernetes
   - workflows
-  - argo-workflows
+  - workflow-engine
 
 annotations:
   kubebuilder.io/generated-by: kubebuilder

@@ -62,7 +62,7 @@ kubectl create token ci --namespace team-a --audience=chronicle | chronicle logi
 Then, for example: `chronicle submit --from etl -p day=2026-10-19 --log`, `chronicle list` (`-A` for all your
 namespaces), `chronicle approve <run>`. Run `chronicle --help` for all commands.
 
-`chronicle lint` and `chronicle convert` need no login. Check your workflow files in CI before a merge:
+`chronicle lint` needs no login. Check your workflow files in CI before a merge:
 
 ```sh
 chronicle lint workflows/

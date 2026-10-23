@@ -197,7 +197,7 @@ class Task:
         return self
 
     def continue_on(self, failed: bool = True, error: bool = False) -> Task:
-        """Let the run go on after the task fails (failed) or cannot run (error), as Argo's continueOn."""
+        """Let the run go on after the task fails (failed) or cannot run (error)."""
         self._fields["continueOn"] = {k: True for k, v in (("failed", failed), ("error", error)) if v}
         return self
 
