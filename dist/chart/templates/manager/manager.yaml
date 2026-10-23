@@ -1,3 +1,4 @@
+{{- /* Written by hand. Do not regenerate with the Kubebuilder helm plugin: see CONTRIBUTING.md. */ -}}
 {{- if or (not (hasKey .Values.manager "enabled")) (.Values.manager.enabled) }}
 apiVersion: apps/v1
 kind: Deployment

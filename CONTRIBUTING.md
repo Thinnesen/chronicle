@@ -52,8 +52,15 @@ the `+kubebuilder:scaffold` markers.
 Do not edit generated files: `zz_generated.*`, `config/crd/bases/*`, `config/rbac/role.yaml`, `PROJECT`, `gen/` and
 `ui/src/gen/`. Regenerate them:
 
-- After a change in `api/`: `make manifests generate helm-crds`.
+- After a change in `api/`: `make manifests generate helm-crds`. `helm-crds` copies only the CRDs and the rules of
+  the controller role into the chart.
 - After a change in `proto/`: `make proto ui-proto`.
+
+### The Helm chart
+
+The templates in `dist/chart/` are written by hand. Do not run `kubebuilder edit --plugins=helm/v2-alpha`: it
+overwrites `dist/chart/templates/manager/manager.yaml` and removes the executor image, the image volume setting and
+the archive. Change the templates directly. `make helm-lint` and `make test-chart` check them.
 
 ## Make a change
 
