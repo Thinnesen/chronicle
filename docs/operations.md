@@ -32,6 +32,7 @@ The server and the executor of each workflow Pod use the same image. Workflow Po
 
 - Without `auth.entra` or `auth.oidc`, the UI has no login. The API then accepts only Kubernetes service account tokens with the audience `chronicle` (CLI, SDKs and task workers).
 - `auth.oidc` works with any OIDC provider. `auth.entra` is for Microsoft Entra ID with group overage (see [entra-id.md](entra-id.md)).
+- For the CLI login, set `auth.oidc.cliClientID` or `auth.entra.cliClientID` to a public client with the device flow on. Without it, the CLI needs a service account token.
 - Set `auth.redirectURL` to `https://<host>/auth/callback`. Keep `auth.insecureCookies: false`: the cookies then have the `Secure` flag and need HTTPS.
 - `teams` binds the roles `chronicle-viewer`, `chronicle-editor` and `chronicle-admin` to groups in the team namespaces. You can also bind these ClusterRoles with your own RoleBindings, for example through GitOps.
 - A step can read the Secrets of its namespace through `env` and `secret` volumes, as any Pod can. So `chronicle-editor` and `chronicle-admin` have the same reach as permission to create Pods. Give them only to people who may read the Secrets of the namespace, and keep sensitive Secrets in other namespaces.

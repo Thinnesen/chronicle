@@ -47,7 +47,9 @@ chronicle --version
 
 With Go 1.27 or later, you can also build it: `go install github.com/Thinnesen/chronicle/cmd/chronicle@v0.1.0`.
 
-Log in once. With an OIDC login on the server, the CLI uses the device flow:
+Log in once. When the server has a CLI client (the Helm value `auth.oidc.cliClientID` or `auth.entra.cliClientID`),
+the CLI uses the device flow of your identity provider. The CLI client is a public client with the device flow on, for
+example a Dex static client with `public: true`. Without it, use a service account token as shown below.
 
 ```sh
 chronicle login --server https://chronicle.example.com --namespace team-a

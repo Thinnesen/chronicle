@@ -18,6 +18,9 @@ data:
         {{- with $auth.entra.groupsFrom }}
         groupsFrom: {{ . | quote }}
         {{- end }}
+      {{- with $auth.entra.cliClientID }}
+      cliClientID: {{ . | quote }}
+      {{- end }}
       {{- else }}
       issuer: {{ $auth.oidc.issuer | quote }}
       clientID: {{ required "auth.oidc.clientID is required" $auth.oidc.clientID | quote }}
