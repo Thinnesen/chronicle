@@ -1,6 +1,6 @@
 # Artifacts and the log archive
 
-An artifact is a file or a directory that a step saves and a later step uses. chronicle keeps artifacts in an S3-compatible store, for example Amazon S3, Google Cloud Storage (S3 API), Ceph RGW or SeaweedFS. The same store can also keep the logs of all steps. Then you can read them after the Pods are deleted.
+An artifact is a file or a directory that a step saves and a later step uses. chronicle keeps artifacts in an S3-compatible store, for example Amazon S3. The end-to-end tests use SeaweedFS. The same store can also keep the logs of all steps. Then you can read them after the Pods are deleted.
 
 ## 1. Configure the repository of a namespace
 

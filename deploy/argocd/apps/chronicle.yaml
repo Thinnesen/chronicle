@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/Thinnesen/chronicle.git
-    targetRevision: main
+    targetRevision: v0.1.0 # the release of the chart; your fork can use its own branch for the workflows
     path: dist/chart
     helm:
       valuesObject:

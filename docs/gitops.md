@@ -10,7 +10,7 @@ Every chronicle definition is a Kubernetes resource: `WorkflowTemplate`, `Cluste
 |---|---|
 | `root.yaml` | The root application. It syncs the applications in `apps/`. |
 | `apps/cert-manager.yaml` | cert-manager, for the certificate of the admission webhook (sync wave -1). |
-| `apps/chronicle.yaml` | chronicle from the Helm chart `dist/chart`, with the login and the teams as Helm values. |
+| `apps/chronicle.yaml` | chronicle from the Helm chart `dist/chart` at the release tag, with the login and the teams as Helm values. |
 | `apps/team-a-workflows.yaml` | The templates and cron workflows of team A from `workflows/team-a/` (sync wave 1). |
 
 1. Fork the repository. Change `repoURL` in the files to your fork.

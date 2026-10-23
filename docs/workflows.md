@@ -35,6 +35,8 @@ Each template does one thing:
 | `suspend` | Waits for an approval, or for a duration. |
 | `resource` | Creates, applies or deletes a Kubernetes object, and can wait for a condition. |
 | `task` | Sends the work to a task worker of an SDK (see [task-workers.md](task-workers.md)). |
+| `http` | Sends one HTTP request from a small Pod (section 8). |
+| `childWorkflow` | Starts a run of another template and waits for it (section 8). |
 
 ## 2. Placeholders
 
@@ -46,7 +48,7 @@ Placeholders put values into a template. They are text in `{{ }}`.
 | `{{workflow.parameters.<name>}}`, `{{workflow.parameters.json}}` | A workflow parameter, and all workflow parameters as JSON. |
 | `{{workflow.mainEntrypoint}}` | The entrypoint template of the run. |
 | `{{workflow.creationTimestamp}}`, `{{workflow.scheduledTime}}` | The creation time, and the planned time of a cron run (RFC 3339). |
-| `{{workflow.creationTimestamp.<letter>}}` | A part of the creation time in UTC, with a strftime letter as in Argo: `Y` (2026), `m` (10), `d` (20), `H`, `M`, `S` and others. `RFC3339` gives the full time, and `s` the Unix seconds. Use them for date partitions: `day={{workflow.creationTimestamp.Y}}-{{workflow.creationTimestamp.m}}-{{workflow.creationTimestamp.d}}`. |
+| `{{workflow.creationTimestamp.<letter>}}` | A part of the creation time in UTC, with a strftime letter: `Y` (2026), `m` (10), `d` (20), `H`, `M`, `S` and others. `RFC3339` gives the full time, and `s` the Unix seconds. Use them for date partitions: `day={{workflow.creationTimestamp.Y}}-{{workflow.creationTimestamp.m}}-{{workflow.creationTimestamp.d}}`. |
 | `{{workflow.status}}` | The phase of the run, in the exit handler. |
 | `{{workflow.duration}}` | The seconds since the start of the run, for example in the exit handler. |
 | `{{workflow.failures}}` | The failed steps as JSON (display name, message, template, phase, Pod, end), for the exit handler. |
@@ -302,13 +304,13 @@ spec:
       - {name: creds, mountPath: /creds, readOnly: true}
 ```
 
-- The controller creates the claim `<run>-<name>-<8 letters of the run UID>` before the first Pod. A run that waits for a lock creates it when it gets the lock.
+- The controller creates the claim `<run>-<name>-<first 8 characters of the run UID>` before the first Pod. A run that waits for a lock creates it when it gets the lock.
 - A run that succeeds deletes its claims. A run that fails keeps them, so a retry finds the files of the steps that succeeded. The claims go away with the run. Kubernetes keeps a deleted claim until the Pods that use it are gone, for example after the Pod GC. A retry of a run that succeeded needs new claims. It stops with phase Error while the old claims still exist.
 - The default access mode is `ReadWriteOnce`. Then all Pods that mount the volume must run on one node. Use `ReadWriteMany` when steps run at the same time on different nodes, and the storage class supports it.
 - A claim with the same name that the run does not own stops the run with phase Error. The run never uses the files of another owner.
 - `volumes` can be `emptyDir`, `secret` or `configMap`. A secret volume gives the same access as `env` with `secretKeyRef`.
 - A mount cannot hide `/`, an input artifact, or the directories of chronicle in `/var/run`. So a mount at `/var/run` is not possible. A `subPath` stays in the volume.
-- Existing claims are not supported yet (see [argo-migration.md](argo-migration.md)).
+- Existing claims are not supported yet.
 
 ## 11. Templates and schedules
 

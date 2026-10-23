@@ -2,6 +2,8 @@
 
 This guide connects chronicle to Microsoft Entra ID. Users log in with their Microsoft 365 account. Each team sees only its own namespaces.
 
+The end-to-end tests use a mock of Entra ID and Microsoft Graph (`test/mockentra`), with group overage and two teams. The names in the Entra admin center can differ from the steps below when Microsoft changes the portal.
+
 You need:
 
 - An Entra role that can register applications (for example "Application Developer").
