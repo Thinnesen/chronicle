@@ -9,6 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
 	"github.com/Thinnesen/chronicle/internal/archive"
@@ -45,7 +46,7 @@ func (r *WorkflowReconciler) observeTasks(ctx context.Context, wf *chroniclev1al
 	}
 	list, err := r.Tasks.ForWorkflow(ctx, string(wf.UID))
 	if err != nil {
-		return nil, err
+		return nil, queueDownError{err}
 	}
 	out := make(map[string]engine.TaskResult, len(list))
 	for _, t := range list {
@@ -90,7 +91,8 @@ func (r *WorkflowReconciler) applyTask(ctx context.Context, wf *chroniclev1alpha
 			Traceparent: r.traceparent(wf, a.NodeID),
 		})
 		if err != nil {
-			return fmt.Errorf("enqueue the task of node %s: %w", a.NodeName, err)
+			logf.FromContext(ctx).Error(err, "Failed to put the task into the queue", "node", a.NodeName)
+			return nodeProblem{nodeID: a.NodeID, err: errQueueDown}
 		}
 	case engine.CancelTask:
 		if err := r.Tasks.Cancel(ctx, a.TaskID, a.Reason); err != nil {

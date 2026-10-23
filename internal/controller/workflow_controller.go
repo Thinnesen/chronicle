@@ -102,7 +102,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	in, err := r.observe(ctx, &wf, spec)
 	if err != nil {
-		return ctrl.Result{}, err
+		return observeFailed(ctx, err)
 	}
 	in = engine.Input{
 		Name: wf.Name, Namespace: wf.Namespace, UID: string(wf.UID),
@@ -285,7 +285,7 @@ const lockStart = 100 * time.Millisecond
 // the Pods that Kubernetes refused. The lock actions run one after the other, because they change the same Leases. The other actions are
 // independent and run in parallel. The artifact repository is read once.
 func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec,
-	actions []engine.Action) (bool, map[string]string, []refusedPodError, error) {
+	actions []engine.Action) (bool, map[string]string, []nodeProblem, error) {
 	took := false
 	messages := map[string]string{}
 	rest := make([]engine.Action, 0, len(actions))
@@ -311,7 +311,7 @@ func (r *WorkflowReconciler) applyAll(ctx context.Context, wf *chroniclev1alpha1
 	}
 	repo := sync.OnceValues(func() (*artifact.Repository, error) { return r.repository(ctx, wf.Namespace) })
 	var mu sync.Mutex
-	var refused []refusedPodError
+	var refused []nodeProblem
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(applyWorkers)
 	for _, a := range rest {
