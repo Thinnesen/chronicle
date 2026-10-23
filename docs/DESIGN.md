@@ -101,7 +101,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Parameter substitution: `{{inputs.parameters.x}}`, `{{tasks.a.outputs.result}}`, `{{workflow.name}}`.
 - Determinism: the same input gives the same actions.
 - One walker for DAG and steps. A step depends on all steps of the previous group. Each run of the engine visits the tasks once in dependency order, so an omission cascades in one pass.
-- A DAG ends when no task runs. Then each leaf task decides. A task that ran gives its own phase. A task that was omitted or skipped gives the worst phase of its dependencies. A dependency failure that the task tests for (for example `a.Failed` or `!a.Failed`) does not pass down.
+- A DAG ends when no task runs. Then each leaf task decides. A task that ran gives its own phase. A task that was omitted or skipped gives the worst phase of its dependencies. A dependency failure that a task of the DAG tests for (for example `a.Failed` or `!a.Failed`) does not pass down. So the success branch of an if-else does not fail the DAG.
 - `failFast` (default true) stops new tasks after a failure that no task tests for. The tasks that did not start become Omitted.
 - `when`: the engine parses the condition first, then puts each placeholder value in as one literal operand. A value can never change the condition. Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, parentheses. Two numbers compare as numbers, other values as text. A false condition makes the node Skipped.
 - Fan-out: `withItems` or `withParam` (a JSON list) makes a TaskGroup node with one child for each item (`a(0:x)`). `AnySucceeded` and `AllFailed` test the items. The outputs of a group are JSON lists of the item outputs.
