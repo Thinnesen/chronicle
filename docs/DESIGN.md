@@ -155,7 +155,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Resume and suspend. Stop (graceful, runs exit handlers). Terminate (immediate).
 - History: each run, each node attempt, its logs and its outputs stay in the archive. The UI and the API show them.
 - Archive (optional, `--archive-dsn-file` on the controller and the server): the controller saves each finished run to PostgreSQL. A row has summary columns and the full Workflow with its nodes, with the UID as the key. The controller then marks the run with the condition `Archived`. A retried run is saved again. With an archive, the TTL deletes a run only after the archive has it.
-- The server merges archived runs into the run list and falls back to the archive for get and re-run. The archive is outside the Kubernetes RBAC. So the server first checks with an access review as the caller (list or get Workflows in the namespace). The archive filters labels by equality only; other selectors show live runs only.
+- The server merges archived runs into the run list and falls back to the archive for get and re-run. Archived runs can have the same name, so get, logs, re-run and artifact downloads take an optional UID. Without it, the server uses the run in the cluster, or else the newest archived run with the name. The archive is outside the Kubernetes RBAC. So the server first checks with an access review as the caller (list or get Workflows in the namespace). The archive filters labels by equality only; other selectors show live runs only.
 - Migrations are embedded SQL files with a version table and an advisory lock, without a migration library.
 
 ## 6. Server, login and permissions
