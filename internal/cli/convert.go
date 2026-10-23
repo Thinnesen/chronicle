@@ -18,10 +18,20 @@ func (a *app) convertCommand() *cobra.Command {
 		Use:   "convert -f <file>",
 		Short: "Convert Argo Workflows YAML into chronicle resources",
 		Long: "Convert Argo Workflows YAML (Workflow, WorkflowTemplate, ClusterWorkflowTemplate, CronWorkflow) into chronicle " +
-			"resources. The result goes to standard output. The warnings go to standard error. Each warning names a field " +
-			"that chronicle does not support. The result does not have that field. Use - to read standard input.",
-		Example: "  chronicle convert -f argo-workflow.yaml > workflow.yaml\n  chronicle convert -f argo.yaml | kubectl create -f -",
-		Args:    cobra.NoArgs,
+			"resources. A file can have more than one document. The command needs no server.\n\n" +
+			"The result goes to standard output. The warnings go to standard error. Each warning names a field and what " +
+			"happened to it. A field that chronicle does not support is dropped, so read each warning: the behavior can " +
+			"change.\n\n" +
+			"Main changes: a retry without a limit gets limit 10. Placeholders in a shell script source become environment " +
+			"variables. A resource action replace becomes apply. A step that creates a Workflow from a template becomes a " +
+			"childWorkflow template.\n\n" +
+			"The command validates the result with the rules of the admission webhook. Exit code 1 means that the result " +
+			"is not valid, for example because of an expression ({{=...}}), a placeholder that chronicle does not have, or " +
+			"placeholders in a script that is not a shell script. With --strict, a warning also gives exit code 1.",
+		Example: "  chronicle convert -f argo-workflow.yaml > workflow.yaml\n" +
+			"  chronicle convert --strict -f argo.yaml | chronicle lint -\n" +
+			"  chronicle convert -f argo.yaml | kubectl create -n team-a -f -",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			data, err := readInput(file, cmd.InOrStdin())
 			if err != nil {
