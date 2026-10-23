@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,6 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
+	"github.com/Thinnesen/chronicle/internal/archive"
 )
 
 var _ = Describe("A Pod that Kubernetes refuses", func() {
@@ -38,11 +40,33 @@ templates:
 	})
 })
 
+// downQueue is a task queue that fails while down is true: the database does not answer.
+type downQueue struct {
+	fakeQueue
+	down bool
+}
+
+var errFakeDown = errors.New("failed to connect to `user=chronicle`: 10.0.0.1:5432: connection refused")
+
+func (q *downQueue) Enqueue(ctx context.Context, t archive.NewTask) error {
+	if q.down {
+		return errFakeDown
+	}
+	return q.fakeQueue.Enqueue(ctx, t)
+}
+
+func (q *downQueue) ForWorkflow(ctx context.Context, uid string) ([]archive.Task, error) {
+	if q.down {
+		return nil, errFakeDown
+	}
+	return q.fakeQueue.ForWorkflow(ctx, uid)
+}
+
 var _ = Describe("A task queue that does not answer", func() {
 	ctx := context.Background()
 
 	It("shows the wait in the node and tries again soon, without the error backoff", func() {
-		queue := &fakeQueue{down: true}
+		queue := &downQueue{down: true}
 		r := testReconciler()
 		r.Tasks = queue
 		key := newWorkflow(ctx, `

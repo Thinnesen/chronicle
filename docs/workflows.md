@@ -120,6 +120,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 ```
 
 - An input parameter gets its value from the arguments of the call, from `value`, or from `default`.
+- A workflow parameter needs a value or a default. A default on the input parameter of the entrypoint does not replace it. A run without it ends with Error: "a workflow parameter needs a value or a default". `chronicle submit --from` and the UI refuse a run from a template when such a parameter has no value.
 - `enum` limits the values. The UI shows a list for such a parameter.
 - A workflow parameter or an input parameter can read a ConfigMap of the namespace: `valueFrom: {configMapKeyRef: {name: settings, key: region}}`. The controller reads it once when the run starts, so all steps see the same value. A missing key uses `default`. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, so that only ConfigMaps that a team shares on purpose reach the runs. Each reader of the run sees the value.
 - An output parameter reads a file (`valueFrom.path`). In a resource template, `valueFrom.jsonPath` reads a field of the object, for example `{.metadata.name}`.

@@ -382,24 +382,13 @@ func (f *fakeArchive) Save(_ context.Context, _ *chroniclev1alpha1.Workflow, don
 type fakeQueue struct {
 	added []archive.NewTask
 	tasks []archive.Task
-	down  bool // the database does not answer
 }
 
-var errFakeDown = errors.New("failed to connect to `user=chronicle`: 10.0.0.1:5432: connection refused")
-
 func (q *fakeQueue) Enqueue(_ context.Context, t archive.NewTask) error {
-	if q.down {
-		return errFakeDown
-	}
 	q.added = append(q.added, t)
 	return nil
 }
 
 func (q *fakeQueue) Cancel(context.Context, string, string) error { return nil }
 
-func (q *fakeQueue) ForWorkflow(context.Context, string) ([]archive.Task, error) {
-	if q.down {
-		return nil, errFakeDown
-	}
-	return q.tasks, nil
-}
+func (q *fakeQueue) ForWorkflow(context.Context, string) ([]archive.Task, error) { return q.tasks, nil }

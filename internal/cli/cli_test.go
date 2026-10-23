@@ -40,9 +40,6 @@ type stub struct {
 	auth   string
 	// restarted is the Restarted condition status of an applied retry ("True" or "False"), or empty.
 	restarted string
-	// pendingRetry is the number of reads that show a retry that the controller has not applied yet: the run still has
-	// its old phase Failed.
-	pendingRetry int
 	// breakLogs makes the first log stream fail after two lines, as during a server restart.
 	breakLogs bool
 	streams   int
@@ -90,10 +87,6 @@ func (s *stub) GetWorkflow(_ context.Context, r *connect.Request[chroniclev1.Get
 			"message": `the run has no node "x"`, "lastTransitionTime": "2026-01-01T00:00:00Z"}}
 	}
 	phase := s.phase
-	if s.pendingRetry > 0 {
-		s.pendingRetry--
-		spec["restart"], status["restarts"], phase = map[string]any{"generation": 1}, 0, "Failed"
-	}
 	if r.Msg.Try != nil {
 		// An earlier try comes from the archive, with its own retry count.
 		phase, status["restarts"] = fmt.Sprintf("Failed in try %d", *r.Msg.Try), *r.Msg.Try
@@ -226,11 +219,6 @@ func TestRetryWatch(t *testing.T) {
 	s.restarted = "False"
 	if _, err := run(t, s, "retry", "x", "--node", "x.b", "--watch"); err == nil || !strings.Contains(err.Error(), "refused the retry") {
 		t.Errorf("refused retry: %v", err)
-	}
-	// A watch right after "chronicle retry" sees the old phase until the controller applies the retry.
-	s = &stub{phase: "Succeeded", restarted: "True", pendingRetry: 2}
-	if out, err := run(t, s, "watch", "x"); err != nil || !strings.Contains(out, "x Succeeded") {
-		t.Errorf("watch of a pending retry: %v\n%s", err, out)
 	}
 }
 

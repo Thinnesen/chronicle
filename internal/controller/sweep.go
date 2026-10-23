@@ -16,13 +16,10 @@ import (
 // runDeleted is the reason of a task that the sweeper cancels.
 const runDeleted = "the run was deleted"
 
-// sweepBatch is the number of open tasks that one sweep reads.
-const sweepBatch = 1000
-
-// OpenTaskQueue lists the open tasks and cancels a task. The archive database implements it.
+// OpenTaskQueue lists the runs with open tasks and cancels the open tasks of a run. The archive database implements it.
 type OpenTaskQueue interface {
-	OpenTasks(ctx context.Context, limit int) ([]archive.Task, error)
-	Cancel(ctx context.Context, id, reason string) error
+	OpenRuns(ctx context.Context) ([]archive.OpenRun, error)
+	CancelRun(ctx context.Context, workflowUID, reason string) error
 }
 
 // TaskSweeper cancels the open tasks of runs that were deleted. Kubernetes deletes the Pods of a deleted run, but its
@@ -53,20 +50,20 @@ func (s *TaskSweeper) Start(ctx context.Context) error {
 
 // sweep cancels the open tasks whose run does not exist. The UID decides, because a new run can have the same name.
 func (s *TaskSweeper) sweep(ctx context.Context) error {
-	open, err := s.Tasks.OpenTasks(ctx, sweepBatch)
+	runs, err := s.Tasks.OpenRuns(ctx)
 	if err != nil {
 		return err
 	}
-	for _, t := range open {
+	for _, r := range runs {
 		var wf chroniclev1alpha1.Workflow
-		err := s.Reader.Get(ctx, client.ObjectKey{Namespace: t.Namespace, Name: t.Workflow}, &wf)
+		err := s.Reader.Get(ctx, client.ObjectKey{Namespace: r.Namespace, Name: r.Workflow}, &wf)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("read the run of task %s: %w", t.ID, err)
+			return fmt.Errorf("read the run %s/%s: %w", r.Namespace, r.Workflow, err)
 		}
-		if err == nil && string(wf.UID) == t.WorkflowUID {
+		if err == nil && string(wf.UID) == r.WorkflowUID {
 			continue
 		}
-		if err := s.Tasks.Cancel(ctx, t.ID, runDeleted); err != nil {
+		if err := s.Tasks.CancelRun(ctx, r.WorkflowUID, runDeleted); err != nil {
 			return err
 		}
 	}
