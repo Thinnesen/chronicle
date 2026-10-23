@@ -113,6 +113,31 @@ func checkList(t *testing.T, s *Store, states []string, want int) {
 	}
 }
 
+// TestOpenTasks lists the pending and the running tasks, not the finished ones.
+func TestOpenTasks(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	for i := range 3 {
+		if err := s.Enqueue(ctx, newTask(i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	task, lease, err := s.Poll(ctx, "team-a", "default", []string{"greet"}, "w1")
+	if err != nil || task == nil {
+		t.Fatalf("poll: %v %v", task, err)
+	}
+	if err := s.Complete(ctx, "team-a", task.ID, lease, `{}`, "", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.Poll(ctx, "team-a", "default", []string{"greet"}, "w1"); err != nil {
+		t.Fatal(err)
+	}
+	open, err := s.OpenTasks(ctx, 10)
+	if err != nil || len(open) != 2 || open[0].State != TaskRunning || open[1].State != TaskPending {
+		t.Errorf("open tasks: %v %+v", err, open)
+	}
+}
+
 // TestCompleteKinds covers the kinds of results: a final failure is an Error, and a result must be JSON.
 func TestCompleteKinds(t *testing.T) {
 	s := openTest(t)

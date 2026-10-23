@@ -99,6 +99,25 @@ func (s *Store) ForWorkflow(ctx context.Context, workflowUID string) ([]Task, er
 	return out, rows.Err()
 }
 
+// OpenTasks returns up to limit tasks that are pending or running, oldest first.
+func (s *Store) OpenTasks(ctx context.Context, limit int) ([]Task, error) {
+	rows, err := s.pool.Query(ctx, `SELECT `+taskColumns+` FROM tasks WHERE state IN ($1, $2) ORDER BY created_at LIMIT $3`,
+		TaskPending, TaskRunning, limit)
+	if err != nil {
+		return nil, fmt.Errorf("read the open tasks: %w", err)
+	}
+	defer rows.Close()
+	var out []Task
+	for rows.Next() {
+		t, err := scanTask(rows)
+		if err != nil {
+			return nil, fmt.Errorf("read the open tasks: %w", err)
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
 // Poll gives the oldest pending task of the queue with one of the names to a worker. It returns a nil task
 // when there is none. The lease is the secret that the worker must give for heartbeats and the result.
 func (s *Store) Poll(ctx context.Context, namespace, queue string, names []string, worker string) (*Task, string, error) {
