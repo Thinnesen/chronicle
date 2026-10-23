@@ -36,7 +36,7 @@ func TestTries(t *testing.T) {
 	if _, err := s.GetTry(ctx, string(wf.UID), 5); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("try 5: %v, want ErrNotFound", err)
 	}
-	if cur, err := s.Get(ctx, "team-a", "retried"); err != nil || cur.Status.Phase != v1alpha1.WorkflowSucceeded {
+	if cur, err := s.Get(ctx, "team-a", "retried", ""); err != nil || cur.Status.Phase != v1alpha1.WorkflowSucceeded {
 		t.Fatalf("current: %v %+v", err, cur)
 	}
 }

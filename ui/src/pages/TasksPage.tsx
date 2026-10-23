@@ -85,7 +85,7 @@ export function TasksPage() {
                   <span className="badge">queue {t.queue}</span>
                 </span>
                 <p className="item-note">
-                  <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: t.workflow }}>
+                  <Link to="/ns/$namespace/runs/$name" params={{ namespace, name: t.workflow }} search={{ uid: t.workflowUid || undefined }}>
                     {t.nodeName || t.workflow}
                   </Link>
                   {t.worker && `, taken by ${t.worker}`}

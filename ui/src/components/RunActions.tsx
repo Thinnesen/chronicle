@@ -39,7 +39,7 @@ export function RunActions({ wf, phase, archived = false }: { wf: Workflow; phas
   const [confirm, setConfirm] = useState<Action | null>(null);
   const [rerunning, setRerunning] = useState(false);
   const rerun = useMutation({
-    mutationFn: (parameters: Record<string, string>) => workflows.rerunWorkflow({ namespace, name, parameters }),
+    mutationFn: (parameters: Record<string, string>) => workflows.rerunWorkflow({ namespace, name, parameters, uid: wf.metadata.uid }),
     onSuccess: (resp) => {
       const next = resp.summary?.name ?? "";
       toast(`Started ${next}`);

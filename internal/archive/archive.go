@@ -188,11 +188,17 @@ FROM workflow_runs WHERE `+where+` ORDER BY created_at DESC, name, namespace LIM
 	})
 }
 
-// Get returns the newest archived run with the name in the namespace.
-func (s *Store) Get(ctx context.Context, namespace, name string) (*v1alpha1.Workflow, error) {
+// Get returns the newest archived run with the name in the namespace, or the run with the UID when uid is not empty.
+// Runs can have the same name, for example a Workflow with a fixed name that was created again.
+func (s *Store) Get(ctx context.Context, namespace, name, uid string) (*v1alpha1.Workflow, error) {
 	var data []byte
-	err := s.pool.QueryRow(ctx, `SELECT workflow FROM workflow_runs WHERE namespace = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`,
-		namespace, name).Scan(&data)
+	q := `SELECT workflow FROM workflow_runs WHERE namespace = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`
+	args := []any{namespace, name}
+	if uid != "" {
+		q = `SELECT workflow FROM workflow_runs WHERE namespace = $1 AND name = $2 AND uid::text = $3`
+		args = append(args, uid)
+	}
+	err := s.pool.QueryRow(ctx, q, args...).Scan(&data)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

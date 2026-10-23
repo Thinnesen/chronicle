@@ -94,6 +94,8 @@ message TaskSummary {
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp started_at = 10;
   google.protobuf.Timestamp finished_at = 11;
+  // workflow_uid is the UID of the run. Runs can have the same name, for example in the archive.
+  string workflow_uid = 12;
 }
 
 message ListTasksResponse {

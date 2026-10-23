@@ -36,7 +36,7 @@ type logService struct {
 
 func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroniclev1.StreamLogsRequest], stream *connect.ServerStream[chroniclev1.StreamLogsResponse]) error {
 	m := req.Msg
-	wf, archived, err := s.workflows.workflowTry(ctx, m.Namespace, m.Workflow, m.Try)
+	wf, archived, err := s.workflows.workflowTry(ctx, m.Namespace, m.Workflow, m.Uid, m.Try)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (s *logService) follow(ctx context.Context, m *chroniclev1.StreamLogsReques
 			return nil
 		case <-time.After(followPoll):
 		}
-		next, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow)
+		next, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow, m.Uid)
 		if err != nil {
 			return err
 		}

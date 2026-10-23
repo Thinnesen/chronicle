@@ -21,7 +21,7 @@ import (
 // ArchiveReader reads finished runs and the earlier tries of retried runs from the archive.
 type ArchiveReader interface {
 	List(ctx context.Context, q archive.Query) ([]archive.Row, error)
-	Get(ctx context.Context, namespace, name string) (*v1alpha1.Workflow, error)
+	Get(ctx context.Context, namespace, name, uid string) (*v1alpha1.Workflow, error)
 	Tries(ctx context.Context, uid string) ([]archive.Try, error)
 	GetTry(ctx context.Context, uid string, number int32) (*v1alpha1.Workflow, error)
 }
@@ -60,14 +60,14 @@ func (s *workflowService) archivedRuns(ctx context.Context, m *chroniclev1.ListW
 }
 
 // archivedWorkflow returns a run from the archive after an access review of the caller.
-func (s *workflowService) archivedWorkflow(ctx context.Context, c client.Client, namespace, name string) (*v1alpha1.Workflow, error) {
+func (s *workflowService) archivedWorkflow(ctx context.Context, c client.Client, namespace, name, uid string) (*v1alpha1.Workflow, error) {
 	if s.archive == nil {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("the run does not exist"))
 	}
 	if !allowed(ctx, c, namespace, "get") {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("you cannot get runs in this namespace"))
 	}
-	wf, err := s.archive.Get(ctx, namespace, name)
+	wf, err := s.archive.Get(ctx, namespace, name, uid)
 	if errors.Is(err, archive.ErrNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("the run does not exist, not even in the archive"))
 	}
@@ -130,8 +130,8 @@ func (s *workflowService) tries(ctx context.Context, wf *v1alpha1.Workflow) []*c
 
 // workflowTry returns a run, or one of its earlier tries. The run is read first, so that the access review of the
 // run also protects its tries.
-func (s *workflowService) workflowTry(ctx context.Context, namespace, name string, try *int32) (*v1alpha1.Workflow, bool, error) {
-	wf, archived, err := s.getAny(ctx, namespace, name)
+func (s *workflowService) workflowTry(ctx context.Context, namespace, name, uid string, try *int32) (*v1alpha1.Workflow, bool, error) {
+	wf, archived, err := s.getAny(ctx, namespace, name, uid)
 	if err != nil || try == nil || *try == wf.Status.Restarts {
 		return wf, archived, err
 	}
