@@ -6,48 +6,35 @@
 </p>
 
 <p align="center">
-  <em>A Kubernetes-native workflow engine. Write workflows in YAML for GitOps, or in Go, Python or Rust. Retry and re-run from any step.</em>
+  <em>A Kubernetes-native workflow engine. Workflows in YAML or in Go, Python and Rust. Retry and re-run from any step.</em>
 </p>
 
 <p align="center">
-  <img alt="Status: in development" src="https://img.shields.io/badge/status-in%20development-orange">
+  <a href="https://github.com/Thinnesen/chronicle/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Thinnesen/chronicle"></a>
   <img alt="Go 1.27" src="https://img.shields.io/badge/go-1.27-00ADD8?logo=go&logoColor=white">
-  <img alt="Kubernetes" src="https://img.shields.io/badge/kubernetes-1.37-326CE5?logo=kubernetes&logoColor=white">
+  <img alt="Kubernetes 1.37" src="https://img.shields.io/badge/kubernetes-1.37-326CE5?logo=kubernetes&logoColor=white">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue">
 </p>
 
 ---
 
-> **chronicle has no release yet.** The first version (milestones M1 to M8) is complete on the `dev` branch. It is in review. The design is in [`docs/DESIGN.md`](docs/DESIGN.md).
+## What is chronicle?
 
-## What chronicle is
+chronicle runs workflows on Kubernetes. A workflow is a DAG or a list of steps. Each step runs as a Pod, or as a
+function in a long-running worker process. Workflows, templates and schedules are custom resources, so `kubectl` and
+GitOps tools manage them like other Kubernetes objects. The controller keeps each run with its attempts and
+outputs, so you can retry or re-run any part of it later.
 
-chronicle runs workflows on Kubernetes. Each step runs as a Pod. Workflows, templates and schedules are custom resources, so `kubectl`, Argo CD and Flux manage them like other Kubernetes objects. The controller keeps the history of each run, so you can retry or re-run any part of it later.
+There are two ways to write workflows, and you can mix them:
 
-You can use chronicle in two ways, and you can mix them:
-
-- **Simple, with YAML and GitOps**, as with Argo Workflows. Keep the workflows in Git and let Argo CD or Flux deploy them. You need no code and no Helm templates.
-- **Advanced, with code**, as with Dagster. Build workflows in Go, Python or Rust with the SDKs, with the loops, functions and tests of your language. Submit them, or render them to YAML for Git.
-
-A `task` step adds durable work, as Temporal activities do. It gives the work to a long-running worker in your own program, with heartbeats, timeouts and retries. One engine runs all of this, with one history, one UI and one CLI.
-
-Features:
-
-- **Runs** DAGs, step lists and cron workflows as Kubernetes Pods. It has retries, timeouts, exit handlers, approvals, fan-out, a step cache, parallelism limits, locks (one deployment at a time) and shared volumes. Steps can also apply Kubernetes objects or send HTTP requests, for example a chat message when a run ends. A step can start a child run of another template and wait for its outputs, and a run can wait for a start time.
-- **Remembers** every run, every attempt, its logs and its outputs. Retry the failed steps, retry from any step, or re-run with changed parameters.
-- **Shows what needs you**: the runs that wait for an approval, and the steps that Kubernetes cannot start. The UI and the CLI show the reason, for example a missing image.
-- **Fits your observability**: Prometheus metrics, Kubernetes Events and OpenTelemetry traces. Each run is one trace, and your steps and task workers can add their own spans to it.
-- **Logs you in properly**: OIDC with PKCE for the UI, and the device flow for the CLI. Microsoft 365 (Entra ID) is a first-class provider. Permissions are plain Kubernetes RBAC, the same as for `kubectl` and GitOps.
-- **Keeps teams apart**: a few lines of Helm values map an IdP group to a team and its namespaces. Each team sees and runs only its own work, and a person in several teams sees all their runs on one page.
-- **Stays GitOps-first**: every definition is a custom resource. Deploy it with Argo CD or Flux, as an app of apps. Resources from Git are read-only in the UI, and runs work from both.
-- **Speaks your language**: the SDKs for Go, Python and Rust define and submit workflows as code. They also run durable task workers with heartbeats and retries.
-- **Migrates from Argo**: `chronicle convert` turns Argo Workflows YAML into chronicle resources. `chronicle lint` checks your files in CI without a server.
+- **YAML**: keep the workflows in Git and deploy them with Argo CD or Flux.
+- **Code**: build workflows with the SDKs for Go, Python and Rust. Submit them, or render them to YAML.
 
 ## See it
 
-The web UI shows the runs of a namespace. For each run, it shows a live graph, a timeline and the logs of the steps. All pictures come from real runs on a small demo cluster.
+All pictures come from real runs on a small test cluster.
 
-A run of the `etl` template from start to end (twice the real speed):
+A run of a template from start to end (twice the real speed):
 
 <img alt="The UI starts a run from a template and follows its graph until it succeeds. Then it opens the log of a step and the timeline." src="docs/assets/ui-run.gif">
 
@@ -63,7 +50,7 @@ The CLI submits a run from a template, follows it to the end, and reads its logs
 
 ## Quick start
 
-You need a Kubernetes cluster, kubectl and Helm. A local [Kind](https://kind.sigs.k8s.io) cluster is enough.
+You need a Kubernetes 1.37 cluster, kubectl and Helm. A local [Kind](https://kind.sigs.k8s.io) 0.33 cluster is enough.
 
 ```sh
 kind create cluster --name chronicle
@@ -108,24 +95,62 @@ kubectl create -n demo -f hello.yaml
 kubectl get workflows -n demo -w
 ```
 
-The web UI and the CLI need a login. Configure OIDC in the Helm values, with any provider or with Microsoft Entra ID. See [`docs/install.md`](docs/install.md) and the values of the Helm chart in [`dist/chart/values.yaml`](dist/chart/values.yaml).
+The web UI and the CLI need a login: OIDC (any provider) or Microsoft Entra ID, set in the Helm values. Service
+account tokens work for the CLI and the SDKs without a login provider. See [`docs/install.md`](docs/install.md).
 
-## Docs
+## Features
 
-| Topic | Guide |
-|---|---|
-| Install the CLI and the SDKs | [`docs/install.md`](docs/install.md) |
-| Write workflows: DAGs, steps, parameters, retries, approvals, locks, volumes | [`docs/workflows.md`](docs/workflows.md) |
-| Run chronicle in production: images, login, archive, replicas, upgrades | [`docs/operations.md`](docs/operations.md) |
-| Artifacts and archived logs in S3 | [`docs/artifacts.md`](docs/artifacts.md) |
-| Task workers in Go, Python and Rust | [`docs/task-workers.md`](docs/task-workers.md) |
-| Login with Microsoft Entra ID and teams | [`docs/entra-id.md`](docs/entra-id.md) |
-| GitOps with Argo CD (app of apps) | [`docs/gitops.md`](docs/gitops.md) |
-| Metrics, events, dashboards and traces | [`docs/observability.md`](docs/observability.md) |
-| Move from Argo Workflows | [`docs/argo-migration.md`](docs/argo-migration.md) |
-| Design and decisions | [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/DECISIONS.md`](docs/DECISIONS.md) |
+Workflows:
 
-## How it fits together
+- DAGs (`dependencies`, or `depends` conditions on the result of other tasks) and step lists
+- Container, script, resource (create, apply or delete Kubernetes objects), HTTP, suspend and child workflow templates
+- Task templates: the step runs as a function in a worker process of the Go, Python or Rust SDK, with heartbeats,
+  timeouts and at-least-once delivery
+- Parameters, outputs, workflow outputs, and parameters from labeled ConfigMaps
+- Conditions (`when`), and fan-out with `withItems`, `withParam` and `withSequence`
+- Retries with backoff, timeouts, deadlines, `continueOn`, and exit handlers for the run and for each task
+- Approvals with typed values (`enum`), recorded with the name of the approver
+- Artifacts in an S3-compatible store for each namespace, and an archive of step logs
+- Step cache (`memoize`), parallelism limits, mutexes and semaphores for runs and for templates
+- Shared volumes for the steps of a run (`volumeClaimTemplates`), and `emptyDir`, `secret` and `configMap` volumes
+- Workflow templates, cluster workflow templates, and cron workflows with time zones, concurrency policies and backfill
+- Delayed start (`startAt`), Pod garbage collection and TTL
+
+Runs and history:
+
+- Retry the failed steps, or retry from any step. With the archive, each earlier try stays readable.
+- Re-run with changed parameters
+- Suspend, resume, stop (with the exit handler) and terminate
+- A PostgreSQL archive keeps finished runs and their tries after the Kubernetes objects are deleted. Step logs can
+  stay in the artifact store.
+- The UI and the CLI show why a step does not start, for example an image pull error or no node that fits
+
+Access and security:
+
+- Every API call runs as the caller (Kubernetes impersonation). Permissions are Kubernetes RBAC, the same as for
+  `kubectl`.
+- OIDC login with PKCE for the UI, the device flow for the CLI, and service account tokens for automation
+- Microsoft Entra ID with group overage through Microsoft Graph
+- Teams: Helm values bind IdP groups to the viewer, editor and admin roles in the namespaces of a team
+- Workflow Pods run under the "restricted" Pod security standard. They get an API token only for a resource step,
+  or when the run names a service account.
+- Schedules that Argo CD or Flux manage cannot be changed from the UI or the API. The UI marks managed templates.
+
+Operations:
+
+- Prometheus metrics, Grafana dashboards and Kubernetes Events
+- OpenTelemetry traces: one trace for each run. Steps and task workers get the trace context.
+- Helm chart, signed multi-arch images, SBOMs and build provenance
+
+Interfaces:
+
+- Web UI: runs, a live graph, a timeline, logs, templates, schedules and task queues
+- CLI: `chronicle submit`, `list`, `get`, `watch`, `logs`, `retry`, `rerun`, `approve` and more. `chronicle lint`
+  checks workflow files without a server.
+- SDKs for Go, Python and Rust: define and submit workflows, and run task workers
+- API: Connect-RPC (gRPC and HTTP/JSON)
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -157,25 +182,48 @@ flowchart LR
   Pods --> S3
 ```
 
+- The controller runs a pure workflow engine: it takes the spec, the status and the observed Pods and tasks, and
+  returns actions. The controller applies them.
+- The server serves the API and the UI. It calls Kubernetes as the caller and has no permissions of its own on runs.
+- The archive database is optional. Task templates, the archive and shared login sessions need it.
+
+The design is in [`docs/DESIGN.md`](docs/DESIGN.md). Each design change is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+
+## Documentation
+
+| Topic | Guide |
+|---|---|
+| Install the server, the CLI and the SDKs | [`docs/install.md`](docs/install.md) |
+| Write workflows: DAGs, steps, parameters, retries, approvals, locks, volumes | [`docs/workflows.md`](docs/workflows.md) |
+| Run chronicle in production: images, login, archive, replicas, upgrades | [`docs/operations.md`](docs/operations.md) |
+| Artifacts and archived logs in S3 | [`docs/artifacts.md`](docs/artifacts.md) |
+| Task workers in Go, Python and Rust | [`docs/task-workers.md`](docs/task-workers.md) |
+| Login with Microsoft Entra ID and teams | [`docs/entra-id.md`](docs/entra-id.md) |
+| GitOps with Argo CD (app of apps) | [`docs/gitops.md`](docs/gitops.md) |
+| Metrics, events, dashboards and traces | [`docs/observability.md`](docs/observability.md) |
+| SDK references | [`sdk/go`](sdk/go/README.md), [`sdk/python`](sdk/python/README.md), [`sdk/rust`](sdk/rust/README.md) |
+
 ## Status
 
-chronicle 0.1.0 is the first public release. The API is `v1alpha1`: it can still change in a minor release, and the
-release notes describe each change.
+chronicle 0.1.0 is the first release. The API is `v1alpha1`: it can still change in a minor release, and the release
+notes describe each change.
 
-Next on the roadmap:
+Planned:
 
-- Durable workflow code with deterministic replay, in addition to task workers.
-- Event triggers: webhooks, message queues and object store events.
-- Edits of GitOps-managed resources from the UI as pull requests.
-- Runs across clusters.
+- Durable workflow code with deterministic replay, in addition to task workers
+- Event triggers: webhooks, message queues and object store events
+- Edits of GitOps-managed resources from the UI as pull requests
+- Runs across clusters
 
-Ideas and feedback are welcome in the [issues](https://github.com/Thinnesen/chronicle/issues).
+## Contributing
 
-## Development
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the tests and the conventions. Bug reports and feature requests
+go to the [issues](https://github.com/Thinnesen/chronicle/issues).
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the tests and the conventions. Report security problems as
-described in [SECURITY.md](SECURITY.md).
+## Security
+
+Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-Apache License 2.0.
+[Apache License 2.0](LICENSE)
