@@ -204,7 +204,7 @@ A DAG task or a step can have its own exit handler. It runs when the task ends, 
       arguments: {parameters: [{name: status, value: "{{tasks.build.status}}"}]}
 ```
 
-Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values. The API refuses other values. The node fails if such a value comes in another way. The node message names the approver, for example "approved by oidc:alice@example.com". A `resource` template runs with the service account of the run (`spec.serviceAccountName`). So a step can do only what that account can do.
+Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values. The API refuses other values. The node fails if such a value comes in another way. The UI and the CLI record the approver, and the node message names them, for example "approved by oidc:alice@example.com". An approval that you write into `spec.approvals` with kubectl or GitOps can leave out `user`; then the message says only "approved". The webhook refuses a `user` that is not the user of the request. A `resource` template runs with the service account of the run (`spec.serviceAccountName`). So a step can do only what that account can do.
 
 An `http` template sends one request, for example a chat message from the exit handler:
 
