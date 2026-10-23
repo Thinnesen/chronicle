@@ -2,26 +2,15 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	chroniclev1alpha1 "github.com/Thinnesen/chronicle/api/v1alpha1"
-	"github.com/Thinnesen/chronicle/internal/archive"
 )
-
-// downQueue is a task queue whose database does not answer.
-type downQueue struct{}
-
-func (downQueue) Enqueue(context.Context, archive.NewTask) error { return errors.New("down") }
-func (downQueue) Cancel(context.Context, string, string) error   { return errors.New("down") }
-func (downQueue) ForWorkflow(context.Context, string) ([]archive.Task, error) {
-	return nil, errors.New("down")
-}
 
 // TestObserveTasksOnlyWhenNeeded checks that a run without an open task node does not read the queue. So an outage of
 // the database does not stop the runs without task workers.
 func TestObserveTasksOnlyWhenNeeded(t *testing.T) {
-	r := &WorkflowReconciler{Tasks: downQueue{}}
+	r := &WorkflowReconciler{Tasks: &downQueue{down: true}}
 	run := func(nodes map[string]chroniclev1alpha1.NodeStatus) *chroniclev1alpha1.Workflow {
 		return &chroniclev1alpha1.Workflow{Status: chroniclev1alpha1.WorkflowStatus{Nodes: nodes}}
 	}
