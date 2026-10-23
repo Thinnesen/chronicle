@@ -1,14 +1,15 @@
 import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { useTry } from "../lib/tryContext";
+import { useRunUID, useTry } from "../lib/tryContext";
 import { useLogStream } from "../lib/useLogStream";
 import "./LogView.css";
 
 // LogView shows the log of one node. While the node runs, new lines arrive live.
 export function LogView({ namespace, workflow, node, live }: { namespace: string; workflow: string; node: string; live: boolean }) {
   const tryNumber = useTry();
-  const { lines, dropped, error, notice, done, archived, reconnecting } = useLogStream(namespace, workflow, node, live && tryNumber === undefined, tryNumber);
+  const uid = useRunUID();
+  const { lines, dropped, error, notice, done, archived, reconnecting } = useLogStream(namespace, workflow, node, live && tryNumber === undefined, tryNumber, uid);
   const [filter, setFilter] = useState("");
   const box = useRef<HTMLPreElement>(null);
   const atBottom = useRef(true);
@@ -25,7 +26,7 @@ export function LogView({ namespace, workflow, node, live }: { namespace: string
           <input type="search" placeholder="Filter lines" value={filter} onChange={(e) => setFilter(e.target.value)} />
         </label>
         <span className="quiet" aria-live="polite">
-          {live && !done ? "Following new lines" : `${lines.length} lines`}
+          {live && !done ? "Following new lines" : `${lines.length} ${lines.length === 1 ? "line" : "lines"}`}
           {dropped > 0 && `, the first ${dropped} are not shown`}
         </span>
         <button type="button" className="button button-ghost" disabled={lines.length === 0} onClick={() => download(`${workflow}-${node}.log`, lines.map((l) => l.text))}>
