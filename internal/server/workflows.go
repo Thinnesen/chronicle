@@ -23,7 +23,7 @@ type workflowService struct {
 }
 
 func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[chroniclev1.GetWorkflowRequest]) (*connect.Response[chroniclev1.GetWorkflowResponse], error) {
-	wf, archived, err := s.workflowTry(ctx, req.Msg.Namespace, req.Msg.Name, req.Msg.Try)
+	wf, archived, err := s.workflowTry(ctx, req.Msg.Namespace, req.Msg.Name, req.Msg.Uid, req.Msg.Try)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +38,12 @@ func (s *workflowService) GetWorkflow(ctx context.Context, req *connect.Request[
 }
 
 // getAny returns a live run, or the archived run when the Workflow was deleted.
-func (s *workflowService) getAny(ctx context.Context, namespace, name string) (*v1alpha1.Workflow, bool, error) {
+func (s *workflowService) getAny(ctx context.Context, namespace, name, uid string) (*v1alpha1.Workflow, bool, error) {
 	wf, err := s.get(ctx, namespace, name)
+	// A run in the cluster with another UID is a newer run with the same name: the caller wants an archived one.
+	if err == nil && uid != "" && string(wf.UID) != uid {
+		err = connect.NewError(connect.CodeNotFound, errors.New("not the run with the UID"))
+	}
 	if connect.CodeOf(err) != connect.CodeNotFound {
 		return wf, false, err
 	}
@@ -47,7 +51,7 @@ func (s *workflowService) getAny(ctx context.Context, namespace, name string) (*
 	if cerr != nil {
 		return nil, false, cerr
 	}
-	wf, err = s.archivedWorkflow(ctx, c, namespace, name)
+	wf, err = s.archivedWorkflow(ctx, c, namespace, name, uid)
 	return wf, true, err
 }
 

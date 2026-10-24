@@ -174,7 +174,7 @@ function RunsBoard({ namespace }: { namespace?: string }) {
                     </td>
                     <td className="board-run">
                       <span className="board-name">
-                        <Link to="/ns/$namespace/runs/$name" params={{ namespace: w.namespace, name: w.name }}>
+                        <Link to="/ns/$namespace/runs/$name" params={{ namespace: w.namespace, name: w.name }} search={w.archived ? { uid: w.uid } : {}}>
                           {w.name}
                         </Link>
                         {all && <span className="board-ns-inline">{w.namespace}</span>}

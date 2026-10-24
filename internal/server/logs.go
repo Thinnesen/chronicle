@@ -36,7 +36,7 @@ type logService struct {
 
 func (s *logService) StreamLogs(ctx context.Context, req *connect.Request[chroniclev1.StreamLogsRequest], stream *connect.ServerStream[chroniclev1.StreamLogsResponse]) error {
 	m := req.Msg
-	wf, archived, err := s.workflows.workflowTry(ctx, m.Namespace, m.Workflow, m.Try)
+	wf, archived, err := s.workflows.workflowTry(ctx, m.Namespace, m.Workflow, m.Uid, m.Try)
 	if err != nil {
 		return err
 	}
@@ -107,10 +107,11 @@ func (s *logService) follow(ctx context.Context, m *chroniclev1.StreamLogsReques
 	defer wg.Wait()
 	for {
 		for _, n := range podNodes(wf, m.Node) {
-			if streamed[n.ID] || !started(n) {
+			// The key is the Pod: a retried node keeps its ID and gets a new Pod with a new log.
+			if streamed[n.PodName] || !started(n) {
 				continue
 			}
-			streamed[n.ID] = true
+			streamed[n.PodName] = true
 			wg.Go(func() {
 				if err := s.streamNode(ctx, m.Namespace, n, opts, send); err != nil && !neverStarted(err) {
 					mu.Lock()
@@ -119,7 +120,8 @@ func (s *logService) follow(ctx context.Context, m *chroniclev1.StreamLogsReques
 				}
 			})
 		}
-		if finishedPhase(wf.Status.Phase) {
+		// After "chronicle retry", the run shows the phase of the earlier try until the controller applies the retry.
+		if finishedPhase(wf.Status.Phase) && !wf.RetryPending() {
 			break
 		}
 		select {
@@ -127,7 +129,7 @@ func (s *logService) follow(ctx context.Context, m *chroniclev1.StreamLogsReques
 			return nil
 		case <-time.After(followPoll):
 		}
-		next, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow)
+		next, _, err := s.workflows.getAny(ctx, m.Namespace, m.Workflow, m.Uid)
 		if err != nil {
 			return err
 		}

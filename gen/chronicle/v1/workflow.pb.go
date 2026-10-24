@@ -372,7 +372,10 @@ type GetWorkflowRequest struct {
 	Name      string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// try selects an earlier try of a run that was retried, from the archive. 0 is the first try. Without it, the
 	// response has the current try.
-	Try           *int32 `protobuf:"varint,3,opt,name=try,proto3,oneof" json:"try,omitempty"`
+	Try *int32 `protobuf:"varint,3,opt,name=try,proto3,oneof" json:"try,omitempty"`
+	// uid selects a run by its UID. Archived runs can have the same name. Without it, the response has the run in the
+	// cluster, or else the newest archived run with the name.
+	Uid           string `protobuf:"bytes,4,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -426,6 +429,13 @@ func (x *GetWorkflowRequest) GetTry() int32 {
 		return *x.Try
 	}
 	return 0
+}
+
+func (x *GetWorkflowRequest) GetUid() string {
+	if x != nil {
+		return x.Uid
+	}
+	return ""
 }
 
 type GetWorkflowResponse struct {
@@ -1402,7 +1412,9 @@ type RerunWorkflowRequest struct {
 	Namespace string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Name      string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// parameters change workflow parameters by name. The others keep their values.
-	Parameters    map[string]string `protobuf:"bytes,3,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Parameters map[string]string `protobuf:"bytes,3,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// uid selects the run to re-run by its UID, as in GetWorkflowRequest.
+	Uid           string `protobuf:"bytes,4,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1456,6 +1468,13 @@ func (x *RerunWorkflowRequest) GetParameters() map[string]string {
 		return x.Parameters
 	}
 	return nil
+}
+
+func (x *RerunWorkflowRequest) GetUid() string {
+	if x != nil {
+		return x.Uid
+	}
+	return ""
 }
 
 type RerunWorkflowResponse struct {
@@ -1818,11 +1837,12 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x15ListWorkflowsResponse\x12;\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1d.chronicle.v1.WorkflowSummaryR\tworkflows\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12/\n" +
-	"\x13archive_unavailable\x18\x03 \x01(\bR\x12archiveUnavailable\"e\n" +
+	"\x13archive_unavailable\x18\x03 \x01(\bR\x12archiveUnavailable\"w\n" +
 	"\x12GetWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x15\n" +
-	"\x03try\x18\x03 \x01(\x05H\x00R\x03try\x88\x01\x01B\x06\n" +
+	"\x03try\x18\x03 \x01(\x05H\x00R\x03try\x88\x01\x01\x12\x10\n" +
+	"\x03uid\x18\x04 \x01(\tR\x03uidB\x06\n" +
 	"\x04_try\"\xac\x01\n" +
 	"\x13GetWorkflowResponse\x127\n" +
 	"\asummary\x18\x01 \x01(\v2\x1d.chronicle.v1.WorkflowSummaryR\asummary\x123\n" +
@@ -1894,13 +1914,14 @@ const file_chronicle_v1_workflow_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04node\x18\x03 \x01(\tR\x04node\"P\n" +
 	"\x15RetryWorkflowResponse\x127\n" +
-	"\asummary\x18\x01 \x01(\v2\x1d.chronicle.v1.WorkflowSummaryR\asummary\"\xdb\x01\n" +
+	"\asummary\x18\x01 \x01(\v2\x1d.chronicle.v1.WorkflowSummaryR\asummary\"\xed\x01\n" +
 	"\x14RerunWorkflowRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12R\n" +
 	"\n" +
 	"parameters\x18\x03 \x03(\v22.chronicle.v1.RerunWorkflowRequest.ParametersEntryR\n" +
-	"parameters\x1a=\n" +
+	"parameters\x12\x10\n" +
+	"\x03uid\x18\x04 \x01(\tR\x03uid\x1a=\n" +
 	"\x0fParametersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"P\n" +

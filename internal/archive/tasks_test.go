@@ -113,6 +113,53 @@ func checkList(t *testing.T, s *Store, states []string, want int) {
 	}
 }
 
+// TestOpenRuns lists each run with a pending or a running task one time, and CancelRun cancels only the open tasks
+// of one run.
+func TestOpenRuns(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	other := newTask(9)
+	other.ID, other.WorkflowUID, other.Workflow, other.Queue = "u2/n9", "22222222-0000-0000-0000-000000000002", "wf2", "other"
+	for _, task := range []NewTask{newTask(0), newTask(1), newTask(2), other} {
+		if err := s.Enqueue(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+	}
+	task, lease, err := s.Poll(ctx, "team-a", "default", []string{"greet"}, "w1")
+	if err != nil || task == nil {
+		t.Fatalf("poll: %v %v", task, err)
+	}
+	if err := s.Complete(ctx, "team-a", task.ID, lease, `{}`, "", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.Poll(ctx, "team-a", "default", []string{"greet"}, "w1"); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := s.OpenRuns(ctx)
+	if err != nil || len(runs) != 2 {
+		t.Fatalf("open runs: %v %+v", err, runs)
+	}
+
+	if err := s.CancelRun(ctx, newTask(0).WorkflowUID, "the run was deleted"); err != nil {
+		t.Fatal(err)
+	}
+	runs, err = s.OpenRuns(ctx)
+	if err != nil || len(runs) != 1 || runs[0] != (OpenRun{"team-a", "wf2", other.WorkflowUID}) {
+		t.Fatalf("open runs after the cancel: %v %+v", err, runs)
+	}
+	tasks, err := s.ForWorkflow(ctx, newTask(0).WorkflowUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	states := map[string]int{}
+	for _, task := range tasks {
+		states[task.State]++
+	}
+	if states[TaskSucceeded] != 1 || states[TaskCancelled] != 2 {
+		t.Errorf("states = %v", states)
+	}
+}
+
 // TestCompleteKinds covers the kinds of results: a final failure is an Error, and a result must be JSON.
 func TestCompleteKinds(t *testing.T) {
 	s := openTest(t)

@@ -101,7 +101,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Parameter substitution: `{{inputs.parameters.x}}`, `{{tasks.a.outputs.result}}`, `{{workflow.name}}`.
 - Determinism: the same input gives the same actions.
 - One walker for DAG and steps. A step depends on all steps of the previous group. Each run of the engine visits the tasks once in dependency order, so an omission cascades in one pass.
-- A DAG ends when no task runs. Then each leaf task decides. A task that ran gives its own phase. A task that was omitted or skipped gives the worst phase of its dependencies. A dependency failure that the task tests for (for example `a.Failed` or `!a.Failed`) does not pass down.
+- A DAG ends when no task runs. Then each leaf task decides. A task that ran gives its own phase. A task that was omitted or skipped gives the worst phase of its dependencies. A dependency failure that a task of the DAG tests for (for example `a.Failed` or `!a.Failed`) does not pass down. So the success branch of an if-else does not fail the DAG.
 - `failFast` (default true) stops new tasks after a failure that no task tests for. The tasks that did not start become Omitted.
 - `when`: the engine parses the condition first, then puts each placeholder value in as one literal operand. A value can never change the condition. Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, parentheses. Two numbers compare as numbers, other values as text. A false condition makes the node Skipped.
 - Fan-out: `withItems` or `withParam` (a JSON list) makes a TaskGroup node with one child for each item (`a(0:x)`). `AnySucceeded` and `AllFailed` test the items. The outputs of a group are JSON lists of the item outputs.
@@ -121,7 +121,7 @@ The controller applies the actions. This makes the engine testable with table te
 - `withParam` has a limit of 1000 items, like `withItems`.
 
 - Run controls are fields of the Workflow spec, so `kubectl`, GitOps, the CLI and the UI use one mechanism. `suspend: true` pauses the run (no new node starts). `shutdown: Stop` fails the running nodes, deletes their Pods and runs the exit handler. `shutdown: Terminate` does not run the exit handler. A shutdown cannot be removed. Only Stop can change to Terminate.
-- A `suspend` template waits for its `duration`, or for an entry in `spec.approvals`. An entry has the node ID or name, Approve or Reject, optional output parameters and an optional `user`. The API sets `user` to the caller. The admission webhook refuses a new approval when its `user` is not the user of the request. So the node message "approved by <user>" is always true. The server also writes the approver to the audit log.
+- A `suspend` template waits for its `duration`, or for an entry in `spec.approvals`. An entry has the node ID or name, Approve or Reject, optional output parameters and an optional `user`. The API sets `user` to the caller. The admission webhook refuses a new approval when its `user` is not the user of the request. So a node message "approved by <user>" is always true. An entry without `user`, for example from kubectl, gives the message "approved". The server also writes the approver to the audit log.
 
 ### 4.1 Workflow Pods and outputs
 
@@ -155,7 +155,7 @@ The controller applies the actions. This makes the engine testable with table te
 - Resume and suspend. Stop (graceful, runs exit handlers). Terminate (immediate).
 - History: each run, each node attempt, its logs and its outputs stay in the archive. The UI and the API show them.
 - Archive (optional, `--archive-dsn-file` on the controller and the server): the controller saves each finished run to PostgreSQL. A row has summary columns and the full Workflow with its nodes, with the UID as the key. The controller then marks the run with the condition `Archived`. A retried run is saved again. With an archive, the TTL deletes a run only after the archive has it.
-- The server merges archived runs into the run list and falls back to the archive for get and re-run. The archive is outside the Kubernetes RBAC. So the server first checks with an access review as the caller (list or get Workflows in the namespace). The archive filters labels by equality only; other selectors show live runs only.
+- The server merges archived runs into the run list and falls back to the archive for get and re-run. Archived runs can have the same name, so get, logs, re-run and artifact downloads take an optional UID. Without it, the server uses the run in the cluster, or else the newest archived run with the name. The archive is outside the Kubernetes RBAC. So the server first checks with an access review as the caller (list or get Workflows in the namespace). The archive filters labels by equality only; other selectors show live runs only.
 - Migrations are embedded SQL files with a version table and an advisory lock, without a migration library.
 
 ## 6. Server, login and permissions

@@ -257,6 +257,9 @@ auth:
       key: client-secret
     ## groups (security group IDs) or roles (app roles)
     groupsFrom: ""
+    ## The application (client) ID of a public client for the CLI login (device flow), see docs/entra-id.md. Empty
+    ## turns the CLI login off; then the CLI needs a service account token.
+    cliClientID: ""
   oidc:
     issuer: ""
     clientID: ""
@@ -268,6 +271,8 @@ auth:
     groupsClaim: ""
     usernamePrefix: ""
     groupsPrefix: ""
+    ## The client ID of a public client with the device flow, for the CLI login. Empty turns the CLI login off; then
+    ## the CLI needs a service account token.
     cliClientID: ""
   session:
     ttl: 8h

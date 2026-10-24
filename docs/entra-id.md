@@ -79,6 +79,16 @@ chronicle maps each user and group to a Kubernetes name with a prefix:
 
 The prefixes make sure that no Entra name can be a Kubernetes system name.
 
+### The CLI login
+
+The CLI logs in with the device flow. It needs a public client:
+
+1. In the app registration, go to **Authentication**.
+2. Under **Advanced settings**, set **Allow public client flows** to **Yes**. Select **Save**.
+3. Set `auth.entra.cliClientID` to the **Application (client) ID** of the same app registration.
+
+Then `chronicle login --server https://chronicle.example.com` shows a code. Open the URL, type the code and log in.
+
 ## 5. Give each team its namespaces
 
 A team is a set of namespaces. The Helm value `teams` creates the RoleBindings. Each Entra group gets one of the roles `viewer`, `editor` or `admin` in the namespaces of its team:

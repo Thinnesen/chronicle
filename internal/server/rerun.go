@@ -49,7 +49,7 @@ func (s *workflowService) RetryWorkflow(ctx context.Context, req *connect.Reques
 		return nil
 	})
 	if connect.CodeOf(err) == connect.CodeNotFound {
-		if _, archived, aerr := s.getAny(ctx, m.Namespace, m.Name); aerr == nil && archived {
+		if _, archived, aerr := s.getAny(ctx, m.Namespace, m.Name, ""); aerr == nil && archived {
 			return nil, connect.NewError(connect.CodeFailedPrecondition,
 				errors.New("the run is only in the archive, so it cannot continue: re-run it to start it again"))
 		}
@@ -59,7 +59,7 @@ func (s *workflowService) RetryWorkflow(ctx context.Context, req *connect.Reques
 
 func (s *workflowService) RerunWorkflow(ctx context.Context, req *connect.Request[chroniclev1.RerunWorkflowRequest]) (*connect.Response[chroniclev1.RerunWorkflowResponse], error) {
 	m := req.Msg
-	old, _, err := s.getAny(ctx, m.Namespace, m.Name)
+	old, _, err := s.getAny(ctx, m.Namespace, m.Name, m.Uid)
 	if err != nil {
 		return nil, err
 	}
