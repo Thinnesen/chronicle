@@ -85,7 +85,7 @@ type artifactHandler struct {
 func (h *artifactHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	namespace, name := r.PathValue("namespace"), r.PathValue("name")
-	wf, _, err := h.workflows.getAny(ctx, namespace, r.PathValue("workflow"))
+	wf, _, err := h.workflows.getAny(ctx, namespace, r.PathValue("workflow"), r.URL.Query().Get("uid"))
 	if err != nil {
 		httpError(w, err)
 		return

@@ -60,6 +60,8 @@ export interface RunSearch {
   tab?: "timeline" | "spec";
   // try is an earlier try of a retried run. Without it, the page shows the latest try.
   try?: number;
+  // uid selects an archived run when runs with the same name are in the archive.
+  uid?: string;
 }
 
 export const runRoute = createRoute({
@@ -70,6 +72,7 @@ export const runRoute = createRoute({
     node: typeof s.node === "string" ? s.node : undefined,
     tab: s.tab === "timeline" || s.tab === "spec" ? s.tab : undefined,
     try: Number.isInteger(Number(s.try)) && s.try !== "" && s.try !== undefined && Number(s.try) >= 0 ? Number(s.try) : undefined,
+    uid: typeof s.uid === "string" && s.uid !== "" ? s.uid : undefined,
   }),
 });
 

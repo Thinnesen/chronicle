@@ -155,7 +155,10 @@ export async function mockAPI(page: Page, opts: MockOptions = {}): Promise<Calls
     const node: string = JSON.parse((r.request().postDataBuffer() ?? Buffer.from("     {}")).subarray(5).toString()).node ?? "";
     r.fulfill({ headers: { "content-type": "application/connect+json" }, body: envelopes(logLines(node, opts.archived)) });
   });
-  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate, opts.archived, opts.stuck) }));
+  await page.route("**/chronicle.v1.WorkflowService/GetWorkflow", (r) => {
+    (calls.GetWorkflow ??= []).push(r.request().postDataJSON());
+    r.fulfill({ json: run(opts.runPhase ?? "Running", opts.gate, opts.archived, opts.stuck) });
+  });
   await page.route("**/chronicle.v1.TemplateService/ListTemplates", (r) => r.fulfill({ json: { templates: templateList } }));
   await page.route("**/chronicle.v1.TemplateService/GetTemplate", (r) => {
     const name: string = r.request().postDataJSON()?.name;

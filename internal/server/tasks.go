@@ -150,7 +150,7 @@ func (s *taskService) ListTasks(ctx context.Context, req *connect.Request[chroni
 	out := make([]*chroniclev1.TaskSummary, 0, len(tasks))
 	for _, t := range tasks {
 		out = append(out, &chroniclev1.TaskSummary{
-			Id: t.ID, Name: t.Name, Queue: t.Queue, State: t.State, Workflow: t.Workflow, NodeName: t.NodeName,
+			Id: t.ID, Name: t.Name, Queue: t.Queue, State: t.State, Workflow: t.Workflow, WorkflowUid: t.WorkflowUID, NodeName: t.NodeName,
 			Worker: t.Worker, Message: t.Message, CreatedAt: timestamppb.New(t.CreatedAt),
 			StartedAt: optionalTime(t.StartedAt), FinishedAt: optionalTime(t.FinishedAt),
 		})

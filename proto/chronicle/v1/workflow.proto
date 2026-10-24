@@ -102,6 +102,9 @@ message GetWorkflowRequest {
   // try selects an earlier try of a run that was retried, from the archive. 0 is the first try. Without it, the
   // response has the current try.
   optional int32 try = 3;
+  // uid selects a run by its UID. Archived runs can have the same name. Without it, the response has the run in the
+  // cluster, or else the newest archived run with the name.
+  string uid = 4;
 }
 
 message GetWorkflowResponse {
@@ -216,6 +219,8 @@ message RerunWorkflowRequest {
   string name = 2;
   // parameters change workflow parameters by name. The others keep their values.
   map<string, string> parameters = 3;
+  // uid selects the run to re-run by its UID, as in GetWorkflowRequest.
+  string uid = 4;
 }
 
 message RerunWorkflowResponse {

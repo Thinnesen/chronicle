@@ -16,8 +16,9 @@ func TestSubmitChecksTheTemplate(t *testing.T) {
 	ctx := context.Background()
 	tmpl := &v1alpha1.WorkflowTemplate{Name: "release", Namespace: "team-a", Spec: v1alpha1.WorkflowTemplateSpec{
 		Entrypoint: "c",
-		Arguments:  v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "env", Value: new("staging"), Enum: []string{"staging", "prod"}}}},
-		Templates:  []v1alpha1.Template{{Name: "c", Container: &v1alpha1.ContainerTemplate{Image: "x"}}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "env", Value: new("staging"), Enum: []string{"staging", "prod"}},
+			{Name: "ticket"}}}, // ticket has no value: the caller must give it
+		Templates: []v1alpha1.Template{{Name: "c", Container: &v1alpha1.ContainerTemplate{Image: "x"}}},
 	}}
 	if err := admin.Create(ctx, tmpl); err != nil {
 		t.Fatal(err)
@@ -26,7 +27,7 @@ func TestSubmitChecksTheTemplate(t *testing.T) {
 	submitTo := func(template, env string) error {
 		_, err := newClient(srv, "alice").SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
 			Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: template}},
-			Parameters: map[string]string{"env": env}}))
+			Parameters: map[string]string{"env": env, "ticket": "OPS-1"}}))
 		return err
 	}
 	submit := func(env string) error { return submitTo("release", env) }
@@ -45,5 +46,11 @@ func TestSubmitChecksTheTemplate(t *testing.T) {
 		Parameters: map[string]string{"envronment": "prod"}}))
 	if code(err) != connect.CodeInvalidArgument || !strings.Contains(err.Error(), `no parameter "envronment"`) {
 		t.Errorf("an unknown parameter: %v", err)
+	}
+	// A required parameter must not start a run that ends with Error at once.
+	_, err = newClient(srv, "alice").SubmitWorkflow(ctx, connect.NewRequest(&chroniclev1.SubmitWorkflowRequest{
+		Namespace: "team-a", Source: &chroniclev1.SubmitWorkflowRequest_Template{Template: &chroniclev1.TemplateSource{Name: "release"}}}))
+	if code(err) != connect.CodeInvalidArgument || !strings.Contains(err.Error(), `needs a value for the parameter "ticket"`) {
+		t.Errorf("a missing required parameter: %v", err)
 	}
 }

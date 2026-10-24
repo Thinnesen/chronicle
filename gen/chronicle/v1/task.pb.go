@@ -533,18 +533,20 @@ func (x *ListTasksRequest) GetLimit() int32 {
 }
 
 type TaskSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Queue         string                 `protobuf:"bytes,3,opt,name=queue,proto3" json:"queue,omitempty"`
-	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	Workflow      string                 `protobuf:"bytes,5,opt,name=workflow,proto3" json:"workflow,omitempty"`
-	NodeName      string                 `protobuf:"bytes,6,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
-	Worker        string                 `protobuf:"bytes,7,opt,name=worker,proto3" json:"worker,omitempty"`
-	Message       string                 `protobuf:"bytes,8,opt,name=message,proto3" json:"message,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Queue      string                 `protobuf:"bytes,3,opt,name=queue,proto3" json:"queue,omitempty"`
+	State      string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	Workflow   string                 `protobuf:"bytes,5,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	NodeName   string                 `protobuf:"bytes,6,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	Worker     string                 `protobuf:"bytes,7,opt,name=worker,proto3" json:"worker,omitempty"`
+	Message    string                 `protobuf:"bytes,8,opt,name=message,proto3" json:"message,omitempty"`
+	CreatedAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	StartedAt  *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	// workflow_uid is the UID of the run. Runs can have the same name, for example in the archive.
+	WorkflowUid   string `protobuf:"bytes,12,opt,name=workflow_uid,json=workflowUid,proto3" json:"workflow_uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -656,6 +658,13 @@ func (x *TaskSummary) GetFinishedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *TaskSummary) GetWorkflowUid() string {
+	if x != nil {
+		return x.WorkflowUid
+	}
+	return ""
+}
+
 type ListTasksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tasks         []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
@@ -740,7 +749,7 @@ const file_chronicle_v1_task_proto_rawDesc = "" +
 	"\x10ListTasksRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x16\n" +
 	"\x06states\x18\x02 \x03(\tR\x06states\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\xfb\x02\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\x9e\x03\n" +
 	"\vTaskSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -756,7 +765,8 @@ const file_chronicle_v1_task_proto_rawDesc = "" +
 	"started_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
 	"\vfinished_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"finishedAt\"D\n" +
+	"finishedAt\x12!\n" +
+	"\fworkflow_uid\x18\f \x01(\tR\vworkflowUid\"D\n" +
 	"\x11ListTasksResponse\x12/\n" +
 	"\x05tasks\x18\x01 \x03(\v2\x19.chronicle.v1.TaskSummaryR\x05tasks2\xd7\x02\n" +
 	"\vTaskService\x12I\n" +

@@ -434,7 +434,7 @@ test-chart: kind kubectl helm ## Install the Helm chart into its own Kind cluste
 helm-lint: helm ## Lint the Helm chart and render it with an OIDC and an Entra ID configuration.
 	"$(HELM)" lint --strict $(HELM_CHART_DIR) --set auth.oidc.issuer=https://dex.example.com \
 		--set auth.oidc.clientID=chronicle --set auth.redirectURL=https://chronicle.example.com/auth/callback
-	"$(HELM)" template chronicle $(HELM_CHART_DIR) --set auth.entra.tenantID=tenant --set auth.entra.clientID=client \
+	"$(HELM)" template chronicle $(HELM_CHART_DIR) --set auth.entra.tenantID=tenant --set auth.entra.clientID=client --set auth.entra.cliClientID=cli \
 		--set auth.redirectURL=https://chronicle.example.com/auth/callback \
 		--set 'teams[0].name=data' --set 'teams[0].namespaces={data}' --set 'teams[0].viewer={group}' > /dev/null
 

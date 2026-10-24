@@ -11,7 +11,7 @@ import { RunActions } from "../components/RunActions";
 import { Timeline } from "../components/Timeline";
 import { YamlView } from "../components/Lazy";
 import { RefreshError } from "../components/RefreshError";
-import { TryContext } from "../lib/tryContext";
+import { RunUIDContext, TryContext } from "../lib/tryContext";
 import { ago, clock, duration, toDate } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { nodeLabel, plannedSteps, runParameters, type NodeStatus, type Workflow } from "../lib/workflow";
@@ -35,11 +35,11 @@ const tabs: { id: RunSearch["tab"]; label: string; icon: typeof Network }[] = [
 // drawer. It updates while the run is active.
 export function RunPage() {
   const { namespace, name } = runRoute.useParams();
-  const { node: selected, tab, try: earlier } = runRoute.useSearch();
+  const { node: selected, tab, try: earlier, uid } = runRoute.useSearch();
   const navigate = useNavigate({ from: runRoute.fullPath });
   const { data, error } = useQuery({
-    queryKey: ["run", namespace, name, earlier],
-    queryFn: () => workflows.getWorkflow({ namespace, name, try: earlier }),
+    queryKey: ["run", namespace, name, earlier, uid],
+    queryFn: () => workflows.getWorkflow({ namespace, name, try: earlier, uid }),
     refetchInterval: (q) => (earlier !== undefined || finished.has(q.state.data?.summary?.phase ?? "") ? false : 2000),
   });
   const wf = useMemo(() => (data?.workflow ? (data.workflow as unknown as Workflow) : undefined), [data]);
@@ -71,6 +71,7 @@ export function RunPage() {
   const select = (id?: string) => void navigate({ search: (q) => ({ ...q, node: id }), replace: true });
   return (
     <TryContext.Provider value={earlier}>
+    <RunUIDContext.Provider value={wf.metadata.uid}>
     <section className="run">
       <RefreshError error={error} />
       <header className="run-head">
@@ -216,6 +217,7 @@ export function RunPage() {
       </div>
       {hasNodes && !node && tab !== "spec" && <p className="run-hint quiet">Select a step to see its details and logs.</p>}
     </section>
+    </RunUIDContext.Provider>
     </TryContext.Provider>
   );
 }

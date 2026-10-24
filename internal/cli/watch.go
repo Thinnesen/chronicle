@@ -67,7 +67,7 @@ func (a *app) watch(ctx context.Context, ns, name string) error {
 			_, _ = fmt.Fprintf(a.out, "%s  %-10s %s%s\n", time.Now().Format(time.TimeOnly), n.Phase, n.Name, suffix(n.Message))
 		}
 		s := resp.Msg.Summary
-		if finished(s.Phase) {
+		if finished(s.Phase) && !retryPending(resp.Msg) {
 			_, _ = fmt.Fprintf(a.out, "%s %s%s\n", s.Name, s.Phase, suffix(s.Message))
 			if s.Phase != string(v1alpha1.WorkflowSucceeded) {
 				return errRunFailed
@@ -137,6 +137,13 @@ func changeTime(n v1alpha1.NodeStatus) (time.Time, bool) {
 		return n.StartedAt.Time, false
 	}
 	return time.Time{}, false
+}
+
+// retryPending tells if the run has a retry that the controller has not applied yet. Until then the run still shows the
+// phase of the earlier try, for example right after "chronicle retry".
+func retryPending(m *chroniclev1.GetWorkflowResponse) bool {
+	wf, err := toWorkflow(m)
+	return err == nil && wf.RetryPending()
 }
 
 func finished(phase string) bool {

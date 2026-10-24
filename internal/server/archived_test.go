@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
@@ -53,10 +54,11 @@ func (f fakeReader) List(_ context.Context, q archive.Query) ([]archive.Row, err
 	return out, nil
 }
 
-func (f fakeReader) Get(_ context.Context, namespace, name string) (*v1alpha1.Workflow, error) {
+// Get returns the newest row with the name, or the row with the UID. The rows are newest first.
+func (f fakeReader) Get(_ context.Context, namespace, name, uid string) (*v1alpha1.Workflow, error) {
 	for _, r := range f.rows {
-		if r.Namespace == namespace && r.Name == name {
-			return &v1alpha1.Workflow{Name: name, Namespace: namespace, CreationTimestamp: metav1.NewTime(r.CreatedAt),
+		if r.Namespace == namespace && r.Name == name && (uid == "" || r.UID == uid) {
+			return &v1alpha1.Workflow{Name: name, Namespace: namespace, UID: types.UID(r.UID), CreationTimestamp: metav1.NewTime(r.CreatedAt),
 				Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowPhase(r.Phase), Restarts: int32(len(f.tries))}}, nil
 		}
 	}
@@ -140,6 +142,27 @@ func TestArchivedRuns(t *testing.T) {
 	_, err = alice.RetryWorkflow(ctx, connect.NewRequest(&chroniclev1.RetryWorkflowRequest{Namespace: "team-a", Name: "gone"}))
 	if code(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "re-run") {
 		t.Errorf("retry an archived run: %v", err)
+	}
+}
+
+// TestArchivedRunByUID covers runs with the same name, for example a Workflow with a fixed name that was created again
+// after a delete. The UID of the list row opens that run, not the newest one.
+func TestArchivedRunByUID(t *testing.T) {
+	setup(t)
+	old := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	older := "aaaaaaaa-0000-0000-0000-000000000002"
+	reader := fakeReader{rows: []archive.Row{{UID: "aaaaaaaa-0000-0000-0000-000000000001", Namespace: "team-a", Name: "gone", Phase: "Succeeded", CreatedAt: old},
+		{UID: older, Namespace: "team-a", Name: "gone", Phase: "Failed", CreatedAt: old.Add(-time.Hour)}}}
+	h, err := NewHandler(Options{Config: cfg, Scheme: scheme, Authenticators: []auth.Authenticator{headerAuth{}}, Archive: reader})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	byUID, err := newClient(srv, "alice").GetWorkflow(context.Background(),
+		connect.NewRequest(&chroniclev1.GetWorkflowRequest{Namespace: "team-a", Name: "gone", Uid: older}))
+	if err != nil || byUID.Msg.Summary.Uid != older || byUID.Msg.Summary.Phase != "Failed" {
+		t.Errorf("get an older archived run by its UID: %v %+v", err, byUID)
 	}
 }
 

@@ -120,6 +120,7 @@ The two tests run at the same time, after `build`. `publish` starts when both ar
 ```
 
 - An input parameter gets its value from the arguments of the call, from `value`, or from `default`.
+- A workflow parameter needs a value or a default. A default on the input parameter of the entrypoint does not replace it. A run without it ends with Error: "a workflow parameter needs a value or a default". `chronicle submit --from` and the UI refuse a run from a template when such a parameter has no value.
 - `enum` limits the values. The UI shows a list for such a parameter.
 - A workflow parameter or an input parameter can read a ConfigMap of the namespace: `valueFrom: {configMapKeyRef: {name: settings, key: region}}`. The controller reads it once when the run starts, so all steps see the same value. A missing key uses `default`. The ConfigMap needs the label `chronicle.thinnesen.com/parameters: "true"`, so that only ConfigMaps that a team shares on purpose reach the runs. Each reader of the run sees the value.
 - An output parameter reads a file (`valueFrom.path`). In a resource template, `valueFrom.jsonPath` reads a field of the object, for example `{.metadata.name}`.
@@ -204,7 +205,7 @@ A DAG task or a step can have its own exit handler. It runs when the task ends, 
       arguments: {parameters: [{name: status, value: "{{tasks.build.status}}"}]}
 ```
 
-Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values. The API refuses other values. The node fails if such a value comes in another way. The node message names the approver, for example "approved by oidc:alice@example.com". A `resource` template runs with the service account of the run (`spec.serviceAccountName`). So a step can do only what that account can do.
+Approve a suspend node in the UI, or with `chronicle approve <run> -p env=prod`. Give the node as a second argument when more than one step waits. With `enum`, the approver can give only one of those values. The API refuses other values. The node fails if such a value comes in another way. The UI and the CLI record the approver, and the node message names them, for example "approved by oidc:alice@example.com". An approval that you write into `spec.approvals` with kubectl or GitOps can leave out `user`; then the message says only "approved". The webhook refuses a `user` that is not the user of the request. A `resource` template runs with the service account of the run (`spec.serviceAccountName`). So a step can do only what that account can do.
 
 An `http` template sends one request, for example a chat message from the exit handler:
 

@@ -99,6 +99,40 @@ func (s *Store) ForWorkflow(ctx context.Context, workflowUID string) ([]Task, er
 	return out, rows.Err()
 }
 
+// OpenRun is a run that has open tasks.
+type OpenRun struct {
+	Namespace, Workflow, WorkflowUID string
+}
+
+// OpenRuns returns each run that has a pending or a running task, one time.
+func (s *Store) OpenRuns(ctx context.Context) ([]OpenRun, error) {
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT namespace, workflow, workflow_uid::text FROM tasks WHERE state IN ($1, $2)`,
+		TaskPending, TaskRunning)
+	if err != nil {
+		return nil, fmt.Errorf("read the runs with open tasks: %w", err)
+	}
+	defer rows.Close()
+	var out []OpenRun
+	for rows.Next() {
+		var r OpenRun
+		if err := rows.Scan(&r.Namespace, &r.Workflow, &r.WorkflowUID); err != nil {
+			return nil, fmt.Errorf("read the runs with open tasks: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// CancelRun cancels all tasks of a run that have no result yet. The workers learn it with the next heartbeat.
+func (s *Store) CancelRun(ctx context.Context, workflowUID, reason string) error {
+	_, err := s.pool.Exec(ctx, `UPDATE tasks SET state = $2, message = $3, finished_at = now(), lease = ''
+		WHERE workflow_uid = $1 AND state IN ($4, $5)`, workflowUID, TaskCancelled, reason, TaskPending, TaskRunning)
+	if err != nil {
+		return fmt.Errorf("cancel the tasks of the run %s: %w", workflowUID, err)
+	}
+	return nil
+}
+
 // Poll gives the oldest pending task of the queue with one of the names to a worker. It returns a nil task
 // when there is none. The lease is the secret that the worker must give for heartbeats and the result.
 func (s *Store) Poll(ctx context.Context, namespace, queue string, names []string, worker string) (*Task, string, error) {

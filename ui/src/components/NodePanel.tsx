@@ -5,7 +5,7 @@ import { useState } from "react";
 import { workflows } from "../api/client";
 import { actionError } from "../lib/errors";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { useTry } from "../lib/tryContext";
+import { useRunUID, useTry } from "../lib/tryContext";
 import { useCanEdit } from "./RunActions";
 import { useToast } from "./Toast";
 
@@ -270,6 +270,7 @@ function Params({ title, params, result }: { title: string; params?: Parameter[]
 
 // Artifacts lists the files of a node. Output artifacts download as tar.gz archives.
 function Artifacts({ node, namespace, workflow }: { node: NodeStatus; namespace: string; workflow: string }) {
+  const uid = useRunUID();
   const inputs = node.inputs?.artifacts ?? [];
   const outputs = node.outputs?.artifacts ?? [];
   if (inputs.length === 0 && outputs.length === 0) return null;
@@ -288,7 +289,7 @@ function Artifacts({ node, namespace, workflow }: { node: NodeStatus; namespace:
         ))}
         {outputs.map((a) => (
           <li key={`out-${a.name}`}>
-            <a href={artifactURL(namespace, workflow, node.id, a.name)} download={`${a.name}.tgz`}>
+            <a href={artifactURL(namespace, workflow, node.id, a.name, uid)} download={`${a.name}.tgz`}>
               {a.name}.tgz
             </a>
             <span className="quiet">output</span>

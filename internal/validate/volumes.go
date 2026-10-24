@@ -10,9 +10,9 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// chronicleDirs hold the executor and the input artifacts in each Pod. A user volume cannot be at them, below them or
-// above them.
-var chronicleDirs = []string{"/var/run/chronicle", "/var/run/chronicle-inputs"}
+// chronicleDirs hold the executor, its image volume and the input artifacts in each Pod. A user volume cannot be at
+// them, below them or above them.
+var chronicleDirs = []string{"/var/run/chronicle", "/var/run/chronicle-image", "/var/run/chronicle-inputs"}
 
 // checkVolumes checks the names of the volumes and the volume claim templates, and remembers them for the mounts.
 func (c *checker) checkVolumes(spec *v1alpha1.WorkflowTemplateSpec, p *field.Path) {

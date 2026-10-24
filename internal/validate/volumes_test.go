@@ -17,6 +17,8 @@ func TestVolumes(t *testing.T) {
 		{name: "a mount at the root", spec: mount("{name: work, mountPath: /}"), want: []string{"volumeMounts[0].mountPath"}},
 		{name: "a mount in the chronicle directory", spec: mount("{name: work, mountPath: /var/run/chronicle-inputs/x}"),
 			want: []string{"chronicle uses the paths below /var/run/chronicle"}},
+		{name: "a mount at the executor image volume", spec: mount("{name: work, mountPath: /var/run/chronicle-image}"),
+			want: []string{"chronicle uses the paths below /var/run/chronicle"}},
 		{name: "a mount that hides the chronicle directory", spec: mount("{name: work, mountPath: /var/run}"),
 			want: []string{"chronicle uses the paths below /var/run/chronicle"}},
 		{name: "a mount next to the chronicle directory", spec: mount("{name: work, mountPath: /var/run/chronicles}")},

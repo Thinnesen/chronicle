@@ -81,6 +81,17 @@ func TestEngine(t *testing.T) {
 			nodes:    map[string]v1alpha1.NodePhase{"wf.a": failed, "wf.onfail": succeeded, "wf.onok": omitted},
 		},
 		{
+			name: "the success branch of an if-else does not fail the DAG when another task handles the failure",
+			spec: dagSpec(`
+    - {name: a, template: c}
+    - {name: onfail, template: c, depends: a.Failed}
+    - {name: onok, template: c, depends: a.Succeeded}
+    - {name: after, template: c, depends: onok}`),
+			outcomes: map[string]v1alpha1.NodePhase{"wf.a": failed},
+			phase:    v1alpha1.WorkflowSucceeded,
+			nodes:    map[string]v1alpha1.NodePhase{"wf.a": failed, "wf.onfail": succeeded, "wf.onok": omitted, "wf.after": omitted},
+		},
+		{
 			name: "an omitted leaf passes down the failure",
 			spec: dagSpec(`
     - {name: a, template: c}

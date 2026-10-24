@@ -34,7 +34,9 @@ type StreamLogsRequest struct {
 	TailLines int64 `protobuf:"varint,5,opt,name=tail_lines,json=tailLines,proto3" json:"tail_lines,omitempty"`
 	// try selects an earlier try of a run that was retried (see GetWorkflowRequest.try). Its logs come from the log
 	// archive.
-	Try           *int32 `protobuf:"varint,6,opt,name=try,proto3,oneof" json:"try,omitempty"`
+	Try *int32 `protobuf:"varint,6,opt,name=try,proto3,oneof" json:"try,omitempty"`
+	// uid selects the run by its UID, as in GetWorkflowRequest.
+	Uid           string `protobuf:"bytes,7,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -109,6 +111,13 @@ func (x *StreamLogsRequest) GetTry() int32 {
 		return *x.Try
 	}
 	return 0
+}
+
+func (x *StreamLogsRequest) GetUid() string {
+	if x != nil {
+		return x.Uid
+	}
+	return ""
 }
 
 type StreamLogsResponse struct {
@@ -192,7 +201,7 @@ var File_chronicle_v1_log_proto protoreflect.FileDescriptor
 
 const file_chronicle_v1_log_proto_rawDesc = "" +
 	"\n" +
-	"\x16chronicle/v1/log.proto\x12\fchronicle.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb7\x01\n" +
+	"\x16chronicle/v1/log.proto\x12\fchronicle.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc9\x01\n" +
 	"\x11StreamLogsRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x1a\n" +
 	"\bworkflow\x18\x02 \x01(\tR\bworkflow\x12\x12\n" +
@@ -200,7 +209,8 @@ const file_chronicle_v1_log_proto_rawDesc = "" +
 	"\x06follow\x18\x04 \x01(\bR\x06follow\x12\x1d\n" +
 	"\n" +
 	"tail_lines\x18\x05 \x01(\x03R\ttailLines\x12\x15\n" +
-	"\x03try\x18\x06 \x01(\x05H\x00R\x03try\x88\x01\x01B\x06\n" +
+	"\x03try\x18\x06 \x01(\x05H\x00R\x03try\x88\x01\x01\x12\x10\n" +
+	"\x03uid\x18\a \x01(\tR\x03uidB\x06\n" +
 	"\x04_try\"\xaa\x01\n" +
 	"\x12StreamLogsResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +

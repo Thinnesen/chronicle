@@ -25,6 +25,8 @@ message StreamLogsRequest {
   // try selects an earlier try of a run that was retried (see GetWorkflowRequest.try). Its logs come from the log
   // archive.
   optional int32 try = 6;
+  // uid selects the run by its UID, as in GetWorkflowRequest.
+  string uid = 7;
 }
 
 message StreamLogsResponse {

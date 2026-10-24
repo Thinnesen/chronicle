@@ -115,6 +115,12 @@ type NodeStatus struct {
 	Cache *NodeCache `json:"cache,omitempty"`
 }
 
+// RetryPending tells if the spec asks for a retry that the controller has not applied yet. Until then the status still
+// shows the earlier try, for example its phase Failed.
+func (w *Workflow) RetryPending() bool {
+	return w.Spec.Restart != nil && w.Status.Restarts < w.Spec.Restart.Generation
+}
+
 // Progress counts the nodes that do work (Pod, suspend, task and child workflow nodes), and those that finished.
 func (s *WorkflowStatus) Progress() (done, total int32) {
 	for _, n := range s.Nodes {

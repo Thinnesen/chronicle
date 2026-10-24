@@ -95,8 +95,8 @@ func cmpOr(a, b string) string {
 }
 
 // checkTemplate refuses a template that does not exist, before the run starts. It also refuses a parameter value that
-// the template does not allow. When the caller cannot read the template, the controller checks both when it resolves
-// the template.
+// the template does not allow, and a missing value for a parameter without a value or a default. When the caller cannot
+// read the template, the controller checks them when it resolves the template.
 func checkTemplate(ctx context.Context, c client.Client, namespace string, t *chroniclev1.TemplateSource, params map[string]string) error {
 	_, spec, err := readTemplate(ctx, c, namespace, t.Name, t.ClusterScope)
 	if apierrors.IsNotFound(err) {
@@ -109,8 +109,12 @@ func checkTemplate(ctx context.Context, c client.Client, namespace string, t *ch
 		return err
 	}
 	for _, p := range spec.Arguments.Parameters {
-		if v, ok := params[p.Name]; ok && len(p.Enum) > 0 && !slices.Contains(p.Enum, v) {
+		v, ok := params[p.Name]
+		if ok && len(p.Enum) > 0 && !slices.Contains(p.Enum, v) {
 			return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parameter %q: value %q is not one of %q", p.Name, v, p.Enum))
+		}
+		if !ok && p.Value == nil && p.Default == nil && p.ValueFrom == nil {
+			return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("the template %s needs a value for the parameter %q", t.Name, p.Name))
 		}
 	}
 	return nil

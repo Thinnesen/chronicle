@@ -100,11 +100,18 @@ func TestStore(t *testing.T) {
 		t.Fatalf("another namespace: %v %+v", err, other)
 	}
 
-	wf, err := s.Get(ctx, "team-a", "a")
+	wf, err := s.Get(ctx, "team-a", "a", "")
 	if err != nil || string(wf.UID) != "33333333-3333-3333-3333-333333333333" || len(wf.Status.Nodes) != 1 {
 		t.Fatalf("get the newest run: %v %+v", err, wf)
 	}
-	if _, err := s.Get(ctx, "team-a", "nope"); err != ErrNotFound {
+	// Two runs have the name a. The UID selects the older one.
+	if wf, err := s.Get(ctx, "team-a", "a", "11111111-1111-1111-1111-111111111111"); err != nil || wf.Status.Phase != v1alpha1.WorkflowSucceeded {
+		t.Errorf("get the older run by its UID: %v %+v", err, wf)
+	}
+	if _, err := s.Get(ctx, "team-a", "a", "22222222-2222-2222-2222-222222222222"); err != ErrNotFound {
+		t.Errorf("a UID of a run with another name: %v", err)
+	}
+	if _, err := s.Get(ctx, "team-a", "nope", ""); err != ErrNotFound {
 		t.Errorf("get a missing run: %v", err)
 	}
 

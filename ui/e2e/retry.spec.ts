@@ -62,6 +62,14 @@ test("an archived run offers only a re-run", async ({ page }) => {
   await expect(page.getByRole("row", { name: /backfill-2026-10/ }).getByText("Archived")).toBeVisible();
 });
 
+test("opens an archived run by its UID, because archived runs can have the same name", async ({ page }) => {
+  const calls = await mockAPI(page);
+  await page.goto("/ns/team-a");
+  await page.getByRole("link", { name: "backfill-2026-10" }).click();
+  await expect(page).toHaveURL(/\/runs\/backfill-2026-10\?uid=u4$/);
+  await expect.poll(() => calls.GetWorkflow?.some((c) => (c as { uid?: string }).uid === "u4")).toBe(true);
+});
+
 test("shows an earlier try of a retried run", { tag: "@phone" }, async ({ page }, info) => {
   const calls = await mockAPI(page, { runPhase: "Succeeded" });
   // The archive keeps the first try, which failed. Routes added later win.

@@ -232,6 +232,11 @@ func main() {
 		workflows.TaskEvents = store
 		workflows.Cache = store
 		ctrlmetrics.Registry.MustRegister(controller.NewQueueCollector(store))
+		sweeper := &controller.TaskSweeper{Reader: mgr.GetClient(), Tasks: store, Every: 30 * time.Second}
+		if err := mgr.Add(sweeper); err != nil {
+			setupLog.Error(err, "Failed to add the task sweeper")
+			os.Exit(1)
+		}
 		if archiveRetention > 0 {
 			pruner := &controller.ArchivePruner{Store: store, Retention: archiveRetention, Every: time.Hour}
 			if err := mgr.Add(pruner); err != nil {

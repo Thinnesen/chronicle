@@ -267,8 +267,8 @@ func (b *boundary) leaves() []*task {
 }
 
 // branchPhase is the outcome that a task passes down its branch. A task that ran passes its own phase. A task that was
-// skipped or omitted passes the worst outcome of its dependencies. A dependency failure that the task tests for, for
-// example with "!a.Failed", does not pass down.
+// skipped or omitted passes the worst outcome of its dependencies. A dependency failure that a task of the boundary
+// tests for, for example with "a.Failed", does not pass down, as with failFast.
 func (b *boundary) branchPhase(name string, memo map[string]v1alpha1.NodePhase) v1alpha1.NodePhase {
 	if p, ok := memo[name]; ok {
 		return p
@@ -282,7 +282,7 @@ func (b *boundary) branchPhase(name string, memo map[string]v1alpha1.NodePhase) 
 	if p == v1alpha1.NodeSkipped || p == v1alpha1.NodeOmitted {
 		p = v1alpha1.NodeSucceeded
 		for _, d := range t.deps {
-			if dn, _ := b.node(d); t.handles(d, dn.Phase) {
+			if dn, _ := b.node(d); b.handledByAny(d, dn.Phase) {
 				continue
 			}
 			p = worse(p, b.branchPhase(d, memo))
@@ -299,7 +299,7 @@ func (b *boundary) failedTask(name string, memo map[string]v1alpha1.NodePhase) s
 	}
 	t := b.byName[name]
 	for _, d := range t.deps {
-		if dn, _ := b.node(d); !t.handles(d, dn.Phase) && isFailure(b.branchPhase(d, memo)) {
+		if dn, _ := b.node(d); !b.handledByAny(d, dn.Phase) && isFailure(b.branchPhase(d, memo)) {
 			return b.failedTask(d, memo)
 		}
 	}

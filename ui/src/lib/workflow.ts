@@ -50,8 +50,9 @@ export function artifactSource(a: Artifact): string | undefined {
 }
 
 // artifactURL is the download link of an output artifact of a node.
-export function artifactURL(namespace: string, workflow: string, node: string, name: string): string {
-  return at(`artifacts/${[namespace, workflow, node, name].map(encodeURIComponent).join("/")}`);
+export function artifactURL(namespace: string, workflow: string, node: string, name: string, uid?: string): string {
+  const query = uid ? `?uid=${encodeURIComponent(uid)}` : "";
+  return at(`artifacts/${[namespace, workflow, node, name].map(encodeURIComponent).join("/")}${query}`);
 }
 
 interface DAGTask {
@@ -81,7 +82,7 @@ export interface VolumeMount {
 }
 
 export interface Workflow {
-  metadata: { name: string; namespace: string; creationTimestamp?: string };
+  metadata: { name: string; namespace: string; uid?: string; creationTimestamp?: string };
   spec: { templates?: Template[]; arguments?: { parameters?: Parameter[] }; workflowTemplateRef?: { name: string }; suspend?: boolean; shutdown?: "Stop" | "Terminate"; startAt?: string; approvals?: { node: string }[] };
   status?: {
     phase?: string;
