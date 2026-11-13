@@ -4,7 +4,7 @@ ARG BASE_IMAGE=golang:1.27.3@sha256:f20d83a83e18dbd2a4714b8ffd4b30b287b6243962dd
 
 # Build the web UI. The pnpm settings block install scripts and new releases. The build stages run on the platform of
 # the build machine and cross-compile, so a multi-platform build needs no emulation.
-FROM --platform=$BUILDPLATFORM node:26.12.0-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS ui
+FROM --platform=$BUILDPLATFORM node:26.13.0-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS ui
 WORKDIR /ui
 RUN npm install --global --ignore-scripts pnpm@12.6.0
 COPY ui/package.json ui/pnpm-lock.yaml ui/pnpm-workspace.yaml ./
