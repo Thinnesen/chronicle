@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -220,14 +221,18 @@ func TestTaskNotifications(t *testing.T) {
 	if err := s.Complete(ctx, "team-a", task.ID, lease, `{}`, "", false); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"queued team-a/default", "done team-a/wf"} {
+	// The two listeners use separate connections, so the order of their notifications is not fixed.
+	var msgs []string
+	for range 2 {
 		select {
 		case msg := <-got:
-			if msg != want {
-				t.Errorf("notification %q, want %q", msg, want)
-			}
+			msgs = append(msgs, msg)
 		case <-time.After(5 * time.Second):
-			t.Fatalf("no notification %q", want)
+			t.Fatalf("notifications %q, want 2", msgs)
 		}
+	}
+	slices.Sort(msgs)
+	if want := []string{"done team-a/wf", "queued team-a/default"}; !slices.Equal(msgs, want) {
+		t.Errorf("notifications %q, want %q", msgs, want)
 	}
 }
