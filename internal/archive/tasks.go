@@ -106,8 +106,8 @@ type OpenRun struct {
 
 // OpenRuns returns each run that has a pending or a running task, one time.
 func (s *Store) OpenRuns(ctx context.Context) ([]OpenRun, error) {
-	rows, err := s.pool.Query(ctx, `SELECT DISTINCT namespace, workflow, workflow_uid::text FROM tasks WHERE state IN ($1, $2)`,
-		TaskPending, TaskRunning)
+	// The states are literals, so that the plan can use the partial index tasks_open.
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT namespace, workflow, workflow_uid::text FROM tasks WHERE state IN ('pending', 'running')`)
 	if err != nil {
 		return nil, fmt.Errorf("read the runs with open tasks: %w", err)
 	}
@@ -137,10 +137,11 @@ func (s *Store) CancelRun(ctx context.Context, workflowUID, reason string) error
 // when there is none. The lease is the secret that the worker must give for heartbeats and the result.
 func (s *Store) Poll(ctx context.Context, namespace, queue string, names []string, worker string) (*Task, string, error) {
 	lease := randomLease()
+	// The state is a literal, so that a generic plan can also use the partial indexes of pending tasks.
 	row := s.pool.QueryRow(ctx, `UPDATE tasks SET state = $5, lease = $6, worker = $4, started_at = now(), heartbeat_at = now()
-		WHERE id = (SELECT id FROM tasks WHERE state = $7 AND namespace = $1 AND queue = $2 AND name = ANY($3)
+		WHERE id = (SELECT id FROM tasks WHERE state = 'pending' AND namespace = $1 AND queue = $2 AND name = ANY($3)
 			ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1)
-		RETURNING `+taskColumns, namespace, queue, names, worker, TaskRunning, lease, TaskPending)
+		RETURNING `+taskColumns, namespace, queue, names, worker, TaskRunning, lease)
 	t, err := scanTask(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, "", nil

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -158,10 +159,17 @@ type Position struct {
 	Name, Namespace string
 }
 
-// List returns the runs that match the query.
+// List returns the runs that match the query. It reads the newest runs of each namespace with its own index
+// scan, because namespace = ANY($1) cannot give the order of the index.
 func (s *Store) List(ctx context.Context, q Query) ([]Row, error) {
-	args := []any{q.Namespaces, jsonObject(q.Labels)}
-	where := `namespace = ANY($1) AND labels @> $2`
+	namespaces := slices.Compact(slices.Sorted(slices.Values(q.Namespaces)))
+	args := []any{namespaces}
+	where := `namespace = n.ns`
+	// Without labels, the filter stays out of the SQL. Else a generic plan reads the GIN index for each namespace.
+	if len(q.Labels) > 0 {
+		args = append(args, jsonObject(q.Labels))
+		where += ` AND labels @> $` + strconv.Itoa(len(args))
+	}
 	if len(q.Phases) > 0 {
 		args = append(args, q.Phases)
 		where += ` AND phase = ANY($` + strconv.Itoa(len(args)) + `)`
@@ -172,9 +180,11 @@ func (s *Store) List(ctx context.Context, q Query) ([]Row, error) {
 		where += ` AND (created_at < $` + t + ` OR created_at = $` + t + ` AND (name, namespace) > ($` + n + `, $` + ns + `))`
 	}
 	args = append(args, q.Limit)
+	order := ` ORDER BY created_at DESC, name, namespace LIMIT $` + strconv.Itoa(len(args))
 	rows, err := s.pool.Query(ctx, `
+SELECT r.* FROM unnest($1::text[]) AS n(ns), LATERAL (
 SELECT uid, namespace, name, phase, message, template, labels, created_at, started_at, finished_at, nodes_done, nodes_total
-FROM workflow_runs WHERE `+where+` ORDER BY created_at DESC, name, namespace LIMIT $`+strconv.Itoa(len(args)), args...)
+FROM workflow_runs WHERE `+where+order+`) r`+order, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list the archived runs: %w", err)
 	}
@@ -195,8 +205,13 @@ func (s *Store) Get(ctx context.Context, namespace, name, uid string) (*v1alpha1
 	q := `SELECT workflow FROM workflow_runs WHERE namespace = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`
 	args := []any{namespace, name}
 	if uid != "" {
-		q = `SELECT workflow FROM workflow_runs WHERE namespace = $1 AND name = $2 AND uid::text = $3`
-		args = append(args, uid)
+		// A UID that is not a UUID matches no run.
+		var id pgtype.UUID
+		if err := id.Scan(uid); err != nil {
+			return nil, ErrNotFound
+		}
+		q = `SELECT workflow FROM workflow_runs WHERE namespace = $1 AND name = $2 AND uid = $3`
+		args = append(args, id)
 	}
 	err := s.pool.QueryRow(ctx, q, args...).Scan(&data)
 	if errors.Is(err, pgx.ErrNoRows) {

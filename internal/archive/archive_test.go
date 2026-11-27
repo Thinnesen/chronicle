@@ -95,6 +95,10 @@ func TestStore(t *testing.T) {
 	if err != nil || len(page) != 1 || page[0].Name != "b" {
 		t.Fatalf("page: %v %+v", err, page)
 	}
+	twice, err := s.List(ctx, Query{Namespaces: []string{"team-a", "team-a"}, Limit: 10})
+	if err != nil || len(twice) != 3 {
+		t.Fatalf("a namespace two times: %v %+v", err, twice)
+	}
 	other, err := s.List(ctx, Query{Namespaces: []string{"team-b"}, Limit: 10})
 	if err != nil || len(other) != 0 {
 		t.Fatalf("another namespace: %v %+v", err, other)
@@ -110,6 +114,9 @@ func TestStore(t *testing.T) {
 	}
 	if _, err := s.Get(ctx, "team-a", "a", "22222222-2222-2222-2222-222222222222"); err != ErrNotFound {
 		t.Errorf("a UID of a run with another name: %v", err)
+	}
+	if _, err := s.Get(ctx, "team-a", "a", "not-a-uuid"); err != ErrNotFound {
+		t.Errorf("a UID that is not a UUID: %v", err)
 	}
 	if _, err := s.Get(ctx, "team-a", "nope", ""); err != ErrNotFound {
 		t.Errorf("get a missing run: %v", err)
