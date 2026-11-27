@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -156,8 +157,8 @@ func ownedBy(list []chroniclev1alpha1.Workflow, cw *chroniclev1alpha1.CronWorkfl
 }
 
 func activeRefs(plan schedule.Plan) []corev1.ObjectReference {
-	refs := make([]corev1.ObjectReference, 0, len(plan.Active))
-	for _, wf := range plan.Active {
+	refs := make([]corev1.ObjectReference, 0, len(plan.Active)+len(plan.Backfills))
+	for _, wf := range slices.Concat(plan.Active, plan.Backfills) {
 		refs = append(refs, corev1.ObjectReference{Kind: "Workflow", Namespace: wf.Namespace, Name: wf.Name, UID: wf.UID})
 	}
 	return refs

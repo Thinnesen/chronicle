@@ -2,6 +2,12 @@
 
 One entry for each design change. Newest first.
 
+- 2026-11-27: A backfill run has the label `chronicle.thinnesen.com/backfill: "true"`. The concurrency policy and the history limits of the CronWorkflow ignore these runs. They stay until a user deletes them or their `ttlStrategy` does. Reason: a scheduled run with Replace terminated the running backfill runs, and the history limits deleted the backfill runs before anyone could look at them. The docs already said that the policy does not hold them back.
+
+- 2026-11-27: The search for the latest missed schedule time has no limit of 1000 times. It starts near the current time and doubles its window back to the last schedule time. Reason: after more than 1000 missed times, the CronWorkflow found no due time, so the last schedule time never moved and the schedule stopped for good.
+
+- 2026-11-27: The controller deletes the Pods of the Pod GC only after it saved the status with their results. It deletes the Pods of stopped nodes before it saves the status, as before, so a failed delete is tried again. Reason: when the status update failed with a conflict, the next reconcile found the node still running and its Pod gone, so a finished step ended in Error.
+
 - 2026-10-22: The controller reconciles 32 runs at the same time by default (`--workflow-workers`), not 8. One run is still never reconciled twice at the same time. Reason: with 20 runs of task steps at once, the runs waited in the queue while each reconcile waited for the API server. The burst took 13.3 s with 8 workers and 9.2 s with 32 on the demo cluster.
 
 - 2026-10-22: Workflow Pods run `chronicle-exec` from an image volume of the chronicle image (GA in Kubernetes 1.37). A Pod without input artifacts has no init container. The Helm value `manager.executorImageVolume: false` brings back the init container for older container runtimes. Reason: the init container added one container start and a 40 MB copy to each step. On the demo cluster, a step took 6.3 s with it and 5.0 s without it.

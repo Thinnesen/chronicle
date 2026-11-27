@@ -24,7 +24,7 @@ type sim struct {
 	pods     map[string]CreatePod // by node name
 	// startStep is the step in which each Pod was created, by node name.
 	startStep map[string]int
-	deleted   []string          // deleted Pod names
+	deleted   []DeletePod       // the Pod deletes
 	podNode   map[string]string // the node ID of each Pod name
 	// outputs are the Pod outputs by node name. The default is the result "out-<display name>".
 	outputs map[string]*v1alpha1.Outputs
@@ -69,7 +69,7 @@ func (s *sim) step(i int) Result {
 	wave := make([]string, 0, len(r.Actions))
 	for _, a := range r.Actions {
 		if d, ok := a.(DeletePod); ok {
-			s.deleted = append(s.deleted, d.PodName)
+			s.deleted = append(s.deleted, d)
 			delete(s.in.Pods, d.PodName)
 			continue
 		}

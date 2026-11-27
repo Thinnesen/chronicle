@@ -94,9 +94,10 @@ type CreatePod struct {
 
 func (CreatePod) isAction() {}
 
-// DeletePod asks the controller to delete the Pod of a stopped node.
+// DeletePod asks the controller to delete the Pod of a stopped node. GC is true for a delete of the Pod GC.
 type DeletePod struct {
 	PodName string
+	GC      bool
 }
 
 func (DeletePod) isAction() {}

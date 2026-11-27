@@ -69,7 +69,7 @@ func TestEngineTimeoutAndDeadline(t *testing.T) {
 		if st.Phase != v1alpha1.WorkflowSucceeded || slow.Phase != failed || !strings.Contains(slow.Message, "timeout of 5s") {
 			t.Errorf("phase %s, slow %+v", st.Phase, slow)
 		}
-		if len(s.deleted) != 1 || s.deleted[0] != slow.PodName || s.startStep["wf.next"] != 5 {
+		if len(s.deleted) != 1 || s.deleted[0] != (DeletePod{PodName: slow.PodName}) || s.startStep["wf.next"] != 5 {
 			t.Errorf("deleted %v, next started at %d", s.deleted, s.startStep["wf.next"])
 		}
 	})

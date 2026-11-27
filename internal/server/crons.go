@@ -133,6 +133,7 @@ func (s *cronService) BackfillCronWorkflow(ctx context.Context, req *connect.Req
 	resp := &chroniclev1.BackfillCronWorkflowResponse{}
 	for _, at := range times {
 		wf := schedule.NewRun(&cw, at)
+		wf.Labels[schedule.LabelBackfill] = "true"
 		// The caller creates the run. Without blockOwnerDeletion, the caller needs no rights on the CronWorkflow itself.
 		wf.OwnerReferences[0].BlockOwnerDeletion = nil
 		switch err := c.Create(ctx, wf); {
