@@ -1,6 +1,6 @@
 # Build the manager binary
 # Override BASE_IMAGE to build from another registry. Pin it by digest.
-ARG BASE_IMAGE=golang:1.27.3@sha256:f20d83a83e18dbd2a4714b8ffd4b30b287b6243962dd75608e86abcc63ba4efc
+ARG BASE_IMAGE=golang:1.27.4@sha256:5f1b98fa02fe396ebce2a0227a0e08309e11792915b9dd2e1f71053d7e7e6666
 
 # Build the web UI. The pnpm settings block install scripts and new releases. The build stages run on the platform of
 # the build machine and cross-compile, so a multi-platform build needs no emulation.
