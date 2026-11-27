@@ -158,3 +158,43 @@ func TestTaskDefaultHeartbeatTimeout(t *testing.T) {
 		t.Fatalf("after 62 s: cancels %+v, phase %s", cancels, r.Status.Phase)
 	}
 }
+
+// TestTaskTimeoutCountsFromStart checks that the template timeout of a task counts from the time a worker took it.
+func TestTaskTimeoutCountsFromStart(t *testing.T) {
+	const spec = "entrypoint: t\ntemplates:\n- {name: t, timeout: 5m, task: {name: x}}"
+	tests := []struct {
+		name         string
+		start, check int
+		phase        v1alpha1.NodePhase
+	}{
+		{name: "5 minutes in the queue and 1 minute of work", start: 300, check: 360, phase: v1alpha1.NodeRunning},
+		{name: "work longer than the timeout", start: 0, check: 310, phase: v1alpha1.NodeFailed},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := taskInputFor(t, spec)
+			enq, _ := next[EnqueueTask](&in, 0)
+			start, beat := at(tt.start), at(tt.check)
+			in.Tasks[enq[0].TaskID] = TaskResult{Phase: v1alpha1.NodeRunning, EnqueuedAt: at(0), StartedAt: &start, HeartbeatAt: &beat}
+			next[CancelTask](&in, tt.check)
+			if n := nodeByName(in.Status, wfName); n.Phase != tt.phase {
+				t.Errorf("node = %s %q", n.Phase, n.Message)
+			}
+		})
+	}
+}
+
+// TestTaskScheduleToStartAfterLock checks that scheduleToStartTimeout counts from the enqueue, not from the lock wait.
+func TestTaskScheduleToStartAfterLock(t *testing.T) {
+	in := taskInputFor(t, "entrypoint: t\ntemplates:\n- {name: t, synchronization: {mutex: {name: m}}, task: {name: x, scheduleToStartTimeout: 30s}}")
+	next[EnqueueTask](&in, 0)
+	in.HeldLocks = map[string]string{nodeByName(in.Status, wfName).ID: "m"}
+	enq, _ := next[EnqueueTask](&in, 100)
+	in.Tasks[enq[0].TaskID] = TaskResult{Phase: v1alpha1.NodePending, EnqueuedAt: at(100)}
+	if next[EnqueueTask](&in, 110); nodeByName(in.Status, wfName).Phase != v1alpha1.NodePending {
+		t.Fatalf("after 10 s in the queue: %s", nodeByName(in.Status, wfName).Message)
+	}
+	if next[EnqueueTask](&in, 131); nodeByName(in.Status, wfName).Phase != v1alpha1.NodeFailed {
+		t.Errorf("after 31 s in the queue: %s", nodeByName(in.Status, wfName).Phase)
+	}
+}

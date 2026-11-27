@@ -60,7 +60,7 @@ func openTask(n chroniclev1alpha1.NodeStatus) bool {
 }
 
 func taskResult(t archive.Task) engine.TaskResult {
-	r := engine.TaskResult{Message: t.Message, Output: t.Output,
+	r := engine.TaskResult{Message: t.Message, Output: t.Output, EnqueuedAt: metav1.NewTime(t.CreatedAt),
 		StartedAt: metaTime(t.StartedAt), HeartbeatAt: metaTime(t.HeartbeatAt), FinishedAt: metaTime(t.FinishedAt)}
 	switch t.State {
 	case archive.TaskPending:

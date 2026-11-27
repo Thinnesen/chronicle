@@ -2,6 +2,8 @@
 
 One entry for each design change. Newest first.
 
+- 2026-11-27: For a `task` template, the template `timeout` starts when a worker takes the task (the `started_at` of the task). `scheduleToStartTimeout` starts when the task enters the queue (the `created_at` of the task). The `startedAt` of the node stays the time the node was created. Reason: the docs define `timeout` as start-to-close, but it counted from the creation of the node. So the time in the queue and the wait for a lock failed tasks that ran in time.
+
 - 2026-11-27: A backfill run has the label `chronicle.thinnesen.com/backfill: "true"`. The concurrency policy and the history limits of the CronWorkflow ignore these runs. They stay until a user deletes them or their `ttlStrategy` does. Reason: a scheduled run with Replace terminated the running backfill runs, and the history limits deleted the backfill runs before anyone could look at them. The docs already said that the policy does not hold them back.
 
 - 2026-11-27: The search for the latest missed schedule time has no limit of 1000 times. It starts near the current time and doubles its window back to the last schedule time. Reason: after more than 1000 missed times, the CronWorkflow found no due time, so the last schedule time never moved and the schedule stopped for good.

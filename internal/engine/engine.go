@@ -288,11 +288,22 @@ func (e *engine) execute(c call, depth int) v1alpha1.NodeStatus {
 	}
 	n = e.runBody(c, t, n, depth)
 	// The timeout is checked after the body, so that a Pod that finished in time counts.
-	if t.Timeout != nil && !IsTerminal(n.Phase) && e.reached(n.StartedAt.Add(t.Timeout.Duration)) {
-		e.stop(n.ID, fmt.Sprintf("the timeout of %s was exceeded", t.Timeout.Duration))
-		n = e.nodes[n.ID]
+	if t.Timeout != nil && !IsTerminal(n.Phase) {
+		if start := e.timeoutStart(n); start != nil && e.reached(start.Add(t.Timeout.Duration)) {
+			e.stop(n.ID, fmt.Sprintf("the timeout of %s was exceeded", t.Timeout.Duration))
+			n = e.nodes[n.ID]
+		}
 	}
 	return n
+}
+
+// timeoutStart returns the start of the template timeout of a node, or nil when it has not started.
+// For a task, it is the time a worker took the task, so the time in the queue does not count.
+func (e *engine) timeoutStart(n v1alpha1.NodeStatus) *metav1.Time {
+	if n.Type == v1alpha1.NodeTask {
+		return e.in.Tasks[n.TaskID].StartedAt
+	}
+	return n.StartedAt
 }
 
 // runBody runs a node of a DAG, steps, container or script template.
