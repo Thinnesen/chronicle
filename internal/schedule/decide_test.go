@@ -42,6 +42,8 @@ func TestDecide(t *testing.T) {
 		{name: "only the latest missed run starts", now: t0.Add(5*time.Hour + time.Minute), run: new(t0.Add(5 * time.Hour)), next: t0.Add(6 * time.Hour)},
 		{name: "the latest of more than 1000 missed times starts", spec: func(s *v1alpha1.CronWorkflowSpec) { s.Schedules = []string{"* * * * *"} },
 			last: new(t0.Add(-48 * time.Hour)), now: t0.Add(30 * time.Second), run: new(t0), next: t0.Add(time.Minute)},
+		{name: "a schedule without times does not stop the others", spec: func(s *v1alpha1.CronWorkflowSpec) { s.Schedules = []string{"0 * * * *", "0 0 30 2 *"} },
+			now: t0.Add(61 * time.Minute), run: new(t0.Add(time.Hour)), next: t0.Add(2 * time.Hour)},
 		{name: "already handled", last: new(t0.Add(time.Hour)), now: t0.Add(90 * time.Minute), next: t0.Add(2 * time.Hour)},
 		{name: "deadline missed", spec: func(s *v1alpha1.CronWorkflowSpec) { s.StartingDeadlineSeconds = ptr.To[int64](60) },
 			now: t0.Add(65 * time.Minute), skipped: "deadline", next: t0.Add(2 * time.Hour)},

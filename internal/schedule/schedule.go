@@ -36,11 +36,11 @@ func Parse(exprs []string, timezone string) (*Schedule, error) {
 	return s, nil
 }
 
-// Next returns the first schedule time after t.
+// Next returns the first schedule time after t, or the zero time when no schedule has a time in the next five years.
 func (s *Schedule) Next(t time.Time) time.Time {
 	var next time.Time
 	for _, spec := range s.specs {
-		if n := spec.Next(t); next.IsZero() || n.Before(next) {
+		if n := spec.Next(t); !n.IsZero() && (next.IsZero() || n.Before(next)) {
 			next = n
 		}
 	}

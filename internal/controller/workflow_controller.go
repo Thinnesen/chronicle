@@ -167,7 +167,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return r.collect(ctx, &wf, spec, deletes, result)
 }
 
-// splitDeletes separates the Pod deletes of the Pod GC from the other actions.
+// splitDeletes separates all Pod deletes (Pod GC and stops) from the other actions.
 func splitDeletes(actions []engine.Action) (rest, deletes []engine.Action) {
 	for _, a := range actions {
 		if _, ok := a.(engine.DeletePod); ok {
@@ -179,8 +179,8 @@ func splitDeletes(actions []engine.Action) (rest, deletes []engine.Action) {
 	return rest, deletes
 }
 
-// collect deletes the Pods that the Pod GC permits, then applies the TTL. The status must have the result of these
-// Pods before they go: if the status update fails, the next reconcile reads the result from the Pod again.
+// collect deletes the Pods of the steps (Pod GC and stops), then applies the TTL. The status must have the result of
+// these Pods before they go: if the status update fails, the next reconcile reads the result from the Pod again.
 func (r *WorkflowReconciler) collect(ctx context.Context, wf *chroniclev1alpha1.Workflow, spec *chroniclev1alpha1.WorkflowTemplateSpec,
 	deletes []engine.Action, result ctrl.Result) (ctrl.Result, error) {
 	if _, _, _, err := r.applyAll(ctx, wf, spec, deletes); err != nil {
