@@ -8,9 +8,6 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// maxMissed limits the search for missed times. A controller that was down for longer starts only future runs.
-const maxMissed = 1000
-
 // Schedule is a set of parsed cron expressions in one time zone.
 type Schedule struct {
 	specs []cron.Schedule
@@ -50,16 +47,29 @@ func (s *Schedule) Next(t time.Time) time.Time {
 	return next
 }
 
-// LastDue returns the latest schedule time in (since, now], or false when there is none.
+// LastDue returns the latest schedule time in (since, now], or false when there is none. The search starts near now
+// and doubles its window back to since, so a long outage costs little.
 func (s *Schedule) LastDue(since, now time.Time) (time.Time, bool) {
+	for window := time.Minute; ; window *= 2 {
+		from := now.Add(-window)
+		if !from.After(since) {
+			return s.lastIn(since, now)
+		}
+		if due, ok := s.lastIn(from, now); ok {
+			return due, true
+		}
+	}
+}
+
+// lastIn returns the latest schedule time in (from, to]. The earlier half of the window was empty, so the loop is short.
+func (s *Schedule) lastIn(from, to time.Time) (time.Time, bool) {
 	var due time.Time
-	t := since
-	for range maxMissed {
+	for t := from; ; {
 		n := s.Next(t)
-		if n.After(now) {
+		// A schedule without a time in the next five years gives the zero time.
+		if n.IsZero() || n.After(to) {
 			return due, !due.IsZero()
 		}
 		due, t = n, n
 	}
-	return time.Time{}, false
 }

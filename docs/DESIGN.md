@@ -86,7 +86,8 @@ Validation: CEL rules and a validating webhook for the DAG (no cycles, known tem
 `schedules` (one or more cron expressions), `timezone`, `concurrencyPolicy` (Allow, Forbid, Replace), `startingDeadlineSeconds`, `successfulJobsHistoryLimit`, `failedJobsHistoryLimit`, `suspend`, `workflowMetadata`, `workflowSpec` (inline or `workflowTemplateRef`).
 
 - The controller reconciles and requeues at the next schedule time, as the Kubernetes CronJob does. A run has the name `<cron>-<unix time>`. So a second create of the same run fails, and a restart loses no run.
-- After a long outage, only the latest missed time runs. The search for missed times stops after 1000 times.
+- After a long outage, only the latest missed time runs. This also holds when many times were missed.
+- A backfill starts the runs of past schedule times. These runs have the label `chronicle.thinnesen.com/backfill`, and the concurrency policy and the history limits ignore them.
 - Replace sets `shutdown: Terminate` on the active runs, so their history stays.
 - The pure package `internal/schedule` decides; the controller applies the plan.
 
@@ -132,7 +133,7 @@ The controller applies the actions. This makes the engine testable with table te
 - A container template without a command runs without the executor. It has no result and no output files.
 - A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects.
 - An `http` template runs `chronicle-exec http` in a Pod without an API token. Header values from a Secret are `secretKeyRef` environment variables. A 2xx status is success, and the response body (at most 3 KiB) is the result. Logs and errors name the URL without its query.
-- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on.
+- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. The controller deletes a Pod only after it saved the result of its step. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on.
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
 ### 4.2 Artifacts and the log archive

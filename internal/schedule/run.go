@@ -11,10 +11,12 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 )
 
-// The label and annotation on Workflows that a CronWorkflow created.
+// The labels and annotation on Workflows that a CronWorkflow created.
 const (
 	LabelCronWorkflow       = "chronicle.thinnesen.com/cron-workflow"
 	AnnotationScheduledTime = "chronicle.thinnesen.com/scheduled-time"
+	// LabelBackfill marks a run of a backfill. The concurrency policy and the history limits ignore these runs.
+	LabelBackfill = "chronicle.thinnesen.com/backfill"
 )
 
 // NewRun returns the run of a CronWorkflow for a schedule time. The name comes from the time, so a second create of

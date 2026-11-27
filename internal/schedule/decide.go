@@ -35,6 +35,9 @@ func Decide(cw *v1alpha1.CronWorkflow, runs []v1alpha1.Workflow, now time.Time) 
 	p := Plan{Next: s.Next(now)}
 	var finished []v1alpha1.Workflow
 	for _, wf := range runs {
+		if wf.Labels[LabelBackfill] == "true" {
+			continue
+		}
 		if isFinished(wf.Status.Phase) {
 			finished = append(finished, wf)
 		} else {

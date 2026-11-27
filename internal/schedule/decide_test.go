@@ -18,6 +18,11 @@ func run(name string, phase v1alpha1.WorkflowPhase, created time.Time) v1alpha1.
 	return v1alpha1.Workflow{Name: name, CreationTimestamp: metav1.NewTime(created), Status: v1alpha1.WorkflowStatus{Phase: phase}}
 }
 
+func backfill(wf v1alpha1.Workflow) v1alpha1.Workflow {
+	wf.Labels = map[string]string{LabelBackfill: "true"}
+	return wf
+}
+
 func TestDecide(t *testing.T) {
 	hourly := v1alpha1.CronWorkflowSpec{Schedules: []string{"0 * * * *"}}
 	tests := []struct {
@@ -35,6 +40,8 @@ func TestDecide(t *testing.T) {
 		{name: "not due yet", now: t0.Add(30 * time.Minute), next: t0.Add(time.Hour)},
 		{name: "due", now: t0.Add(61 * time.Minute), run: new(t0.Add(time.Hour)), next: t0.Add(2 * time.Hour)},
 		{name: "only the latest missed run starts", now: t0.Add(5*time.Hour + time.Minute), run: new(t0.Add(5 * time.Hour)), next: t0.Add(6 * time.Hour)},
+		{name: "the latest of more than 1000 missed times starts", spec: func(s *v1alpha1.CronWorkflowSpec) { s.Schedules = []string{"* * * * *"} },
+			last: new(t0.Add(-48 * time.Hour)), now: t0.Add(30 * time.Second), run: new(t0), next: t0.Add(time.Minute)},
 		{name: "already handled", last: new(t0.Add(time.Hour)), now: t0.Add(90 * time.Minute), next: t0.Add(2 * time.Hour)},
 		{name: "deadline missed", spec: func(s *v1alpha1.CronWorkflowSpec) { s.StartingDeadlineSeconds = ptr.To[int64](60) },
 			now: t0.Add(65 * time.Minute), skipped: "deadline", next: t0.Add(2 * time.Hour)},
@@ -45,6 +52,15 @@ func TestDecide(t *testing.T) {
 		{name: "replace", spec: func(s *v1alpha1.CronWorkflowSpec) { s.ConcurrencyPolicy = v1alpha1.ConcurrencyReplace },
 			runs: []v1alpha1.Workflow{run("a", v1alpha1.WorkflowRunning, t0)}, now: t0.Add(61 * time.Minute),
 			run: new(t0.Add(time.Hour)), term: []string{"a"}, next: t0.Add(2 * time.Hour)},
+		{name: "backfill runs do not count as active", spec: func(s *v1alpha1.CronWorkflowSpec) { s.ConcurrencyPolicy = v1alpha1.ConcurrencyReplace },
+			runs: []v1alpha1.Workflow{backfill(run("b", v1alpha1.WorkflowRunning, t0))}, now: t0.Add(61 * time.Minute),
+			run: new(t0.Add(time.Hour)), next: t0.Add(2 * time.Hour)},
+		{name: "backfill runs do not block a forbid", spec: func(s *v1alpha1.CronWorkflowSpec) { s.ConcurrencyPolicy = v1alpha1.ConcurrencyForbid },
+			runs: []v1alpha1.Workflow{backfill(run("b", v1alpha1.WorkflowRunning, t0))}, now: t0.Add(61 * time.Minute),
+			run: new(t0.Add(time.Hour)), next: t0.Add(2 * time.Hour)},
+		{name: "backfill runs are outside the history", spec: func(s *v1alpha1.CronWorkflowSpec) { s.FailedJobsHistoryLimit = ptr.To[int32](0) },
+			runs: []v1alpha1.Workflow{backfill(run("b", v1alpha1.WorkflowFailed, t0)), run("f", v1alpha1.WorkflowFailed, t0)},
+			now:  t0.Add(30 * time.Minute), del: []string{"f"}, next: t0.Add(time.Hour)},
 		{name: "history", spec: func(s *v1alpha1.CronWorkflowSpec) { s.SuccessfulJobsHistoryLimit = ptr.To[int32](1) },
 			runs: []v1alpha1.Workflow{
 				run("ok1", v1alpha1.WorkflowSucceeded, t0.Add(-3*time.Hour)), run("ok2", v1alpha1.WorkflowSucceeded, t0.Add(-2*time.Hour)),
@@ -91,7 +107,11 @@ func TestParseErrors(t *testing.T) {
 		t.Error("a bad time zone was accepted")
 	}
 	s, _ := Parse([]string{"* * * * *"}, "")
-	if _, ok := s.LastDue(t0.Add(-30*24*time.Hour), t0); ok {
-		t.Error("a very old start time must not start a run")
+	if due, ok := s.LastDue(t0.Add(-30*24*time.Hour), t0); !ok || !due.Equal(t0) {
+		t.Errorf("after a gap of 30 days, LastDue = %v, %v; want %v", due, ok, t0)
+	}
+	never, _ := Parse([]string{"0 0 30 2 *"}, "")
+	if _, ok := never.LastDue(t0.Add(-24*time.Hour), t0); ok {
+		t.Error("a schedule without times gave a due time")
 	}
 }

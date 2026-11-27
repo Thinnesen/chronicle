@@ -12,6 +12,7 @@ import (
 	"github.com/Thinnesen/chronicle/api/v1alpha1"
 	chroniclev1 "github.com/Thinnesen/chronicle/gen/chronicle/v1"
 	"github.com/Thinnesen/chronicle/gen/chronicle/v1/chroniclev1connect"
+	"github.com/Thinnesen/chronicle/internal/schedule"
 )
 
 // userHeader sends the test identity on each call.
@@ -122,7 +123,7 @@ func TestCronBackfill(t *testing.T) {
 	}
 	var run v1alpha1.Workflow
 	if err := admin.Get(ctx, client.ObjectKey{Namespace: "team-a", Name: first.Created[0]}, &run); err != nil ||
-		run.Labels["chronicle.thinnesen.com/cron-workflow"] != "backfill" || len(run.OwnerReferences) != 1 {
+		run.Labels["chronicle.thinnesen.com/cron-workflow"] != "backfill" || run.Labels[schedule.LabelBackfill] != "true" || len(run.OwnerReferences) != 1 {
 		t.Errorf("backfilled run: %v %+v", err, run.ObjectMeta)
 	}
 	if again, err := backfill(crons, 3); err != nil || len(again.Created) != 0 || len(again.Existing) != 3 {
