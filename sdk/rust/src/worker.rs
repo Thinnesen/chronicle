@@ -232,8 +232,8 @@ impl Job {
         };
         let lease = text("lease");
         // The heartbeats go on until the result is sent, so that the lease stays alive while CompleteTask is retried.
-        // Dropping stop_beats ends them.
-        let (stop_beats, beats) = self.beat(&info.id, &lease, cancelled.clone());
+        // Dropping stop_beats ends them. lost gets a signal when the task is cancelled or the lease is lost.
+        let (stop_beats, lost, beats) = self.beat(&info.id, &lease, cancelled.clone());
         let outcome = run_function(func, &text("inputJson"), &info);
         // When the task was cancelled or the lease was lost, the server refuses a result.
         if !cancelled.load(Ordering::SeqCst) {
@@ -246,7 +246,7 @@ impl Job {
                 }
                 Err(TaskError::Fatal(m)) => body["error"] = m.into(),
             }
-            self.complete(body, &cancelled);
+            self.complete(body, &lost);
         }
         drop(stop_beats);
         let _ = beats.join();
@@ -255,7 +255,7 @@ impl Job {
     /// Sends the result. It retries a transient error with a capped exponential backoff for up to 60 s, and stops
     /// when the task is cancelled. When the task timed out meanwhile, or the result is too large, the server refuses
     /// the result. The workflow handles the task; the worker reports it on stderr.
-    fn complete(&self, body: Value, cancelled: &AtomicBool) {
+    fn complete(&self, body: Value, lost: &mpsc::Receiver<()>) {
         let deadline = Instant::now() + COMPLETE_RETRY_FOR;
         let mut wait = COMPLETE_FIRST_WAIT;
         loop {
@@ -267,10 +267,7 @@ impl Job {
                 Err(e) => e,
             };
             let retry = HEALABLE.contains(&err.code.as_str()) && Instant::now() + wait <= deadline;
-            if retry {
-                thread::sleep(wait);
-            }
-            if !retry || cancelled.load(Ordering::SeqCst) {
+            if !retry || !matches!(lost.recv_timeout(wait), Err(RecvTimeoutError::Timeout)) {
                 eprintln!(
                     "chronicle: the server did not take the result of task {}: {err}",
                     body["id"].as_str().unwrap_or_default()
@@ -281,17 +278,19 @@ impl Job {
         }
     }
 
-    /// Sends heartbeats in a thread until the returned sender is dropped.
+    /// Sends heartbeats in a thread until the returned sender is dropped. The returned receiver gets a signal when
+    /// the task is cancelled or the lease is lost.
     fn beat(
         &self,
         id: &str,
         lease: &str,
         cancelled: Arc<AtomicBool>,
-    ) -> (mpsc::Sender<()>, thread::JoinHandle<()>) {
+    ) -> (mpsc::Sender<()>, mpsc::Receiver<()>, thread::JoinHandle<()>) {
         let client = self.client.clone();
         let body = json!({"namespace": self.namespace, "id": id, "lease": lease});
         let every = self.heartbeat;
         let (stop, stopped) = mpsc::channel();
+        let (lose, lost) = mpsc::channel();
         let beats = thread::spawn(move || {
             while let Err(RecvTimeoutError::Timeout) = stopped.recv_timeout(every) {
                 let stop = match client.call("TaskService", "HeartbeatTask", body.clone(), None) {
@@ -300,11 +299,12 @@ impl Job {
                 };
                 if stop {
                     cancelled.store(true, Ordering::SeqCst);
+                    let _ = lose.send(());
                     return;
                 }
             }
         });
-        (stop, beats)
+        (stop, lost, beats)
     }
 }
 

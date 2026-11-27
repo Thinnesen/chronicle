@@ -139,6 +139,14 @@ fn complete_task_does_not_retry_a_permanent_error() {
 }
 
 #[test]
+fn complete_task_does_not_retry_a_plain_401() {
+    let denied = (401, json!("Unauthorized"));
+    let queue = complete_with(vec![denied.clone(), denied]);
+    let q = queue.lock().unwrap();
+    assert_eq!(q.calls["CompleteTask"], 1);
+}
+
+#[test]
 fn runs_tasks_and_honours_cancel() {
     let task = |id: &str| json!({"id": id, "name": id, "inputJson": "{\"who\":\"world\"}", "lease": format!("l-{id}"), "idempotencyKey": "k", "traceparent": "tp"});
     let queue = Arc::new(Mutex::new(Queue {

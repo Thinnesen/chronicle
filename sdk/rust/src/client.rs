@@ -40,6 +40,19 @@ pub(crate) const HEALABLE: [&str; 5] = [
     "resource_exhausted",
 ];
 
+/// Maps an HTTP status to a Connect code, for an answer without a Connect error, for example from a proxy.
+/// Other statuses map to "unknown", as in the Connect protocol.
+fn http_code(status: u16) -> &'static str {
+    match status {
+        400 => "internal",
+        401 => "unauthenticated",
+        403 => "permission_denied",
+        404 => "unimplemented",
+        429 | 502 | 503 | 504 => "unavailable",
+        _ => "unknown",
+    }
+}
+
 fn read_token(path: &Path) -> Result<String, ApiError> {
     let token = std::fs::read_to_string(path)
         .map_err(|e| api_error("invalid_argument", format!("read the token file: {e}")))?;
@@ -204,17 +217,17 @@ impl Client {
             .send_json(&body)
             .map_err(|e| api_error("unavailable", e))?;
         let status = resp.status();
-        let answer: Value = resp
-            .body_mut()
-            .read_json()
-            .map_err(|e| api_error("internal", e))?;
+        let answer = resp.body_mut().read_json::<Value>();
         if !status.is_success() {
-            let code = answer["code"].as_str().unwrap_or("unknown");
+            let answer = answer.unwrap_or_default();
+            let code = answer["code"]
+                .as_str()
+                .unwrap_or_else(|| http_code(status.as_u16()));
             let message = answer["message"]
                 .as_str()
                 .unwrap_or("the server answered with an error");
             return Err(api_error(code, message));
         }
-        Ok(answer)
+        answer.map_err(|e| api_error("internal", e))
     }
 }
