@@ -61,7 +61,8 @@ func (s *Schedule) LastDue(since, now time.Time) (time.Time, bool) {
 	}
 }
 
-// lastIn returns the latest schedule time in (from, to]. The earlier half of the window was empty, so the loop is short.
+// lastIn returns the latest schedule time in (from, to]. The later half of the window was empty, so the loop steps only
+// through the earlier half.
 func (s *Schedule) lastIn(from, to time.Time) (time.Time, bool) {
 	var due time.Time
 	for t := from; ; {
