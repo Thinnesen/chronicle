@@ -107,7 +107,7 @@ func TestEngineSuspendAndStop(t *testing.T) {
 	s.step(3) // b starts and keeps running
 	s.in.Shutdown = v1alpha1.ShutdownStop
 	st := s.run()
-	if st.Phase != v1alpha1.WorkflowFailed || len(s.deleted) != 1 || nodeByName(st, "wf.b").Message != "the workflow was stopped" {
+	if st.Phase != v1alpha1.WorkflowFailed || len(s.deleted) != 1 || s.deleted[0].GC || nodeByName(st, "wf.b").Message != "the workflow was stopped" {
 		t.Errorf("phase %s, deleted %v, b %+v", st.Phase, s.deleted, nodeByName(st, "wf.b"))
 	}
 }

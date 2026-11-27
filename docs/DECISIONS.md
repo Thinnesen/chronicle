@@ -6,7 +6,7 @@ One entry for each design change. Newest first.
 
 - 2026-11-27: The search for the latest missed schedule time has no limit of 1000 times. It starts near the current time and doubles its window back to the last schedule time. Reason: after more than 1000 missed times, the CronWorkflow found no due time, so the last schedule time never moved and the schedule stopped for good.
 
-- 2026-11-27: The controller deletes the Pods of the Pod GC only after it saved the status with their results. Reason: when the status update failed with a conflict, the next reconcile found the node still running and its Pod gone, so a finished step ended in Error.
+- 2026-11-27: The controller deletes the Pods of the Pod GC only after it saved the status with their results. It deletes the Pods of stopped nodes before it saves the status, as before, so a failed delete is tried again. Reason: when the status update failed with a conflict, the next reconcile found the node still running and its Pod gone, so a finished step ended in Error.
 
 - 2026-10-22: The controller reconciles 32 runs at the same time by default (`--workflow-workers`), not 8. One run is still never reconciled twice at the same time. Reason: with 20 runs of task steps at once, the runs waited in the queue while each reconcile waited for the API server. The burst took 13.3 s with 8 workers and 9.2 s with 32 on the demo cluster.
 

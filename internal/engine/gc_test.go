@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestEnginePodGC(t *testing.T) {
 			for i := range 40 { // the steps after the end, for the delay
 				s.step(100 + i)
 			}
-			if len(s.deleted) != tt.deleted {
+			if len(s.deleted) != tt.deleted || slices.ContainsFunc(s.deleted, func(d DeletePod) bool { return !d.GC }) {
 				t.Errorf("deleted %v", s.deleted)
 			}
 		})

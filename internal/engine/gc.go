@@ -40,7 +40,7 @@ func (e *engine) gc(status *v1alpha1.WorkflowStatus) []Action {
 			since = status.FinishedAt.Time
 		}
 		if e.reached(since.Add(delay)) {
-			actions = append(actions, DeletePod{PodName: n.PodName})
+			actions = append(actions, DeletePod{PodName: n.PodName, GC: true})
 		}
 	}
 	return actions

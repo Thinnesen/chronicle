@@ -133,7 +133,7 @@ The controller applies the actions. This makes the engine testable with table te
 - A container template without a command runs without the executor. It has no result and no output files.
 - A `resource` template runs `chronicle-exec resource` in a Pod with the workflow service account. So it has only the permissions of that service account, never the permissions of the controller. The engine parses the manifest and substitutes placeholders in string values only. A parameter value can never add keys or objects.
 - An `http` template runs `chronicle-exec http` in a Pod without an API token. Header values from a Secret are `secretKeyRef` environment variables. A 2xx status is success, and the response body (at most 3 KiB) is the result. Logs and errors name the URL without its query.
-- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. The controller deletes all Pods of a step (Pod GC and stops) only after it saved the status. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on.
+- `podGC` (OnPodCompletion, OnPodSuccess, OnWorkflowCompletion, OnWorkflowSuccess, with `deleteDelayDuration`) deletes Pods. The controller deletes the Pods of the Pod GC only after it saved the status. It deletes the Pods of stopped nodes before it saves the status, so a failed delete is tried again. Without it, Pods stay until the Workflow is deleted. `ttlStrategy` deletes the finished Workflow. Logs of deleted Pods are kept only when the log archive is on.
 - The controller caches only Pods with the label `chronicle.thinnesen.com/workflow-uid`.
 
 ### 4.2 Artifacts and the log archive
