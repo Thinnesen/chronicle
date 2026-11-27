@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import http.client
 import json
 import logging
 import signal
@@ -12,10 +13,18 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .client import APIError, Client
+from .client import _HEALABLE, APIError, Client
 
 # The server answers a poll after at most 30 seconds.
 _POLL_TIMEOUT = 40.0
+
+# The limits of the retries of CompleteTask, in seconds.
+_COMPLETE_FIRST_WAIT = 0.2
+_COMPLETE_MAX_WAIT = 10.0
+_COMPLETE_RETRY_FOR = 60.0
+
+# _TRANSPORT_ERRORS are the errors of a lost or broken connection.
+_TRANSPORT_ERRORS = (OSError, http.client.HTTPException)
 
 _log = logging.getLogger("chronicle")
 
@@ -161,20 +170,39 @@ class Worker:
         lost = threading.Event()
         beats = threading.Thread(target=self._beat, args=(d, done, lost), daemon=True)
         beats.start()
+        # The heartbeats go on until the result is sent, so that the lease stays alive while CompleteTask is retried.
         try:
             output, failure, retryable = self._call(d)
+            if lost.is_set():
+                return  # The task was cancelled or the lease was lost: the server refuses a result.
+            body = {"namespace": self._namespace, "id": d.info.id, "lease": d.lease}
+            body.update({"outputJson": output} if failure is None else {"error": failure, "retryable": retryable})
+            self._complete(body, lost)
         finally:
             done.set()
-        if lost.is_set():
-            return  # The task was cancelled or the lease was lost: the server refuses a result.
-        body = {"namespace": self._namespace, "id": d.info.id, "lease": d.lease}
-        body.update({"outputJson": output} if failure is None else {"error": failure, "retryable": retryable})
-        # When the task timed out meanwhile, or the result is too large, the server refuses the result. The workflow
-        # handles the task; the worker logs it.
-        try:
-            self._client._call("CompleteTask", body, service="TaskService")
-        except APIError as err:
-            _log.warning("the server did not take the result of task %s: %s", d.info.id, err)
+
+    def _complete(self, body: dict[str, Any], lost: threading.Event) -> None:
+        """Send the result. Retry a transient error with a capped exponential backoff for up to 60 seconds.
+
+        When the task timed out meanwhile, or the result is too large, the server refuses the result. The workflow
+        handles the task; the worker logs it.
+        """
+        deadline = time.monotonic() + _COMPLETE_RETRY_FOR
+        wait = _COMPLETE_FIRST_WAIT
+        while True:
+            try:
+                self._client._call("CompleteTask", body, service="TaskService")
+                return
+            except APIError as err:
+                error: Exception = err
+                if err.code not in _HEALABLE:
+                    break
+            except _TRANSPORT_ERRORS as err:
+                error = err
+            if time.monotonic() + wait > deadline or lost.wait(wait):
+                break
+            wait = min(2 * wait, _COMPLETE_MAX_WAIT)
+        _log.warning("the server did not take the result of task %s: %s", body["id"], error)
 
     def _call(self, d: _Delivery) -> tuple[str, str | None, bool]:
         fn = self._funcs.get(d.info.name)
@@ -195,6 +223,9 @@ class Worker:
                 cancelled = self._client._call("HeartbeatTask", body, service="TaskService").get("cancelled", False)
             except APIError as err:
                 cancelled = err.code == "failed_precondition"
+            except _TRANSPORT_ERRORS as err:
+                _log.debug("a heartbeat of task %s failed: %s", d.info.id, err)
+                continue  # A lost connection: try again at the next beat.
             if cancelled:
                 lost.set()
                 d.info.cancelled.set()

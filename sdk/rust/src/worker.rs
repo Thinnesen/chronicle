@@ -3,16 +3,22 @@
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-use crate::client::{ApiError, Client};
+use crate::client::{ApiError, Client, HEALABLE};
 
 /// The server answers a poll after at most 30 seconds.
 const POLL_TIMEOUT: Duration = Duration::from_secs(40);
+
+/// The limits of the retries of CompleteTask.
+const COMPLETE_FIRST_WAIT: Duration = Duration::from_millis(200);
+const COMPLETE_MAX_WAIT: Duration = Duration::from_secs(10);
+const COMPLETE_RETRY_FOR: Duration = Duration::from_secs(60);
 
 /// An error of a task function.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -225,52 +231,69 @@ impl Job {
             cancelled: cancelled.clone(),
         };
         let lease = text("lease");
-        let done = Arc::new(AtomicBool::new(false));
-        let beats = self.beat(&info.id, &lease, done.clone(), cancelled.clone());
+        // The heartbeats go on until the result is sent, so that the lease stays alive while CompleteTask is retried.
+        // Dropping stop_beats ends them.
+        let (stop_beats, beats) = self.beat(&info.id, &lease, cancelled.clone());
         let outcome = run_function(func, &text("inputJson"), &info);
-        done.store(true, Ordering::SeqCst);
-        let _ = beats.join();
-        if cancelled.load(Ordering::SeqCst) {
-            return; // The task was cancelled or the lease was lost: the server refuses a result.
-        }
-        let mut body = json!({"namespace": self.namespace, "id": info.id, "lease": lease});
-        match outcome {
-            Ok(v) => body["outputJson"] = Value::String(v.to_string()),
-            Err(TaskError::Retryable(m)) => {
-                body["error"] = m.into();
-                body["retryable"] = true.into();
+        // When the task was cancelled or the lease was lost, the server refuses a result.
+        if !cancelled.load(Ordering::SeqCst) {
+            let mut body = json!({"namespace": self.namespace, "id": info.id, "lease": lease});
+            match outcome {
+                Ok(v) => body["outputJson"] = Value::String(v.to_string()),
+                Err(TaskError::Retryable(m)) => {
+                    body["error"] = m.into();
+                    body["retryable"] = true.into();
+                }
+                Err(TaskError::Fatal(m)) => body["error"] = m.into(),
             }
-            Err(TaskError::Fatal(m)) => body["error"] = m.into(),
+            self.complete(body, &cancelled);
         }
-        // When the task timed out meanwhile, or the result is too large, the server refuses the result. The workflow
-        // handles the task; the worker reports it on stderr.
-        if let Err(err) = self.client.call("TaskService", "CompleteTask", body, None) {
-            eprintln!(
-                "chronicle: the server did not take the result of task {}: {err}",
-                info.id
-            );
+        drop(stop_beats);
+        let _ = beats.join();
+    }
+
+    /// Sends the result. It retries a transient error with a capped exponential backoff for up to 60 s, and stops
+    /// when the task is cancelled. When the task timed out meanwhile, or the result is too large, the server refuses
+    /// the result. The workflow handles the task; the worker reports it on stderr.
+    fn complete(&self, body: Value, cancelled: &AtomicBool) {
+        let deadline = Instant::now() + COMPLETE_RETRY_FOR;
+        let mut wait = COMPLETE_FIRST_WAIT;
+        loop {
+            let err = match self
+                .client
+                .call("TaskService", "CompleteTask", body.clone(), None)
+            {
+                Ok(_) => return,
+                Err(e) => e,
+            };
+            let retry = HEALABLE.contains(&err.code.as_str()) && Instant::now() + wait <= deadline;
+            if retry {
+                thread::sleep(wait);
+            }
+            if !retry || cancelled.load(Ordering::SeqCst) {
+                eprintln!(
+                    "chronicle: the server did not take the result of task {}: {err}",
+                    body["id"].as_str().unwrap_or_default()
+                );
+                return;
+            }
+            wait = (wait * 2).min(COMPLETE_MAX_WAIT);
         }
     }
 
+    /// Sends heartbeats in a thread until the returned sender is dropped.
     fn beat(
         &self,
         id: &str,
         lease: &str,
-        done: Arc<AtomicBool>,
         cancelled: Arc<AtomicBool>,
-    ) -> thread::JoinHandle<()> {
+    ) -> (mpsc::Sender<()>, thread::JoinHandle<()>) {
         let client = self.client.clone();
         let body = json!({"namespace": self.namespace, "id": id, "lease": lease});
         let every = self.heartbeat;
-        thread::spawn(move || {
-            let tick = Duration::from_millis(10).min(every);
-            let mut next = Instant::now() + every;
-            while !done.load(Ordering::SeqCst) {
-                thread::sleep(tick);
-                if Instant::now() < next {
-                    continue;
-                }
-                next = Instant::now() + every;
+        let (stop, stopped) = mpsc::channel();
+        let beats = thread::spawn(move || {
+            while let Err(RecvTimeoutError::Timeout) = stopped.recv_timeout(every) {
                 let stop = match client.call("TaskService", "HeartbeatTask", body.clone(), None) {
                     Ok(answer) => answer["cancelled"].as_bool().unwrap_or(false),
                     Err(e) => e.code == "failed_precondition",
@@ -280,7 +303,8 @@ impl Job {
                     return;
                 }
             }
-        })
+        });
+        (stop, beats)
     }
 }
 

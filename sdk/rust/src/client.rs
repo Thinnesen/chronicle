@@ -32,7 +32,13 @@ fn api_error(code: &str, message: impl fmt::Display) -> ApiError {
 }
 
 /// The API error codes that can go away by themselves, for example while the server restarts.
-const HEALABLE: [&str; 4] = ["unavailable", "unknown", "internal", "deadline_exceeded"];
+pub(crate) const HEALABLE: [&str; 5] = [
+    "unavailable",
+    "unknown",
+    "internal",
+    "deadline_exceeded",
+    "resource_exhausted",
+];
 
 fn read_token(path: &Path) -> Result<String, ApiError> {
     let token = std::fs::read_to_string(path)
