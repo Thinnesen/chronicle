@@ -20,8 +20,10 @@ type Plan struct {
 	Terminate []string
 	// Delete are the names of the finished runs to delete (history limits).
 	Delete []string
-	// Active are the runs that did not finish.
+	// Active are the scheduled runs that did not finish.
 	Active []v1alpha1.Workflow
+	// Backfills are the backfill runs that did not finish. The policy ignores them.
+	Backfills []v1alpha1.Workflow
 	// Next is the next schedule time.
 	Next time.Time
 }
@@ -35,12 +37,14 @@ func Decide(cw *v1alpha1.CronWorkflow, runs []v1alpha1.Workflow, now time.Time) 
 	p := Plan{Next: s.Next(now)}
 	var finished []v1alpha1.Workflow
 	for _, wf := range runs {
-		if wf.Labels[LabelBackfill] == "true" {
-			continue
-		}
-		if isFinished(wf.Status.Phase) {
+		switch {
+		case wf.Labels[LabelBackfill] == "true":
+			if !isFinished(wf.Status.Phase) {
+				p.Backfills = append(p.Backfills, wf)
+			}
+		case isFinished(wf.Status.Phase):
 			finished = append(finished, wf)
-		} else {
+		default:
 			p.Active = append(p.Active, wf)
 		}
 	}

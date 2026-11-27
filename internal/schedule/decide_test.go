@@ -35,6 +35,7 @@ func TestDecide(t *testing.T) {
 		skipped string
 		term    []string
 		del     []string
+		filling []string
 		next    time.Time
 	}{
 		{name: "not due yet", now: t0.Add(30 * time.Minute), next: t0.Add(time.Hour)},
@@ -56,10 +57,10 @@ func TestDecide(t *testing.T) {
 			run: new(t0.Add(time.Hour)), term: []string{"a"}, next: t0.Add(2 * time.Hour)},
 		{name: "backfill runs do not count as active", spec: func(s *v1alpha1.CronWorkflowSpec) { s.ConcurrencyPolicy = v1alpha1.ConcurrencyReplace },
 			runs: []v1alpha1.Workflow{backfill(run("b", v1alpha1.WorkflowRunning, t0))}, now: t0.Add(61 * time.Minute),
-			run: new(t0.Add(time.Hour)), next: t0.Add(2 * time.Hour)},
+			run: new(t0.Add(time.Hour)), filling: []string{"b"}, next: t0.Add(2 * time.Hour)},
 		{name: "backfill runs do not block a forbid", spec: func(s *v1alpha1.CronWorkflowSpec) { s.ConcurrencyPolicy = v1alpha1.ConcurrencyForbid },
 			runs: []v1alpha1.Workflow{backfill(run("b", v1alpha1.WorkflowRunning, t0))}, now: t0.Add(61 * time.Minute),
-			run: new(t0.Add(time.Hour)), next: t0.Add(2 * time.Hour)},
+			run: new(t0.Add(time.Hour)), filling: []string{"b"}, next: t0.Add(2 * time.Hour)},
 		{name: "backfill runs are outside the history", spec: func(s *v1alpha1.CronWorkflowSpec) { s.FailedJobsHistoryLimit = ptr.To[int32](0) },
 			runs: []v1alpha1.Workflow{backfill(run("b", v1alpha1.WorkflowFailed, t0)), run("f", v1alpha1.WorkflowFailed, t0)},
 			now:  t0.Add(30 * time.Minute), del: []string{"f"}, next: t0.Add(time.Hour)},
@@ -93,6 +94,13 @@ func TestDecide(t *testing.T) {
 			}
 			if !reflect.DeepEqual(p.Terminate, tt.term) || !reflect.DeepEqual(p.Delete, tt.del) {
 				t.Errorf("terminate %v, delete %v", p.Terminate, p.Delete)
+			}
+			var filling []string
+			for _, wf := range p.Backfills {
+				filling = append(filling, wf.Name)
+			}
+			if !reflect.DeepEqual(filling, tt.filling) {
+				t.Errorf("active backfills %v", filling)
 			}
 			if !p.Next.Equal(tt.next) {
 				t.Errorf("next = %v, want %v", p.Next, tt.next)

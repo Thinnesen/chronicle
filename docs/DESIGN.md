@@ -87,7 +87,7 @@ Validation: CEL rules and a validating webhook for the DAG (no cycles, known tem
 
 - The controller reconciles and requeues at the next schedule time, as the Kubernetes CronJob does. A run has the name `<cron>-<unix time>`. So a second create of the same run fails, and a restart loses no run.
 - After a long outage, only the latest missed time runs. This also holds when many times were missed.
-- A backfill starts the runs of past schedule times. These runs have the label `chronicle.thinnesen.com/backfill`, and the concurrency policy and the history limits ignore them.
+- A backfill starts the runs of past schedule times. These runs have the label `chronicle.thinnesen.com/backfill`, and the concurrency policy and the history limits ignore them. The active runs in the status include them.
 - Replace sets `shutdown: Terminate` on the active runs, so their history stays.
 - The pure package `internal/schedule` decides; the controller applies the plan.
 
