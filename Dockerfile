@@ -4,7 +4,7 @@ ARG BASE_IMAGE=golang:1.27.3@sha256:f20d83a83e18dbd2a4714b8ffd4b30b287b6243962dd
 
 # Build the web UI. The pnpm settings block install scripts and new releases. The build stages run on the platform of
 # the build machine and cross-compile, so a multi-platform build needs no emulation.
-FROM --platform=$BUILDPLATFORM node:26.12.0-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS ui
+FROM --platform=$BUILDPLATFORM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS ui
 WORKDIR /ui
 RUN npm install --global --ignore-scripts pnpm@12.6.0
 COPY ui/package.json ui/pnpm-lock.yaml ui/pnpm-workspace.yaml ./
@@ -39,7 +39,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpat
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3
+FROM gcr.io/distroless/static:nonroot@sha256:8ce6dd87e9823c5b48dcfb2c8604714ccb351ce59607327bcc4957448da279b5
 WORKDIR /
 COPY --from=builder /workspace/manager .
 # Workflow Pods copy chronicle-exec from this image in their init container.
