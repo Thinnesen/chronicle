@@ -2,12 +2,18 @@ resources:
 - manager.yaml
 replacements:
 - source:
+    fieldPath: spec.template.spec.containers.[name=manager].image
     kind: Deployment
     name: controller-manager
-    fieldPath: spec.template.spec.containers.[name=manager].image
   targets:
-  - select:
+  - fieldPaths:
+    - spec.template.spec.containers.[name=manager].env.[name=CHRONICLE_EXECUTOR_IMAGE].value
+    select:
       kind: Deployment
       name: controller-manager
-    fieldPaths:
-    - spec.template.spec.containers.[name=manager].env.[name=CHRONICLE_EXECUTOR_IMAGE].value
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: example.com/chronicle
+  newTag: v0.0.1
