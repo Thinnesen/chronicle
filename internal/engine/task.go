@@ -25,7 +25,9 @@ type TaskResult struct {
 	Phase   v1alpha1.NodePhase
 	Message string
 	// Output is the JSON result of a succeeded task.
-	Output     string
+	Output string
+	// EnqueuedAt is the time the task entered the queue. StartedAt is the time a worker took it.
+	EnqueuedAt metav1.Time
 	StartedAt  *metav1.Time
 	FinishedAt *metav1.Time
 	// HeartbeatAt is the time of the last heartbeat of the worker.
@@ -89,7 +91,7 @@ const defaultHeartbeatTimeout = time.Minute
 func (e *engine) watchTask(t *v1alpha1.Template, n *v1alpha1.NodeStatus, task TaskResult) {
 	spec := t.Task
 	if task.Phase == v1alpha1.NodePending {
-		if d := spec.ScheduleToStartTimeout; d != nil && e.reached(n.StartedAt.Add(d.Duration)) {
+		if d := spec.ScheduleToStartTimeout; d != nil && e.reached(task.EnqueuedAt.Add(d.Duration)) {
 			e.failTask(n, fmt.Sprintf("no worker took the task in %s", d.Duration))
 			return
 		}

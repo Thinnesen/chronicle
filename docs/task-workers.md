@@ -20,13 +20,17 @@ The worker is a library call in your program, not a separate tool. Add the SDK t
   retryStrategy:
     limit: 3
     backoff: {duration: 10s, factor: 2}
-  timeout: 5m              # start-to-close: one attempt can run 5 minutes
+  timeout: 5m              # start-to-close: one attempt can run 5 minutes after a worker takes it
   task:
     name: send-mail        # the task type that a worker registers
     queue: mail            # optional, the default is "default"
     heartbeatTimeout: 30s  # optional: fail the attempt when the worker is silent for 30 s (default 1m)
     scheduleToStartTimeout: 10m  # optional: fail the attempt when no worker takes it in 10 min
 ```
+
+- The `timeout` starts when a worker takes the task. The time in the queue does not count.
+- The `scheduleToStartTimeout` starts when the task enters the queue. The time that the node waits for a lock does not count.
+- So no task timeout limits the wait for a lock. Set `activeDeadlineSeconds` on the run to limit it.
 
 - The worker gets the input parameters as a JSON object of strings.
 - The result must be JSON. It becomes `outputs.result`. The fields of a result object become the output parameters with the same names. A result can have at most 64 KiB. A larger result fails the task, and the worker logs the refusal.
