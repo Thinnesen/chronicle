@@ -159,8 +159,38 @@ func (w *Worker) handle(ctx context.Context, t *chroniclev1.Task) {
 	})
 	// The result goes out also when the worker stops, so that the task does not wait for a timeout. A refused result
 	// (for example a result that is too large, or a task that timed out) is logged; the workflow handles the task.
-	if _, err := w.client.Tasks.CompleteTask(context.WithoutCancel(ctx), req); err != nil {
+	if err := w.complete(ctx, req); err != nil {
 		slog.Warn("chronicle: the server did not take the result of the task", "task", t.Id, "error", err)
+	}
+}
+
+// The limits of the retries of CompleteTask.
+const (
+	completeFirstWait = 200 * time.Millisecond
+	completeMaxWait   = 10 * time.Second
+	completeRetryFor  = time.Minute
+)
+
+// complete sends the result. It retries a transient error with a capped exponential backoff for up to
+// completeRetryFor. The heartbeats keep the lease in that time. It stops when ctx ends: then the task
+// was cancelled, the lease was lost or the worker stopped.
+func (w *Worker) complete(ctx context.Context, req *connect.Request[chroniclev1.CompleteTaskRequest]) error {
+	send, stop := context.WithTimeout(context.WithoutCancel(ctx), completeRetryFor)
+	defer stop()
+	wait := completeFirstWait
+	for {
+		_, err := w.client.Tasks.CompleteTask(send, req)
+		if err == nil || !healable(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-send.Done():
+			return err
+		case <-time.After(wait):
+		}
+		wait = min(2*wait, completeMaxWait)
 	}
 }
 

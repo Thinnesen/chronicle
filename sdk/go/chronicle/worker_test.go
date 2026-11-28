@@ -22,6 +22,9 @@ type taskStub struct {
 	tasks   []*chroniclev1.Task
 	results map[string]*chroniclev1.CompleteTaskRequest
 	cancel  map[string]bool
+	// refuse has, for each task, the codes that CompleteTask returns before it takes the result.
+	refuse map[string][]connect.Code
+	calls  map[string]int
 }
 
 type (
@@ -53,7 +56,15 @@ func (s *taskStub) HeartbeatTask(_ context.Context, r *beatReq) (*beatResp, erro
 func (s *taskStub) CompleteTask(_ context.Context, r *doneReq) (*doneResp, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.results[r.Msg.Id] = r.Msg
+	id := r.Msg.Id
+	if s.calls != nil {
+		s.calls[id]++
+	}
+	if codes := s.refuse[id]; len(codes) > 0 {
+		s.refuse[id] = codes[1:]
+		return nil, connect.NewError(codes[0], errors.New("refused"))
+	}
+	s.results[id] = r.Msg
 	return connect.NewResponse(&chroniclev1.CompleteTaskResponse{}), nil
 }
 
@@ -61,6 +72,50 @@ func (s *taskStub) result(id string) *chroniclev1.CompleteTaskRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.results[id]
+}
+
+// TestWorkerCompleteRetry checks that a transient error of CompleteTask is retried and a permanent error is not.
+func TestWorkerCompleteRetry(t *testing.T) {
+	stub := &taskStub{
+		tasks: []*chroniclev1.Task{
+			{Id: "flaky", Name: "greet", InputJson: "{}", Lease: "l"},
+			{Id: "lost", Name: "greet", InputJson: "{}", Lease: "l"},
+		},
+		results: map[string]*chroniclev1.CompleteTaskRequest{},
+		refuse: map[string][]connect.Code{
+			"flaky": {connect.CodeUnavailable, connect.CodeResourceExhausted},
+			"lost":  {connect.CodeFailedPrecondition, connect.CodeFailedPrecondition},
+		},
+		calls: map[string]int{},
+	}
+	mux := http.NewServeMux()
+	mux.Handle(chroniclev1connect.NewTaskServiceHandler(stub))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	client, err := NewClient(srv.URL, "tok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := NewWorker(client, "team-a", WorkerOptions{Concurrency: 2, GracePeriod: 5 * time.Second})
+	w.Register("greet", func(context.Context, TaskInfo, map[string]string) (any, error) { return "hi", nil })
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan error)
+	go func() { done <- w.Run(ctx) }()
+	for start := time.Now(); stub.result("flaky") == nil && time.Since(start) < 5*time.Second; {
+		time.Sleep(10 * time.Millisecond)
+	}
+	stop()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	stub.mu.Lock()
+	defer stub.mu.Unlock()
+	if r := stub.results["flaky"]; r == nil || r.OutputJson != `"hi"` || stub.calls["flaky"] != 3 {
+		t.Errorf("flaky: result %+v after %d calls, want the result after 3 calls", r, stub.calls["flaky"])
+	}
+	if stub.calls["lost"] != 1 {
+		t.Errorf("lost: %d calls, want 1", stub.calls["lost"])
+	}
 }
 
 // TestWorker runs four tasks: a result, a retryable error, a final error and a panic.

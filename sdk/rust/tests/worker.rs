@@ -14,11 +14,18 @@ use serde_json::{Value, json};
 struct Queue {
     tasks: Vec<Value>,
     results: HashMap<String, Value>,
+    /// The answers, with their HTTP status, that a method gives before its normal answers.
+    script: HashMap<String, Vec<(u16, Value)>>,
+    calls: HashMap<String, usize>,
 }
 
-fn answer(queue: &Mutex<Queue>, method: &str, body: &Value) -> Value {
+fn answer(queue: &Mutex<Queue>, method: &str, body: &Value) -> (u16, Value) {
     let mut q = queue.lock().unwrap();
-    match method {
+    *q.calls.entry(method.into()).or_default() += 1;
+    if let Some(next) = q.script.get_mut(method).filter(|s| !s.is_empty()) {
+        return next.remove(0);
+    }
+    let out = match method {
         "PollTask" if q.tasks.is_empty() => json!({}),
         "PollTask" => json!({"task": q.tasks.remove(0)}),
         "HeartbeatTask" => json!({"cancelled": body["id"] == "slow"}),
@@ -27,7 +34,8 @@ fn answer(queue: &Mutex<Queue>, method: &str, body: &Value) -> Value {
                 .insert(body["id"].as_str().unwrap().into(), body.clone());
             json!({})
         }
-    }
+    };
+    (200, out)
 }
 
 fn serve_one(mut stream: TcpStream, queue: &Mutex<Queue>) {
@@ -55,12 +63,87 @@ fn serve_one(mut stream: TcpStream, queue: &Mutex<Queue>) {
     }
     let mut body = vec![0; length];
     reader.read_exact(&mut body).unwrap();
-    let out = answer(queue, &method, &serde_json::from_slice(&body).unwrap()).to_string();
+    let (status, out) = answer(queue, &method, &serde_json::from_slice(&body).unwrap());
+    let out = out.to_string();
     let resp = format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{out}",
+        "HTTP/1.1 {status} X\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{out}",
         out.len()
     );
     stream.write_all(resp.as_bytes()).unwrap();
+}
+
+/// Serves queue on a free port and returns its URL.
+fn serve(queue: Arc<Mutex<Queue>>) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            let q = queue.clone();
+            thread::spawn(move || serve_one(stream.unwrap(), &q));
+        }
+    });
+    url
+}
+
+/// Runs one task "t" against a server that gives the scripted answers of CompleteTask first.
+/// It returns the queue when the worker is done with the task, or after 5 seconds.
+fn complete_with(script: Vec<(u16, Value)>) -> Arc<Mutex<Queue>> {
+    let queue = Arc::new(Mutex::new(Queue {
+        tasks: vec![json!({"id": "t", "name": "greet", "inputJson": "{}", "lease": "l"})],
+        script: HashMap::from([("CompleteTask".to_string(), script)]),
+        ..Default::default()
+    }));
+    let mut worker = Worker::new(Client::new(&serve(queue.clone()), "tok").unwrap(), "team-a")
+        .grace_period(Duration::from_secs(5));
+    worker.register("greet", |_, _| Ok(json!({"ok": "yes"})));
+    let stop = Arc::new(AtomicBool::new(false));
+    let s = stop.clone();
+    let runner = thread::spawn(move || worker.run(&s));
+    let start = Instant::now();
+    // With one slot, the second poll comes only after the task is done.
+    let polls = || queue.lock().unwrap().calls.get("PollTask").copied();
+    while polls() < Some(2) && start.elapsed() < Duration::from_secs(5) {
+        thread::sleep(Duration::from_millis(10));
+    }
+    stop.store(true, Ordering::SeqCst);
+    runner.join().unwrap().unwrap();
+    queue
+}
+
+#[test]
+fn complete_task_retries_a_transient_error() {
+    let queue = complete_with(vec![
+        (
+            503,
+            json!({"code": "unavailable", "message": "the server restarts"}),
+        ),
+        (
+            429,
+            json!({"code": "resource_exhausted", "message": "slow down"}),
+        ),
+    ]);
+    let q = queue.lock().unwrap();
+    assert_eq!(q.results["t"]["outputJson"], "{\"ok\":\"yes\"}");
+    assert_eq!(q.calls["CompleteTask"], 3);
+}
+
+#[test]
+fn complete_task_does_not_retry_a_permanent_error() {
+    let lost = (
+        400,
+        json!({"code": "failed_precondition", "message": "the lease is lost"}),
+    );
+    let queue = complete_with(vec![lost.clone(), lost]);
+    let q = queue.lock().unwrap();
+    assert_eq!(q.calls["CompleteTask"], 1);
+}
+
+#[test]
+fn complete_task_does_not_retry_a_plain_401() {
+    let denied = (401, json!("Unauthorized"));
+    let queue = complete_with(vec![denied.clone(), denied]);
+    let q = queue.lock().unwrap();
+    assert_eq!(q.calls["CompleteTask"], 1);
 }
 
 #[test]
@@ -73,15 +156,7 @@ fn runs_tasks_and_honours_cancel() {
             .collect(),
         ..Default::default()
     }));
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let url = format!("http://{}", listener.local_addr().unwrap());
-    let q = queue.clone();
-    thread::spawn(move || {
-        for stream in listener.incoming() {
-            let q = q.clone();
-            thread::spawn(move || serve_one(stream.unwrap(), &q));
-        }
-    });
+    let url = serve(queue.clone());
 
     let mut worker = Worker::new(Client::new(&url, "tok").unwrap(), "team-a")
         .concurrency(5)

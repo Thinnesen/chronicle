@@ -126,7 +126,8 @@ func (c *Client) Wait(ctx context.Context, namespace, name string, every time.Du
 // healable tells if an API error can go away by itself.
 func healable(err error) bool {
 	switch connect.CodeOf(err) {
-	case connect.CodeUnavailable, connect.CodeUnknown, connect.CodeInternal, connect.CodeDeadlineExceeded:
+	case connect.CodeUnavailable, connect.CodeUnknown, connect.CodeInternal, connect.CodeDeadlineExceeded,
+		connect.CodeResourceExhausted:
 		return true
 	}
 	return false

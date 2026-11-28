@@ -38,12 +38,83 @@ class _Queue:
             return {}
 
 
+# _DROP is an answer of a fake server: it closes the connection and sends nothing.
+_DROP = object()
+
+
+class _Unreliable(_Queue):
+    """A fake TaskService with one task. It gives the answers in script before the normal answers."""
+
+    def __init__(self, script: dict[str, list]) -> None:
+        super().__init__()
+        self.tasks = [{"id": "t", "name": "greet", "inputJson": "{}", "lease": "l"}]
+        self.script = script
+        self.calls: dict[str, int] = {}
+
+    def handle(self, method: str, body: dict):
+        with self.lock:
+            self.calls[method] = self.calls.get(method, 0) + 1
+            if self.script.get(method):
+                return self.script[method].pop(0)
+        return super().handle(method, body)
+
+
+def _run_one(queue: _Unreliable, fn, until) -> None:
+    """Run a worker with fn for the task "greet" until the condition until is true, for at most 10 seconds."""
+    server = _serve(queue)
+    client = chronicle.Client(f"http://127.0.0.1:{server.server_port}", "tok", timeout=2)
+    worker = chronicle.Worker(client, "team-a", heartbeat=0.05, grace_period=5)
+    worker.task("greet")(fn)
+    stop = threading.Event()
+    runner = threading.Thread(target=worker.run, args=(stop,))
+    runner.start()
+    deadline = time.monotonic() + 10
+    while not until() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    stop.set()
+    runner.join(10)
+    server.shutdown()
+
+
+def test_complete_task_retries_a_transient_error():
+    unavailable = (503, {"code": "unavailable", "message": "the server restarts"})
+    queue = _Unreliable({"CompleteTask": [(503, None), unavailable, _DROP]})
+    _run_one(queue, lambda data, task: {"ok": "yes"}, lambda: "t" in queue.results)
+    assert json.loads(queue.results["t"]["outputJson"]) == {"ok": "yes"}
+    assert queue.calls["CompleteTask"] == 4
+
+
+def test_complete_task_does_not_retry_a_permanent_error():
+    lost = (400, {"code": "failed_precondition", "message": "the lease is lost"})
+    queue = _Unreliable({"CompleteTask": [lost, lost]})
+    _run_one(queue, lambda data, task: {}, lambda: queue.calls.get("CompleteTask"))
+    assert queue.calls["CompleteTask"] == 1
+
+
+def test_heartbeats_survive_a_lost_connection():
+    queue = _Unreliable({"HeartbeatTask": [_DROP]})
+
+    def greet(data, task):
+        deadline = time.monotonic() + 5
+        while queue.calls.get("HeartbeatTask", 0) < 3 and time.monotonic() < deadline:
+            time.sleep(0.02)
+        return {}
+
+    _run_one(queue, greet, lambda: "t" in queue.results)
+    assert queue.calls["HeartbeatTask"] >= 3
+
+
 def _serve(queue: _Queue) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            data = json.dumps(queue.handle(self.path.rsplit("/", 1)[1], body)).encode()
-            self.send_response(200)
+            answer = queue.handle(self.path.rsplit("/", 1)[1], body)
+            if answer is _DROP:
+                self.close_connection = True  # No answer: the client sees a lost connection.
+                return
+            status, answer = answer if isinstance(answer, tuple) else (200, answer)
+            data = b"" if answer is None else json.dumps(answer).encode()
+            self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()

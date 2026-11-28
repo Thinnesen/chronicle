@@ -17,7 +17,20 @@ _PREFIX = "/chronicle.v1."
 
 
 # _HEALABLE are the API error codes that can go away by themselves, for example while the server restarts.
-_HEALABLE = frozenset({"unavailable", "unknown", "internal", "deadline_exceeded"})
+_HEALABLE = frozenset({"unavailable", "unknown", "internal", "deadline_exceeded", "resource_exhausted"})
+
+# _HTTP_CODES maps an HTTP status to a Connect code, for an answer without a Connect error, for example from a proxy.
+# Other statuses map to "unknown", as in the Connect protocol.
+_HTTP_CODES = {
+    400: "internal",
+    401: "unauthenticated",
+    403: "permission_denied",
+    404: "unimplemented",
+    429: "unavailable",
+    502: "unavailable",
+    503: "unavailable",
+    504: "unavailable",
+}
 
 
 def _read_token(path: Path) -> str:
@@ -126,4 +139,5 @@ class Client:
                 detail = json.load(err)
             except ValueError:
                 detail = {}
-            raise APIError(detail.get("code", str(err.code)), detail.get("message", err.reason)) from None
+            code = detail.get("code") or _HTTP_CODES.get(err.code, "unknown")
+            raise APIError(code, detail.get("message", err.reason)) from None
