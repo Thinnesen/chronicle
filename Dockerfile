@@ -43,8 +43,8 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpat
 FROM gcr.io/distroless/static:nonroot@sha256:8ce6dd87e9823c5b48dcfb2c8604714ccb351ce59607327bcc4957448da279b5
 WORKDIR /
 COPY --from=builder /workspace/manager .
-# Workflow Pods run chronicle-exec from an image volume of this image. With executorImageVolume false, an init
-# container copies it.
+# Workflow Pods run chronicle-exec from an image volume of this image. With executorImageVolume false, or for a step
+# with input artifacts, an init container copies it.
 COPY --from=builder /workspace/chronicle-exec /chronicle-exec
 COPY --from=builder /workspace/chronicle-server /chronicle-server
 USER 65532:65532
