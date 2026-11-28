@@ -33,16 +33,18 @@ COPY --from=ui /ui/dist ui/dist
 # was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
 # the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -o manager cmd/main.go && \
-    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -o chronicle-exec ./cmd/chronicle-exec && \
-    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -tags ui -o chronicle-server ./cmd/chronicle-server
+# -s -w removes the symbol table and DWARF data. This halves the binaries. Panics still show stack traces.
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o manager cmd/main.go && \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o chronicle-exec ./cmd/chronicle-exec && \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -tags ui -o chronicle-server ./cmd/chronicle-server
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot@sha256:8ce6dd87e9823c5b48dcfb2c8604714ccb351ce59607327bcc4957448da279b5
 WORKDIR /
 COPY --from=builder /workspace/manager .
-# Workflow Pods copy chronicle-exec from this image in their init container.
+# Workflow Pods run chronicle-exec from an image volume of this image. With executorImageVolume false, an init
+# container copies it.
 COPY --from=builder /workspace/chronicle-exec /chronicle-exec
 COPY --from=builder /workspace/chronicle-server /chronicle-server
 USER 65532:65532
