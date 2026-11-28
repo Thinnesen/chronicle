@@ -21,6 +21,7 @@ type TaskQueue interface {
 	Enqueue(ctx context.Context, t archive.NewTask) error
 	Cancel(ctx context.Context, id, reason string) error
 	ForWorkflow(ctx context.Context, workflowUID string) ([]archive.Task, error)
+	CancelRun(ctx context.Context, workflowUID, reason string) error
 }
 
 // TaskEvents tells when a task of a run has a result, so that the run goes on at once. The archive database
