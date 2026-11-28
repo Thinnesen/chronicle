@@ -380,8 +380,9 @@ func (f *fakeArchive) Save(_ context.Context, _ *chroniclev1alpha1.Workflow, don
 
 // fakeQueue records the enqueued tasks and returns the tasks that a test sets.
 type fakeQueue struct {
-	added []archive.NewTask
-	tasks []archive.Task
+	added     []archive.NewTask
+	tasks     []archive.Task
+	cancelled []string
 }
 
 func (q *fakeQueue) Enqueue(_ context.Context, t archive.NewTask) error {
@@ -392,3 +393,8 @@ func (q *fakeQueue) Enqueue(_ context.Context, t archive.NewTask) error {
 func (q *fakeQueue) Cancel(context.Context, string, string) error { return nil }
 
 func (q *fakeQueue) ForWorkflow(context.Context, string) ([]archive.Task, error) { return q.tasks, nil }
+
+func (q *fakeQueue) CancelRun(_ context.Context, workflowUID, reason string) error {
+	q.cancelled = append(q.cancelled, workflowUID+": "+reason)
+	return nil
+}
