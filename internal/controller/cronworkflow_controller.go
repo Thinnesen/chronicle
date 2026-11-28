@@ -62,7 +62,7 @@ func (r *CronWorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, r.setReady(ctx, &cw, metav1.ConditionFalse, "InvalidSchedule", err.Error())
 	}
 	plan.Delete = archivedOnly(runs, plan.Delete, r.Archive)
-	if err := r.apply(ctx, &cw, plan); err != nil {
+	if err := r.apply(ctx, &cw, runs, plan); err != nil {
 		return ctrl.Result{}, err
 	}
 	old := cw.Status.DeepCopy()
@@ -115,11 +115,19 @@ func archivedOnly(runs []chroniclev1alpha1.Workflow, names []string, archive boo
 }
 
 // apply deletes old runs, terminates replaced runs and creates the due run.
-func (r *CronWorkflowReconciler) apply(ctx context.Context, cw *chroniclev1alpha1.CronWorkflow, plan schedule.Plan) error {
+func (r *CronWorkflowReconciler) apply(ctx context.Context, cw *chroniclev1alpha1.CronWorkflow, runs []chroniclev1alpha1.Workflow, plan schedule.Plan) error {
 	log := logf.FromContext(ctx)
+	read := map[string]*chroniclev1alpha1.Workflow{}
+	for i := range runs {
+		read[runs[i].Name] = &runs[i]
+	}
 	for _, name := range plan.Delete {
-		wf := &chroniclev1alpha1.Workflow{Name: name, Namespace: cw.Namespace}
-		if err := r.Delete(ctx, wf, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+		wf, ok := read[name]
+		if !ok {
+			continue
+		}
+		// A run that changed since the read is kept. A later reconcile decides again with the new run.
+		if err := deleteRun(ctx, r.Client, wf); err != nil && !apierrors.IsConflict(err) {
 			return fmt.Errorf("delete the old run %s: %w", name, err)
 		}
 	}
