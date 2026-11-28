@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,8 +64,18 @@ func (r *WorkflowReconciler) applyTTL(ctx context.Context, wf *chroniclev1alpha1
 		return result, nil
 	}
 	logf.FromContext(ctx).Info("Deleting the workflow after its TTL")
-	if err := r.Delete(ctx, wf, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+	if err := deleteRun(ctx, r.Client, wf); apierrors.IsConflict(err) {
+		// The cache had an old run, for example before a retry. Run again with the new one.
+		return ctrl.Result{RequeueAfter: time.Second}, nil
+	} else if err != nil {
 		return ctrl.Result{}, fmt.Errorf("delete the workflow after its TTL: %w", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+// deleteRun deletes wf only if its UID and resourceVersion did not change since the read. Then the delete cannot
+// remove a run that changed after the decision, such as a retried run. A run that is gone is not an error.
+func deleteRun(ctx context.Context, c client.Client, wf *chroniclev1alpha1.Workflow) error {
+	pre := client.Preconditions{UID: &wf.UID, ResourceVersion: &wf.ResourceVersion}
+	return client.IgnoreNotFound(c.Delete(ctx, wf, pre, client.PropagationPolicy(metav1.DeletePropagationBackground)))
 }
