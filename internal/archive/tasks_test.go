@@ -114,8 +114,6 @@ func checkList(t *testing.T, s *Store, states []string, want int) {
 	}
 }
 
-// TestOpenRuns lists each run with a pending or a running task one time, and CancelRun cancels only the open tasks
-// of one run.
 // TestPollNames covers a poll for more than one name. The worker gets the oldest task of all its names.
 func TestPollNames(t *testing.T) {
 	s := openTest(t)
@@ -142,6 +140,8 @@ func TestPollNames(t *testing.T) {
 	}
 }
 
+// TestOpenRuns lists each run with a pending or a running task one time, and CancelRun cancels only the open tasks
+// of one run.
 func TestOpenRuns(t *testing.T) {
 	s := openTest(t)
 	ctx := context.Background()
